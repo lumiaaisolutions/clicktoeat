@@ -1,0 +1,164 @@
+# Documentación de ClickToEat
+
+Documentación viva del proyecto. **Regla**: cada tema vive en su propio `.md` dentro de la carpeta temática correspondiente — no se consolidan temas distintos en un solo archivo.
+
+> Última verificación contra código: 2026-06-10.
+
+---
+
+## Por dónde empezar
+
+- ¿Primer contacto? → [`architecture/overview.md`](architecture/overview.md)
+- ¿Vas a levantar el proyecto? → [`infra/local-setup.md`](infra/local-setup.md) (Docker) o [`infra/wamp-native.md`](infra/wamp-native.md) (nativo)
+- ¿Vas a tocar la API? → [`api/overview.md`](api/overview.md) + [`api/conventions.md`](api/conventions.md)
+- ¿Vas a tocar la BD? → [`database/schema.md`](database/schema.md)
+- ¿Vas a agregar un feature? → [`contributing/how-to-add-feature.md`](contributing/how-to-add-feature.md)
+
+---
+
+## Índice
+
+### Arquitectura
+- [Overview](architecture/overview.md) — qué es ClickToEat y cómo encajan las piezas.
+- [Monorepo](architecture/monorepo.md) — layout del repo, qué vive dónde.
+- [Stack](architecture/stack.md) — versiones de runtime, librerías y dependencias.
+- [Multi-tenancy](architecture/multi-tenancy.md) — cómo se aísla cada local en una sola BD.
+- [Auth y roles](architecture/auth-roles.md) — Sanctum, abilities, super_admin / owner / staff.
+- [Ciclo de petición](architecture/request-lifecycle.md) — middleware, tenant scope, policies.
+
+### Base de datos
+- [Esquema (todas las tablas)](database/schema.md)
+- [Relaciones y FKs](database/relationships.md)
+- [Migraciones](database/migrations.md)
+- [Seeders](database/seeders.md)
+- [ERD textual](database/erd.md)
+
+### API
+- [Overview y convenciones](api/overview.md)
+- [Convenciones de respuesta y paginación](api/conventions.md)
+- [Endpoints públicos](api/public.md)
+- [Endpoints de autenticación](api/auth.md)
+- [Endpoints tenant-scoped](api/tenant.md)
+- [Endpoints super_admin](api/admin.md)
+- [Errores y códigos HTTP](api/errors.md)
+- [Rate limiting](api/rate-limits.md)
+- [Form Requests (validación)](api/form-requests.md)
+- [Resources (forma de respuesta)](api/resources.md)
+- [Policies (autorización)](api/policies.md)
+- [Snapshot OpenAPI (política y procedimiento)](api/openapi-snapshot.md)
+- [Colección HTTP (VS Code REST Client / JetBrains)](api/http-requests/README.md)
+
+### Features
+- [Pedidos (flujo + máquina de estados)](features/pedidos.md)
+- [POS interno (sucursal)](features/pos.md)
+- [Inventario (ingredientes + movimientos)](features/inventario.md)
+- [Recetas (incluye productos compuestos)](features/recetas.md)
+- [Compras a proveedor (promedio ponderado)](features/compras.md)
+- [Métricas / KPIs](features/metricas.md)
+- [Horarios y estado del local](features/horarios.md)
+- [WhatsApp (formato de mensaje)](features/whatsapp.md)
+- [Notificaciones in-app](features/notificaciones.md)
+- [Uploads de imágenes](features/uploads.md)
+- [Branding / personalización](features/branding.md)
+- [QR del menú](features/qr.md)
+
+### Modelos
+- [Local](models/local.md)
+- [User](models/user.md)
+- [Categoria](models/categoria.md)
+- [Producto](models/producto.md)
+- [Pedido](models/pedido.md)
+- [DetallePedido](models/detalle-pedido.md)
+- [Ingrediente](models/ingrediente.md)
+- [Receta](models/receta.md)
+- [MovimientoInventario](models/movimiento-inventario.md)
+- [Compra](models/compra.md)
+- [DetalleCompra](models/detalle-compra.md)
+- [Notificacion](models/notificacion.md)
+
+### Frontend
+- [Overview](frontend/overview.md)
+- [Routing y páginas](frontend/routing.md)
+- [Stores Zustand](frontend/stores.md)
+- [Componentes UI](frontend/components.md)
+- [Landing pública](frontend/landing.md)
+- [Panel de admin](frontend/admin.md)
+
+### Infra / DevOps
+- [Docker Compose](infra/docker.md)
+- [nginx](infra/nginx.md)
+- [Variables de entorno](infra/env-vars.md)
+- [Setup local (Docker)](infra/local-setup.md)
+- [Setup nativo (WAMP)](infra/wamp-native.md)
+- [Despliegue — overview](infra/deploy.md)
+- [Despliegue a Hostinger (prod actual)](infra/deploy-hostinger.md)
+
+### Tests
+- [Estrategia general](testing/overview.md)
+- [Suites PHPUnit](testing/suites.md)
+
+### Issues conocidos / lo que falta
+- [Discrepancias README vs código](issues/discrepancias-readme.md)
+- [Funcionalidad faltante](issues/funcionalidad-faltante.md)
+- [DevOps faltante](issues/devops-faltante.md)
+- [Documentación faltante](issues/docs-faltante.md)
+- [Roadmap actualizado](issues/roadmap.md)
+
+### Contribución
+- [Convenciones generales](contributing/conventions.md)
+- [Estilo PHP / Laravel](contributing/style-php.md)
+- [Estilo TS / React](contributing/style-ts.md)
+- [Git flow](contributing/git-flow.md)
+- [Cómo agregar un feature](contributing/how-to-add-feature.md)
+- [CI/CD — GitHub Actions](contributing/ci-cd.md)
+- [Pre-commit hooks (opcional)](contributing/pre-commit.md)
+
+### Decisiones de arquitectura (ADRs)
+- [Plantilla](decisions/ADR-template.md)
+- [ADR-001: Multi-tenancy con scope por columna](decisions/ADR-001-single-db-tenancy.md)
+- [ADR-002: Sanctum bearer tokens (no SPA-stateful)](decisions/ADR-002-bearer-tokens-sanctum.md)
+- [ADR-003: snake_case interno, camelCase en menú público](decisions/ADR-003-snake-vs-camelcase-en-api.md)
+- [ADR-004: Snapshot de producto en `detalle_pedidos`](decisions/ADR-004-snapshot-en-detalle-pedidos.md)
+- [ADR-005: Recetas XOR + productos compuestos](decisions/ADR-005-recetas-xor-y-productos-compuestos.md)
+- [ADR-006: Uploads a disco local (interim)](decisions/ADR-006-uploads-locales-interim.md)
+- [ADR-007: Polling cada 30s para notificaciones (interim)](decisions/ADR-007-polling-notificaciones-interim.md)
+
+### Runbooks
+- [Rotar `APP_KEY`](runbook/rotar-app-key.md)
+- [Renombrar BD `clickeat` → `clicktoeat`](runbook/rename-db-clickeat-a-clicktoeat.md)
+- [Sincronizar `composer.lock` tras quitar Spatie](runbook/sincronizar-composer-lock.md)
+- [BD MySQL con disco lleno](runbook/bd-llena.md)
+- [Crash de php-fpm](runbook/php-fpm-crash.md)
+- [Restaurar backup MySQL](runbook/restaurar-backup-mysql.md)
+- [Backup MySQL automatizado — diseño](runbook/backup-mysql-automatizado.md)
+- [Postmortems — índice + template](runbook/postmortems/README.md)
+- [Drills — índice + template](runbook/drills/README.md)
+
+### Security
+- [Overview](security/README.md)
+- [Threat model](security/threat-model.md)
+- [Inventario de datos personales (PII)](security/data-inventory.md)
+- [Incident response](security/incident-response.md)
+- [Security checklist pre-deploy](security/security-checklist.md)
+
+### Guías para owners (no técnicas)
+- [Overview](user-guides/README.md)
+- [Primeros pasos](user-guides/primeros-pasos.md)
+- [Gestionar el menú](user-guides/gestionar-menu.md)
+- [Recibir pedidos](user-guides/recibir-pedidos.md)
+- [Inventario](user-guides/inventario.md)
+- [Métricas](user-guides/metricas.md)
+
+### Referencia
+- [Glosario](glossary.md)
+- [Credenciales demo](credenciales-demo.md)
+
+---
+
+## Cómo mantener esta documentación
+
+1. **Una idea = un archivo.** Si un `.md` empieza a cubrir dos temas, divídelo.
+2. **Linkear el nuevo archivo desde este índice** y desde los archivos relacionados.
+3. **Fechar verificaciones** cuando se confirme que el contenido sigue alineado con el código.
+4. **Issues / pendientes** van a `issues/`, no contaminan los docs descriptivos.
+5. **Decisiones grandes** se escriben como ADR (`decisions/ADR-XXX-titulo.md`) — no se entierran en otros docs.

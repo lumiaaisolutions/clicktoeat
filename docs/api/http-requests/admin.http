@@ -1,0 +1,130 @@
+# ClickToEat — Endpoints super_admin (prefijo /admin)
+#
+# Requieren Bearer token de un user con rol=super_admin.
+# Bypassean TenantScope — ven todos los locales.
+
+@host = http://localhost:8080/api/v1
+@token = <pega-token-de-super_admin>
+
+# ═══════════════════════════════════════════════════════════════
+# LOCALES — gestión global
+# ═══════════════════════════════════════════════════════════════
+
+###
+# Lista todos los locales (activos + suspendidos)
+GET {{host}}/admin/locales
+Authorization: Bearer {{token}}
+
+###
+# Filtrar por estado
+GET {{host}}/admin/locales?estado=activos
+Authorization: Bearer {{token}}
+
+###
+GET {{host}}/admin/locales?estado=suspendidos
+Authorization: Bearer {{token}}
+
+###
+# Búsqueda por nombre o slug
+GET {{host}}/admin/locales?q=tacos
+Authorization: Bearer {{token}}
+
+###
+# Detalle de un local específico
+GET {{host}}/admin/locales/1
+Authorization: Bearer {{token}}
+
+###
+# Crear local nuevo SIN owner asignado
+POST {{host}}/admin/locales
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "nombre": "Sushi 33",
+    "tagline": "El sushi más fresco",
+    "whatsapp": "5215512345678",
+    "direccion": "Av. Reforma 100",
+    "color_primario": "#0070F3",
+    "delivery_fee": 50,
+    "delivery_min_minutos": 35
+}
+
+###
+# Crear local CON owner inicial (un solo request)
+POST {{host}}/admin/locales
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "nombre": "Sushi 33",
+    "slug": "sushi-33",
+    "whatsapp": "5215512345678",
+    "color_primario": "#0070F3",
+    "owner": {
+        "nombre": "Hiro Tanaka",
+        "email": "hiro@sushi33.mx",
+        "password": "password123",
+        "password_confirmation": "password123"
+    }
+}
+
+###
+# Actualizar branding/contacto de cualquier local
+PATCH {{host}}/admin/locales/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "tagline": "Nuevo eslogan",
+    "delivery_fee": 40
+}
+
+###
+# Suspender — deja de aparecer en /public/locales y rechaza pedidos
+POST {{host}}/admin/locales/1/suspender
+Authorization: Bearer {{token}}
+
+###
+# Reactivar (activo=true, suspendido=false)
+POST {{host}}/admin/locales/1/reactivar
+Authorization: Bearer {{token}}
+
+###
+# Soft-delete del local
+DELETE {{host}}/admin/locales/1
+Authorization: Bearer {{token}}
+
+# ═══════════════════════════════════════════════════════════════
+# USUARIOS de un local
+# ═══════════════════════════════════════════════════════════════
+
+###
+# Lista usuarios de un local (saber a quién resetear contraseña)
+GET {{host}}/admin/locales/1/usuarios
+Authorization: Bearer {{token}}
+
+###
+# Reset de password del owner del local (NO requiere password actual del owner)
+# Throttle: 10/min
+# Cierra todas las sesiones del owner — debe re-loguear.
+PATCH {{host}}/admin/locales/1/owner-password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "password": "nueva-contraseña-segura-789",
+    "password_confirmation": "nueva-contraseña-segura-789"
+}
+
+###
+# Reset de password — especificando user_id (si el local tiene varios usuarios)
+PATCH {{host}}/admin/locales/1/owner-password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "user_id": 2,
+    "password": "nueva-contraseña-segura-789",
+    "password_confirmation": "nueva-contraseña-segura-789"
+}

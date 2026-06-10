@@ -1,0 +1,45 @@
+# Gitleaks config — extiende el default con allowlists específicas del proyecto.
+# Ver: https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml
+
+title = "Gitleaks config ClickToEat"
+
+[extend]
+# Hereda todas las reglas built-in (detecta passwords, API keys, JWT, AWS keys, etc.)
+useDefault = true
+
+[allowlist]
+description = "Patrones legítimos que NO son leaks"
+
+paths = [
+    # Archivos example/template — siempre tienen placeholders, no secretos
+    '''\.env\.example$''',
+    '''\.env\.local\.example$''',
+    '''http-client\.env\.example\.json$''',
+    # Documentación que muestra ejemplos de configuración
+    '''docs/.*\.md$''',
+    '''scripts/README\.md$''',
+    '''CLAUDE\.md$''',
+    # Dump SQL outdated — no contiene secretos pero gitleaks puede flagear strings hexadecimales
+    '''bd/bdclicktoeat\.sql$''',
+]
+
+regexes = [
+    # placeholders típicos en docs
+    '''<pega-token-tras-login>''',
+    '''<pega-token-de-super_admin>''',
+    '''<token-viejo>''',
+    '''<rotada-y-fuera-del-repo>''',
+    '''<secret>''',
+    '''<uuid>''',
+    '''<webhook>''',
+    # IDs de demo (no son secretos reales — son hash bcrypt de "password123" o similar)
+    '''base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=''',
+]
+
+stopwords = [
+    # Palabras que aparecen en docs sin ser secretos
+    "password123",
+    "owner+tacos-el-gordo",
+    "owner+pizza-bambino",
+    "admin@ClickToEat.app",
+]

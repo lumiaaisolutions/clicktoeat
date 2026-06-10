@@ -1,0 +1,117 @@
+# ClickToEat — Endpoints públicos (sin auth)
+#
+# Cubre: directorio de locales, menú por slug, crear pedido público.
+# Estos endpoints NO requieren token.
+
+@host = http://localhost:8080/api/v1
+@slug = tacos-el-gordo
+
+###
+# Directorio de locales activos
+# Output: array de MenuResource (camelCase)
+GET {{host}}/public/locales
+Accept: application/json
+
+###
+# Menú completo del local + branding + horarios calculados
+# Throttle: 60/min global
+GET {{host}}/public/menu/{{slug}}
+Accept: application/json
+
+###
+# Menú de un slug inexistente → 404
+GET {{host}}/public/menu/no-existe
+Accept: application/json
+
+###
+# Crear pedido público — pickup, efectivo
+# Throttle: 20/min adicional
+# Producto IDs son del seeder de demo (tacos-el-gordo)
+POST {{host}}/public/pedidos/{{slug}}
+Content-Type: application/json
+
+{
+    "cliente": {
+        "nombre": "Cliente de prueba",
+        "telefono": "5215512345678",
+        "notas": "primera prueba desde HTTP collection"
+    },
+    "metodo_entrega": "pickup",
+    "metodo_pago": "efectivo",
+    "items": [
+        { "producto_id": 1, "cantidad": 2 }
+    ]
+}
+
+###
+# Crear pedido público — delivery con extras y coords
+# Las coords se usan para validar radio de entrega contra `delivery_radio_km` del local
+POST {{host}}/public/pedidos/{{slug}}
+Content-Type: application/json
+
+{
+    "cliente": {
+        "nombre": "María Pérez",
+        "telefono": "5215512345678",
+        "direccion": "Av. Insurgentes Sur 432, Roma Norte",
+        "lat": 19.4150,
+        "lng": -99.1670,
+        "notas": "Tocar timbre 2 veces"
+    },
+    "metodo_entrega": "delivery",
+    "metodo_pago": "efectivo",
+    "items": [
+        {
+            "producto_id": 1,
+            "cantidad": 2,
+            "notas": "sin cebolla por favor",
+            "extras": [
+                { "group": "Tortilla", "item": "Harina", "price": 5 },
+                { "group": "Salsas",   "item": "Habanero", "price": 0 }
+            ]
+        },
+        { "producto_id": 2, "cantidad": 1 }
+    ]
+}
+
+###
+# Pedido fuera del radio de entrega → 422 con mensaje + distancia
+POST {{host}}/public/pedidos/{{slug}}
+Content-Type: application/json
+
+{
+    "cliente": {
+        "nombre": "Cliente lejos",
+        "telefono": "5215512345678",
+        "direccion": "Lugar muy lejos",
+        "lat": 25.0000,
+        "lng": -100.0000
+    },
+    "metodo_entrega": "delivery",
+    "metodo_pago": "efectivo",
+    "items": [{ "producto_id": 1, "cantidad": 1 }]
+}
+
+###
+# Pedido a slug inexistente → 404
+POST {{host}}/public/pedidos/no-existe
+Content-Type: application/json
+
+{
+    "cliente": { "nombre": "X", "telefono": "5215512345678" },
+    "metodo_entrega": "pickup",
+    "metodo_pago": "efectivo",
+    "items": [{ "producto_id": 1, "cantidad": 1 }]
+}
+
+###
+# Pedido con producto inexistente / no del local → 500 (debería ser 422, pendiente)
+POST {{host}}/public/pedidos/{{slug}}
+Content-Type: application/json
+
+{
+    "cliente": { "nombre": "Test", "telefono": "5215512345678" },
+    "metodo_entrega": "pickup",
+    "metodo_pago": "efectivo",
+    "items": [{ "producto_id": 99999, "cantidad": 1 }]
+}

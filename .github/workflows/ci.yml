@@ -1,0 +1,172 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Cancela runs en progreso si se pushea algo nuevo al mismo branch
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─────────────────────────────────────────────────────────────
+  # Backend — Laravel + PHP 8.3
+  # ─────────────────────────────────────────────────────────────
+  api:
+    name: API (Laravel)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: apps/api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect API changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+              - '.github/workflows/ci.yml'
+
+      - name: Setup PHP 8.3
+        if: steps.changes.outputs.api == 'true'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_sqlite, mbstring, intl, bcmath, zip, gd
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache composer
+        if: steps.changes.outputs.api == 'true'
+        uses: actions/cache@v4
+        with:
+          path: apps/api/vendor
+          key: composer-${{ runner.os }}-php8.3-${{ hashFiles('apps/api/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-php8.3-
+
+      - name: Install dependencies
+        if: steps.changes.outputs.api == 'true'
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Validate composer
+        if: steps.changes.outputs.api == 'true'
+        run: composer validate --strict --no-check-publish
+
+      - name: Run Pint (PHP linter — check only)
+        if: steps.changes.outputs.api == 'true'
+        run: vendor/bin/pint --test
+
+      - name: Generate app key (testing)
+        if: steps.changes.outputs.api == 'true'
+        run: php artisan key:generate --env=testing
+
+      - name: Run PHPUnit (sqlite in-memory)
+        if: steps.changes.outputs.api == 'true'
+        run: vendor/bin/phpunit --no-coverage --testdox
+
+  # ─────────────────────────────────────────────────────────────
+  # Frontend — Next.js + TypeScript
+  # ─────────────────────────────────────────────────────────────
+  web:
+    name: Frontend (Next.js)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: apps/web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect frontend changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            web:
+              - 'apps/web/**'
+              - '.github/workflows/ci.yml'
+
+      - name: Setup Node 20
+        if: steps.changes.outputs.web == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install dependencies
+        if: steps.changes.outputs.web == 'true'
+        run: npm ci
+
+      - name: Type check
+        if: steps.changes.outputs.web == 'true'
+        run: npm run typecheck
+
+      - name: Lint
+        if: steps.changes.outputs.web == 'true'
+        run: npm run lint
+
+      - name: Build (verifica compilación productiva)
+        if: steps.changes.outputs.web == 'true'
+        env:
+          NEXT_PUBLIC_API_URL: https://clicktoeat-api.lumiaaisolutions.com/api/v1
+          NEXT_PUBLIC_APP_URL: https://clicktoeat.lumiaaisolutions.com
+        run: npm run build
+
+  # ─────────────────────────────────────────────────────────────
+  # Scripts bash — shellcheck
+  # ─────────────────────────────────────────────────────────────
+  scripts:
+    name: Scripts (shellcheck)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect script changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            scripts:
+              - 'scripts/**'
+              - '.github/workflows/ci.yml'
+
+      - name: Run shellcheck
+        if: steps.changes.outputs.scripts == 'true'
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: ./scripts
+          severity: warning
+
+  # ─────────────────────────────────────────────────────────────
+  # Resumen — falla si alguno de los anteriores falla
+  # ─────────────────────────────────────────────────────────────
+  ci-passed:
+    name: CI Passed
+    if: always()
+    needs: [api, web, scripts]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check status
+        run: |
+          if [[ "${{ needs.api.result }}" == "failure" ]] || \
+             [[ "${{ needs.web.result }}" == "failure" ]] || \
+             [[ "${{ needs.scripts.result }}" == "failure" ]]; then
+            echo "❌ Un job falló"
+            exit 1
+          fi
+          echo "✅ Todos los jobs pasaron (o se skiparon)"

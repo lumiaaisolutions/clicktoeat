@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ce-accent:  #FF2D2D;
+  --ce-ink:     #0B0B0F;
+  --ce-bg:      #FAFAF7;
+  --ce-line:    #E8E8E2;
+  --ce-muted:   #6B6B6B;
+  --ce-surface: #FFFFFF;
+}
+
+/* Modo oscuro para landings */
+.ce-dark {
+  --ce-ink:     #EEEEE8;
+  --ce-bg:      #111110;
+  --ce-line:    #2C2C2A;
+  --ce-muted:   #888882;
+  --ce-surface: #1C1C1A;
+}
+
+.ce-dark .glass {
+  background: rgba(20, 20, 18, 0.80);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html, body {
+  background: var(--ce-bg);
+  color: var(--ce-ink);
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: Geist, system-ui, sans-serif;
+  /* respeta el notch/safe-area en iPhones */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.ce-display { font-family: "Bricolage Grotesque", system-ui, sans-serif; letter-spacing: -0.02em; }
+
+.glass {
+  background: rgba(255,255,255,0.65);
+  backdrop-filter: saturate(1.2) blur(10px);
+  -webkit-backdrop-filter: saturate(1.2) blur(10px);
+  border: 1px solid rgba(255,255,255,0.6);
+}
+
+/* Inputs: 16px mínimo en móvil para que iOS NO haga zoom al enfocar */
+@media (max-width: 640px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Scrollbar fino en panels que usan overflow */
+.scroll-fine::-webkit-scrollbar { width: 6px; height: 6px; }
+.scroll-fine::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+.scroll-fine::-webkit-scrollbar-track { background: transparent; }
+
+/* Tap targets mínimos de 44px (recomendado por iOS) */
+.tap-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Tap highlight gris fea de mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Hide scrollbar pero mantiene scroll (para chips horizontales) */
+.scroll-x-snap {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.scroll-x-snap > * {
+  scroll-snap-align: start;
+}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Safe-area helpers para bottom nav */
+.pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 1rem); }
+.bottom-safe { bottom: env(safe-area-inset-bottom); }
+
+@media print {
+  body * { visibility: hidden; }
+  #ticket-print, #ticket-print *,
+  #qr-printable, #qr-printable * {
+    visibility: visible;
+  }
+  #ticket-print {
+    position: absolute; left: 0; top: 0; width: 280px;
+    padding: 8px; font-family: ui-monospace, monospace; font-size: 11px;
+  }
+  #qr-printable {
+    position: absolute; left: 50%; top: 1cm; transform: translateX(-50%);
+    box-shadow: none !important;
+  }
+}

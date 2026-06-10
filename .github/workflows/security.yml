@@ -1,0 +1,127 @@
+name: Security Audit
+
+on:
+  # Semanal — lunes 09:00 UTC
+  schedule:
+    - cron: '0 9 * * 1'
+
+  # En PRs que tocan dependencias
+  pull_request:
+    paths:
+      - 'apps/api/composer.json'
+      - 'apps/api/composer.lock'
+      - 'apps/web/package.json'
+      - 'apps/web/package-lock.json'
+
+  # Manual
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write   # subir resultados a Code Scanning si aplica
+
+jobs:
+  # ─────────────────────────────────────────────────────────────
+  # Secretos commiteados — Gitleaks
+  # ─────────────────────────────────────────────────────────────
+  gitleaks:
+    name: Gitleaks (secret scanning)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history para escanear todo
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .github/gitleaks.toml
+
+  # ─────────────────────────────────────────────────────────────
+  # Dependencias PHP (Laravel + paquetes)
+  # ─────────────────────────────────────────────────────────────
+  composer-audit:
+    name: Composer audit (PHP deps)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    defaults:
+      run:
+        working-directory: apps/api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+
+      - name: Cache composer
+        uses: actions/cache@v4
+        with:
+          path: apps/api/vendor
+          key: composer-${{ runner.os }}-php8.3-${{ hashFiles('apps/api/composer.lock') }}
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Audit (falla en vulnerabilidades HIGH / CRITICAL)
+        run: composer audit --no-dev --abandoned=report --format=plain
+
+  # ─────────────────────────────────────────────────────────────
+  # Dependencias Node (Next + libs)
+  # ─────────────────────────────────────────────────────────────
+  npm-audit:
+    name: NPM audit (Node deps)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    defaults:
+      run:
+        working-directory: apps/web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit (omit dev, falla en HIGH / CRITICAL)
+        run: npm audit --omit=dev --audit-level=high
+
+  # ─────────────────────────────────────────────────────────────
+  # Validación del .env productivo no esté trackeado
+  # ─────────────────────────────────────────────────────────────
+  env-leak-check:
+    name: .env leak check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verificar que ningún .env real está versionado
+        run: |
+          # OK: .env.example, .env.local.example
+          # NO OK: .env, .env.local, .env.production con valores reales
+          set -e
+          BAD=$(git ls-files | grep -E '(^|/)\.env$|(^|/)\.env\.local$' || true)
+          if [[ -n "$BAD" ]]; then
+            echo "::error::Archivos .env reales versionados:"
+            echo "$BAD"
+            exit 1
+          fi
+          # .env.production existe en apps/web pero NO debe tener secretos sensibles
+          # (sólo NEXT_PUBLIC_*, que se exponen al cliente)
+          if [[ -f apps/web/.env.production ]]; then
+            if grep -E '^[A-Z_]+=' apps/web/.env.production | grep -vE '^NEXT_PUBLIC_|^NODE_ENV='; then
+              echo "::warning::apps/web/.env.production contiene variables non-public. Sólo NEXT_PUBLIC_* deben estar acá."
+            fi
+          fi
+          echo "✅ Sin .env real trackeado"

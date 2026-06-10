@@ -1,0 +1,25 @@
+.env
+.env.local
+node_modules/
+vendor/
+.next/
+storage/logs/*.log
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.log
+
+# HTTP client private envs (JetBrains / VS Code REST Client)
+docs/api/http-requests/http-client.private.env.json
+docs/api/http-requests/.idea/
+
+# Backup files producidos por el script de backup-mysql.sh (en servidor)
+backups/
+
+# OpenAPI snapshot generado por CI — versionado pero no editado manualmente
+# (mantener comentado hasta que CI lo regenere)
+# docs/api/openapi.json

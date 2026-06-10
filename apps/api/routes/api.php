@@ -1,0 +1,132 @@
+<?php
+
+use App\Http\Controllers\Api\Admin\LocalController as AdminLocalController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CategoriaController;
+use App\Http\Controllers\Api\CompraController;
+use App\Http\Controllers\Api\HorarioController;
+use App\Http\Controllers\Api\MetricasController;
+use App\Http\Controllers\Api\IngredienteController;
+use App\Http\Controllers\Api\NotificacionController;
+use App\Http\Controllers\Api\PasswordController;
+use App\Http\Controllers\Api\LocalController;
+use App\Http\Controllers\Api\PedidoController;
+use App\Http\Controllers\Api\ProductoController;
+use App\Http\Controllers\Api\Public\MenuController;
+use App\Http\Controllers\Api\Public\PedidoController as PublicPedidoController;
+use App\Http\Controllers\Api\RecetaController;
+use App\Http\Controllers\Api\UploadController;
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| API v1
+|--------------------------------------------------------------------------
+| Auto-prefixed with /api/v1 by bootstrap/app.php.
+*/
+
+Route::middleware('throttle:60,1')->group(function () {
+
+    // ─── Public ───────────────────────────────────────────────────────
+    Route::prefix('public')->group(function () {
+        Route::get('menu/{slug}',     [MenuController::class, 'show'])->name('public.menu.show');
+        Route::get('locales',         [MenuController::class, 'index'])->name('public.locales.index');
+        Route::post('pedidos/{slug}', [PublicPedidoController::class, 'store'])
+            ->middleware('throttle:20,1')
+            ->name('public.pedidos.store');
+    });
+
+    // Backwards-friendly alias
+    Route::get('menu/{slug}', [MenuController::class, 'show']);
+
+    // ─── Auth ─────────────────────────────────────────────────────────
+    Route::prefix('auth')->group(function () {
+        Route::post('register', [AuthController::class, 'register'])->middleware('throttle:5,1');
+        Route::post('login',    [AuthController::class, 'login'])->middleware('throttle:10,1');
+
+        Route::middleware('auth:sanctum')->group(function () {
+            Route::get('me',                [AuthController::class, 'me']);
+            Route::post('logout',           [AuthController::class, 'logout']);
+            Route::patch('me/password',     [PasswordController::class, 'updateOwn'])
+                ->middleware('throttle:5,1');
+        });
+    });
+
+    // ─── Authenticated (tenant-scoped) ────────────────────────────────
+    Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
+
+        Route::get('dashboard', function () {
+            $user = request()->user();
+            return response()->json([
+                'mensaje'  => "Hola, {$user->nombre}",
+                'rol'      => $user->rol,
+                'local_id' => $user->local_id,
+            ]);
+        });
+
+        // Local (mío) — branding y configuración
+        Route::get('local',    [LocalController::class, 'show']);
+        Route::patch('local',  [LocalController::class, 'update']);
+
+        // Horarios (gestión dedicada)
+        Route::get('local/horarios',   [HorarioController::class, 'show']);
+        Route::patch('local/horarios', [HorarioController::class, 'update']);
+
+        // Métricas / reportes
+        Route::get('metricas',         [MetricasController::class, 'index']);
+
+        // Categorías
+        Route::apiResource('categorias', CategoriaController::class);
+
+        // Productos
+        Route::apiResource('productos',  ProductoController::class);
+
+        // Recetas (anidadas bajo producto)
+        Route::get('productos/{producto}/recetas', [RecetaController::class, 'index']);
+        Route::put('productos/{producto}/recetas', [RecetaController::class, 'sync']);
+        Route::delete('recetas/{receta}',          [RecetaController::class, 'destroy']);
+
+        // Ingredientes
+        Route::apiResource('ingredientes', IngredienteController::class);
+        Route::post('ingredientes/{ingrediente}/ajuste',         [IngredienteController::class, 'ajustar']);
+        Route::get('ingredientes/{ingrediente}/movimientos',     [IngredienteController::class, 'movimientos']);
+
+        // Compras a proveedor
+        Route::get('compras',             [CompraController::class, 'index']);
+        Route::post('compras',            [CompraController::class, 'store']);
+        Route::get('compras/{compra}',    [CompraController::class, 'show']);
+        Route::delete('compras/{compra}', [CompraController::class, 'destroy']);
+
+        // Notificaciones in-app del local
+        Route::get('notificaciones',                             [NotificacionController::class, 'index']);
+        Route::post('notificaciones/leer-todas',                 [NotificacionController::class, 'leerTodas']);
+        Route::post('notificaciones/{notificacion}/leer',        [NotificacionController::class, 'leer']);
+
+        // Pedidos (admin del local)
+        Route::get('pedidos',                       [PedidoController::class, 'index']);
+        Route::post('pedidos',                      [PedidoController::class, 'store']);   // POS / venta en sucursal
+        Route::get('pedidos/{pedido}',              [PedidoController::class, 'show']);
+        Route::patch('pedidos/{pedido}/estado',     [PedidoController::class, 'updateEstado']);
+        Route::delete('pedidos/{pedido}',           [PedidoController::class, 'destroy']);
+
+        // Uploads
+        Route::post('uploads/image', [UploadController::class, 'store'])
+            ->middleware('throttle:30,1');
+    });
+
+    // ─── Super admin (global, sin tenant scope) ───────────────────────
+    Route::middleware(['auth:sanctum', 'super_admin'])->prefix('admin')->group(function () {
+        Route::get('locales',                       [AdminLocalController::class, 'index']);
+        Route::post('locales',                      [AdminLocalController::class, 'store']);
+        Route::get('locales/{local:id}',               [AdminLocalController::class, 'show']);
+        Route::patch('locales/{local:id}',             [AdminLocalController::class, 'update']);
+        Route::delete('locales/{local:id}',            [AdminLocalController::class, 'destroy']);
+        Route::post('locales/{local:id}/suspender',    [AdminLocalController::class, 'suspender']);
+        Route::post('locales/{local:id}/reactivar',    [AdminLocalController::class, 'reactivar']);
+
+        // Gestión de contraseñas de usuarios del local
+        Route::get('locales/{local:id}/usuarios',           [PasswordController::class, 'localUsers']);
+        Route::patch('locales/{local:id}/owner-password',   [PasswordController::class, 'resetLocalOwner'])
+            ->middleware('throttle:10,1');
+    });
+});

@@ -1,0 +1,438 @@
+# ClickToEat — Endpoints tenant-scoped (auth: sanctum + tenant)
+#
+# Todos requieren Bearer token de un owner o staff con local_id válido.
+# Cubre: dashboard, local, horarios, métricas, categorías, productos, recetas,
+# ingredientes, compras, notificaciones, pedidos (admin + POS), uploads.
+
+@host = http://localhost:8080/api/v1
+@token = <pega-token-tras-login-en-auth.http>
+
+###
+# Dashboard — smoke test del scope tenant
+GET {{host}}/dashboard
+Authorization: Bearer {{token}}
+Accept: application/json
+
+# ═══════════════════════════════════════════════════════════════
+# LOCAL (mío)
+# ═══════════════════════════════════════════════════════════════
+
+###
+# Ver mi local (branding + contacto + operación)
+GET {{host}}/local
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+# Actualizar branding (puede ser parcial — sometimes en cada campo)
+PATCH {{host}}/local
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "tagline": "Los mejores tacos del barrio",
+    "color_primario": "#FF2D2D",
+    "delivery_fee": 35,
+    "delivery_min_minutos": 30,
+    "delivery_radio_km": 5,
+    "metodos_pago": ["efectivo", "tarjeta_entrega", "transferencia"],
+    "redes_sociales": {
+        "ig": "tacosgordo",
+        "fb": "TacosElGordoMX"
+    }
+}
+
+# ═══════════════════════════════════════════════════════════════
+# HORARIOS
+# ═══════════════════════════════════════════════════════════════
+
+###
+# Ver horarios + estado calculado actual
+GET {{host}}/local/horarios
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+# Actualizar horarios
+PATCH {{host}}/local/horarios
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "horarios": [
+        { "dia": "lun", "open": "12:00", "close": "23:00" },
+        { "dia": "mar", "open": "12:00", "close": "23:00" },
+        { "dia": "mie", "open": "12:00", "close": "23:00" },
+        { "dia": "jue", "open": "12:00", "close": "23:00" },
+        { "dia": "vie", "open": "12:00", "close": "02:00" },
+        { "dia": "sab", "open": "12:00", "close": "02:00" }
+    ],
+    "cerrado_temporal": false,
+    "zona_horaria": "America/Mexico_City"
+}
+
+###
+# Cerrar temporalmente (bloquea pedidos públicos sin tocar horario)
+PATCH {{host}}/local/horarios
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "horarios": [],
+    "cerrado_temporal": true
+}
+
+# ═══════════════════════════════════════════════════════════════
+# MÉTRICAS
+# ═══════════════════════════════════════════════════════════════
+
+###
+# Métricas por preset
+GET {{host}}/metricas?preset=30d
+Authorization: Bearer {{token}}
+
+###
+# Métricas por rango custom
+GET {{host}}/metricas?desde=2026-05-01&hasta=2026-06-10
+Authorization: Bearer {{token}}
+
+# ═══════════════════════════════════════════════════════════════
+# CATEGORÍAS
+# ═══════════════════════════════════════════════════════════════
+
+###
+GET {{host}}/categorias
+Authorization: Bearer {{token}}
+
+###
+POST {{host}}/categorias
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "nombre": "Especiales del Chef",
+    "icono": "fa-star",
+    "orden": 99
+}
+
+###
+# @categoria_id = <id de la categoría a editar>
+PATCH {{host}}/categorias/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "nombre": "Tacos Especiales" }
+
+###
+# Borrar — 409 si tiene productos
+DELETE {{host}}/categorias/99
+Authorization: Bearer {{token}}
+
+# ═══════════════════════════════════════════════════════════════
+# PRODUCTOS
+# ═══════════════════════════════════════════════════════════════
+
+###
+# Lista paginada con filtros
+GET {{host}}/productos?per_page=20&disponible=true
+Authorization: Bearer {{token}}
+
+###
+# Búsqueda por nombre
+GET {{host}}/productos?q=taco&categoria_id=1
+Authorization: Bearer {{token}}
+
+###
+POST {{host}}/productos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "categoria_id": 1,
+    "nombre": "Taco del Chef",
+    "descripcion": "Receta exclusiva del chef",
+    "precio": 45,
+    "disponible": true,
+    "tag": "Nuevo",
+    "extras": [
+        {
+            "group": "Tortilla",
+            "kind": "one",
+            "required": true,
+            "items": [
+                { "id": "maiz",   "name": "Maíz",   "price": 0 },
+                { "id": "harina", "name": "Harina", "price": 5 }
+            ]
+        },
+        {
+            "group": "Salsas",
+            "kind": "many",
+            "items": [
+                { "id": "verde", "name": "Verde", "price": 0 },
+                { "id": "habanero", "name": "Habanero", "price": 0 }
+            ]
+        }
+    ]
+}
+
+###
+GET {{host}}/productos/1
+Authorization: Bearer {{token}}
+
+###
+PATCH {{host}}/productos/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "precio": 30, "disponible": true }
+
+###
+DELETE {{host}}/productos/99
+Authorization: Bearer {{token}}
+
+# ═══════════════════════════════════════════════════════════════
+# RECETAS
+# ═══════════════════════════════════════════════════════════════
+
+###
+GET {{host}}/productos/1/recetas
+Authorization: Bearer {{token}}
+
+###
+# Sync completo de la receta (reemplaza, idempotente)
+PUT {{host}}/productos/1/recetas
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "recetas": [
+        { "ingrediente_id": 1, "cantidad": 1 },
+        { "ingrediente_id": 2, "cantidad": 0.080 },
+        { "ingrediente_id": 3, "cantidad": 0.030 }
+    ]
+}
+
+###
+# Producto compuesto (combo que incluye otro producto)
+PUT {{host}}/productos/5/recetas
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "recetas": [
+        { "componente_producto_id": 1, "cantidad": 6 },
+        { "ingrediente_id": 7, "cantidad": 1 }
+    ]
+}
+
+###
+# Borrar fila específica de receta
+DELETE {{host}}/recetas/1
+Authorization: Bearer {{token}}
+
+# ═══════════════════════════════════════════════════════════════
+# INGREDIENTES
+# ═══════════════════════════════════════════════════════════════
+
+###
+GET {{host}}/ingredientes
+Authorization: Bearer {{token}}
+
+###
+# Solo los que están bajo stock
+GET {{host}}/ingredientes?bajo_stock=true
+Authorization: Bearer {{token}}
+
+###
+POST {{host}}/ingredientes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "nombre": "Aguacate",
+    "stock": 50,
+    "stock_minimo": 10,
+    "unidad": "pz",
+    "costo_unitario": 15.50
+}
+
+###
+PATCH {{host}}/ingredientes/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "stock_minimo": 25 }
+
+###
+# Ajuste manual (entrada, ajuste o merma)
+POST {{host}}/ingredientes/1/ajuste
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "tipo": "ajuste",
+    "cantidad": -5,
+    "motivo": "Conteo físico — diferencia"
+}
+
+###
+# Historial paginado de movimientos
+GET {{host}}/ingredientes/1/movimientos?per_page=30
+Authorization: Bearer {{token}}
+
+###
+# Borrar — 409 si tiene recetas
+DELETE {{host}}/ingredientes/99
+Authorization: Bearer {{token}}
+
+# ═══════════════════════════════════════════════════════════════
+# COMPRAS
+# ═══════════════════════════════════════════════════════════════
+
+###
+GET {{host}}/compras?per_page=20
+Authorization: Bearer {{token}}
+
+###
+POST {{host}}/compras
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "proveedor": "Distribuidora Hermanos",
+    "referencia_factura": "F-0012",
+    "fecha": "2026-06-10",
+    "impuestos": 0,
+    "notas": "Llegó completo",
+    "items": [
+        { "ingrediente_id": 1, "cantidad": 100, "costo_unitario": 0.80 },
+        { "ingrediente_id": 2, "cantidad": 5.000, "costo_unitario": 220.00 }
+    ]
+}
+
+###
+GET {{host}}/compras/1
+Authorization: Bearer {{token}}
+
+###
+# Anular — 409 si parte ya se consumió
+DELETE {{host}}/compras/1
+Authorization: Bearer {{token}}
+
+# ═══════════════════════════════════════════════════════════════
+# NOTIFICACIONES
+# ═══════════════════════════════════════════════════════════════
+
+###
+GET {{host}}/notificaciones
+Authorization: Bearer {{token}}
+
+###
+GET {{host}}/notificaciones?solo_no_leidas=true
+Authorization: Bearer {{token}}
+
+###
+POST {{host}}/notificaciones/1/leer
+Authorization: Bearer {{token}}
+
+###
+POST {{host}}/notificaciones/leer-todas
+Authorization: Bearer {{token}}
+
+# ═══════════════════════════════════════════════════════════════
+# PEDIDOS — admin del local
+# ═══════════════════════════════════════════════════════════════
+
+###
+GET {{host}}/pedidos?per_page=20
+Authorization: Bearer {{token}}
+
+###
+GET {{host}}/pedidos?estado=nuevo
+Authorization: Bearer {{token}}
+
+###
+GET {{host}}/pedidos/1
+Authorization: Bearer {{token}}
+
+###
+# Cambiar estado — confirmado/preparando/listo/en_camino/entregado/cancelado
+PATCH {{host}}/pedidos/1/estado
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "estado": "confirmado" }
+
+###
+# Cancelar — reintegra inventario si no estaba ya cancelado/entregado
+PATCH {{host}}/pedidos/1/estado
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "estado": "cancelado" }
+
+###
+# Soft-delete (no reintegra)
+DELETE {{host}}/pedidos/1
+Authorization: Bearer {{token}}
+
+# ═══════════════════════════════════════════════════════════════
+# POS — Punto de venta interno (venta presencial)
+# ═══════════════════════════════════════════════════════════════
+
+###
+# Pedido sucursal — se auto-marca confirmado al crear
+POST {{host}}/pedidos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "cliente": { "nombre": "Mostrador", "telefono": "-" },
+    "metodo_entrega": "sucursal",
+    "metodo_pago": "efectivo",
+    "items": [
+        { "producto_id": 1, "cantidad": 3 },
+        { "producto_id": 2, "cantidad": 1 }
+    ]
+}
+
+###
+# POS con tarjeta TPV (método sólo disponible interno)
+POST {{host}}/pedidos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "cliente": { "nombre": "Cliente identificado", "telefono": "5215512345678" },
+    "metodo_entrega": "sucursal",
+    "metodo_pago": "tarjeta_tpv",
+    "items": [
+        {
+            "producto_id": 1,
+            "cantidad": 2,
+            "extras": [{ "group": "Tortilla", "item": "Harina", "price": 5 }]
+        }
+    ]
+}
+
+# ═══════════════════════════════════════════════════════════════
+# UPLOADS
+# ═══════════════════════════════════════════════════════════════
+
+###
+# Subir imagen (multipart/form-data — ajustar path a un archivo real)
+# Throttle: 30/min
+POST {{host}}/uploads/image
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="image"; filename="test.png"
+Content-Type: image/png
+
+< ./path/al/archivo.png
+------WebKitFormBoundary
+Content-Disposition: form-data; name="folder"
+
+productos
+------WebKitFormBoundary--

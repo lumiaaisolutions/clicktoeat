@@ -1,0 +1,127 @@
+/* App shell — standalone (non-canvas) layout.
+   The .phone surface is the "mobile" design; on desktop it sits in a
+   centered column over a soft branded backdrop so the landing still
+   feels phone-native without looking lost on a 1440px screen. */
+
+html, body, #root { height: 100%; min-height: 100%; }
+body { background: #0B0B0F; }
+
+.app-root {
+  width: 100vw;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  color: var(--ce-ink);
+  background: var(--ce-bg);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Mobile shell — the tenant landing & flow live here.
+   On phones: edge-to-edge. On tablets/desktops: centered phone column
+   with a branded backdrop. */
+.shell {
+  position: relative;
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255,45,45,.20), transparent 45%),
+    radial-gradient(circle at 88% 88%, rgba(255,203,5,.18), transparent 45%),
+    #0B0B0F;
+  overflow: hidden;
+}
+
+/* The actual phone-styled surface inside .shell */
+.shell .phone {
+  width: 100%;
+  max-width: 480px;
+  min-height: 100vh;
+  height: auto;
+  background: var(--t-bg);
+  box-shadow: 0 30px 80px -20px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.04);
+  overflow: visible;
+}
+
+/* On phones, kill the desktop padding/shadow */
+@media (max-width: 520px) {
+  .shell { background: var(--t-bg); }
+  .shell .phone { box-shadow: none; max-width: 100%; }
+}
+
+/* Phone body becomes the normal scroll context */
+.shell .phone-body {
+  overflow: visible;
+}
+
+.shell .phone .phone-status,
+.shell .phone .phone-bottombar { display: none; }
+
+/* When the floating cart / overlays appear, they should anchor to the
+   .phone column, not the whole viewport. We already use position:absolute
+   inside .phone — but on standalone we need .phone to be the offset parent. */
+.shell .phone { position: relative; }
+
+/* Modals/sheets that use position:absolute inset:0 should be fixed to .phone column on desktop. */
+.shell .phone .toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 460px;
+  width: calc(100% - 32px);
+  bottom: 100px;
+}
+
+.shell .phone .floating-cart,
+.shell .phone .modal-layer {
+  position: fixed;
+}
+
+/* Center the modal-layer to the phone column on desktop */
+@media (min-width: 521px) {
+  .shell .phone .modal-layer {
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 480px;
+    top: 0; bottom: 0; right: auto;
+  }
+  .shell .phone .floating-cart {
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 32px);
+    max-width: 448px;
+    right: auto;
+    bottom: 24px;
+  }
+}
+
+/* Desktop admin: full bleed */
+.admin-shell {
+  width: 100%;
+  min-height: 100vh;
+  background: var(--ce-bg);
+}
+
+/* Public floating "Pedido en curso" badge if cart has items */
+.cart-mini-fab {
+  position: fixed;
+  bottom: 20px; right: 20px;
+  z-index: 200;
+}
+
+/* Top app bar for the platform itself (not for tenants) */
+.platform-bar {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 22px;
+  background: rgba(11,11,15,.7);
+  backdrop-filter: blur(20px) saturate(140%);
+  color: white;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.platform-bar a { color: inherit; text-decoration: none; font-size: 13px; font-weight: 500; }
+.platform-bar a:hover { opacity: 0.7; }
+
+/* Helpers */
+.muted { color: var(--ce-muted); }

@@ -1,0 +1,71 @@
+# ClickToEat — Auth endpoints
+#
+# Cubre: register, login, me, logout, change own password.
+# Setear @host según entorno. @token se llena después del login.
+
+@host = http://localhost:8080/api/v1
+@token = <pega-token-tras-login>
+@email = owner+tacos-el-gordo@ClickToEat.app
+@password = password123
+
+###
+# Registrar un nuevo owner (sin local todavía)
+# Throttle: 5/min por IP
+POST {{host}}/auth/register
+Content-Type: application/json
+
+{
+    "nombre": "María Pérez",
+    "email": "maria.test@example.com",
+    "password": "secret123",
+    "password_confirmation": "secret123"
+}
+
+###
+# Login — devuelve token Sanctum
+# Throttle: 10/min + guard 5/min por IP+email
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "{{email}}",
+    "password": "{{password}}",
+    "device": "vscode-rest-client"
+}
+
+###
+# Login (credenciales inválidas → 422)
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "{{email}}",
+    "password": "wrong-password"
+}
+
+###
+# Quién soy — incluye el local cargado
+# Auth: sanctum
+GET {{host}}/auth/me
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+# Logout — revoca el token actual (otros tokens siguen válidos)
+# Auth: sanctum
+POST {{host}}/auth/logout
+Authorization: Bearer {{token}}
+
+###
+# Cambiar contraseña propia
+# Requiere password actual. Invalida todos los demás tokens del user (excepto el actual).
+# Throttle: 5/min
+PATCH {{host}}/auth/me/password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "current_password": "{{password}}",
+    "password": "nueva-segura-456",
+    "password_confirmation": "nueva-segura-456"
+}

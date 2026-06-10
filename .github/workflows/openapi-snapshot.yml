@@ -1,0 +1,104 @@
+name: OpenAPI Snapshot
+
+on:
+  # Auto-disparado cuando PR toca controllers (que es donde viven las anotaciones @OA\*)
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/api/app/Http/Controllers/**'
+      - 'apps/api/config/l5-swagger.php'
+      - '.github/workflows/openapi-snapshot.yml'
+
+  # Manual desde la UI de GitHub Actions
+  workflow_dispatch:
+
+permissions:
+  contents: write       # crear branch + commit
+  pull-requests: write  # crear PR automático
+
+jobs:
+  regenerate:
+    name: Regenerate snapshot
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    defaults:
+      run:
+        working-directory: apps/api
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # PR de fork: el secret default no aplica — usar token con permisos
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_sqlite, mbstring, intl, bcmath, zip, gd
+          tools: composer:v2
+
+      - name: Cache composer
+        uses: actions/cache@v4
+        with:
+          path: apps/api/vendor
+          key: composer-${{ runner.os }}-php8.3-${{ hashFiles('apps/api/composer.lock') }}
+
+      - name: Install dependencies
+        run: composer install --no-dev --prefer-dist --no-progress --no-interaction
+
+      - name: Generate APP_KEY (necesario para artisan)
+        run: php artisan key:generate --env=production --force
+
+      - name: Regenerate OpenAPI spec
+        env:
+          # Forzar host neutral para que el spec no contenga URLs locales
+          L5_SWAGGER_CONST_HOST: https://clicktoeat-api.lumiaaisolutions.com/api/v1
+        run: php artisan l5-swagger:generate
+
+      - name: Copy snapshot a docs/
+        working-directory: .
+        run: |
+          mkdir -p docs/api
+          cp apps/api/storage/api-docs/api-docs.json docs/api/openapi.json
+
+      - name: Check si hubo drift
+        id: drift
+        working-directory: .
+        run: |
+          if git diff --quiet docs/api/openapi.json; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "✅ Sin cambios en el spec"
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "📝 Spec cambió — abriendo PR"
+          fi
+
+      - name: Create PR si hay drift
+        if: steps.drift.outputs.changed == 'true' && github.event_name == 'workflow_dispatch'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore(api): regenerate openapi snapshot'
+          title: 'chore(api): regenerate OpenAPI snapshot'
+          body: |
+            Snapshot regenerado automáticamente por el workflow `OpenAPI Snapshot`.
+
+            Disparado por: ${{ github.event_name }} (${{ github.actor }})
+
+            Mergea este PR si los cambios corresponden a las modificaciones esperadas de la API.
+          branch: chore/openapi-snapshot
+          delete-branch: true
+          add-paths: docs/api/openapi.json
+
+      - name: Fail si PR check encuentra drift sin auto-PR
+        if: steps.drift.outputs.changed == 'true' && github.event_name == 'pull_request'
+        working-directory: .
+        run: |
+          echo "::error::El spec OpenAPI cambió pero docs/api/openapi.json no fue actualizado."
+          echo "::error::Corre el workflow 'OpenAPI Snapshot' manualmente desde Actions y mergea el PR generado."
+          echo ""
+          echo "Diff:"
+          git diff docs/api/openapi.json | head -100
+          exit 1

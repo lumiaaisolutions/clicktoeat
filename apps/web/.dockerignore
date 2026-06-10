@@ -1,0 +1,39 @@
+# Excluir del build context (reduce tiempo + tamaño de imagen)
+
+# Dependencies
+node_modules
+.pnp
+.pnp.*
+
+# Build output
+.next
+out
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local env files (los públicos sí entran)
+.env
+.env.local
+.env*.local
+
+# Editor
+.vscode
+.idea
+
+# Git
+.git
+.gitignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tests / docs
+README.md
+**/*.test.ts
+**/*.test.tsx
+__tests__
+__mocks__
