@@ -1,80 +1,33 @@
 'use client';
 
 /**
- * Cliente Laravel Echo + Pusher para tiempo real.
+ * Stub para Laravel Echo + Pusher.
  *
- * Activación: setear `NEXT_PUBLIC_PUSHER_KEY` y `NEXT_PUBLIC_PUSHER_CLUSTER`
- * en `.env.production` (y agregar `pusher-js` + `laravel-echo` al package.json).
+ * Hasta activar broadcasting, este módulo no hace nada. El frontend depende
+ * del polling existente. Cuando se active:
  *
- * Si no están configuradas → `echo` es `null` y `subscribeToLocalEvents`
- * NO conecta nada — frontend sigue dependiendo del polling existente.
+ *   1. npm install pusher-js laravel-echo
+ *   2. setear NEXT_PUBLIC_PUSHER_KEY y NEXT_PUBLIC_PUSHER_CLUSTER en .env.production
+ *   3. reemplazar este archivo con la implementación documentada en
+ *      docs/runbook/integrar-reverb.md
  *
- * Ver: docs/runbook/integrar-reverb.md
+ * Razón por la que está como stub: webpack en `next build` resuelve los
+ * `import('laravel-echo')` aunque sean dinámicos y aunque tengan
+ * `@ts-expect-error` — falla en build si el paquete no está en package.json.
  */
-
-import { tokenStore } from './api';
 
 const PUSHER_KEY = process.env.NEXT_PUBLIC_PUSHER_KEY;
 const PUSHER_CLUSTER = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080/api/v1';
 
 export const isRealtimeEnabled = Boolean(PUSHER_KEY && PUSHER_CLUSTER);
 
-/**
- * Singleton echo instance. Null si no hay Pusher configurado.
- * Se inicializa lazy en la primera llamada a getEcho().
- */
-let echoInstance: any = null;
-
-export async function getEcho(): Promise<any | null> {
-  if (!isRealtimeEnabled) return null;
-  if (echoInstance) return echoInstance;
-  if (typeof window === 'undefined') return null;
-
-  try {
-    // Dynamic imports — sólo se descargan los SDKs si efectivamente se usan.
-    // Los paquetes NO están en package.json hasta activar broadcasting
-    // (ver docs/runbook/integrar-reverb.md). El @ts-expect-error es necesario
-    // para que `tsc --noEmit` no falle por "Cannot find module".
-    // @ts-expect-error - laravel-echo no instalado hasta activar realtime
-    const { default: Echo } = await import('laravel-echo');
-    // @ts-expect-error - pusher-js no instalado hasta activar realtime
-    const Pusher = (await import('pusher-js')).default;
-
-    (window as any).Pusher = Pusher;
-
-    echoInstance = new Echo({
-      broadcaster: 'pusher',
-      key: PUSHER_KEY,
-      cluster: PUSHER_CLUSTER,
-      forceTLS: true,
-      authEndpoint: `${API_URL}/broadcasting/auth`,
-      auth: {
-        headers: {
-          Authorization: `Bearer ${tokenStore.get() ?? ''}`,
-          Accept: 'application/json',
-        },
-      },
-    });
-
-    return echoInstance;
-  } catch (err) {
-    // pusher-js / laravel-echo no instalados — comportamiento esperado en setups
-    // que aún no activaron tiempo real.
-    console.warn('[echo] pusher-js o laravel-echo no instalados. Frontend usa polling.');
-    return null;
-  }
+export async function getEcho(): Promise<unknown | null> {
+  return null;
 }
 
-/**
- * Suscribirse al canal privado del local y escuchar `PedidoCreado`.
- * Retorna unsubscribe.
- *
- * Si no hay realtime configurado, retorna noop.
- */
 export async function subscribeToLocalEvents(
-  localId: number,
-  onPedidoCreado: (data: {
+  _localId: number,
+  _onPedidoCreado: (data: {
     pedido_id: number;
     codigo: string;
     cliente: string;
@@ -84,14 +37,5 @@ export async function subscribeToLocalEvents(
     created_at: string;
   }) => void,
 ): Promise<() => void> {
-  const echo = await getEcho();
-  if (!echo) return () => {};
-
-  const channel = echo.private(`local.${localId}`);
-  channel.listen('.pedido.creado', onPedidoCreado);
-
-  return () => {
-    channel.stopListening('.pedido.creado');
-    echo.leave(`local.${localId}`);
-  };
+  return () => {};
 }
