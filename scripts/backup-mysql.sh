@@ -26,8 +26,8 @@ set -Eeuo pipefail
 # ─── Cargar config ──────────────────────────────────────────────
 CONFIG_FILE="${CONFIG_FILE:-$HOME/.config/clicktoeat-backup.env}"
 if [[ -f "${CONFIG_FILE}" ]]; then
-    # shellcheck disable=SC1090
     set -a
+    # shellcheck source=/dev/null
     . "${CONFIG_FILE}"
     set +a
 fi

@@ -32,8 +32,13 @@ export async function getEcho(): Promise<any | null> {
   if (typeof window === 'undefined') return null;
 
   try {
-    // Dynamic imports — sólo se descargan los SDKs si efectivamente se usan
+    // Dynamic imports — sólo se descargan los SDKs si efectivamente se usan.
+    // Los paquetes NO están en package.json hasta activar broadcasting
+    // (ver docs/runbook/integrar-reverb.md). El @ts-expect-error es necesario
+    // para que `tsc --noEmit` no falle por "Cannot find module".
+    // @ts-expect-error - laravel-echo no instalado hasta activar realtime
     const { default: Echo } = await import('laravel-echo');
+    // @ts-expect-error - pusher-js no instalado hasta activar realtime
     const Pusher = (await import('pusher-js')).default;
 
     (window as any).Pusher = Pusher;
