@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import type { AuditLog, Paginated } from '@/lib/types';
 import { toast } from '@/store/toast';
@@ -130,9 +130,8 @@ export default function AuditLogPage() {
             </thead>
             <tbody>
               {items.map((log) => (
-                <>
+                <Fragment key={log.id}>
                   <tr
-                    key={log.id}
                     className="border-b border-line last:border-0 hover:bg-bg/30 cursor-pointer"
                     onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
                   >
@@ -189,7 +188,7 @@ export default function AuditLogPage() {
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>
