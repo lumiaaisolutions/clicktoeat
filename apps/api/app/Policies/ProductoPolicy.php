@@ -44,4 +44,9 @@ class ProductoPolicy
     {
         return $user->isOwner();
     }
+
+    public function restore(User $user, Producto $producto): bool
+    {
+        return $user->isOwner() && $user->local_id === $producto->local_id;
+    }
 }

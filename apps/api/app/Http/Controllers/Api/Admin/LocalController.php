@@ -175,4 +175,22 @@ class LocalController extends Controller
         $local->delete();  // soft-delete
         return response()->json(null, 204);
     }
+
+    /**
+     * @OA\Post(
+     *     path="/admin/locales/{local}/restore",
+     *     tags={"Super Admin: Locales"},
+     *     security={{"sanctum":{}}},
+     *     summary="Restaura un local soft-deleted.",
+     *     @OA\Parameter(name="local", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="OK")
+     * )
+     */
+    public function restore(int $id): LocalResource
+    {
+        $local = Local::withTrashed()->findOrFail($id);
+        $local->restore();
+
+        return new LocalResource($local->fresh());
+    }
 }

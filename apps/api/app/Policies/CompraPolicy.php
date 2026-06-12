@@ -34,4 +34,9 @@ class CompraPolicy
     {
         return $user->isOwner() && $user->local_id === $compra->local_id;
     }
+
+    public function restore(User $user, Compra $compra): bool
+    {
+        return $user->isOwner() && $user->local_id === $compra->local_id;
+    }
 }

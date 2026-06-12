@@ -2,6 +2,29 @@
 
 > Capabilities ausentes que el negocio/operación va a pedir tarde o temprano. Priorizado por impacto.
 
+## ✅ Cerrado en Fase 7 (2026-06-10)
+
+- ✅ **Idempotency-Key en POST /public/pedidos/{slug}** — middleware + tabla. Ver [`features/idempotency.md`](../features/idempotency.md).
+- ✅ **Reset de contraseña por email** — endpoints `/auth/forgot-password` + `/auth/reset-password` con `Password` broker de Laravel. Mailer `log` por default; configurar `MAIL_*` para prod. Ver [`features/password-reset.md`](../features/password-reset.md).
+- ✅ **CRUD de staff** — endpoints `/local/staff` (owner gestiona su equipo). UserPolicy registrada.
+- ✅ **Audit log** — tabla `audit_logs` + `AuditObserver` conectado a Local/User/Categoria/Producto/Ingrediente/Pedido/Compra. Endpoint `GET /audit-logs` (sólo owner + super_admin).
+- ✅ **Rate limit por tenant** — limiter `public-orders-by-tenant` (100/min por `local:{slug}` + 20/min por IP) aplicado a `POST /public/pedidos/{slug}`.
+- ✅ **Restore desde soft-delete** — filtros `?trashed=only|with` + endpoints `POST /productos/{id}/restore`, `/pedidos/{id}/restore`, `/compras/{id}/restore`, `/admin/locales/{id}/restore`.
+
+Pendiente operativo derivado:
+- ✅ Cron de limpieza para `idempotency_keys` / `audit_logs` / `sessions` / `sanctum` / `failed_jobs` / `notificaciones` → **Laravel Scheduler implementado** en `bootstrap/app.php`. Sólo falta agregar `* * * * * php artisan schedule:run` al cron de hPanel. Ver [`runbook/setup-cron-scheduler.md`](../runbook/setup-cron-scheduler.md).
+- ✅ Frontend `/forgot-password` + `/reset-password` con enlace desde `/login`.
+- ✅ Frontend `/admin/staff` con CRUD completo.
+- ✅ Frontend `/admin/audit-log` con tabla paginada + filtros + diff expandible.
+- ✅ Frontend filtros `?trashed=` + botón restore en `/admin/productos` y `/admin/pedidos`.
+- [ ] Configurar `MAIL_*` con provider real en prod ([`runbook/setup-mail-hostinger.md`](../runbook/setup-mail-hostinger.md)).
+
+## ✅ Cerrado en Fase 9 (2026-06-10) — Frontend + Pre-implementación
+
+- ✅ **UI completa** para las features de Fase 7 (reset password, staff, audit log, restore).
+- ✅ **S3/B2 pre-implementado** (sin tocar nada hasta que se active): `filesystems.php` con disk `s3`, `ImageUploader` agnóstico al disk, comando `php artisan uploads:migrar-a-s3` con `--dry-run`. Activación: `composer require league/flysystem-aws-s3-v3` + `S3_*` en `.env`.
+- ✅ **Broadcasting Pusher pre-implementado**: `PedidoCreado` event con `ShouldBroadcastAfterCommit`, channel auth, `lib/echo.ts` con fallback transparente, store de notificaciones detecta si realtime está activo y reduce polling a 5 min. Activación: `composer require pusher/pusher-php-server` + `npm install pusher-js laravel-echo` + `PUSHER_*` en `.env`.
+
 ## Crítico (afecta la operación real)
 
 ### Reset de contraseña por email

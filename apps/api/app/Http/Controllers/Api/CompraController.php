@@ -39,6 +39,13 @@ class CompraController extends Controller
 
         $query = Compra::query()->with('usuario:id,nombre');
 
+        // Filtro soft-delete
+        if ($request->input('trashed') === 'only') {
+            $query->onlyTrashed();
+        } elseif ($request->input('trashed') === 'with') {
+            $query->withTrashed();
+        }
+
         if ($request->filled('estado')) {
             $query->where('estado', $request->string('estado'));
         }
@@ -53,6 +60,26 @@ class CompraController extends Controller
         return CompraResource::collection(
             $query->orderByDesc('fecha')->orderByDesc('id')->paginate($perPage)
         );
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/compras/{compra}/restore",
+     *     tags={"Compras"},
+     *     security={{"sanctum":{}}},
+     *     summary="Restaura una compra soft-deleted (no la des-anula — sólo recupera la fila).",
+     *     @OA\Parameter(name="compra", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="OK")
+     * )
+     */
+    public function restore(int $id): CompraResource
+    {
+        $compra = Compra::withTrashed()->findOrFail($id);
+        $this->authorize('restore', $compra);
+
+        $compra->restore();
+
+        return new CompraResource($compra->fresh(['detalles.ingrediente', 'usuario:id,nombre']));
     }
 
     /**

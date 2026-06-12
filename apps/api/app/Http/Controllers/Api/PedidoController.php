@@ -83,6 +83,13 @@ class PedidoController extends Controller
 
         $query = Pedido::query()->with('detalles');
 
+        // Filtro soft-delete
+        if ($request->input('trashed') === 'only') {
+            $query->onlyTrashed();
+        } elseif ($request->input('trashed') === 'with') {
+            $query->withTrashed();
+        }
+
         if ($request->filled('estado')) {
             $query->where('estado', $request->string('estado'));
         }
@@ -92,6 +99,26 @@ class PedidoController extends Controller
         return PedidoResource::collection(
             $query->orderByDesc('id')->paginate($perPage)
         );
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/pedidos/{pedido}/restore",
+     *     tags={"Pedidos"},
+     *     security={{"sanctum":{}}},
+     *     summary="Restaura un pedido soft-deleted.",
+     *     @OA\Parameter(name="pedido", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="OK")
+     * )
+     */
+    public function restore(int $id): PedidoResource
+    {
+        $pedido = Pedido::withTrashed()->findOrFail($id);
+        $this->authorize('restore', $pedido);
+
+        $pedido->restore();
+
+        return new PedidoResource($pedido->fresh()->load('detalles'));
     }
 
     /**

@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { api } from '@/lib/api';
+import { isRealtimeEnabled, subscribeToLocalEvents } from '@/lib/echo';
 import type { Notificacion, Pedido } from '@/lib/types';
 
 interface NotificacionesState {
@@ -10,11 +11,12 @@ interface NotificacionesState {
   pedidosNuevos: Pedido[];
   loading: boolean;
   pollHandle: ReturnType<typeof setInterval> | null;
+  realtimeUnsubscribe: (() => void) | null;
 
   refresh: () => Promise<void>;
   marcarLeida: (id: number) => Promise<void>;
   marcarTodasLeidas: () => Promise<void>;
-  startPolling: () => void;
+  startPolling: (localId?: number) => void;
   stopPolling: () => void;
 }
 
@@ -24,6 +26,7 @@ export const useNotificaciones = create<NotificacionesState>((set, get) => ({
   pedidosNuevos: [],
   loading: false,
   pollHandle: null,
+  realtimeUnsubscribe: null,
 
   async refresh() {
     set({ loading: true });
@@ -68,16 +71,34 @@ export const useNotificaciones = create<NotificacionesState>((set, get) => ({
     } catch { /* ignore */ }
   },
 
-  startPolling() {
+  startPolling(localId) {
     if (get().pollHandle) return;
     get().refresh();
-    const handle = setInterval(() => get().refresh(), 30_000);
-    set({ pollHandle: handle });
+
+    // Si Pusher está configurado + tenemos localId, suscribir al canal del local.
+    // Mantiene un polling de fallback cada 5 min en lugar de 30s.
+    // Si Pusher NO está configurado, polling cada 30s como siempre.
+    if (isRealtimeEnabled && localId) {
+      subscribeToLocalEvents(localId, () => {
+        // Cualquier evento del local → refresh para traer detalles + recalcular pedidos nuevos
+        get().refresh();
+      }).then((unsubscribe) => set({ realtimeUnsubscribe: unsubscribe }));
+
+      const handle = setInterval(() => get().refresh(), 300_000); // heartbeat 5 min
+      set({ pollHandle: handle });
+    } else {
+      const handle = setInterval(() => get().refresh(), 30_000);
+      set({ pollHandle: handle });
+    }
   },
 
   stopPolling() {
     const handle = get().pollHandle;
     if (handle) clearInterval(handle);
-    set({ pollHandle: null });
+
+    const unsub = get().realtimeUnsubscribe;
+    if (unsub) unsub();
+
+    set({ pollHandle: null, realtimeUnsubscribe: null });
   },
 }));

@@ -35,4 +35,9 @@ class PedidoPolicy
     {
         return $user->isOwner() && $user->local_id === $pedido->local_id;
     }
+
+    public function restore(User $user, Pedido $pedido): bool
+    {
+        return $user->isOwner() && $user->local_id === $pedido->local_id;
+    }
 }

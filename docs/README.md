@@ -122,6 +122,9 @@ Documentación viva del proyecto. **Regla**: cada tema vive en su propio `.md` d
 - [ADR-005: Recetas XOR + productos compuestos](decisions/ADR-005-recetas-xor-y-productos-compuestos.md)
 - [ADR-006: Uploads a disco local (interim)](decisions/ADR-006-uploads-locales-interim.md)
 - [ADR-007: Polling cada 30s para notificaciones (interim)](decisions/ADR-007-polling-notificaciones-interim.md)
+- [ADR-008: Idempotency-Key como header opcional](decisions/ADR-008-idempotency-key.md)
+- [ADR-009: Audit log con Observers (no event sourcing)](decisions/ADR-009-audit-log-via-observers.md)
+- [ADR-010: Rate limit por tenant en endpoints públicos críticos](decisions/ADR-010-rate-limit-por-tenant.md)
 
 ### Runbooks
 - [Rotar `APP_KEY`](runbook/rotar-app-key.md)
@@ -131,6 +134,11 @@ Documentación viva del proyecto. **Regla**: cada tema vive en su propio `.md` d
 - [Crash de php-fpm](runbook/php-fpm-crash.md)
 - [Restaurar backup MySQL](runbook/restaurar-backup-mysql.md)
 - [Backup MySQL automatizado — diseño](runbook/backup-mysql-automatizado.md)
+- [Setup del cron del Laravel Scheduler en Hostinger](runbook/setup-cron-scheduler.md)
+- [Integrar Sentry (error reporting)](runbook/integrar-sentry.md)
+- [Configurar MAIL con Hostinger Email](runbook/setup-mail-hostinger.md)
+- [Migrar uploads de filesystem a S3/B2](runbook/migrar-uploads-a-s3-b2.md)
+- [Reemplazar polling con Reverb (tiempo real)](runbook/integrar-reverb.md)
 - [Postmortems — índice + template](runbook/postmortems/README.md)
 - [Drills — índice + template](runbook/drills/README.md)
 

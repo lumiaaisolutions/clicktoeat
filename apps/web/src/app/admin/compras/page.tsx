@@ -17,19 +17,35 @@ export default function ComprasPage() {
   const [meta, setMeta]     = useState<Paginated<Compra>['meta'] | null>(null);
   const [page, setPage]     = useState(1);
   const [estado, setEstado] = useState<EstadoFilter>('todos');
+  const [trashed, setTrashed] = useState<'' | 'only' | 'with'>('');
   const [creating, setCreating] = useState(false);
   const [detalle, setDetalle]   = useState<Compra | null>(null);
 
   const refresh = async () => {
     setItems(null);
     const { data } = await api.get<Paginated<Compra>>('/compras', {
-      params: { page, estado: estado !== 'todos' ? estado : undefined, per_page: 20 },
+      params: {
+        page,
+        estado: estado !== 'todos' ? estado : undefined,
+        trashed: trashed || undefined,
+        per_page: 20,
+      },
     });
     setItems(data.data);
     setMeta(data.meta);
   };
 
-  useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [page, estado]);
+  useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [page, estado, trashed]);
+
+  const restaurar = async (c: Compra) => {
+    try {
+      await api.post(`/compras/${c.id}/restore`);
+      toast.success(`Compra ${c.codigo} restaurada`);
+      refresh();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'No se pudo restaurar');
+    }
+  };
 
   const anular = async (c: Compra) => {
     if (!confirm(`¿Anular compra ${c.codigo}? Se revertirá el stock.`)) return;

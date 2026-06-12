@@ -43,24 +43,30 @@ const TRANSICIONES: Record<PedidoEstado, PedidoEstado[]> = {
 export default function PedidosPage() {
   const [items, setItems] = useState<Pedido[] | null>(null);
   const [estado, setEstado] = useState<PedidoEstado | ''>('');
+  const [trashed, setTrashed] = useState<'' | 'only' | 'with'>('');
   const [open, setOpen] = useState<Pedido | null>(null);
 
   const refresh = async () => {
     setItems(null);
     const { data } = await api.get<Paginated<Pedido>>('/pedidos', {
-      params: { estado: estado || undefined, per_page: 50 },
+      params: {
+        estado: estado || undefined,
+        trashed: trashed || undefined,
+        per_page: 50,
+      },
     });
     setItems(data.data);
   };
 
-  useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [estado]);
+  useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [estado, trashed]);
 
-  // Poll cada 30s en /admin/pedidos para refrescar (sustituto sin WebSockets de Fase 6)
+  // Poll cada 30s en /admin/pedidos para refrescar (sustituto sin WebSockets — pendiente Reverb)
   useEffect(() => {
+    if (trashed) return;        // no polling cuando ves eliminados
     const id = setInterval(refresh, 30_000);
     return () => clearInterval(id);
   /* eslint-disable-next-line */
-  }, [estado]);
+  }, [estado, trashed]);
 
   const changeEstado = async (p: Pedido, nuevo: PedidoEstado) => {
     try {
@@ -73,6 +79,16 @@ export default function PedidosPage() {
     }
   };
 
+  const handleRestore = async (p: Pedido) => {
+    try {
+      await api.post(`/pedidos/${p.id}/restore`);
+      toast.success(`Pedido ${p.codigo} restaurado`);
+      refresh();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'No se pudo restaurar');
+    }
+  };
+
   return (
     <div>
       <header className="flex items-center justify-between mb-6 flex-wrap gap-3">
@@ -80,13 +96,25 @@ export default function PedidosPage() {
           <h1 className="ce-display text-2xl md:text-4xl font-bold">Pedidos</h1>
           <p className="text-muted text-sm mt-1">Auto-refresca cada 30s. Cambia el estado para que aparezca en cocina.</p>
         </div>
-        <select
-          value={estado}
-          onChange={(e) => setEstado(e.target.value as PedidoEstado | '')}
-          className="px-3 py-2 border border-line rounded-xl bg-white"
-        >
-          {ESTADOS.map((e) => <option key={e.value} value={e.value}>{e.label}</option>)}
-        </select>
+        <div className="flex gap-2 flex-wrap">
+          <select
+            value={estado}
+            onChange={(e) => setEstado(e.target.value as PedidoEstado | '')}
+            className="px-3 py-2 border border-line rounded-xl bg-white"
+          >
+            {ESTADOS.map((e) => <option key={e.value} value={e.value}>{e.label}</option>)}
+          </select>
+          <select
+            value={trashed}
+            onChange={(e) => setTrashed(e.target.value as '' | 'only' | 'with')}
+            className="px-3 py-2 border border-line rounded-xl bg-white"
+            title="Filtro de pedidos eliminados"
+          >
+            <option value="">Activos</option>
+            <option value="with">Activos + eliminados</option>
+            <option value="only">Sólo eliminados</option>
+          </select>
+        </div>
       </header>
 
       <div className="rounded-2xl border border-line bg-white overflow-hidden">
@@ -99,7 +127,11 @@ export default function PedidosPage() {
         ) : (
           <ul className="divide-y divide-line">
             {items.map((p) => (
-              <li key={p.id} className="p-4 hover:bg-line/20 cursor-pointer" onClick={() => setOpen(p)}>
+              <li
+                key={p.id}
+                className={cn('p-4', trashed !== 'only' && 'hover:bg-line/20 cursor-pointer')}
+                onClick={trashed === 'only' ? undefined : () => setOpen(p)}
+              >
                 <div className="flex items-center gap-3 flex-wrap">
                   <span className={cn('text-xs px-2 py-1 rounded-full font-medium', ESTADO_COLOR[p.estado])}>
                     {p.estado}
@@ -108,6 +140,14 @@ export default function PedidosPage() {
                   <span className="font-medium">{p.cliente_nombre}</span>
                   <span className="text-sm text-muted">· {p.cliente_telefono}</span>
                   <span className="ml-auto font-bold">{formatMXN(p.total)}</span>
+                  {trashed === 'only' && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleRestore(p); }}
+                      className="text-xs px-2 py-1 rounded-full border border-line hover:bg-bg"
+                    >
+                      ↺ Restaurar
+                    </button>
+                  )}
                 </div>
                 <div className="mt-1 text-xs text-muted">
                   {labelEntrega(p.metodo_entrega)} · {p.metodo_pago.replace('_', ' ')} · {new Date(p.created_at).toLocaleString('es-MX')}

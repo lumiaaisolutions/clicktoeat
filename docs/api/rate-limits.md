@@ -44,10 +44,35 @@ El middleware throttle de Laravel inyecta automáticamente:
 - `X-RateLimit-Remaining` — cuántos quedan
 - `Retry-After` — segundos para reintentar (sólo en 429)
 
+## Rate limit por tenant ✅ implementado
+
+`POST /public/pedidos/{slug}` usa un **limiter custom** que combina:
+
+- **100 pedidos/min por local** (key: `local:{slug}`) — generoso para horarios pico legítimos pero protege a otros tenants si uno está bajo ataque.
+- **20 pedidos/min por IP** (fallback) — protege contra atacante con un solo IP.
+
+Definido en `AppServiceProvider::configureRateLimiting`:
+
+```php
+RateLimiter::for('public-orders-by-tenant', function (Request $request) {
+    $slug = $request->route('slug') ?? 'unknown';
+    return [
+        Limit::perMinute(100)->by("local:{$slug}"),
+        Limit::perMinute(20)->by($request->ip()),
+    ];
+});
+```
+
+Aplicado en `routes/api.php`:
+```php
+->middleware(['throttle:public-orders-by-tenant', 'idempotent:24h'])
+```
+
+El cliente recibe 429 si **cualquiera** de los dos límites se excede. Headers `X-RateLimit-Limit` reflejan el límite más estricto activo.
+
 ## Sugerencias / pendientes
 
 Ver [`issues/funcionalidad-faltante.md`](../issues/funcionalidad-faltante.md):
 
-- Rate limit **por tenant** (un local que recibe ataque no debería poder envenenar a otro al saturar la API).
 - Rate limit más bajo en endpoints públicos pesados (`/public/menu/{slug}`).
 - Captcha o proof-of-work en `POST /public/pedidos/{slug}` para evitar pedidos basura masivos.

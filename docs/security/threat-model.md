@@ -165,7 +165,7 @@
 - [ ] Mientras tanto: validar nginx `default.conf` no permite ejecución en `/storage/`. (Hoy no se ejecuta porque `root` es `/var/www/html/public` y `storage/app/public` está bajo `public/storage` symlink — pero un misconfig podría romperlo.)
 - [ ] Considerar ClamAV scan asíncrono via Job (Fase 6+).
 
-### 8. Tampering del payload del pedido público
+### 8. Tampering del payload del pedido público ✅ MITIGADO 2026-06-10
 
 **Severidad**: 🟠 Alta. Atacante intenta crear pedido con producto inexistente o precio adulterado.
 
@@ -174,14 +174,13 @@
 **Controles activos**:
 - `OrderService::crear` carga productos `where('local_id', $local->id)` → producto de otro local no se encuentra → error.
 - Precio **snapshotteado del backend** — el cliente puede mandar lo que quiera en el body, se ignora.
-- Extras: el `price` viene del cliente pero **se almacena tal cual** en `extras_seleccionados` (sólo se usa para el cálculo del subtotal de la línea).
+- **Extras validados contra catálogo del producto** (`OrderService::validarYNormalizarExtras`) — el `price` del cliente se **reemplaza** con el del catálogo. Item o grupo inexistente → `RuntimeException` → no se crea pedido.
 
-**Gaps**:
-- ⚠️ **Precio de extras NO se valida contra el catálogo del producto**. Un atacante manda `extras: [{group:"X", item:"Y", price: -100}]` y el subtotal baja.
+**Cubierto por tests**:
+- `tests/Feature/EndpointPublicoTamperingTest.php` — 6 tests específicos: precio negativo ignorado, item inexistente rechazado, grupo inexistente rechazado, precio canónico persistido en `detalle_pedidos`, producto de otro local rechazado.
 
-**Acción**:
-- [ ] **CRÍTICO**: en `OrderService::crear` validar que cada extra del payload coincide con uno definido en `$producto->extras` (mismo `group` + `item` + `price`). Si no coincide → rechazar.
-- [ ] Test que cubra el ataque (extra con precio negativo / item inexistente).
+**Pendiente menor**:
+- [ ] Centralizar `RuntimeException` a 422 en el controller (hoy responde 500). El bug está cerrado, sólo el código HTTP es subóptimo.
 
 ### 9. DoS — saturar la API
 
@@ -304,11 +303,11 @@
 
 ## Resumen — top 5 acciones críticas
 
-1. **Validar precio de extras en `OrderService::crear`** (vector #8) — fácil + alto impacto.
+1. ✅ ~~Validar precio de extras en `OrderService::crear`~~ (vector #8) — cerrado 2026-06-10.
 2. **Setear `expires_at` en tokens Sanctum** + considerar HttpOnly cookie (vector #4).
-3. **CSP estricta en nginx** (vector #4 + #5).
+3. **CSP estricta en LiteSpeed (`.htaccess`)** (vector #4 + #5).
 4. **Rate limit por tenant** (vector #9).
-5. **Pre-commit hook anti-leak de secretos** (vector #11).
+5. **Pre-commit hook anti-leak de secretos** (vector #11) — guía en [`docs/contributing/pre-commit.md`](../contributing/pre-commit.md).
 
 ## Matriz de severidad
 

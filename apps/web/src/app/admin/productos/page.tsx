@@ -18,6 +18,7 @@ export default function ProductosPage() {
   const [page, setPage] = useState(1);
   const [q, setQ] = useState('');
   const [filterCategoria, setFilterCategoria] = useState<number | ''>('');
+  const [trashed, setTrashed] = useState<'' | 'only' | 'with'>('');
   const [editing, setEditing] = useState<Producto | null>(null);
   const [creating, setCreating] = useState(false);
   const [receta, setReceta] = useState<Producto | null>(null);
@@ -30,13 +31,14 @@ export default function ProductosPage() {
         per_page: 20,
         q: q || undefined,
         categoria_id: filterCategoria || undefined,
+        trashed: trashed || undefined,
       },
     });
     setItems(data.data);
     setMeta(data.meta);
   };
 
-  useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [page, q, filterCategoria]);
+  useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [page, q, filterCategoria, trashed]);
   useEffect(() => {
     api.get<{ data: Categoria[] }>('/categorias').then(({ data }) => setCategorias(data.data));
   }, []);
@@ -58,6 +60,16 @@ export default function ProductosPage() {
       refresh();
     } catch {
       toast.error('No se pudo actualizar');
+    }
+  };
+
+  const handleRestore = async (p: Producto) => {
+    try {
+      await api.post(`/productos/${p.id}/restore`);
+      toast.success(`"${p.nombre}" restaurado`);
+      refresh();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'No se pudo restaurar');
     }
   };
 
@@ -94,6 +106,16 @@ export default function ProductosPage() {
           <option value="">Todas las categorías</option>
           {categorias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
         </select>
+        <select
+          value={trashed}
+          onChange={(e) => { setPage(1); setTrashed(e.target.value as '' | 'only' | 'with'); }}
+          className="px-3 py-2 border border-line rounded-xl bg-white"
+          title="Filtro de productos eliminados"
+        >
+          <option value="">Activos</option>
+          <option value="with">Activos + eliminados</option>
+          <option value="only">Sólo eliminados</option>
+        </select>
       </div>
 
       <div className="rounded-2xl border border-line bg-white overflow-hidden">
@@ -120,9 +142,15 @@ export default function ProductosPage() {
                   {p.disponible ? '● Disponible' : '○ Oculto'}
                 </button>
                 <div className="flex gap-1">
-                  <Button variant="ghost" size="sm" onClick={() => setReceta(p)}>Receta</Button>
-                  <Button variant="ghost" size="sm" onClick={() => setEditing(p)}>Editar</Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(p)}>Borrar</Button>
+                  {trashed === 'only' ? (
+                    <Button variant="ghost" size="sm" onClick={() => handleRestore(p)}>↺ Restaurar</Button>
+                  ) : (
+                    <>
+                      <Button variant="ghost" size="sm" onClick={() => setReceta(p)}>Receta</Button>
+                      <Button variant="ghost" size="sm" onClick={() => setEditing(p)}>Editar</Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(p)}>Borrar</Button>
+                    </>
+                  )}
                 </div>
               </li>
             ))}

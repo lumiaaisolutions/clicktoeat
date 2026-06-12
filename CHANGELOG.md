@@ -68,9 +68,76 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - **`CLAUDE.md`** + **`README.md`** ahora muestran las URLs de producción + comando SSH + scripts de deploy desde la primera línea.
 - **`CLAUDE.md`** añade sección "Hostinger Business Shared — restricciones" con las 9 limitaciones concretas del plan (sin Docker en prod, sin sudo, sin `/etc/cron.d`, MySQL sin `SUPER`/`RELOAD`, LSPHP/LiteSpeed, etc.).
 - **`docs/issues/devops-faltante.md`** ahora abre con la tabla de 4 pendientes operativos del equipo (`datos-deploy.md`) con su estado real.
+- **12 factories** en `apps/api/database/factories/` (Local, User, Categoria, Producto, Ingrediente, Pedido, DetallePedido, Receta, Compra, DetalleCompra, MovimientoInventario, Notificacion) con states útiles: `LocalFactory::suspendido()`/`conHorarios()`, `UserFactory::superAdmin()`/`owner()`/`staff()`, `ProductoFactory::conExtras()`/`conReceta()`, etc.
+- **Tests Auth nuevos** en `tests/Feature/Auth/`:
+  - `RegisterTest` — 5 tests (caso feliz, email duplicado, password débil, confirmación distinta, token funcional).
+  - `LoginTest` — 7 tests (login válido, password incorrecto, email inexistente, throttle 5/min, reset tras éxito, abilities por rol, logout sólo revoca actual).
+  - `PasswordTest` — 7 tests (cambio propio, current_password incorrecto, invalida otros tokens, reset por super_admin, cierra todas las sesiones, isolation entre owners, 404 sin owner).
+- **Tests CRUD nuevos**:
+  - `CategoriaCrudTest` — 11 tests (scope multi-tenant, slug auto, dup en mismo local, dup en locales distintos, staff sin permiso, update, scope ajeno = 404, delete con productos = 409, productos_count, filtro activo).
+  - `ProductoCrudTest` — 13 tests (creación, extras, categoría ajena rechazada, precio_descuento < precio, extras malformados, paginación, búsqueda, scope, update, delete, staff sólo lee).
+  - `UploadImageTest` — 9 tests (PNG válido, folder default, folder no permitido, no-imagen, mime no permitido, > 5 MB, staff sin permiso, sin token, nombres random únicos).
+- **Test crítico de seguridad**: `EndpointPublicoTamperingTest` — 7 tests cubriendo el vector #8 del threat-model (extras válidos usan precio del catálogo, grupo inexistente rechazado, item inexistente rechazado, ignora precio del cliente, rechaza precio negativo, persiste precio canónico, producto de otro local rechazado).
+
+#### Fase 7 — Features backend
+
+- **Idempotency-Key**: middleware `App\Http\Middleware\Idempotency` + tabla `idempotency_keys`. Aplicado a `POST /public/pedidos/{slug}` con TTL 24h. Header `Idempotency-Replayed: true` en respuestas cacheadas. Tests: `IdempotencyTest` (6 casos). Doc: `docs/features/idempotency.md`.
+- **Reset password por email**: `POST /auth/forgot-password` + `POST /auth/reset-password` con broker `Password` de Laravel. `ResetPasswordNotification` con link al frontend. Cierra TODAS las sesiones del user al éxito. No revela existencia del email (mensaje genérico). Tests: `PasswordResetTest` (8 casos). Doc: `docs/features/password-reset.md` con guía para Hostinger Email / Resend / SES / SMTP.
+- **CRUD staff**: `StaffController` bajo `/local/staff` (index, store, show, update, destroy). `UserPolicy` con reglas: owner sólo crea staff (rol hardcodeado), no se edita a sí mismo, no edita otros owners. Update con password resetea + invalida sesiones del staff. Tests: `StaffCrudTest` (11 casos).
+- **Audit log**: tabla `audit_logs` (append-only, `actor_user_id`/`local_id`/`action`/`resource_type`/`resource_id`/`changes` JSON/`ip`/`user_agent`). `AuditObserver` reutilizable conectado a Local/User/Categoria/Producto/Ingrediente/Pedido/Compra. Filtra `password` automáticamente del diff. Endpoint `GET /audit-logs` paginado con filtros, sólo owner + super_admin. Tests: `AuditLogTest` (7 casos).
+- **Rate limit por tenant**: limiter `public-orders-by-tenant` en `AppServiceProvider` que combina 100/min por `local:{slug}` + 20/min por IP. Aplicado a `POST /public/pedidos/{slug}` reemplazando el `throttle:20,1` simple anterior. Tests: `RateLimitPorTenantTest` (2 casos).
+- **Restore soft-delete**: filtros `?trashed=only|with` en index de productos / pedidos / compras. Endpoints `POST /productos/{id}/restore`, `/pedidos/{id}/restore`, `/compras/{id}/restore`, `/admin/locales/{id}/restore`. Methods `restore()` en Producto/Pedido/Compra Policies. Tests: `RestoreSoftDeleteTest` (10 casos).
+
+#### Pre-Fase 8 + Fase 8 — Operational
+
+- **Laravel Scheduler** en `bootstrap/app.php` con 7 tareas: prune idempotency_keys (daily), sessions > 30d (daily), cache expirado (daily), sanctum-prune-expired (daily), queue:prune-failed > 90d (daily), audit_logs > 90d (weekly), notificaciones leídas > 90d (weekly). Todas con `onOneServer()`. Requiere agregar `* * * * * php artisan schedule:run` al cron de hPanel.
+- 4 runbooks operativos en `docs/runbook/`:
+  - `setup-cron-scheduler.md` — cron en hPanel + verificación + debug.
+  - `integrar-sentry.md` — Laravel + Next.js + scrubbers de PII + alertas Slack.
+  - `setup-mail-hostinger.md` — Hostinger Email SMTP + SPF/DKIM/DMARC + mail-tester.com.
+  - `migrar-uploads-a-s3-b2.md` — estrategia sin downtime con doble-write + script de backfill + comparación R2/B2/S3.
+  - `integrar-reverb.md` — Pusher (no requiere migración de hosting) vs Reverb (requiere VPS) con código de eventos y suscripciones.
+- 3 ADRs nuevos:
+  - ADR-008: Idempotency-Key como header opcional.
+  - ADR-009: Audit log con Observers (no event sourcing).
+  - ADR-010: Rate limit por tenant en endpoints públicos.
+
+#### Fase 9 — Frontend pendiente + pre-implementación S3 + broadcasting
+
+**Frontend nuevo**:
+
+- **Reset password (UI)**: `app/forgot-password/page.tsx` con form simple + estado "email enviado". `app/reset-password/page.tsx` con form de nueva password leyendo `token` y `email` del query string. Link "¿Olvidaste tu contraseña?" añadido al `/login`.
+- **`app/admin/staff/page.tsx`** — CRUD completo del equipo: lista con badges de rol, modal de crear/editar (password requerida al crear, opcional al editar), botón eliminar con confirm. Excluye self y otros owners de las acciones editables (consistente con `UserPolicy`).
+- **`app/admin/audit-log/page.tsx`** — tabla paginada con filtros (resource_type, action, desde, hasta) + fila expandible con diff `antes → después` por campo, colores por tipo de acción (created/updated/deleted/restored), formateo de fechas en es-MX.
+- **Restore en productos/pedidos**: añadido select `Activos / + eliminados / Sólo eliminados` que filtra via `?trashed=`. Botón ↺ Restaurar reemplaza acciones normales cuando se ven sólo eliminados. Compras sólo agrega el handler (sin UI extra — flujo menos común).
+- **Sidebar admin layout** incluye "Equipo" y "Audit log".
+- **`apps/web/src/lib/types.ts`** — añadidas interfaces `Staff` y `AuditLog`.
+
+**S3/B2 pre-implementación** (sólo falta `.env`):
+
+- **`apps/api/config/filesystems.php`** — añadido disk `s3` con config para R2/B2/AWS S3 (env-driven). Default cambia a `public` (antes era `local` que era el ambiguo).
+- **`apps/api/app/Services/Images/ImageUploader.php`** refactorizado: usa `Storage::disk()` (el default) en lugar de `Storage::disk('public')` hardcoded. URL via `Storage::disk()->url()`. `getimagesize` sólo cuando el driver es local (S3 lo omitiría — descargar el archivo costaría latencia + ancho de banda).
+- **`apps/api/app/Console/Commands/MigrarUploadsAS3.php`** — comando `php artisan uploads:migrar-a-s3` con `--dry-run`, progress bar, skip de archivos ya migrados (resumable), update masivo de URLs en `productos.imagen_url`, `locales.logo_url`, `locales.banner_url` (con `saveQuietly()` para no inundar audit_logs).
+- **Activación**: requiere `composer require league/flysystem-aws-s3-v3 "^3.0"` + variables `S3_*` en `.env`. Mientras no se haga, todo sigue corriendo con `FILESYSTEM_DISK=public`.
+
+**Broadcasting Pusher pre-implementación** (sólo falta `.env` + npm install):
+
+- **`apps/api/app/Events/PedidoCreado.php`** — event con `ShouldBroadcastAfterCommit` (garantiza no disparar en rollback), canal privado `local.{id}`, payload mínimo + nombre `pedido.creado`.
+- **`apps/api/app/Services/Orders/OrderService.php`** dispatch del evento después del COMMIT. Si `BROADCAST_CONNECTION=log` (default), el event no llega a nadie — frontend sigue con polling.
+- **`apps/api/routes/channels.php`** — auth del canal privado (owner/staff del local + super_admin pueden suscribirse). Registrado en `bootstrap/app.php → withRouting(channels: ...)`.
+- **`apps/web/src/lib/echo.ts`** — wrapper con dynamic imports de `pusher-js` y `laravel-echo` (no se descargan si no están instaladas). `subscribeToLocalEvents(localId, cb)` retorna unsubscribe. Si no hay env vars → noop.
+- **`apps/web/src/store/notificaciones.ts`** modificado: `startPolling(localId)` ahora detecta si realtime está habilitado y, si sí, suscribe al canal + reduce polling a 5 min como heartbeat (en lugar de 30s). Si no, polling clásico de 30s.
+- **`NotificacionesBell.tsx`** pasa `user.local_id` al startPolling.
+- **Activación**: `composer require pusher/pusher-php-server` + `npm install pusher-js laravel-echo` + variables `PUSHER_*` (backend) y `NEXT_PUBLIC_PUSHER_*` (frontend) en `.env`.
 
 ### Fixed
-- _Por venir._
+
+- **🔒 Vector #8 (security)**: `OrderService::snapshotLineas` ahora valida cada extra contra `$producto->extras` y **reemplaza el `price` del cliente con el del catálogo**. Antes: un atacante mandaba `extras: [{group, item, price: -100}]` y reducía el subtotal del pedido público. Ahora: `RuntimeException` si el grupo/item no existe en el producto; precio canónico si existe. Mitigación documentada en `docs/security/threat-model.md` (status `✅ MITIGADO 2026-06-10`).
+
+### Changed
+
+- **`apps/web/next.config.mjs`** — añadido `output: 'standalone'` (requerido por `deploy-web.sh` y el Dockerfile productivo).
+- **`docs/security/threat-model.md`** — vector #8 marcado como MITIGADO, item #1 de "top 5 acciones críticas" cerrado.
 
 ---
 

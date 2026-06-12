@@ -10,6 +10,7 @@ use App\Models\Notificacion;
 use App\Models\Pedido;
 use App\Models\Producto;
 use App\Models\Receta;
+use App\Models\User;
 use App\Policies\CategoriaPolicy;
 use App\Policies\CompraPolicy;
 use App\Policies\IngredientePolicy;
@@ -18,6 +19,7 @@ use App\Policies\NotificacionPolicy;
 use App\Policies\PedidoPolicy;
 use App\Policies\ProductoPolicy;
 use App\Policies\RecetaPolicy;
+use App\Policies\UserPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
 class AuthServiceProvider extends ServiceProvider
@@ -31,6 +33,7 @@ class AuthServiceProvider extends ServiceProvider
         Ingrediente::class => IngredientePolicy::class,
         Receta::class       => RecetaPolicy::class,
         Notificacion::class => NotificacionPolicy::class,
+        User::class         => UserPolicy::class,
     ];
 
     public function boot(): void

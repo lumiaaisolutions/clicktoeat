@@ -109,6 +109,8 @@ const NAV_OWNER: NavItem[] = [
   { href: '/admin/horarios',     label: 'Horarios',    icon: 'clock' },
   { href: '/admin/qr',           label: 'QR',          icon: 'qr' },
   { href: '/admin/branding',     label: 'Branding',    icon: 'palette' },
+  { href: '/admin/staff',        label: 'Equipo',      icon: 'list' },
+  { href: '/admin/audit-log',    label: 'Audit log',   icon: 'list' },
 ];
 
 const NAV_SUPER: NavItem[] = [

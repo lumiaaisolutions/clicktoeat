@@ -63,7 +63,7 @@ class OrderService
         $total = $subtotal + $deliveryFee;
 
         // 3. Transacción: crear pedido + detalles + descuento de inventario
-        return DB::transaction(function () use ($local, $input, $lineas, $subtotal, $deliveryFee, $total) {
+        $pedido = DB::transaction(function () use ($local, $input, $lineas, $subtotal, $deliveryFee, $total) {
             $pedido = Pedido::create([
                 'local_id'         => $local->id,
                 'cliente_nombre'   => $input['cliente']['nombre'],
@@ -110,6 +110,16 @@ class OrderService
 
             return $pedido;
         });
+
+        // Broadcast del nuevo pedido — ShouldBroadcastAfterCommit garantiza que
+        // el evento se dispare SÓLO si la transacción se commiteó (no en rollback
+        // por InsufficientStockException). Si BROADCAST_CONNECTION no está
+        // configurado, el evento se dispara pero no llega a nadie — frontend
+        // sigue con polling como fallback.
+        // Ver: docs/runbook/integrar-reverb.md
+        event(new \App\Events\PedidoCreado($pedido));
+
+        return $pedido;
     }
 
     /**
@@ -124,10 +134,19 @@ class OrderService
             $producto = $productos->get($item['producto_id']);
             $cantidad = max(1, (int) $item['cantidad']);
 
-            $extras = $item['extras'] ?? [];
+            // CRÍTICO: los extras vienen del cliente. NUNCA confiar en su `price`
+            // — validamos cada extra contra el catálogo del producto y reemplazamos
+            // el precio con el valor canónico. Sin esto, un atacante puede
+            // bajar el total mandando `price: -100` o `price: 0`.
+            // Ver: docs/security/threat-model.md vector #8.
+            $extras = $this->validarYNormalizarExtras(
+                $item['extras'] ?? [],
+                $producto,
+            );
+
             $extrasTotal = 0.0;
             foreach ($extras as $extra) {
-                $extrasTotal += (float) ($extra['price'] ?? 0);
+                $extrasTotal += (float) $extra['price'];
             }
 
             $precioUnitario = (float) $producto->precio + $extrasTotal;
@@ -146,5 +165,72 @@ class OrderService
         }
 
         return [$lineas, $subtotal];
+    }
+
+    /**
+     * Valida cada extra contra `$producto->extras` y reemplaza el precio del
+     * cliente con el precio canónico del catálogo. Rechaza grupos / items
+     * que no existen.
+     *
+     * Estructura esperada del cliente (cada item):
+     *   { group: "Tortilla", item: "Harina", price: 5 }
+     *
+     * Estructura del catálogo en `Producto::$extras` (JSON):
+     *   [
+     *     { group: "Tortilla", kind: "one", required: true,
+     *       items: [{ id: "harina", name: "Harina", price: 5 }, ...] }
+     *   ]
+     *
+     * Match se hace por `group` (exacto) + `item` (matchea con item.name O item.id).
+     */
+    protected function validarYNormalizarExtras(array $extrasCliente, \App\Models\Producto $producto): array
+    {
+        if (empty($extrasCliente)) {
+            return [];
+        }
+
+        $catalogo = $producto->extras ?? [];
+        // Index del catálogo: ['Tortilla' => ['harina' => price, 'maiz' => price, ...]]
+        $byGroup = [];
+        foreach ($catalogo as $grupo) {
+            $groupName = $grupo['group'] ?? null;
+            if (! $groupName) continue;
+            $byGroup[$groupName] = [];
+            foreach (($grupo['items'] ?? []) as $catItem) {
+                // Permitir match por `id` o por `name`
+                $price = (float) ($catItem['price'] ?? 0);
+                if (isset($catItem['id']))   $byGroup[$groupName][$catItem['id']]   = $price;
+                if (isset($catItem['name'])) $byGroup[$groupName][$catItem['name']] = $price;
+            }
+        }
+
+        $normalizados = [];
+        foreach ($extrasCliente as $extra) {
+            $group = $extra['group'] ?? null;
+            $item  = $extra['item']  ?? null;
+
+            if (! $group || ! $item) {
+                throw new \RuntimeException("Extra inválido: requiere 'group' e 'item'.");
+            }
+            if (! isset($byGroup[$group])) {
+                throw new \RuntimeException(
+                    "Extra rechazado: grupo '{$group}' no existe en el producto '{$producto->nombre}'.",
+                );
+            }
+            if (! array_key_exists($item, $byGroup[$group])) {
+                throw new \RuntimeException(
+                    "Extra rechazado: item '{$item}' no existe en el grupo '{$group}' del producto '{$producto->nombre}'.",
+                );
+            }
+
+            // Snapshot con el precio canónico del catálogo (ignora lo que vino del cliente)
+            $normalizados[] = [
+                'group' => $group,
+                'item'  => $item,
+                'price' => $byGroup[$group][$item],
+            ];
+        }
+
+        return $normalizados;
     }
 }

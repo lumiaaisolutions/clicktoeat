@@ -8,11 +8,14 @@ use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
- * Sube imágenes locales al disco `public` y devuelve { url, public_id }.
+ * Sube imágenes a un disco configurable (local por default, S3-compatible si
+ * `FILESYSTEM_DISK=s3` está activo en el .env).
  *
- * `public_id` es la ruta relativa al disco (`uploads/logos/foo.png`), se
+ * `public_id` es la ruta relativa al disco (`uploads/productos/foo.png`), se
  * persiste en BD para poder borrar el archivo cuando el usuario reemplaza la
  * imagen o elimina el producto/local.
+ *
+ * Funciona con cualquier disk Flysystem — el código no asume local ni S3.
  */
 class ImageUploader
 {
@@ -32,15 +35,28 @@ class ImageUploader
         $name = $base.'-'.Str::lower(Str::random(8)).'.'.$ext;
         $relative = "uploads/{$folder}/{$name}";
 
-        $stored = $file->storeAs("uploads/{$folder}", $name, 'public');
+        // Usa el disk default. Cambiar disk = cambiar el .env (FILESYSTEM_DISK).
+        $stored = $file->storeAs("uploads/{$folder}", $name);
         if (! $stored) {
             throw new RuntimeException('No se pudo guardar la imagen.');
         }
 
-        [$w, $h] = @getimagesize(Storage::disk('public')->path($relative)) ?: [null, null];
+        // Para imágenes locales, podemos extraer width/height fácil con getimagesize.
+        // Para S3, hacerlo requeriría descargar el archivo — lo omitimos por costo/latencia.
+        [$w, $h] = [null, null];
+        try {
+            $disk = Storage::disk();
+            $driver = config('filesystems.disks.'.config('filesystems.default').'.driver');
+            if ($driver === 'local') {
+                /** @phpstan-ignore-next-line */
+                [$w, $h] = @getimagesize($disk->path($relative)) ?: [null, null];
+            }
+        } catch (\Throwable) {
+            // Best effort — no crítico
+        }
 
         return [
-            'url'       => rtrim(config('app.url'), '/').'/storage/'.$relative,
+            'url'       => Storage::disk()->url($relative),
             'public_id' => $relative,
             'width'     => $w,
             'height'    => $h,
@@ -49,7 +65,7 @@ class ImageUploader
     }
 
     /**
-     * Elimina una imagen del disco. Acepta tanto el `public_id` nuevo
+     * Elimina una imagen del disk default. Acepta tanto el `public_id` nuevo
      * (`uploads/...`) como el legacy con prefijo `local:`.
      */
     public function destroy(?string $publicId): bool
@@ -60,7 +76,7 @@ class ImageUploader
         if (str_starts_with($publicId, 'local:')) {
             $publicId = substr($publicId, strlen('local:'));
         }
-        return Storage::disk('public')->delete($publicId);
+        return Storage::disk()->delete($publicId);
     }
 
     protected function guardFileSize(UploadedFile $file): void

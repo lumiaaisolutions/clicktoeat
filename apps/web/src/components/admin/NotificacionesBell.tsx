@@ -4,17 +4,19 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNotificaciones } from '@/store/notificaciones';
+import { useAuth } from '@/store/auth';
 import { cn } from '@/lib/utils';
 
 export function NotificacionesBell() {
   const { items, noLeidas, pedidosNuevos, startPolling, stopPolling, marcarLeida, marcarTodasLeidas } = useNotificaciones();
+  const localId = useAuth((s) => s.user?.local_id ?? undefined);
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    startPolling();
+    startPolling(localId);
     return () => stopPolling();
-  }, [startPolling, stopPolling]);
+  }, [startPolling, stopPolling, localId]);
 
   useEffect(() => {
     if (!open) return;

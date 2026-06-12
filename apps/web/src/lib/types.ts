@@ -247,3 +247,28 @@ export interface Compra {
   usuario?: { id: number; nombre: string } | null;
   created_at: string;
 }
+
+
+export interface Staff {
+  id: number;
+  nombre: string;
+  email: string;
+  rol: 'super_admin' | 'owner' | 'staff';
+  local_id: number | null;
+  email_verified_at: string | null;
+  last_token_used_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AuditLog {
+  id: number;
+  action: 'created' | 'updated' | 'deleted' | 'restored';
+  resource_type: string;
+  resource_id: number;
+  changes: Record<string, [unknown, unknown]> | null;
+  ip: string | null;
+  actor: { id: number; nombre: string; rol: string } | null;
+  created_at: string;
+}
+

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\LocalController as AdminLocalController;
+use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoriaController;
 use App\Http\Controllers\Api\CompraController;
@@ -9,12 +10,14 @@ use App\Http\Controllers\Api\MetricasController;
 use App\Http\Controllers\Api\IngredienteController;
 use App\Http\Controllers\Api\NotificacionController;
 use App\Http\Controllers\Api\PasswordController;
+use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\LocalController;
 use App\Http\Controllers\Api\PedidoController;
 use App\Http\Controllers\Api\ProductoController;
 use App\Http\Controllers\Api\Public\MenuController;
 use App\Http\Controllers\Api\Public\PedidoController as PublicPedidoController;
 use App\Http\Controllers\Api\RecetaController;
+use App\Http\Controllers\Api\StaffController;
 use App\Http\Controllers\Api\UploadController;
 use Illuminate\Support\Facades\Route;
 
@@ -31,8 +34,10 @@ Route::middleware('throttle:60,1')->group(function () {
     Route::prefix('public')->group(function () {
         Route::get('menu/{slug}',     [MenuController::class, 'show'])->name('public.menu.show');
         Route::get('locales',         [MenuController::class, 'index'])->name('public.locales.index');
+        // Rate limit por tenant (100/min por local) + IP fallback (20/min) + idempotency.
+        // Ver: AppServiceProvider::configureRateLimiting + docs/api/rate-limits.md
         Route::post('pedidos/{slug}', [PublicPedidoController::class, 'store'])
-            ->middleware('throttle:20,1')
+            ->middleware(['throttle:public-orders-by-tenant', 'idempotent:24h'])
             ->name('public.pedidos.store');
     });
 
@@ -43,6 +48,10 @@ Route::middleware('throttle:60,1')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('register', [AuthController::class, 'register'])->middleware('throttle:5,1');
         Route::post('login',    [AuthController::class, 'login'])->middleware('throttle:10,1');
+
+        // Reset de contraseña por email
+        Route::post('forgot-password', [PasswordResetController::class, 'sendResetLink'])->middleware('throttle:5,1');
+        Route::post('reset-password',  [PasswordResetController::class, 'reset'])->middleware('throttle:5,1');
 
         Route::middleware('auth:sanctum')->group(function () {
             Route::get('me',                [AuthController::class, 'me']);
@@ -72,14 +81,25 @@ Route::middleware('throttle:60,1')->group(function () {
         Route::get('local/horarios',   [HorarioController::class, 'show']);
         Route::patch('local/horarios', [HorarioController::class, 'update']);
 
+        // Staff del local (gestión del equipo — sólo owner)
+        Route::get('local/staff',                [StaffController::class, 'index']);
+        Route::post('local/staff',               [StaffController::class, 'store']);
+        Route::get('local/staff/{staff}',         [StaffController::class, 'show']);
+        Route::patch('local/staff/{staff}',       [StaffController::class, 'update']);
+        Route::delete('local/staff/{staff}',      [StaffController::class, 'destroy']);
+
         // Métricas / reportes
         Route::get('metricas',         [MetricasController::class, 'index']);
+
+        // Audit log del local (sólo owner)
+        Route::get('audit-logs',       [AuditLogController::class, 'index']);
 
         // Categorías
         Route::apiResource('categorias', CategoriaController::class);
 
         // Productos
         Route::apiResource('productos',  ProductoController::class);
+        Route::post('productos/{id}/restore', [ProductoController::class, 'restore']);
 
         // Recetas (anidadas bajo producto)
         Route::get('productos/{producto}/recetas', [RecetaController::class, 'index']);
@@ -96,6 +116,7 @@ Route::middleware('throttle:60,1')->group(function () {
         Route::post('compras',            [CompraController::class, 'store']);
         Route::get('compras/{compra}',    [CompraController::class, 'show']);
         Route::delete('compras/{compra}', [CompraController::class, 'destroy']);
+        Route::post('compras/{id}/restore', [CompraController::class, 'restore']);
 
         // Notificaciones in-app del local
         Route::get('notificaciones',                             [NotificacionController::class, 'index']);
@@ -108,6 +129,7 @@ Route::middleware('throttle:60,1')->group(function () {
         Route::get('pedidos/{pedido}',              [PedidoController::class, 'show']);
         Route::patch('pedidos/{pedido}/estado',     [PedidoController::class, 'updateEstado']);
         Route::delete('pedidos/{pedido}',           [PedidoController::class, 'destroy']);
+        Route::post('pedidos/{id}/restore',         [PedidoController::class, 'restore']);
 
         // Uploads
         Route::post('uploads/image', [UploadController::class, 'store'])
@@ -121,6 +143,7 @@ Route::middleware('throttle:60,1')->group(function () {
         Route::get('locales/{local:id}',               [AdminLocalController::class, 'show']);
         Route::patch('locales/{local:id}',             [AdminLocalController::class, 'update']);
         Route::delete('locales/{local:id}',            [AdminLocalController::class, 'destroy']);
+        Route::post('locales/{id}/restore',            [AdminLocalController::class, 'restore']);
         Route::post('locales/{local:id}/suspender',    [AdminLocalController::class, 'suspender']);
         Route::post('locales/{local:id}/reactivar',    [AdminLocalController::class, 'reactivar']);
 

@@ -38,6 +38,13 @@ class ProductoController extends Controller
 
         $query = Producto::query()->with('categoria:id,slug,nombre');
 
+        // Filtro de soft-delete: trashed=only (sólo borrados) | with (incluye borrados)
+        if ($request->input('trashed') === 'only') {
+            $query->onlyTrashed();
+        } elseif ($request->input('trashed') === 'with') {
+            $query->withTrashed();
+        }
+
         if ($request->filled('categoria_id')) {
             $query->where('categoria_id', $request->integer('categoria_id'));
         }
@@ -54,6 +61,26 @@ class ProductoController extends Controller
         return ProductoResource::collection(
             $query->orderBy('orden')->orderBy('nombre')->paginate($perPage)
         );
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/productos/{producto}/restore",
+     *     tags={"Productos"},
+     *     security={{"sanctum":{}}},
+     *     summary="Restaura un producto soft-deleted.",
+     *     @OA\Parameter(name="producto", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="OK")
+     * )
+     */
+    public function restore(int $id): ProductoResource
+    {
+        $producto = Producto::withTrashed()->findOrFail($id);
+        $this->authorize('restore', $producto);
+
+        $producto->restore();
+
+        return new ProductoResource($producto->fresh()->load('categoria'));
     }
 
     /**

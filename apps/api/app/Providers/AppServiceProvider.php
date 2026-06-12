@@ -29,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         $this->configureRateLimiting();
+        $this->registerAuditObservers();
     }
 
     protected function configureRateLimiting(): void
@@ -37,5 +38,40 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(60)
                 ->by($request->user()?->id ?: $request->ip());
         });
+
+        // Rate limit por TENANT en endpoints públicos críticos.
+        // Resuelve {slug} del path para keyar por local en lugar de IP — evita
+        // que un atacante con muchas IPs sature a un local específico.
+        // Ver: docs/security/threat-model.md vector #9.
+        RateLimiter::for('public-orders-by-tenant', function (Request $request) {
+            $slug = $request->route('slug') ?? 'unknown';
+            return [
+                // 100 pedidos/min por local — generoso para horarios pico legítimos
+                Limit::perMinute(100)->by("local:{$slug}"),
+                // Fallback por IP — 20/min (mismo que el throttle de ruta original)
+                Limit::perMinute(20)->by($request->ip()),
+            ];
+        });
+    }
+
+    /**
+     * Conecta AuditObserver a los modelos sensibles.
+     * Cualquier created/updated/deleted en estos modelos queda registrado en `audit_logs`.
+     */
+    protected function registerAuditObservers(): void
+    {
+        $audited = [
+            \App\Models\Local::class,
+            \App\Models\User::class,
+            \App\Models\Categoria::class,
+            \App\Models\Producto::class,
+            \App\Models\Ingrediente::class,
+            \App\Models\Pedido::class,
+            \App\Models\Compra::class,
+        ];
+
+        foreach ($audited as $modelClass) {
+            $modelClass::observe(\App\Observers\AuditObserver::class);
+        }
     }
 }
