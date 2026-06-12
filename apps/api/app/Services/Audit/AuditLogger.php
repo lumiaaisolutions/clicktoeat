@@ -28,8 +28,17 @@ class AuditLogger
         $request = request();
         $user    = Auth::user();
 
-        // Si el recurso es un modelo con local_id, usarlo. Sino, intentar el del user.
-        $localId = $resource->local_id ?? $user?->local_id;
+        // Strict mode (preventAccessingMissingAttributes) lanza si tocamos
+        // `local_id` y la columna no existe (caso: Local model). Usar
+        // getAttributes() retorna el array bruto sin pasar por strict.
+        $resourceAttrs = $resource->getAttributes();
+        $userAttrs     = $user?->getAttributes() ?? [];
+
+        $localId = match (true) {
+            $resource instanceof \App\Models\Local            => $resource->getKey(),
+            array_key_exists('local_id', $resourceAttrs)      => $resourceAttrs['local_id'],
+            default                                            => $userAttrs['local_id'] ?? null,
+        };
 
         return AuditLog::create([
             'local_id'      => $localId,

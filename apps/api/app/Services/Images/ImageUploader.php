@@ -24,6 +24,15 @@ class ImageUploader
 
     protected const MAX_BYTES = 5 * 1024 * 1024;
 
+    /**
+     * Disk para uploads web-accessible. `public` apunta a storage/app/public
+     * (symlink'd por php artisan storage:link). En prod-S3 setear UPLOADS_DISK=s3.
+     */
+    protected function diskName(): string
+    {
+        return env('UPLOADS_DISK', 'public');
+    }
+
     public function upload(UploadedFile $file, string $folder = 'productos'): array
     {
         $this->guardFileSize($file);
@@ -35,8 +44,8 @@ class ImageUploader
         $name = $base.'-'.Str::lower(Str::random(8)).'.'.$ext;
         $relative = "uploads/{$folder}/{$name}";
 
-        // Usa el disk default. Cambiar disk = cambiar el .env (FILESYSTEM_DISK).
-        $stored = $file->storeAs("uploads/{$folder}", $name);
+        $diskName = $this->diskName();
+        $stored = $file->storeAs("uploads/{$folder}", $name, $diskName);
         if (! $stored) {
             throw new RuntimeException('No se pudo guardar la imagen.');
         }
@@ -45,8 +54,8 @@ class ImageUploader
         // Para S3, hacerlo requeriría descargar el archivo — lo omitimos por costo/latencia.
         [$w, $h] = [null, null];
         try {
-            $disk = Storage::disk();
-            $driver = config('filesystems.disks.'.config('filesystems.default').'.driver');
+            $disk   = Storage::disk($diskName);
+            $driver = config('filesystems.disks.'.$diskName.'.driver');
             if ($driver === 'local') {
                 /** @phpstan-ignore-next-line */
                 [$w, $h] = @getimagesize($disk->path($relative)) ?: [null, null];
@@ -56,7 +65,7 @@ class ImageUploader
         }
 
         return [
-            'url'       => Storage::disk()->url($relative),
+            'url'       => Storage::disk($diskName)->url($relative),
             'public_id' => $relative,
             'width'     => $w,
             'height'    => $h,
@@ -65,7 +74,7 @@ class ImageUploader
     }
 
     /**
-     * Elimina una imagen del disk default. Acepta tanto el `public_id` nuevo
+     * Elimina una imagen del disk de uploads. Acepta tanto el `public_id` nuevo
      * (`uploads/...`) como el legacy con prefijo `local:`.
      */
     public function destroy(?string $publicId): bool
@@ -76,7 +85,7 @@ class ImageUploader
         if (str_starts_with($publicId, 'local:')) {
             $publicId = substr($publicId, strlen('local:'));
         }
-        return Storage::disk()->delete($publicId);
+        return Storage::disk($this->diskName())->delete($publicId);
     }
 
     protected function guardFileSize(UploadedFile $file): void
