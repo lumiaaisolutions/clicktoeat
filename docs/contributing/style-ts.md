@@ -120,6 +120,27 @@ Antes de commitear.
 
 - `framer-motion` para transiciones de página, modales, listas con `AnimatePresence`.
 - CSS transitions de Tailwind para hover/focus.
+- Para animaciones scroll-driven, usar los patrones canónicos: ver [`frontend/scroll-animations.md`](../frontend/scroll-animations.md).
+- `useScroll`/`useTransform`/`useSpring` para scrubbing tipo Apple. Ver `BurgerSequence.tsx` como referencia.
+
+## Iconos
+
+- **No** usar emojis en código de producción. Cambiar a `<Icon name="..." />`
+  del set en `apps/web/src/components/ui/Icon.tsx`.
+- Si necesitas un icono que no está → agregarlo a `Icon.tsx` (ver
+  [`frontend/icon-system.md`](../frontend/icon-system.md)).
+
+```tsx
+// ❌ NO
+<span>⭐ Tus favoritos</span>
+
+// ✅ SÍ
+<Icon name="star-filled" size={14} className="text-amber-500" />
+Tus favoritos
+```
+
+Razón: emojis se renderizan distinto por OS (Apple Color Emoji vs Twemoji vs
+Noto). Crean inconsistencia visual y a veces problemas de tamaño con Bricolage.
 
 ## Patrones a evitar
 

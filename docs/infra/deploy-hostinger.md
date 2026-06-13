@@ -1,6 +1,6 @@
 # Infra — Deploy a Hostinger (producción)
 
-> Setup productivo actual. Documento fuente: `datos-deploy.md` (entregado por el equipo). Última verificación: 2026-06-10.
+> Setup productivo actual. Documento fuente: `datos-deploy.md` (entregado por el equipo). Última verificación: 2026-06-12.
 
 ## Resumen
 
@@ -23,10 +23,20 @@
 | Host | `86.38.202.72` |
 | Puerto | `65002` |
 | Usuario | `u221820910` |
-| Key | `~/.ssh/hostinger_clicktoeat` |
+| Key (dev original) | `~/.ssh/hostinger_clicktoeat` |
+| Key alternativa | `~/.ssh/id_ed25519` (también autorizada) |
 
 ```bash
 ssh -i ~/.ssh/hostinger_clicktoeat -p 65002 u221820910@86.38.202.72
+# ó
+ssh -i ~/.ssh/id_ed25519 -p 65002 u221820910@86.38.202.72
+```
+
+Los scripts (`deploy-*.sh`, `backup-mysql.sh`) leen la key de la variable
+`SSH_KEY` si está exportada. Si no, default `~/.ssh/hostinger_clicktoeat`:
+
+```bash
+SSH_KEY=~/.ssh/id_ed25519 ./scripts/deploy-web.sh
 ```
 
 ## Rutas en servidor
@@ -34,12 +44,18 @@ ssh -i ~/.ssh/hostinger_clicktoeat -p 65002 u221820910@86.38.202.72
 | Recurso | Ruta absoluta |
 |---------|---------------|
 | API (Laravel) | `/home/u221820910/domains/clicktoeat-api.lumiaaisolutions.com/public_html/` |
-| Frontend (Next standalone) | `/home/u221820910/nodejs/` |
+| Frontend (Next standalone) | `/home/u221820910/domains/clicktoeat.lumiaaisolutions.com/nodejs/` |
 | Uploads | `/home/u221820910/domains/clicktoeat-api.lumiaaisolutions.com/public_html/public/storage/uploads/` |
+| Frames de hamburguesa (landing) | `/home/u221820910/domains/clicktoeat.lumiaaisolutions.com/nodejs/public/frames/burger/` |
 | Logs deploy / backup | `/home/u221820910/logs/` |
 | Scripts operativos | `/home/u221820910/scripts/` |
 | Backups locales | `/home/u221820910/backups/` |
 | Config de scripts | `/home/u221820910/.config/` |
+
+> **Histórico**: `datos-deploy.md` mencionaba `/home/u221820910/nodejs/` como
+> ruta del Frontend. **NO es correcta en este servidor** — el Frontend vive
+> dentro de `~/domains/clicktoeat.lumiaaisolutions.com/nodejs/`. El script
+> `deploy-web.sh` fue ajustado en junio 2026 con la ruta correcta.
 
 ## Base de datos
 
@@ -119,11 +135,40 @@ Hace: rsync (excluye .env, vendor, storage, etc.) → composer install --no-dev 
 ### Frontend — automatizado con [`scripts/deploy-web.sh`](../../scripts/deploy-web.sh)
 
 ```bash
-# Requiere `output: 'standalone'` en next.config.mjs
+# Requiere `output: 'standalone'` en next.config.mjs (ya configurado)
 ./scripts/deploy-web.sh
+
+# Si la build ya está hecha (de una corrida anterior):
+./scripts/deploy-web.sh --skip-build
+
+# Validar sin subir nada:
+./scripts/deploy-web.sh --dry-run
 ```
 
-Hace: `next build` → empaqueta `.next/standalone` + `.next/static` + `public` → scp → extrae → `passenger-config restart-app` → health check.
+Hace: `next build` → empaqueta `.next/standalone` + `.next/static` + `public`
+(incluye los 168 frames de hamburguesa en `public/frames/burger/`) → scp →
+extrae → `passenger-config restart-app` → health check.
+
+#### Notas técnicas del script
+
+1. **Staging directory**: el empaquetado usa `cp -R` a un staging dir y luego
+   `tar -czf`, en lugar de `tar --transform` (que **no es soportado por
+   BSD tar de macOS**). Funciona en macOS y Linux.
+
+2. **Backup automático**: antes de extraer el nuevo build, el script renombra
+   `.next` → `.next.previous` y `public` → `public.previous` para rollback
+   instantáneo.
+
+3. **Tamaño del tarball**: ~8 MB (incluye los 168 frames JPG de la
+   `BurgerSequence` del landing, 4.3 MB) — sube en <30 s en conexión
+   doméstica.
+
+4. **xattrs de macOS**: tar emite warnings `Ignoring unknown extended
+   header keyword 'LIBARCHIVE.xattr.com.apple.quarantine'` — son inocuos,
+   el contenido se extrae bien.
+
+5. **SSH key**: por default busca `~/.ssh/hostinger_clicktoeat`. Sobrescribir
+   con `SSH_KEY=~/.ssh/id_ed25519 ./scripts/deploy-web.sh`.
 
 ### Manual (procedimiento histórico, si los scripts fallan)
 
@@ -145,16 +190,26 @@ php artisan view:clear
 # Local
 cd apps/web
 NEXT_PUBLIC_API_URL=https://clicktoeat-api.lumiaaisolutions.com/api/v1 npm run build
-tar -czf web-build.tar.gz .next/standalone .next/static public
-scp -i ~/.ssh/hostinger_clicktoeat -P 65002 web-build.tar.gz \
-  u221820910@86.38.202.72:/home/u221820910/nodejs/
+
+# Staging dir (porque BSD tar no soporta --transform)
+mkdir -p /tmp/web-stage/.next
+cp -R .next/standalone/. /tmp/web-stage/
+cp -R .next/static       /tmp/web-stage/.next/static
+cp -R public             /tmp/web-stage/public
+tar -czf /tmp/web-build.tar.gz -C /tmp/web-stage .
+
+# Upload
+scp -i ~/.ssh/id_ed25519 -P 65002 /tmp/web-build.tar.gz \
+  u221820910@86.38.202.72:/home/u221820910/domains/clicktoeat.lumiaaisolutions.com/nodejs/
 
 # Servidor
-ssh -i ~/.ssh/hostinger_clicktoeat -p 65002 u221820910@86.38.202.72
-cd /home/u221820910/nodejs
+ssh -i ~/.ssh/id_ed25519 -p 65002 u221820910@86.38.202.72
+cd /home/u221820910/domains/clicktoeat.lumiaaisolutions.com/nodejs
+[ -d .next ] && { rm -rf .next.previous; mv .next .next.previous; }
+[ -d public ] && { rm -rf public.previous; mv public public.previous; }
 tar -xzf web-build.tar.gz
 rm -rf .next/cache
-passenger-config restart-app /home/u221820910/nodejs
+passenger-config restart-app . || touch tmp/restart.txt
 ```
 
 ## Storage de imágenes
@@ -284,8 +339,8 @@ ssh ... 'cd /home/u221820910/domains/clicktoeat-api.lumiaaisolutions.com/public_
 `deploy-web.sh` hace backup automático antes de extraer. Rollback rápido:
 
 ```bash
-ssh ... '
-cd /home/u221820910/nodejs
+ssh -i ~/.ssh/id_ed25519 -p 65002 u221820910@86.38.202.72 '
+cd /home/u221820910/domains/clicktoeat.lumiaaisolutions.com/nodejs
 rm -rf .next public
 mv .next.previous .next
 mv public.previous public

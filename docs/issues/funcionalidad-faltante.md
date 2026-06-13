@@ -25,6 +25,23 @@ Pendiente operativo derivado:
 - ✅ **S3/B2 pre-implementado** (sin tocar nada hasta que se active): `filesystems.php` con disk `s3`, `ImageUploader` agnóstico al disk, comando `php artisan uploads:migrar-a-s3` con `--dry-run`. Activación: `composer require league/flysystem-aws-s3-v3` + `S3_*` en `.env`.
 - ✅ **Broadcasting Pusher pre-implementado**: `PedidoCreado` event con `ShouldBroadcastAfterCommit`, channel auth, `lib/echo.ts` con fallback transparente, store de notificaciones detecta si realtime está activo y reduce polling a 5 min. Activación: `composer require pusher/pusher-php-server` + `npm install pusher-js laravel-echo` + `PUSHER_*` en `.env`.
 
+## ✅ Cerrado en Fase 10 (2026-06-12) — Rediseño landing + deploy
+
+- ✅ **Landing público v2** desplegada en producción: hero rediseñado,
+  `BurgerSequence` con 168 frames scroll-scrubbing, `ScrollPhoneSequence`
+  con flujo cliente, `WhyClickToEatSection` editorial, `SystemPreviewSection`
+  con mockup del panel, `CTAOwnerSection`, `ShareQRSection`, footer.
+- ✅ **Geolocalización "Negocios cerca de ti"**: HTML5 Geolocation API +
+  Haversine + filtro por radio 15 km. Ver
+  [`frontend/geolocation.md`](../frontend/geolocation.md).
+- ✅ **Sistema de loaders branded** (`InitialLoader`, `RouteTransition`,
+  `app/loading.tsx`). Ver [`frontend/loaders.md`](../frontend/loaders.md).
+- ✅ **Sistema de iconos** (`Icon.tsx` con 30+ SVG inline) y **limpieza de
+  emojis** de todo el codebase frontend.
+- ✅ **Favicon unificado** con el mark del Logo.
+- ✅ **`deploy-web.sh` arreglado**: ruta correcta + BSD tar compat. Deploy a
+  prod ejecutado exitosamente.
+
 ## Crítico (afecta la operación real)
 
 ### Reset de contraseña por email

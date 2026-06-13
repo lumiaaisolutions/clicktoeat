@@ -13,18 +13,23 @@ sección está modularizada por dominio en `components/landing/`:
 
 ```
 DirectoryClient (orquestador)
-├── Hero                       (in-file — scroll parallax + stats)
+├── BurgerSequence             (fixed canvas a la derecha — todo el scroll)
+├── Hero                       (in-file — scroll parallax + counter + stats)
 ├── NearbySection              (condicional — usuario activó geolocalización)
 ├── SearchBar sticky           (in-file)
 ├── Favoritos                  (localStorage)
-├── Catálogo de locales        (cards grid)
-├── ScrollPhoneSequence        (sección scroll-scrubbing)
-├── WhyClickToEatSection       (4 features editorial)
-├── SystemPreviewSection       (texto + mockup admin)
+├── Catálogo de locales        (cards grid con tilt 3D + spotlight)
+├── ScrollPhoneSequence        (4 frames SVG/HTML sincronizados con scroll)
+├── WhyClickToEatSection       (4 features editorial 01-04)
+├── SystemPreviewSection       (texto + mockup admin con parallax)
 ├── CTAOwnerSection            (in-file — phone mockup + checklist)
 ├── ShareQRSection             (in-file)
 └── Footer                     (in-file — link a LUMIA)
 ```
+
+El layout de cada componente está documentado en
+[`landing-sections.md`](./landing-sections.md). Las animaciones siguen los
+patrones canónicos en [`scroll-animations.md`](./scroll-animations.md).
 
 ## Data flow
 

@@ -20,6 +20,7 @@
 | Patrones de animación scroll | [`scroll-animations.md`](./scroll-animations.md) |
 | Sistema de loaders (Initial / Route / RSC) | [`loaders.md`](./loaders.md) |
 | Iconos inline estilo Lucide | [`icon-system.md`](./icon-system.md) |
+| Geolocalización ("Cerca de ti") | [`geolocation.md`](./geolocation.md) |
 | Routing / structure | [`routing.md`](./routing.md) |
 | Stores (Zustand) | [`stores.md`](./stores.md) |
 | Componentes UI compartidos | [`components.md`](./components.md) |

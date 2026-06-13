@@ -6,7 +6,53 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
-### Added
+### Added — Frontend landing v2 (junio 2026)
+
+- **`apps/web/src/components/landing/BurgerSequence.tsx`** — image-sequence
+  scrubbing con 168 frames JPG (4.3 MB) de una hamburguesa armándose. Canvas
+  fixed a la derecha del viewport, scroll-driven con `useScroll` + `useSpring`,
+  fade-out cerca del 42% del scroll. Solo desktop. Ver
+  [`docs/frontend/landing-sections.md`](docs/frontend/landing-sections.md).
+- **`apps/web/public/frames/burger/`** — 168 frames JPG (1280×720, ~26 KB c/u).
+- **`apps/web/src/components/landing/ScrollPhoneSequence.tsx`** — phone con
+  4 frames cross-fading (catálogo → checkout → WhatsApp → panel) controlados
+  por scroll. Todo en SVG/HTML inline (sin PNGs).
+- **`apps/web/src/components/landing/WhyClickToEatSection.tsx`** — sección
+  editorial con numeración 01-04, headline sticky con parallax, grid 2x2.
+  Reemplaza la sección dark anterior.
+- **`apps/web/src/components/landing/SystemPreviewSection.tsx`** — browser
+  mockup del panel admin (sidebar, stats, tabla con estados) + texto a la
+  izquierda. Parallax y scale del mockup.
+- **`apps/web/src/components/ui/Icon.tsx`** — set de 30+ iconos SVG inline
+  estilo Lucide (sin lucide-react). Ver
+  [`docs/frontend/icon-system.md`](docs/frontend/icon-system.md).
+- **`apps/web/src/components/ui/BrandLoader.tsx`** — visual del loader con
+  logo respirando, halo expandiéndose, dots staggered.
+- **`apps/web/src/components/ui/InitialLoader.tsx`** — overlay mount inicial
+  y recarga, 500 ms mínimo + fade-out, sin hydration mismatch.
+- **`apps/web/src/components/ui/RouteTransition.tsx`** — overlay en cambio
+  de pathname con `usePathname`. Ver
+  [`docs/frontend/loaders.md`](docs/frontend/loaders.md).
+- **`apps/web/src/app/loading.tsx`** + `admin/loading.tsx` + `[slug]/loading.tsx` —
+  fallbacks de Suspense de Next.js.
+- **`apps/web/public/favicon.svg`** + `apple-icon.svg` — favicon unificado
+  con el mark del Logo (cursor + tenedor en cuadrado redondeado).
+- **Geolocalización "Negocios cerca de ti"** en el directorio público:
+  HTML5 Geolocation API + Haversine + filtro por radio 15 km. Ver
+  [`docs/frontend/geolocation.md`](docs/frontend/geolocation.md).
+- **Counter animado** (CountUp) en el hero — IntersectionObserver + rAF,
+  mutación directa de DOM (sin re-render).
+- **Tilt 3D + spotlight** en cards del directorio — `useMotionValue` +
+  `useSpring` + `useMotionTemplate` para que la card siga al cursor.
+- Docs nuevas en `docs/frontend/`:
+  - [`directorio-publico.md`](docs/frontend/directorio-publico.md)
+  - [`landing-sections.md`](docs/frontend/landing-sections.md)
+  - [`scroll-animations.md`](docs/frontend/scroll-animations.md)
+  - [`loaders.md`](docs/frontend/loaders.md)
+  - [`icon-system.md`](docs/frontend/icon-system.md)
+  - [`geolocation.md`](docs/frontend/geolocation.md)
+
+### Added — Original
 
 - `CLAUDE.md` en raíz — contexto del proyecto para Claude Code / nuevos devs (stack, comandos, reglas "no toques X", referencias).
 - `CHANGELOG.md` en raíz (este archivo).
@@ -130,7 +176,34 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - **`NotificacionesBell.tsx`** pasa `user.local_id` al startPolling.
 - **Activación**: `composer require pusher/pusher-php-server` + `npm install pusher-js laravel-echo` + variables `PUSHER_*` (backend) y `NEXT_PUBLIC_PUSHER_*` (frontend) en `.env`.
 
-### Fixed
+### Fixed — Frontend (junio 2026)
+
+- **LocalCard avatar/badge clash**: el badge "Abierto" estaba en
+  `bottom-3 left-3` del banner y solapaba con el avatar del local (que
+  sale del banner hacia abajo con `-mt-10`). Badge movido a `top-3 left-3`
+  (opuesto al star de favoritos), avatar pasa a `-mt-7`. Sin colisión.
+- **`echo.ts` webpack build fail**: el rediseño anterior usaba `import()`
+  dinámico con `@ts-expect-error` para `pusher-js`/`laravel-echo`. Pasa
+  typecheck pero **webpack en `next build` sí resuelve los dynamic imports**
+  y falla. Simplificado a stub puro (retorna `null`/noop). El código real
+  vive en [`docs/runbook/integrar-reverb.md`](docs/runbook/integrar-reverb.md)
+  para cuando se active broadcasting.
+- **Eliminados emojis del sistema completo** (12 archivos): DirectoryClient,
+  LandingClient, LocationPicker, NotificacionesBell, admin/qr, admin/inventario,
+  admin/staff, admin/productos, admin/pedidos, admin/branding,
+  admin/locales/[id]/branding, admin/punto-venta. Reemplazados por
+  `<Icon name="…" />`. Regla en [`docs/contributing/style-ts.md`](docs/contributing/style-ts.md).
+
+### Fixed — Deploy script (junio 2026)
+
+- **`scripts/deploy-web.sh` ruta del Frontend**: estaba apuntando a
+  `/home/u221820910/nodejs/` (no existe). La ruta real en este servidor
+  es `/home/u221820910/domains/clicktoeat.lumiaaisolutions.com/nodejs/`.
+- **`scripts/deploy-web.sh` empaquetado BSD tar**: `tar --transform` no
+  es soportado por BSD tar (macOS default). Cambiado a `cp -R` a staging
+  dir + tar simple — funciona en macOS y Linux.
+
+### Fixed — Original
 
 - **🔒 Vector #8 (security)**: `OrderService::snapshotLineas` ahora valida cada extra contra `$producto->extras` y **reemplaza el `price` del cliente con el del catálogo**. Antes: un atacante mandaba `extras: [{group, item, price: -100}]` y reducía el subtotal del pedido público. Ahora: `RuntimeException` si el grupo/item no existe en el producto; precio canónico si existe. Mitigación documentada en `docs/security/threat-model.md` (status `✅ MITIGADO 2026-06-10`).
 - **CI — `.github/workflows/ci.yml`**: job `API (Laravel)` reorganizado para el primer run real:
@@ -140,7 +213,28 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 - **Frontend — `apps/web/src/app/admin/audit-log/page.tsx`**: `<>` con `key` reemplazado por `<Fragment key={log.id}>` + `import { Fragment }` (React no permite key en fragments shorthand).
 - **Frontend — `apps/web/src/lib/echo.ts`**: añadido `@ts-expect-error` a los dynamic imports de `laravel-echo` y `pusher-js` para que `tsc --noEmit` no falle con "Cannot find module" hasta que se activen los paquetes via `npm install` (documentado en `docs/runbook/integrar-reverb.md`).
 
-### Changed
+### Changed — Frontend (junio 2026)
+
+- **`DirectoryClient.tsx`** completamente rediseñado. Antes era 2 secciones
+  (búsqueda + grid + footer). Ahora orquesta 8 secciones: Hero,
+  NearbySection, search sticky, Favoritos, Catálogo, ScrollPhone,
+  WhyClickToEat, SystemPreview, CTAOwner, ShareQR, Footer.
+- **Footer**: eliminado "Hecho con cuidado en México". Layout simplificado a
+  single-row con copyright. Link a https://lumiaaisolutions.com con
+  "Desarrollado por LUMIA".
+- **`apps/web/src/app/layout.tsx`**: metadata.icons apunta al favicon nuevo.
+  Monta `<InitialLoader />` + `<RouteTransition />` antes de `{children}`.
+- **`apps/web/src/app/page.tsx`**: `LocalDirectorio` interface extendida con
+  `lat?: number | null` y `lng?: number | null` para la geolocalización.
+- **`apps/web/src/app/globals.css`**: agregadas utilities `gradient-text`,
+  `hero-orb`, `marquee`, `float-slow`, `halo-pulse`, `grain`,
+  `lift-on-hover`, `link-underline`, smooth scroll.
+- **`apps/web/.eslintrc.json`** creado con `{ "extends": "next/core-web-vitals" }`
+  para que `next lint` no entre en modo interactivo en CI.
+- **`apps/web/.npmrc`** creado con `legacy-peer-deps=true` (conflicto eslint@9
+  vs eslint-config-next@14).
+
+### Changed — Original
 
 - **`apps/web/next.config.mjs`** — añadido `output: 'standalone'` (requerido por `deploy-web.sh` y el Dockerfile productivo).
 - **`docs/security/threat-model.md`** — vector #8 marcado como MITIGADO, item #1 de "top 5 acciones críticas" cerrado.

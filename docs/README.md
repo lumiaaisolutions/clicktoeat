@@ -2,7 +2,7 @@
 
 Documentación viva del proyecto. **Regla**: cada tema vive en su propio `.md` dentro de la carpeta temática correspondiente — no se consolidan temas distintos en un solo archivo.
 
-> Última verificación contra código: 2026-06-10.
+> Última verificación contra código: 2026-06-12.
 
 ---
 
@@ -81,8 +81,14 @@ Documentación viva del proyecto. **Regla**: cada tema vive en su propio `.md` d
 - [Routing y páginas](frontend/routing.md)
 - [Stores Zustand](frontend/stores.md)
 - [Componentes UI](frontend/components.md)
-- [Landing pública](frontend/landing.md)
+- [Directorio público (home)](frontend/directorio-publico.md)
+- [Landing por local (`/[slug]`)](frontend/landing.md)
 - [Panel de admin](frontend/admin.md)
+- [Secciones modulares de la home](frontend/landing-sections.md) — BurgerSequence, ScrollPhone, WhyClickToEat, SystemPreview, LocalCard
+- [Patrones de scroll-animations](frontend/scroll-animations.md) — viewport, parallax, scrubbing, tilt 3D, counter
+- [Sistema de loaders](frontend/loaders.md) — InitialLoader, RouteTransition, app/loading.tsx
+- [Sistema de iconos](frontend/icon-system.md) — Icon component inline (estilo Lucide, sin lucide-react)
+- [Geolocalización "Cerca de ti"](frontend/geolocation.md) — geolocation API + Haversine
 
 ### Infra / DevOps
 - [Docker Compose](infra/docker.md)
