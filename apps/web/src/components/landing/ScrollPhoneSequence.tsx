@@ -42,6 +42,17 @@ const STEPS = [
 ];
 
 export function ScrollPhoneSequence() {
+  return (
+    <>
+      <MobileLayout />
+      <DesktopLayout />
+    </>
+  );
+}
+
+/* ─────────── Desktop (lg+): split sticky con scroll-scrubbing ─────────── */
+
+function DesktopLayout() {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -49,18 +60,20 @@ export function ScrollPhoneSequence() {
   });
 
   return (
-    <section ref={ref} className="relative bg-[color:var(--ce-bg)]" style={{ height: '320vh' }}>
-      {/* Sticky viewport */}
+    <section
+      ref={ref}
+      className="relative bg-[color:var(--ce-bg)] hidden lg:block"
+      style={{ height: '320vh' }}
+    >
       <div className="sticky top-0 h-screen overflow-hidden">
-        <div className="absolute inset-0 grid place-items-center px-4 sm:px-6">
-          <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
-            {/* Lado izquierdo: kicker + steps */}
+        <div className="absolute inset-0 grid place-items-center px-6">
+          <div className="w-full max-w-6xl grid grid-cols-2 gap-16 items-center">
             <div>
               <p className="text-xs text-muted font-medium uppercase tracking-[0.18em] inline-flex items-center gap-2">
                 <Icon name="sparkles" size={14} className="text-ink/60" />
                 Así funciona
               </p>
-              <h2 className="ce-display mt-3 text-3xl sm:text-4xl md:text-5xl font-bold leading-[1.05] tracking-tight">
+              <h2 className="ce-display mt-3 text-4xl md:text-5xl font-bold leading-[1.05] tracking-tight">
                 Del antojo al pedido<br />
                 en <span className="text-ink/60">cuatro pasos</span>.
               </h2>
@@ -72,19 +85,88 @@ export function ScrollPhoneSequence() {
               </ol>
             </div>
 
-            {/* Lado derecho: phone con frames cross-fading */}
-            <div className="hidden lg:flex justify-center">
+            <div className="flex justify-center">
               <PhoneShell progress={scrollYProgress} />
             </div>
-          </div>
-
-          {/* Phone mobile (debajo, no sticky split) */}
-          <div className="lg:hidden mt-10 flex justify-center">
-            <PhoneShell progress={scrollYProgress} />
           </div>
         </div>
       </div>
     </section>
+  );
+}
+
+/* ─────────── Mobile: lista vertical + phone arriba sticky compact ─────────── */
+
+function MobileLayout() {
+  const ref = useRef<HTMLDivElement>(null);
+  // En mobile la sección es de altura natural; el progreso es del propio
+  // bloque visible para que el phone sticky encima cambie de frame mientras
+  // se scrolllea por los steps.
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start 0.4', 'end 0.6'],
+  });
+
+  return (
+    <section ref={ref} className="lg:hidden relative bg-[color:var(--ce-bg)] py-16">
+      <div className="px-4 sm:px-6 max-w-xl mx-auto">
+        <p className="text-xs text-muted font-medium uppercase tracking-[0.18em] inline-flex items-center gap-2">
+          <Icon name="sparkles" size={14} className="text-ink/60" />
+          Así funciona
+        </p>
+        <h2 className="ce-display mt-3 text-3xl sm:text-4xl font-bold leading-[1.05] tracking-tight">
+          Del antojo al pedido<br />
+          en <span className="text-ink/60">cuatro pasos</span>.
+        </h2>
+
+        {/* Phone sticky compact arriba de los steps mientras se scrollea la lista.
+            Top 4rem para no chocar con el sticky header del search bar. */}
+        <div className="sticky top-16 z-10 mt-8 flex justify-center pointer-events-none">
+          <PhoneShell progress={scrollYProgress} compact />
+        </div>
+
+        <ol className="mt-6 space-y-8 relative">
+          {STEPS.map((s, i) => (
+            <MobileStep key={s.title} index={i} step={s} progress={scrollYProgress} />
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
+function MobileStep({
+  index, step, progress,
+}: {
+  index: number;
+  step: typeof STEPS[number];
+  progress: MotionValue<number>;
+}) {
+  const total = STEPS.length;
+  const start = index / total;
+  const end   = (index + 1) / total;
+  const opacity = useTransform(progress, [start - 0.1, start, end, end + 0.1], [0.4, 1, 1, 0.4]);
+  const barH = useTransform(progress, [start, end], ['0%', '100%']);
+
+  return (
+    <motion.li style={{ opacity }} className="flex gap-4 items-start">
+      <div className="relative shrink-0 w-8 flex flex-col items-center">
+        <span className="text-[10px] font-medium tracking-widest text-muted">
+          0{index + 1}
+        </span>
+        <span className="mt-2 w-px flex-1 bg-line relative h-16">
+          <motion.span
+            style={{ height: barH }}
+            className="absolute left-0 top-0 w-px bg-ink origin-top"
+          />
+        </span>
+      </div>
+      <div className="-mt-0.5 flex-1">
+        <p className="text-[11px] uppercase tracking-[0.18em] text-muted font-medium">{step.accent}</p>
+        <h3 className="ce-display text-xl font-bold mt-1 leading-tight">{step.title}</h3>
+        <p className="text-sm text-muted mt-1.5 leading-relaxed">{step.desc}</p>
+      </div>
+    </motion.li>
   );
 }
 
@@ -134,14 +216,18 @@ function Step({
 
 /* ─────────── Phone con frames cross-fading ─────────── */
 
-function PhoneShell({ progress }: { progress: MotionValue<number> }) {
+function PhoneShell({ progress, compact = false }: { progress: MotionValue<number>; compact?: boolean }) {
+  const width = compact ? 'w-[180px]' : 'w-[280px] sm:w-[320px]';
+  const borderWidth = compact ? 'border-[7px]' : 'border-[10px]';
+  const borderRadius = compact ? 'rounded-[1.6rem]' : 'rounded-[2.4rem]';
+  const notchSize = compact ? 'w-14 h-3.5' : 'w-20 h-5';
   return (
-    <div className="relative w-[280px] sm:w-[320px]">
+    <div className={`relative pointer-events-auto ${width}`}>
       {/* Frame del teléfono */}
-      <div className="relative rounded-[2.4rem] border-[10px] border-ink bg-ink shadow-[0_30px_60px_-30px_rgba(0,0,0,0.45)] overflow-hidden">
+      <div className={`relative ${borderRadius} ${borderWidth} border-ink bg-ink shadow-[0_30px_60px_-30px_rgba(0,0,0,0.45)] overflow-hidden`}>
         <div className="relative aspect-[9/19] bg-white">
           {/* Notch */}
-          <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-5 bg-ink rounded-full z-30" />
+          <div className={`absolute top-2 left-1/2 -translate-x-1/2 ${notchSize} bg-ink rounded-full z-30`} />
 
           {/* Frames superpuestos, cada uno crossfade en su rango */}
           <FrameCatalogo progress={progress} />
@@ -151,8 +237,8 @@ function PhoneShell({ progress }: { progress: MotionValue<number> }) {
         </div>
       </div>
 
-      {/* Indicador de progreso lateral */}
-      <ProgressDots progress={progress} />
+      {/* Indicador de progreso lateral — solo en desktop */}
+      {!compact && <ProgressDots progress={progress} />}
     </div>
   );
 }

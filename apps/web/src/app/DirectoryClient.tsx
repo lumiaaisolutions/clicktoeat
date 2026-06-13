@@ -176,7 +176,8 @@ export function DirectoryClient({ locales }: { locales: LocalDirectorio[] }) {
       {/* Controles + listado */}
       <section id="locales" className="px-4 sm:px-6 max-w-6xl mx-auto sticky top-0 z-30 glass border-y border-line py-3">
         <div className="flex gap-2 items-center flex-wrap">
-          <div className="relative flex-1 min-w-[200px]">
+          {/* Mobile: search ocupa fila completa */}
+          <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:w-auto">
             <Icon
               name="search"
               size={18}
@@ -193,7 +194,7 @@ export function DirectoryClient({ locales }: { locales: LocalDirectorio[] }) {
           <button
             onClick={() => setOnlyOpen(!onlyOpen)}
             className={cn(
-              'px-4 py-3 rounded-2xl border text-sm font-medium whitespace-nowrap tap-target inline-flex items-center gap-2',
+              'flex-1 sm:flex-none px-4 py-3 rounded-2xl border text-sm font-medium whitespace-nowrap tap-target inline-flex items-center justify-center gap-2',
               onlyOpen ? 'bg-emerald-600 text-white border-transparent' : 'bg-white border-line hover:border-ink/40',
             )}
           >
@@ -202,7 +203,7 @@ export function DirectoryClient({ locales }: { locales: LocalDirectorio[] }) {
           </button>
           <Link
             href="/login"
-            className="px-4 py-3 rounded-2xl bg-ink text-white text-sm font-medium whitespace-nowrap hover:opacity-90 tap-target inline-flex items-center gap-2"
+            className="flex-1 sm:flex-none px-4 py-3 rounded-2xl bg-ink text-white text-sm font-medium whitespace-nowrap hover:opacity-90 tap-target inline-flex items-center justify-center gap-2"
           >
             <Icon name="storefront" size={16} />
             Soy dueño
