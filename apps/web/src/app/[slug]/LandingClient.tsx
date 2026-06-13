@@ -242,117 +242,152 @@ export function LandingClient({ menu }: Props) {
         />
       </section>
 
-      {/* FOOTER INFO — card de estado + redes sociales prominentes */}
-      <footer className="max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-16 space-y-8">
-        {/* Status card grande con icono + texto */}
-        {(local as any).estado && (local as any).estado.abierto !== null && (() => {
-          const est = (local as any).estado;
-          // El mensaje del backend a veces viene como "Cerrado · abre mañana a las 17:30".
-          // Limpiamos el prefijo redundante del estado.
-          const mensajeLimpio = (est.mensaje as string)
-            .replace(/^(Abierto|Cerrado)\s*[·.,-]?\s*/i, '')
-            .trim();
-          const isOpen = est.abierto === true;
-          return (
+      {/* FOOTER — estilo restaurante premium dark con info, redes y crédito LUMIA */}
+      <footer className="relative bg-ink text-white mt-12 sm:mt-16 overflow-hidden">
+        {/* Accent gradient sutil top — usa el color del local */}
+        <span
+          aria-hidden
+          className="absolute top-0 left-0 right-0 h-1"
+          style={{
+            background: 'linear-gradient(90deg, transparent 0%, var(--ce-accent) 50%, transparent 100%)',
+          }}
+        />
+        {/* Orb gradient decorativo */}
+        <div aria-hidden className="absolute inset-0 pointer-events-none opacity-20">
+          <div
+            className="hero-orb"
+            style={{
+              background: 'var(--ce-accent)',
+              width: 480,
+              height: 480,
+              top: -200,
+              right: -120,
+            }}
+          />
+        </div>
+
+        <div className="relative max-w-5xl mx-auto px-5 sm:px-6 py-12 sm:py-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16">
+            {/* Columna 1: identidad del local */}
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-40px' }}
               transition={{ duration: 0.5 }}
-              className={cn(
-                'rounded-3xl border p-5 sm:p-6 flex items-start gap-4',
-                isOpen
-                  ? 'border-emerald-200 bg-emerald-50'
-                  : 'border-red-200 bg-red-50',
-              )}
             >
-              <span className={cn(
-                'shrink-0 w-12 h-12 rounded-2xl grid place-items-center text-white shadow-sm',
-                isOpen ? 'bg-emerald-500' : 'bg-red-500',
-              )}>
-                <Icon name={isOpen ? 'check-circle' : 'clock'} size={22} />
-              </span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="ce-display text-xl sm:text-2xl font-bold leading-tight">
-                    {isOpen ? 'Abierto ahora' : 'Cerrado por ahora'}
-                  </h3>
-                  {isOpen && (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 halo-pulse" />
-                      En línea
-                    </span>
-                  )}
-                </div>
-                {mensajeLimpio && (
-                  <p className={cn(
-                    'mt-1 text-sm sm:text-base',
-                    isOpen ? 'text-emerald-900/80' : 'text-red-900/80',
-                  )}>
-                    {mensajeLimpio}
-                  </p>
+              <div className="flex items-center gap-3 mb-4">
+                {branding.logo && (
+                  <img
+                    src={branding.logo}
+                    alt={local.nombre}
+                    className="w-12 h-12 rounded-xl object-cover bg-white border-2 border-white/20"
+                  />
                 )}
+                <p className="ce-display text-xl sm:text-2xl font-bold leading-tight tracking-tight">
+                  {local.nombre}
+                </p>
               </div>
+              {local.tagline && (
+                <p className="text-sm text-white/70 leading-relaxed max-w-sm">
+                  {local.tagline}
+                </p>
+              )}
+              {local.direccion && (
+                <p className="mt-4 text-xs text-white/60 inline-flex items-start gap-2 max-w-sm">
+                  <Icon name="map-pin" size={14} className="mt-0.5 shrink-0 text-white/40" />
+                  <span>{local.direccion}</span>
+                </p>
+              )}
+              {local.whatsapp && (
+                <a
+                  href={`https://wa.me/${local.whatsapp.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 inline-flex items-center gap-2 text-xs text-white/80 hover:text-white transition"
+                >
+                  <Icon name="whatsapp" size={14} className="text-emerald-400" />
+                  +{local.whatsapp}
+                </a>
+              )}
             </motion.div>
-          );
-        })()}
 
-        {/* Redes sociales con título grande */}
-        {local.redes && Object.keys(local.redes).some((k) => local.redes![k]) && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-40px' }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-          >
-            <p className="text-xs text-muted font-medium uppercase tracking-[0.18em] inline-flex items-center gap-2">
-              <span className="w-6 h-px bg-ink/40" />
-              Síguenos
+            {/* Columna 2: redes sociales */}
+            {local.redes && Object.keys(local.redes).some((k) => local.redes![k]) && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-40px' }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+              >
+                <p className="text-xs text-white/50 font-medium uppercase tracking-[0.18em] inline-flex items-center gap-2 mb-5">
+                  <span className="w-6 h-px bg-white/30" />
+                  Síguenos
+                </p>
+                <ul className="flex flex-wrap items-start gap-5 sm:gap-8 list-none pl-0">
+                  {local.redes.fb && (
+                    <li>
+                      <SocialCard3D
+                        href={local.redes.fb.startsWith('http') ? local.redes.fb : `https://facebook.com/${local.redes.fb}`}
+                        label="Facebook"
+                        icon="facebook"
+                        brand="#1877f2"
+                        brandDark="#0e58b8"
+                        brandLight="#4287e0"
+                      />
+                    </li>
+                  )}
+                  {local.redes.ig && (
+                    <li>
+                      <SocialCard3D
+                        href={local.redes.ig.startsWith('http') ? local.redes.ig : `https://instagram.com/${local.redes.ig.replace(/^@/, '')}`}
+                        label="Instagram"
+                        icon="instagram"
+                        brand="linear-gradient(135deg, #f9a825 0%, #e91e8c 50%, #9c27b0 100%)"
+                        brandDark="#a5215c"
+                        brandLight="#d34583"
+                      />
+                    </li>
+                  )}
+                  {local.redes.tt && (
+                    <li>
+                      <SocialCard3D
+                        href={local.redes.tt.startsWith('http') ? local.redes.tt : `https://tiktok.com/@${local.redes.tt.replace(/^@/, '')}`}
+                        label="TikTok"
+                        icon="sparkles"
+                        brand="#000000"
+                        brandDark="#222222"
+                        brandLight="#444444"
+                      />
+                    </li>
+                  )}
+                </ul>
+              </motion.div>
+            )}
+          </div>
+
+          {/* Bottom bar: copyright + LUMIA */}
+          <div className="mt-12 sm:mt-16 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <p className="text-white/50 text-center sm:text-left">
+              © {new Date().getFullYear()} {local.nombre}. Todos los derechos reservados.
             </p>
-            <h3 className="ce-display mt-2 text-2xl sm:text-3xl font-bold leading-tight">
-              También estamos en redes
-            </h3>
-            <ul className="mt-8 flex flex-wrap items-start gap-6 sm:gap-10 list-none pl-0">
-              {local.redes.fb && (
-                <li>
-                  <SocialCard3D
-                    href={local.redes.fb.startsWith('http') ? local.redes.fb : `https://facebook.com/${local.redes.fb}`}
-                    label="Facebook"
-                    icon="facebook"
-                    brand="#1877f2"
-                    brandDark="#0e58b8"
-                    brandLight="#4287e0"
-                  />
-                </li>
-              )}
-              {local.redes.ig && (
-                <li>
-                  <SocialCard3D
-                    href={local.redes.ig.startsWith('http') ? local.redes.ig : `https://instagram.com/${local.redes.ig.replace(/^@/, '')}`}
-                    label="Instagram"
-                    icon="instagram"
-                    /* Gradient real de Instagram aplicado vía CSS var */
-                    brand="linear-gradient(135deg, #f9a825 0%, #e91e8c 50%, #9c27b0 100%)"
-                    brandDark="#a5215c"
-                    brandLight="#d34583"
-                  />
-                </li>
-              )}
-              {local.redes.tt && (
-                <li>
-                  <SocialCard3D
-                    href={local.redes.tt.startsWith('http') ? local.redes.tt : `https://tiktok.com/@${local.redes.tt.replace(/^@/, '')}`}
-                    label="TikTok"
-                    icon="sparkles"
-                    brand="#000000"
-                    brandDark="#222222"
-                    brandLight="#444444"
-                  />
-                </li>
-              )}
-            </ul>
-          </motion.div>
-        )}
+            <a
+              href="https://lumiaaisolutions.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex items-center gap-1.5 text-white/60 hover:text-white transition"
+            >
+              Desarrollado por
+              <span className="font-semibold tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/70 group-hover:from-[color:var(--ce-accent)] group-hover:via-white group-hover:to-white transition-all">
+                LUMIA
+              </span>
+              <Icon
+                name="arrow-up-right"
+                size={12}
+                className="text-white/40 group-hover:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition"
+              />
+            </a>
+          </div>
+        </div>
       </footer>
 
       {/* FLOATING WHATSAPP / CART */}
@@ -1306,7 +1341,7 @@ function CategoryButton({
     <button
       onClick={onClick}
       className={cn(
-        'group relative inline-flex items-center gap-3 pl-5 sm:pl-6 pr-12 sm:pr-14 py-3 rounded-2xl whitespace-nowrap tap-target',
+        'group relative inline-flex items-center gap-3 pl-5 sm:pl-6 pr-16 sm:pr-20 py-3 rounded-2xl whitespace-nowrap tap-target',
         'text-sm font-semibold transition-all duration-300',
         active
           ? 'text-white shadow-[0_10px_24px_-8px_rgba(0,0,0,0.35)] hover:-translate-y-0.5 hover:shadow-[0_18px_32px_-10px_rgba(0,0,0,0.45)]'
@@ -1323,21 +1358,22 @@ function CategoryButton({
     >
       <span>{nombre}</span>
 
-      {/* Icono "flotante" sobresaliendo del botón — sin círculo de fondo,
-          más grande (size 32), drop-shadow propio para sensación 3D.
-          Rotación sutil + scale al hover (estilo "Contact button" envelope). */}
+      {/* Icono grande sobresaliendo del botón — fondo SÓLIDO ink (negro) que
+          NO se transparenta sobre ningún color de fondo del local. Stroke
+          blanco grueso para máxima legibilidad. Posición absoluta a la
+          derecha con translate fuera del botón (estilo Contact envelope). */}
       <span
         className={cn(
-          'absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 sm:translate-x-3 pointer-events-none',
-          'transition-transform duration-300 ease-out',
-          'rotate-[10deg] group-hover:rotate-[18deg] group-hover:scale-110 group-hover:translate-x-3 sm:group-hover:translate-x-4',
-          active ? 'text-white' : 'text-ink',
+          'absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 sm:translate-x-4',
+          'w-14 h-14 sm:w-16 sm:h-16 rounded-2xl grid place-items-center pointer-events-none',
+          'bg-ink text-white shrink-0',
+          'shadow-[0_8px_20px_-4px_rgba(0,0,0,0.45),0_4px_8px_-2px_rgba(0,0,0,0.3)]',
+          'transition-all duration-300 ease-out',
+          'rotate-[10deg] group-hover:rotate-[18deg] group-hover:scale-110',
+          'group-hover:translate-x-4 sm:group-hover:translate-x-5',
         )}
-        style={{
-          filter: 'drop-shadow(0 6px 8px rgba(0, 0, 0, 0.35))',
-        }}
       >
-        <Icon name={icon} size={32} strokeWidth={2.2} />
+        <Icon name={icon} size={28} strokeWidth={2.4} />
       </span>
     </button>
   );
