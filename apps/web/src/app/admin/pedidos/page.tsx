@@ -7,6 +7,7 @@ import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { Icon } from '@/components/ui/Icon';
 import { formatMXN, cn } from '@/lib/utils';
 
 const ESTADOS: { value: PedidoEstado | ''; label: string }[] = [
@@ -246,10 +247,12 @@ function PedidoDetalle({
           href={pedido.whatsapp_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-4 inline-flex px-4 py-2 rounded-xl text-white text-sm font-medium"
+          className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-medium"
           style={{ background: '#25D366' }}
         >
-          Reenviar a WhatsApp ↗
+          <Icon name="whatsapp" size={15} />
+          Reenviar a WhatsApp
+          <Icon name="arrow-up-right" size={14} />
         </a>
       )}
     </div>

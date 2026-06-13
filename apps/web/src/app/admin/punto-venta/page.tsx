@@ -7,6 +7,7 @@ import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { Icon } from '@/components/ui/Icon';
 import { cn, formatMXN } from '@/lib/utils';
 
 type MetodoPago = 'efectivo' | 'tarjeta_tpv' | 'transferencia';
@@ -398,7 +399,10 @@ function TicketModal({
 
       <div className="flex gap-2 justify-end mt-4 pt-3 border-t border-line print:hidden">
         <Button variant="secondary" onClick={onClose}>Cerrar</Button>
-        <Button onClick={() => window.print()}>🖨 Imprimir</Button>
+        <Button onClick={() => window.print()} className="inline-flex items-center gap-2">
+          <Icon name="qr-code" size={16} />
+          Imprimir
+        </Button>
       </div>
     </Modal>
   );

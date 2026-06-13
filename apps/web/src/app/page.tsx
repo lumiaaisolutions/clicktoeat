@@ -25,6 +25,8 @@ export interface LocalDirectorio {
   deliveryFee: number;
   deliveryMinutos: number;
   productosCount?: number;
+  lat?: number | null;
+  lng?: number | null;
 }
 
 async function getLocales(): Promise<LocalDirectorio[]> {

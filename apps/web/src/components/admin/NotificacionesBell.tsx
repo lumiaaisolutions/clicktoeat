@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useNotificaciones } from '@/store/notificaciones';
 import { useAuth } from '@/store/auth';
 import { cn } from '@/lib/utils';
+import { Icon, type IconName } from '@/components/ui/Icon';
 
 export function NotificacionesBell() {
   const { items, noLeidas, pedidosNuevos, startPolling, stopPolling, marcarLeida, marcarTodasLeidas } = useNotificaciones();
@@ -33,7 +34,7 @@ export function NotificacionesBell() {
         className="relative w-9 h-9 rounded-xl hover:bg-line/50 grid place-items-center"
         aria-label="Notificaciones"
       >
-        <span className="text-lg">🔔</span>
+        <Icon name="bell" size={18} className="text-ink/80" />
         {(noLeidas + pedidosNuevos.length) > 0 && (
           <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold grid place-items-center">
             {(noLeidas + pedidosNuevos.length) > 99 ? '99+' : noLeidas + pedidosNuevos.length}
@@ -76,7 +77,9 @@ export function NotificacionesBell() {
                 {pedidosNuevos.length > 0 && (
                   <div>
                     <div className="px-4 py-2 bg-red-50 border-b border-red-100 flex items-center gap-2">
-                      <span className="text-sm font-semibold text-red-700">🛎 Pedidos nuevos</span>
+                      <span className="text-sm font-semibold text-red-700 inline-flex items-center gap-1.5">
+                        <Icon name="message-circle" size={14} /> Pedidos nuevos
+                      </span>
                       <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-red-600 text-white text-[10px] font-bold grid place-items-center">
                         {pedidosNuevos.length}
                       </span>
@@ -118,7 +121,7 @@ export function NotificacionesBell() {
                         onClick={() => { marcarLeida(n.id); setOpen(false); router.push('/admin/pedidos'); }}
                       >
                         <div className="flex items-start gap-2">
-                          <span className="text-lg">{iconFor(n.tipo)}</span>
+                          <span className="mt-0.5 text-ink/70"><Icon name={iconFor(n.tipo)} size={16} /></span>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <p className="font-medium text-sm">{n.titulo}</p>
@@ -145,11 +148,11 @@ export function NotificacionesBell() {
   );
 }
 
-function iconFor(tipo: string): string {
+function iconFor(tipo: string): IconName {
   switch (tipo) {
-    case 'bajo_stock':   return '⚠️';
-    case 'pedido':       return '🛎';
-    case 'nuevo_pedido': return '🛎';
-    default:             return '🔔';
+    case 'bajo_stock':   return 'alert-triangle';
+    case 'pedido':       return 'message-circle';
+    case 'nuevo_pedido': return 'message-circle';
+    default:             return 'bell';
   }
 }

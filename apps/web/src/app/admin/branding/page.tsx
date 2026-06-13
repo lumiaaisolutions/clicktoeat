@@ -7,6 +7,7 @@ import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
 import { Field, Textarea, Switch } from '@/components/ui/FormField';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { Icon } from '@/components/ui/Icon';
 import { ImageUpload } from '@/components/admin/ImageUpload';
 import { LocationPicker } from '@/components/admin/LocationPicker';
 
@@ -221,9 +222,10 @@ export default function BrandingPage() {
               href={local.public_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 block text-center text-sm underline"
+              className="mt-3 inline-flex items-center justify-center gap-1.5 w-full text-center text-sm underline"
             >
-              Ver landing real ↗
+              Ver landing real
+              <Icon name="arrow-up-right" size={13} />
             </a>
           </div>
         </aside>

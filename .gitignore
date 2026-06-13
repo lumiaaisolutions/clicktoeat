@@ -23,3 +23,6 @@ backups/
 # OpenAPI snapshot generado por CI — versionado pero no editado manualmente
 # (mantener comentado hasta que CI lo regenere)
 # docs/api/openapi.json
+
+# TypeScript incremental build cache (Next.js no lo necesita versionado)
+apps/web/tsconfig.tsbuildinfo

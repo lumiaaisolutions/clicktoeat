@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Field } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/store/auth';
 
 export default function StaffPage() {
@@ -257,8 +258,9 @@ function StaffFormModal({ staff, onClose, onSaved }: StaffFormModalProps) {
         </div>
 
         {editing && password && (
-          <p className="text-xs text-muted mt-3">
-            ⚠️ Al cambiar la contraseña, todas las sesiones activas del empleado se cierran.
+          <p className="text-xs text-muted mt-3 inline-flex items-start gap-1.5">
+            <Icon name="alert-triangle" size={13} className="mt-0.5 shrink-0 text-amber-600" />
+            <span>Al cambiar la contraseña, todas las sesiones activas del empleado se cierran.</span>
           </p>
         )}
       </form>

@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { createPortal } from 'react-dom';
+import { Icon } from '@/components/ui/Icon';
 import 'leaflet/dist/leaflet.css';
 
 export interface LocationValue {
@@ -157,7 +158,17 @@ export function LocationPicker({ value, onChange }: Props) {
         disabled={locating}
         className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-line text-sm text-muted hover:bg-line/30 disabled:opacity-50"
       >
-        {locating ? '⏳ Obteniendo ubicación...' : '📍 Usar mi ubicación aproximada'}
+        {locating ? (
+          <>
+            <Icon name="compass" size={14} className="animate-spin" />
+            Obteniendo ubicación…
+          </>
+        ) : (
+          <>
+            <Icon name="navigation" size={14} />
+            Usar mi ubicación aproximada
+          </>
+        )}
       </button>
       <p className="text-xs text-muted">Ajusta el punto en el mapa para mayor precisión.</p>
 

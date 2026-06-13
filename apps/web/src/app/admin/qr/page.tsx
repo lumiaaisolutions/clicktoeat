@@ -6,6 +6,7 @@ import type { LocalAdmin, Resource } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { QRCode, downloadQR } from '@/components/ui/QRCode';
+import { Icon } from '@/components/ui/Icon';
 import { toast } from '@/store/toast';
 
 export default function QRPage() {
@@ -137,22 +138,26 @@ export default function QRPage() {
           <div className="rounded-2xl border border-line bg-white p-4">
             <p className="text-xs uppercase tracking-wider text-muted mb-2">Acciones</p>
             <div className="space-y-2">
-              <Button onClick={handleDownload} className="w-full">
-                ⬇ Descargar PNG ({1200}px)
+              <Button onClick={handleDownload} className="w-full inline-flex items-center justify-center gap-2">
+                <Icon name="download" size={16} />
+                Descargar PNG ({1200}px)
               </Button>
-              <Button variant="secondary" onClick={() => window.print()} className="w-full">
-                🖨 Imprimir
+              <Button variant="secondary" onClick={() => window.print()} className="w-full inline-flex items-center justify-center gap-2">
+                <Icon name="qr-code" size={16} />
+                Imprimir
               </Button>
-              <Button variant="secondary" onClick={handleCopy} className="w-full">
-                📋 Copiar link
+              <Button variant="secondary" onClick={handleCopy} className="w-full inline-flex items-center justify-center gap-2">
+                <Icon name="copy" size={16} />
+                Copiar link
               </Button>
               <a
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-full text-center px-4 py-2 rounded-xl border border-line text-sm hover:bg-line/30"
+                className="block w-full text-center px-4 py-2 rounded-xl border border-line text-sm hover:bg-line/30 inline-flex items-center justify-center gap-2"
               >
-                ↗ Abrir landing en otra pestaña
+                <Icon name="arrow-up-right" size={16} />
+                Abrir landing en otra pestaña
               </a>
             </div>
           </div>

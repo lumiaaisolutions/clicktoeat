@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Field, Textarea, Select, Switch } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { Icon } from '@/components/ui/Icon';
 import { ImageUpload } from '@/components/admin/ImageUpload';
 import { cn, formatMXN } from '@/lib/utils';
 
@@ -467,7 +468,12 @@ function RecetaModal({
                       <div className="mt-1.5 ml-1 text-xs">
                         <span className="text-muted">Stock actual: </span>
                         <strong className={cn(ing.bajo_stock && 'text-red-600')}>{ing.stock} {ing.unidad}</strong>
-                        {!stockOk && <span className="ml-2 text-red-600">⚠️ no alcanza para 1 producto</span>}
+                        {!stockOk && (
+                          <span className="ml-2 text-red-600 inline-flex items-center gap-1">
+                            <Icon name="alert-triangle" size={11} />
+                            no alcanza para 1 producto
+                          </span>
+                        )}
                       </div>
                     )}
                   </li>

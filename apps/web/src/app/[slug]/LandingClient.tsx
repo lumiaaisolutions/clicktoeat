@@ -7,6 +7,7 @@ import { useCart } from '@/store/cart';
 import { buildWhatsAppUrl } from '@/lib/whatsapp';
 import { cn, formatMXN } from '@/lib/utils';
 import type { MenuResponse } from '@/lib/api';
+import { Icon } from '@/components/ui/Icon';
 import 'leaflet/dist/leaflet.css';
 
 const LeafletMap = dynamic(() => import('@/components/admin/LeafletMap'), { ssr: false, loading: () => <div className="h-48 rounded-xl border border-line bg-line/30 animate-pulse" /> });
@@ -111,7 +112,10 @@ export function LandingClient({ menu }: Props) {
           <h1 className="ce-display text-3xl sm:text-4xl md:text-6xl font-bold leading-tight">{local.nombre}</h1>
           {local.tagline && <p className="mt-1.5 sm:mt-2 max-w-xl opacity-90 text-sm sm:text-base">{local.tagline}</p>}
           {local.direccion && (
-            <p className="mt-2 sm:mt-3 text-xs sm:text-sm opacity-80">📍 {local.direccion}</p>
+            <p className="mt-2 sm:mt-3 text-xs sm:text-sm opacity-80 inline-flex items-center gap-1.5">
+              <Icon name="map-pin" size={13} />
+              {local.direccion}
+            </p>
           )}
         </div>
       </header>
@@ -561,13 +565,15 @@ function CheckoutSheet({
               localLng={local.lng ?? null}
             />
             {fueraDeRango && (
-              <div className="px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
-                📍 Esta dirección está fuera de nuestra zona de entrega ({local.delivery.radioKm} km). Por favor elige otra ubicación.
+              <div className="px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 inline-flex items-start gap-2">
+                <Icon name="alert-triangle" size={14} className="mt-0.5 shrink-0" />
+                <span>Esta dirección está fuera de nuestra zona de entrega ({local.delivery.radioKm} km). Por favor elige otra ubicación.</span>
               </div>
             )}
             {clienteLat && clienteLng && !fueraDeRango && local.lat && local.lng && (
-              <p className="text-xs text-green-700">
-                ✅ Dentro del área de entrega ({haversineKm(local.lat, local.lng, clienteLat, clienteLng).toFixed(1)} km)
+              <p className="text-xs text-green-700 inline-flex items-center gap-1.5">
+                <Icon name="check-circle" size={13} />
+                Dentro del área de entrega ({haversineKm(local.lat, local.lng, clienteLat, clienteLng).toFixed(1)} km)
               </p>
             )}
           </div>
@@ -703,7 +709,17 @@ function DeliveryAddressInput({ direccion, onDireccionChange, onMapClick, lat, l
         disabled={locating}
         className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-line text-sm text-muted hover:bg-line/30 disabled:opacity-50"
       >
-        {locating ? '⏳ Obteniendo ubicación...' : '📍 Usar mi ubicación aproximada'}
+        {locating ? (
+          <>
+            <Icon name="compass" size={14} className="animate-spin" />
+            Obteniendo ubicación…
+          </>
+        ) : (
+          <>
+            <Icon name="navigation" size={14} />
+            Usar mi ubicación aproximada
+          </>
+        )}
       </button>
       <p className="text-xs text-muted">Ajusta el punto en el mapa para mayor precisión.</p>
       <div className="h-48 rounded-xl overflow-hidden border border-line">

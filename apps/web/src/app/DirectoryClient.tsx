@@ -2,13 +2,15 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { cn, formatMXN } from '@/lib/utils';
 import { QRCode, downloadQR } from '@/components/ui/QRCode';
 import { Logo } from '@/components/ui/Logo';
+import { Icon } from '@/components/ui/Icon';
 import type { LocalDirectorio } from './page';
 
 const FAV_KEY = 'clicktoeat:favs';
+const NEARBY_RADIUS_KM = 15;
 
 function readFavs(): Set<string> {
   if (typeof window === 'undefined') return new Set();
@@ -23,20 +25,31 @@ function writeFavs(favs: Set<string>) {
   window.localStorage.setItem(FAV_KEY, JSON.stringify([...favs]));
 }
 
-/**
- * Estado abierto/cerrado calculado SERVER-SIDE (campo `estado`).
- * No volvemos a calcular con `new Date()` en el cliente para evitar
- * hydration mismatch entre la hora del server y la del cliente.
- */
 function abiertoDe(l: LocalDirectorio): boolean | null {
   return l.estado?.abierto ?? null;
 }
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+type Coords = { lat: number; lng: number };
 
 export function DirectoryClient({ locales }: { locales: LocalDirectorio[] }) {
   const [q, setQ] = useState('');
   const [favs, setFavs] = useState<Set<string>>(new Set());
   const [hydrated, setHydrated] = useState(false);
   const [onlyOpen, setOnlyOpen] = useState(false);
+  const [userCoords, setUserCoords] = useState<Coords | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
+  const [nearbyActive, setNearbyActive] = useState(false);
 
   useEffect(() => {
     setFavs(readFavs());
@@ -46,16 +59,53 @@ export function DirectoryClient({ locales }: { locales: LocalDirectorio[] }) {
   const toggleFav = (slug: string) => {
     setFavs((cur) => {
       const next = new Set(cur);
-      next.has(slug) ? next.delete(slug) : next.add(slug);
+      if (next.has(slug)) next.delete(slug); else next.add(slug);
       writeFavs(next);
       return next;
     });
   };
 
+  function pedirUbicacion() {
+    if (!('geolocation' in navigator)) {
+      setGeoError('Tu navegador no soporta geolocalización.');
+      return;
+    }
+    setLocating(true);
+    setGeoError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setNearbyActive(true);
+        setLocating(false);
+        const target = document.getElementById('cerca-de-ti');
+        target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      },
+      (err) => {
+        setLocating(false);
+        setGeoError(
+          err.code === err.PERMISSION_DENIED
+            ? 'Permiso de ubicación denegado. Actívalo en la configuración del navegador.'
+            : 'No pudimos obtener tu ubicación. Intenta de nuevo.',
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
+    );
+  }
+
+  const withDistance = useMemo(() => {
+    return locales.map((l) => {
+      let distancia: number | null = null;
+      if (userCoords && l.lat != null && l.lng != null) {
+        distancia = haversineKm(userCoords.lat, userCoords.lng, l.lat, l.lng);
+      }
+      return { ...l, distancia };
+    });
+  }, [locales, userCoords]);
+
   const filtered = useMemo(() => {
     const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
     const query = norm(q.trim());
-    return locales.filter((l) => {
+    return withDistance.filter((l) => {
       if (onlyOpen && abiertoDe(l) === false) return false;
       if (!query) return true;
       return norm(l.nombre).includes(query)
@@ -63,54 +113,83 @@ export function DirectoryClient({ locales }: { locales: LocalDirectorio[] }) {
           || norm(l.direccion ?? '').includes(query)
           || norm(l.slug).includes(query);
     });
-  }, [locales, q, onlyOpen]);
+  }, [withDistance, q, onlyOpen]);
+
+  const nearbyList = useMemo(() => {
+    if (!userCoords) return [];
+    return withDistance
+      .filter((l) => l.distancia != null && l.distancia <= NEARBY_RADIUS_KM)
+      .sort((a, b) => (a.distancia ?? 0) - (b.distancia ?? 0));
+  }, [withDistance, userCoords]);
 
   const favoritos = hydrated ? filtered.filter((l) => favs.has(l.slug)) : [];
   const resto     = hydrated ? filtered.filter((l) => !favs.has(l.slug)) : filtered;
 
-  return (
-    <main className="min-h-screen">
-      {/* HERO */}
-      <section className="px-6 pt-16 pb-8 max-w-6xl mx-auto">
-        <div className="mb-4">
-          <Logo variant="lockup" size={36} />
-        </div>
-        <p className="text-sm text-muted font-medium uppercase tracking-wider">Directorio de locales</p>
-        <h1 className="ce-display mt-3 text-4xl sm:text-5xl md:text-7xl font-bold leading-[1.05]">
-          Tu antojo,<br />
-          a <span style={{ color: 'var(--ce-accent)' }}>un mensaje</span> de distancia.
-        </h1>
-        <p className="mt-5 max-w-2xl text-base sm:text-lg text-muted">
-          Elige tu local favorito y haz tu pedido directo por WhatsApp. Sin app, sin cuenta, sin comisiones.
-        </p>
-      </section>
+  const totalLocales = locales.length;
+  const totalAbiertos = locales.filter((l) => abiertoDe(l) === true).length;
 
-      {/* CONTROLES */}
-      <section id="locales" className="px-4 sm:px-6 max-w-6xl mx-auto sticky top-0 z-20 glass border-y border-line py-3 -my-px">
+  return (
+    <main className="min-h-screen relative">
+      <Hero
+        totalLocales={totalLocales}
+        totalAbiertos={totalAbiertos}
+        onCercaClick={pedirUbicacion}
+        locating={locating}
+      />
+
+      {/* Cerca de ti */}
+      {nearbyActive && (
+        <NearbySection
+          id="cerca-de-ti"
+          list={nearbyList}
+          radiusKm={NEARBY_RADIUS_KM}
+          isFav={(slug) => favs.has(slug)}
+          onToggleFav={toggleFav}
+          onClose={() => { setNearbyActive(false); setUserCoords(null); }}
+        />
+      )}
+
+      {geoError && !nearbyActive && (
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 mt-4">
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 flex items-start gap-2">
+            <Icon name="alert-triangle" size={16} className="mt-0.5 shrink-0" />
+            <span>{geoError}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Controles + listado */}
+      <section id="locales" className="px-4 sm:px-6 max-w-6xl mx-auto sticky top-0 z-30 glass border-y border-line py-3">
         <div className="flex gap-2 items-center flex-wrap">
           <div className="relative flex-1 min-w-[200px]">
+            <Icon
+              name="search"
+              size={18}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none"
+            />
             <input
               type="search"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Buscar local, comida, zona…"
-              className="w-full pl-10 pr-3 py-3 rounded-2xl border border-line bg-white text-base outline-none focus:border-ink/50 min-h-[44px]"
+              className="w-full pl-11 pr-3 py-3 rounded-2xl border border-line bg-white text-base outline-none focus:border-ink/50 min-h-[44px]"
             />
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-lg">🔍</span>
           </div>
           <button
             onClick={() => setOnlyOpen(!onlyOpen)}
             className={cn(
-              'px-4 py-3 rounded-2xl border text-sm font-medium whitespace-nowrap tap-target',
+              'px-4 py-3 rounded-2xl border text-sm font-medium whitespace-nowrap tap-target inline-flex items-center gap-2',
               onlyOpen ? 'bg-emerald-600 text-white border-transparent' : 'bg-white border-line hover:border-ink/40',
             )}
           >
-            ● Abierto ahora
+            <span className={cn('w-2 h-2 rounded-full', onlyOpen ? 'bg-white' : 'bg-emerald-500')} />
+            Abierto ahora
           </button>
           <Link
             href="/login"
-            className="px-4 py-3 rounded-2xl bg-ink text-white text-sm font-medium whitespace-nowrap hover:opacity-90 tap-target"
+            className="px-4 py-3 rounded-2xl bg-ink text-white text-sm font-medium whitespace-nowrap hover:opacity-90 tap-target inline-flex items-center gap-2"
           >
+            <Icon name="storefront" size={16} />
             Soy dueño
           </Link>
         </div>
@@ -121,13 +200,14 @@ export function DirectoryClient({ locales }: { locales: LocalDirectorio[] }) {
         )}
       </section>
 
-      {/* FAVORITOS */}
+      {/* Favoritos */}
       {favoritos.length > 0 && (
-        <section className="px-4 sm:px-6 pt-8 pb-2 max-w-6xl mx-auto">
-          <h2 className="ce-display text-xl md:text-2xl font-bold mb-4 flex items-center gap-2">
-            <span>⭐ Tus favoritos</span>
-            <span className="text-xs text-muted font-normal">· vuelve a pedir rápido</span>
-          </h2>
+        <section className="px-4 sm:px-6 pt-12 pb-2 max-w-6xl mx-auto">
+          <SectionHeader
+            kicker="Tus favoritos"
+            title="Vuelve a pedir rápido"
+            iconName="star-filled"
+          />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             <AnimatePresence>
               {favoritos.map((l) => (
@@ -138,56 +218,487 @@ export function DirectoryClient({ locales }: { locales: LocalDirectorio[] }) {
         </section>
       )}
 
-      {/* TODOS */}
-      <section className="px-4 sm:px-6 pt-8 pb-24 max-w-6xl mx-auto">
-        <h2 className="ce-display text-xl md:text-2xl font-bold mb-4">
-          {favoritos.length > 0 ? 'Otros locales' : 'Locales en la plataforma'}
-        </h2>
+      {/* Todos */}
+      <section className="px-4 sm:px-6 pt-12 pb-24 max-w-6xl mx-auto">
+        <SectionHeader
+          kicker="Catálogo"
+          title={favoritos.length > 0 ? 'Otros locales' : 'Locales en la plataforma'}
+          iconName="utensils"
+        />
 
         {locales.length === 0 ? (
-          <div className="rounded-2xl border border-line bg-white p-10 text-center">
-            <p className="ce-display text-xl font-bold mb-2">Sin locales disponibles</p>
-            <p className="text-muted text-sm">No pudimos cargar el directorio. Intenta de nuevo en un momento.</p>
-          </div>
+          <EmptyState
+            title="Sin locales disponibles"
+            description="No pudimos cargar el directorio. Intenta de nuevo en un momento."
+          />
         ) : resto.length === 0 ? (
-          <div className="rounded-2xl border border-line bg-white p-10 text-center text-sm text-muted">
-            {q
-              ? <>No encontramos locales que coincidan con <strong className="text-ink">"{q}"</strong>.</>
-              : onlyOpen
-                ? 'Ninguno de los locales está abierto en este momento.'
-                : 'Sin locales para mostrar.'}
-          </div>
+          <EmptyState
+            title="Nada encontrado"
+            description={
+              q
+                ? `No encontramos locales que coincidan con "${q}".`
+                : onlyOpen
+                  ? 'Ninguno de los locales está abierto en este momento.'
+                  : 'Sin locales para mostrar.'
+            }
+          />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-80px' }}
+            variants={{
+              hidden: {},
+              visible: { transition: { staggerChildren: 0.06 } },
+            }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+          >
             <AnimatePresence>
               {resto.map((l) => (
                 <LocalCard key={l.slug} local={l} isFav={favs.has(l.slug)} onToggleFav={toggleFav} />
               ))}
             </AnimatePresence>
-          </div>
+          </motion.div>
         )}
       </section>
 
-      {/* SECCIÓN QR — llévatelo en el celular */}
+      <FeaturesSection />
+      <CTAOwnerSection />
       <ShareQRSection />
-
-      <footer className="border-t border-line bg-white px-4 sm:px-6 py-8 text-center text-sm text-muted">
-        Hecho con <span style={{ color: 'var(--ce-accent)' }}>♥</span> en ClickToEat ·{' '}
-        <Link href="/login" className="underline">Soy dueño y quiero registrar mi local</Link>
-      </footer>
+      <Footer />
     </main>
   );
 }
 
-// ─── Sección QR de la home ──────────────────────────────────────
+/* ─────────── Hero ─────────── */
+
+function Hero({
+  totalLocales, totalAbiertos, onCercaClick, locating,
+}: {
+  totalLocales: number;
+  totalAbiertos: number;
+  onCercaClick: () => void;
+  locating: boolean;
+}) {
+  const { scrollY } = useScroll();
+  const heroY = useTransform(scrollY, [0, 400], [0, -60]);
+  const heroOpacity = useTransform(scrollY, [0, 300], [1, 0.4]);
+
+  return (
+    <section className="relative overflow-hidden">
+      {/* mesh gradient orbs */}
+      <div aria-hidden className="absolute inset-0 pointer-events-none">
+        <div className="hero-orb" style={{ background: '#FF2D2D', width: 480, height: 480, top: -120, left: -80 }} />
+        <div className="hero-orb" style={{ background: '#FFA62D', width: 380, height: 380, top: 40, right: -100, opacity: 0.35 }} />
+        <div className="hero-orb" style={{ background: '#10b981', width: 320, height: 320, bottom: -120, left: '40%', opacity: 0.18 }} />
+      </div>
+
+      <motion.div
+        style={{ y: heroY, opacity: heroOpacity }}
+        className="relative px-6 pt-12 pb-20 sm:pt-16 sm:pb-28 max-w-6xl mx-auto"
+      >
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <Logo variant="lockup" size={36} />
+        </motion.div>
+
+        <motion.p
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="mt-10 text-xs sm:text-sm text-muted font-medium uppercase tracking-[0.18em] inline-flex items-center gap-2"
+        >
+          <Icon name="sparkles" size={14} className="text-[color:var(--ce-accent)]" />
+          Directorio de locales
+        </motion.p>
+
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
+          className="ce-display mt-4 text-5xl sm:text-6xl md:text-8xl font-bold leading-[0.95] tracking-tight"
+        >
+          Tu antojo,<br />
+          a <span className="gradient-text">un mensaje</span><br />
+          de distancia.
+        </motion.h1>
+
+        <motion.p
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="mt-6 max-w-2xl text-base sm:text-lg text-muted"
+        >
+          Elige tu local favorito y pide directo por WhatsApp. Sin app, sin cuenta, sin comisiones.
+        </motion.p>
+
+        {/* CTAs */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.55 }}
+          className="mt-8 flex flex-wrap gap-3"
+        >
+          <button
+            onClick={onCercaClick}
+            disabled={locating}
+            className="group inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-ink text-white text-sm sm:text-base font-medium hover:bg-ink/90 transition tap-target disabled:opacity-60"
+          >
+            <Icon name={locating ? 'compass' : 'navigation'} size={18} className={locating ? 'animate-spin' : ''} />
+            {locating ? 'Buscando…' : 'Negocios cerca de ti'}
+            {!locating && <Icon name="arrow-right" size={16} className="group-hover:translate-x-0.5 transition" />}
+          </button>
+          <a
+            href="#locales"
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl border border-line bg-white/70 backdrop-blur text-sm sm:text-base font-medium hover:border-ink/40 transition tap-target"
+          >
+            <Icon name="utensils" size={18} />
+            Ver todos los locales
+          </a>
+        </motion.div>
+
+        {/* Stats row */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.7 }}
+          className="mt-14 grid grid-cols-3 gap-3 sm:gap-6 max-w-xl"
+        >
+          <Stat value={totalLocales} label="locales" />
+          <Stat value={totalAbiertos} label="abiertos" highlight />
+          <Stat value="0%" label="comisión" />
+        </motion.div>
+      </motion.div>
+    </section>
+  );
+}
+
+function Stat({ value, label, highlight }: { value: number | string; label: string; highlight?: boolean }) {
+  return (
+    <div>
+      <div className={cn(
+        'ce-display text-3xl sm:text-4xl md:text-5xl font-bold leading-none flex items-center gap-2',
+        highlight && 'text-emerald-600',
+      )}>
+        {highlight && <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 halo-pulse" />}
+        {value}
+      </div>
+      <div className="text-xs sm:text-sm text-muted mt-1 uppercase tracking-wider">{label}</div>
+    </div>
+  );
+}
+
+/* ─────────── Cerca de ti ─────────── */
+
+function NearbySection({
+  id, list, radiusKm, isFav, onToggleFav, onClose,
+}: {
+  id: string;
+  list: (LocalDirectorio & { distancia: number | null })[];
+  radiusKm: number;
+  isFav: (slug: string) => boolean;
+  onToggleFav: (slug: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <motion.section
+      id={id}
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="px-4 sm:px-6 pt-4 pb-12 max-w-6xl mx-auto"
+    >
+      <div className="rounded-3xl border border-ink/10 bg-gradient-to-br from-white to-amber-50/40 p-6 sm:p-8 shadow-soft">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs sm:text-sm text-muted font-medium uppercase tracking-[0.18em] inline-flex items-center gap-2">
+              <Icon name="navigation" size={14} className="text-[color:var(--ce-accent)]" />
+              Cerca de ti
+            </p>
+            <h2 className="ce-display mt-2 text-2xl sm:text-3xl md:text-4xl font-bold leading-tight">
+              {list.length > 0
+                ? <>Encontramos <span className="gradient-text">{list.length}</span> en un radio de {radiusKm} km</>
+                : 'No hay locales en tu zona todavía'}
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Cerrar"
+            className="shrink-0 w-10 h-10 rounded-full grid place-items-center border border-line bg-white hover:border-ink/40 tap-target"
+          >
+            <Icon name="x" size={18} />
+          </button>
+        </div>
+
+        {list.length > 0 ? (
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {list.slice(0, 6).map((l) => (
+              <LocalCard
+                key={l.slug}
+                local={l}
+                distanciaKm={l.distancia ?? undefined}
+                isFav={isFav(l.slug)}
+                onToggleFav={onToggleFav}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="mt-4 text-sm text-muted">
+            Por ahora ningún local registrado tiene ubicación a {radiusKm} km. Mira todos los locales abajo —
+            algunos pueden ofrecer envío a tu zona.
+          </p>
+        )}
+      </div>
+    </motion.section>
+  );
+}
+
+/* ─────────── Sección header reusable ─────────── */
+
+function SectionHeader({
+  kicker, title, iconName,
+}: { kicker: string; title: string; iconName: 'star-filled' | 'utensils' | 'sparkles' | 'storefront' }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-60px' }}
+      transition={{ duration: 0.5 }}
+      className="mb-6"
+    >
+      <p className="text-xs text-muted font-medium uppercase tracking-[0.18em] inline-flex items-center gap-2">
+        <Icon name={iconName} size={14} className="text-[color:var(--ce-accent)]" />
+        {kicker}
+      </p>
+      <h2 className="ce-display mt-2 text-2xl md:text-3xl font-bold">{title}</h2>
+    </motion.div>
+  );
+}
+
+function EmptyState({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="rounded-2xl border border-line bg-white p-10 text-center">
+      <Icon name="utensils" size={32} className="text-muted mx-auto" />
+      <p className="ce-display text-xl font-bold mb-1 mt-3">{title}</p>
+      <p className="text-muted text-sm">{description}</p>
+    </div>
+  );
+}
+
+/* ─────────── Features ─────────── */
+
+function FeaturesSection() {
+  const features = [
+    {
+      icon: 'message-circle' as const,
+      title: 'Pedidos por WhatsApp',
+      desc: 'El cliente abre WhatsApp con el mensaje pre-armado. Tú confirmas y entregas. Cero fricción.',
+    },
+    {
+      icon: 'zap' as const,
+      title: 'Sin app, sin cuenta',
+      desc: 'El cliente entra, elige, pide. No descarga nada, no se registra. Convierte más.',
+    },
+    {
+      icon: 'shield' as const,
+      title: '0% de comisiones',
+      desc: 'El dinero del pedido es tuyo, completo. Sin intermediarios entre tú y tu cliente.',
+    },
+    {
+      icon: 'qr-code' as const,
+      title: 'QR para tu local',
+      desc: 'Imprime tu QR único y ponlo en la barra, mesa o vitrina. Cada pedido entra a tu panel.',
+    },
+  ];
+
+  return (
+    <section className="bg-ink text-[color:var(--ce-bg)] relative overflow-hidden">
+      <div aria-hidden className="absolute inset-0 pointer-events-none">
+        <div className="hero-orb" style={{ background: '#FF2D2D', width: 400, height: 400, top: '20%', left: '-10%', opacity: 0.2 }} />
+        <div className="hero-orb" style={{ background: '#FFA62D', width: 360, height: 360, bottom: '-20%', right: '-10%', opacity: 0.15 }} />
+      </div>
+
+      <div className="relative px-4 sm:px-6 py-20 sm:py-28 max-w-6xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.6 }}
+        >
+          <p className="text-xs sm:text-sm font-medium uppercase tracking-[0.18em] opacity-60 inline-flex items-center gap-2">
+            <Icon name="sparkles" size={14} className="text-amber-300" />
+            Por qué ClickToEat
+          </p>
+          <h2 className="ce-display mt-3 text-3xl sm:text-5xl md:text-6xl font-bold leading-tight max-w-3xl">
+            Pensado para el local,<br />
+            <span className="gradient-text">construido para el cliente.</span>
+          </h2>
+        </motion.div>
+
+        <div className="mt-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {features.map((f, i) => (
+            <motion.div
+              key={f.title}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ duration: 0.5, delay: i * 0.08 }}
+              className="rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur p-6 lift-on-hover"
+            >
+              <div className="w-11 h-11 rounded-2xl bg-white/10 grid place-items-center">
+                <Icon name={f.icon} size={20} />
+              </div>
+              <h3 className="ce-display text-xl font-bold mt-4">{f.title}</h3>
+              <p className="text-sm opacity-70 mt-2 leading-relaxed">{f.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────── CTA owner ─────────── */
+
+function CTAOwnerSection() {
+  return (
+    <section className="px-4 sm:px-6 py-20 sm:py-24 max-w-6xl mx-auto">
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-80px' }}
+        transition={{ duration: 0.6 }}
+        className="relative rounded-[2rem] border border-line bg-white overflow-hidden shadow-soft"
+      >
+        <div
+          aria-hidden
+          className="absolute inset-0 opacity-50 pointer-events-none"
+          style={{
+            background:
+              'radial-gradient(circle at 10% 0%, rgba(255,45,45,0.10), transparent 40%),' +
+              'radial-gradient(circle at 90% 100%, rgba(255,166,45,0.12), transparent 40%)',
+          }}
+        />
+        <div className="relative grid md:grid-cols-2 gap-8 items-center p-8 sm:p-12">
+          <div>
+            <p className="text-xs text-muted font-medium uppercase tracking-[0.18em] inline-flex items-center gap-2">
+              <Icon name="storefront" size={14} className="text-[color:var(--ce-accent)]" />
+              ¿Tienes un local?
+            </p>
+            <h2 className="ce-display mt-2 text-3xl sm:text-4xl md:text-5xl font-bold leading-tight">
+              Tu propia landing,<br />
+              tu propio menú,<br />
+              <span className="gradient-text">tus propias reglas.</span>
+            </h2>
+            <p className="mt-4 text-muted max-w-md">
+              Configura tu catálogo, recibe pedidos en tu WhatsApp y gestiona todo desde un panel diseñado
+              para no pelearse con él.
+            </p>
+
+            <ul className="mt-6 space-y-3">
+              {[
+                'Tu URL pública: tudominio.com/tu-local',
+                'Inventario, recetas y métricas en tiempo real',
+                'Sin tarifas mensuales escondidas',
+              ].map((t) => (
+                <li key={t} className="flex items-start gap-3 text-sm">
+                  <span className="w-5 h-5 rounded-full bg-emerald-100 grid place-items-center mt-0.5 shrink-0">
+                    <Icon name="check" size={12} className="text-emerald-700" />
+                  </span>
+                  <span>{t}</span>
+                </li>
+              ))}
+            </ul>
+
+            <Link
+              href="/login"
+              className="mt-8 inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-ink text-white text-sm sm:text-base font-medium hover:opacity-90 tap-target group"
+            >
+              Registrar mi local
+              <Icon name="arrow-right" size={16} className="group-hover:translate-x-0.5 transition" />
+            </Link>
+          </div>
+
+          {/* Mockup tipo "phone preview" */}
+          <div className="relative">
+            <PhoneMockup />
+          </div>
+        </div>
+      </motion.div>
+    </section>
+  );
+}
+
+function PhoneMockup() {
+  return (
+    <div className="relative mx-auto float-slow w-full max-w-[260px] sm:max-w-[280px]">
+      <div className="rounded-[2.2rem] border-[10px] border-ink bg-ink shadow-2xl overflow-hidden">
+        <div className="relative aspect-[9/19] bg-[color:var(--ce-bg)]">
+          {/* Notch */}
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-5 bg-ink rounded-full z-10" />
+          {/* Contenido */}
+          <div className="absolute inset-0 pt-10 px-4">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 rounded-full grid place-items-center text-white font-bold ce-display" style={{ background: '#FF2D2D' }}>T</div>
+              <div>
+                <div className="ce-display font-bold leading-tight">Tu Local</div>
+                <div className="text-[10px] text-muted">tu-tagline</div>
+              </div>
+            </div>
+            <div className="mt-4 space-y-2">
+              <div className="rounded-xl border border-line bg-white p-2.5 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-medium">Producto destacado</div>
+                  <div className="text-[10px] text-muted">$ 0.00</div>
+                </div>
+                <div className="w-8 h-8 rounded-lg bg-ink text-white grid place-items-center">
+                  <Icon name="plus" size={14} />
+                </div>
+              </div>
+              <div className="rounded-xl border border-line bg-white p-2.5 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-medium">Producto B</div>
+                  <div className="text-[10px] text-muted">$ 0.00</div>
+                </div>
+                <div className="w-8 h-8 rounded-lg bg-ink text-white grid place-items-center">
+                  <Icon name="plus" size={14} />
+                </div>
+              </div>
+              <div className="rounded-xl border border-line bg-white p-2.5 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-medium">Producto C</div>
+                  <div className="text-[10px] text-muted">$ 0.00</div>
+                </div>
+                <div className="w-8 h-8 rounded-lg bg-ink text-white grid place-items-center">
+                  <Icon name="plus" size={14} />
+                </div>
+              </div>
+            </div>
+            <div className="absolute left-3 right-3 bottom-3 rounded-xl bg-emerald-600 text-white text-xs font-medium py-2.5 grid place-items-center gap-1">
+              <span className="inline-flex items-center gap-1.5">
+                <Icon name="whatsapp" size={14} />
+                Enviar pedido por WhatsApp
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────── Share QR ─────────── */
+
 function ShareQRSection() {
   const [mounted, setMounted] = useState(false);
   const [url, setUrl] = useState('');
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    // window solo existe en cliente — usamos location.origin para que
-    // funcione en cualquier deploy sin hardcodear la URL.
     setUrl(window.location.origin);
   }, []);
 
@@ -195,74 +706,159 @@ function ShareQRSection() {
 
   return (
     <section className="border-t border-line bg-white">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 grid md:grid-cols-2 gap-8 items-center">
-        <div className="order-2 md:order-1">
-          <p className="text-sm text-muted font-medium uppercase tracking-wider">Llévatelo en el celular</p>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20 grid md:grid-cols-2 gap-10 items-center">
+        <motion.div
+          initial={{ opacity: 0, x: -16 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.5 }}
+          className="order-2 md:order-1"
+        >
+          <p className="text-xs text-muted font-medium uppercase tracking-[0.18em] inline-flex items-center gap-2">
+            <Icon name="qr-code" size={14} className="text-[color:var(--ce-accent)]" />
+            Llévatelo contigo
+          </p>
           <h2 className="ce-display mt-2 text-3xl md:text-4xl font-bold leading-tight">
             Escanea y abre ClickToEat en tu móvil.
           </h2>
           <p className="mt-3 text-muted max-w-lg">
-            Apunta la cámara de tu celular al QR. Se abrirá esta misma página
-            y podrás guardarla en tu pantalla de inicio para acceso rápido.
+            Apunta la cámara de tu celular al QR. Se abrirá esta página y podrás guardarla
+            en tu pantalla de inicio para acceso rápido.
           </p>
-          <div className="mt-4 flex gap-2 flex-wrap">
+          <div className="mt-5 flex gap-2 flex-wrap">
             <button
               onClick={() => downloadQR(url, 'clicktoeat-qr.png', { size: 1024 })}
-              className="px-4 py-2 rounded-2xl bg-ink text-white text-sm font-medium tap-target"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-ink text-white text-sm font-medium tap-target hover:opacity-90"
             >
-              ⬇ Descargar QR
+              <Icon name="download" size={16} />
+              Descargar QR
             </button>
             <button
               onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(url);
-                } catch { /* ignore */ }
+                try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1500); }
+                catch { /* ignore */ }
               }}
-              className="px-4 py-2 rounded-2xl border border-line text-sm font-medium tap-target"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl border border-line text-sm font-medium tap-target hover:border-ink/40"
             >
-              📋 Copiar link
+              <Icon name={copied ? 'check' : 'copy'} size={16} />
+              {copied ? 'Copiado' : 'Copiar link'}
             </button>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="order-1 md:order-2 flex justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.6, ease: [0.2, 0.8, 0.2, 1] }}
+          className="order-1 md:order-2 flex justify-center"
+        >
           <div className="text-center">
             <QRCode value={url} size={220} color="#0B0B0F" framed />
             <p className="text-xs text-muted mt-2 break-all">{url.replace(/^https?:\/\//, '')}</p>
           </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );
 }
 
+/* ─────────── Footer ─────────── */
+
+function Footer() {
+  const year = new Date().getFullYear();
+  return (
+    <footer className="border-t border-line bg-[color:var(--ce-bg)]">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 grid md:grid-cols-3 gap-8">
+        <div>
+          <Logo variant="lockup" size={32} />
+          <p className="mt-3 text-sm text-muted max-w-xs">
+            Pedidos por WhatsApp para tu local. Sin app, sin cuenta, sin comisiones.
+          </p>
+        </div>
+
+        <div>
+          <p className="text-xs uppercase tracking-wider text-muted mb-3">Explora</p>
+          <ul className="space-y-2 text-sm">
+            <li><a href="#locales" className="link-underline">Directorio de locales</a></li>
+            <li><Link href="/login" className="link-underline">Soy dueño</Link></li>
+          </ul>
+        </div>
+
+        <div>
+          <p className="text-xs uppercase tracking-wider text-muted mb-3">Acerca</p>
+          <a
+            href="https://lumiaaisolutions.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm font-medium hover:text-[color:var(--ce-accent)] transition group"
+          >
+            Desarrollado por LUMIA
+            <Icon name="arrow-up-right" size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition" />
+          </a>
+          <p className="text-xs text-muted mt-2">Soluciones digitales para la hostelería.</p>
+        </div>
+      </div>
+
+      <div className="border-t border-line">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center gap-2 justify-between text-xs text-muted">
+          <p>© {year} ClickToEat. Todos los derechos reservados.</p>
+          <p className="inline-flex items-center gap-1.5">
+            <Icon name="heart-filled" size={12} className="text-[color:var(--ce-accent)]" />
+            Hecho con cuidado en México
+          </p>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* ─────────── Local Card ─────────── */
+
 function LocalCard({
-  local, isFav, onToggleFav,
-}: { local: LocalDirectorio; isFav: boolean; onToggleFav: (slug: string) => void }) {
+  local, isFav, onToggleFav, distanciaKm,
+}: {
+  local: LocalDirectorio;
+  isFav: boolean;
+  onToggleFav: (slug: string) => void;
+  distanciaKm?: number;
+}) {
   const abierto = abiertoDe(local);
 
   return (
     <motion.article
       layout
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
+      variants={{
+        hidden:  { opacity: 0, y: 16 },
+        visible: { opacity: 1, y: 0 },
+      }}
+      initial="hidden"
+      animate="visible"
       exit={{ opacity: 0 }}
-      className="group relative rounded-3xl overflow-hidden border border-line bg-white shadow-soft hover:shadow-glass transition"
+      transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+      className="group relative rounded-3xl overflow-hidden border border-line bg-white shadow-soft lift-on-hover"
     >
       <button
         onClick={(e) => { e.preventDefault(); onToggleFav(local.slug); }}
         aria-label={isFav ? 'Quitar de favoritos' : 'Marcar como favorito'}
         className={cn(
           'absolute top-3 right-3 z-10 w-10 h-10 rounded-full grid place-items-center backdrop-blur transition tap-target',
-          isFav ? 'bg-amber-400 text-white' : 'bg-white/80 hover:bg-white text-ink/60',
+          isFav ? 'bg-amber-400 text-white' : 'bg-white/85 hover:bg-white text-ink/70',
         )}
       >
-        {isFav ? '★' : '☆'}
+        <Icon name={isFav ? 'star-filled' : 'star'} size={16} />
       </button>
+
+      {distanciaKm !== undefined && (
+        <span className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur text-[11px] font-medium text-ink/80 inline-flex items-center gap-1.5">
+          <Icon name="navigation" size={11} className="text-[color:var(--ce-accent)]" />
+          {distanciaKm.toFixed(distanciaKm < 1 ? 2 : 1)} km
+        </span>
+      )}
 
       <Link href={`/${local.slug}`} className="block">
         <div
-          className="h-44 bg-cover bg-center relative"
+          className="h-44 bg-cover bg-center relative grain"
           style={{
             backgroundImage: local.banner ? `url(${local.banner})` : undefined,
             background: !local.banner
@@ -272,10 +868,14 @@ function LocalCard({
         >
           {abierto !== null && (
             <span className={cn(
-              'absolute bottom-3 left-3 px-2 py-1 rounded-full text-[10px] uppercase tracking-wider font-medium',
-              abierto ? 'bg-emerald-600 text-white' : 'bg-black/60 text-white',
+              'absolute bottom-3 left-3 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider font-medium inline-flex items-center gap-1.5 backdrop-blur',
+              abierto ? 'bg-emerald-600/95 text-white' : 'bg-black/60 text-white',
             )}>
-              {abierto ? '● Abierto' : '○ Cerrado'}
+              <span className={cn(
+                'w-1.5 h-1.5 rounded-full',
+                abierto ? 'bg-white halo-pulse' : 'bg-white/70',
+              )} />
+              {abierto ? 'Abierto' : 'Cerrado'}
             </span>
           )}
         </div>
@@ -283,7 +883,7 @@ function LocalCard({
         <div className="p-5">
           <div className="flex items-start gap-3">
             <div
-              className="w-10 h-10 rounded-full -mt-10 border-2 border-white shadow-soft shrink-0 grid place-items-center text-white font-bold ce-display"
+              className="w-10 h-10 rounded-full -mt-10 border-2 border-white shadow-soft shrink-0 grid place-items-center text-white font-bold ce-display overflow-hidden"
               style={{ background: local.colorPrimario }}
             >
               {local.logo
@@ -298,28 +898,41 @@ function LocalCard({
 
           <div className="mt-4 flex items-center gap-3 text-xs text-muted flex-wrap">
             {local.productosCount !== undefined && (
-              <span>{local.productosCount} {local.productosCount === 1 ? 'producto' : 'productos'}</span>
+              <span className="inline-flex items-center gap-1">
+                <Icon name="utensils" size={11} />
+                {local.productosCount} {local.productosCount === 1 ? 'producto' : 'productos'}
+              </span>
             )}
             {local.deliveryMinutos > 0 && (
               <>
                 <span>·</span>
-                <span>~{local.deliveryMinutos} min</span>
+                <span className="inline-flex items-center gap-1">
+                  <Icon name="clock" size={11} />
+                  ~{local.deliveryMinutos} min
+                </span>
               </>
             )}
             {local.deliveryFee > 0 && (
               <>
                 <span>·</span>
-                <span>Envío {formatMXN(local.deliveryFee)}</span>
+                <span className="inline-flex items-center gap-1">
+                  <Icon name="truck" size={11} />
+                  {formatMXN(local.deliveryFee)}
+                </span>
               </>
             )}
           </div>
 
           {local.direccion && (
-            <p className="mt-2 text-xs text-muted truncate">📍 {local.direccion}</p>
+            <p className="mt-2 text-xs text-muted truncate inline-flex items-center gap-1">
+              <Icon name="map-pin" size={11} className="shrink-0" />
+              {local.direccion}
+            </p>
           )}
 
-          <p className="mt-4 text-sm font-medium text-ink group-hover:underline flex items-center gap-1">
-            Ver menú →
+          <p className="mt-4 text-sm font-medium text-ink group-hover:text-[color:var(--ce-accent)] flex items-center gap-1 transition">
+            Ver menú
+            <Icon name="arrow-right" size={14} className="group-hover:translate-x-0.5 transition" />
           </p>
         </div>
       </Link>

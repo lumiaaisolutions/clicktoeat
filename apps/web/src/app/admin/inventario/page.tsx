@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Field, Select, Switch } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/lib/utils';
 
 const UNIDADES = ['pz', 'kg', 'g', 'l', 'ml'] as const;
@@ -58,9 +59,10 @@ export default function InventarioPage() {
           </Button>
           <Link
             href="/admin/compras"
-            className="inline-flex items-center justify-center px-4 h-10 text-sm font-medium rounded-xl bg-white border border-line hover:bg-line/30 flex-1 sm:flex-none"
+            className="inline-flex items-center justify-center gap-1.5 px-4 h-10 text-sm font-medium rounded-xl bg-white border border-line hover:bg-line/30 flex-1 sm:flex-none"
           >
-            🧾 Compras
+            <Icon name="truck" size={15} />
+            Compras
           </Link>
           <Button onClick={() => setCreating(true)} className="flex-1 sm:flex-none">+ Ingrediente</Button>
         </div>
@@ -72,7 +74,7 @@ export default function InventarioPage() {
         </div>
       ) : items.length === 0 ? (
         <div className="rounded-2xl border border-line bg-white p-10 text-center text-muted text-sm">
-          {filterBajo ? 'No hay ingredientes con stock bajo. 🎉' : 'No tienes ingredientes registrados.'}
+          {filterBajo ? 'No hay ingredientes con stock bajo.' : 'No tienes ingredientes registrados.'}
         </div>
       ) : (
         <>
@@ -97,8 +99,8 @@ export default function InventarioPage() {
                     </p>
                   </div>
                   {i.bajo_stock && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium whitespace-nowrap">
-                      ⚠️ bajo
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium whitespace-nowrap inline-flex items-center gap-1">
+                      <Icon name="alert-triangle" size={11} /> bajo
                     </span>
                   )}
                 </div>
@@ -142,7 +144,14 @@ export default function InventarioPage() {
                     <td className="px-4 py-3 text-right text-muted">{i.stock_minimo} {i.unidad}</td>
                     <td className="px-4 py-3 text-right text-muted">${i.costo_unitario.toFixed(2)}</td>
                     <td className="px-4 py-3 text-center">
-                      {i.bajo_stock ? '⚠️ bajo' : '✓'}
+                      {i.bajo_stock ? (
+                        <span className="inline-flex items-center gap-1 text-red-700">
+                          <Icon name="alert-triangle" size={13} />
+                          <span className="text-xs font-medium">bajo</span>
+                        </span>
+                      ) : (
+                        <Icon name="check" size={14} className="text-emerald-600 inline-block" />
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">
                       <Link

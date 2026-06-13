@@ -100,3 +100,96 @@ body {
     box-shadow: none !important;
   }
 }
+
+/* ─────────── Landing — animaciones y efectos ─────────── */
+
+/* Gradient text accent (Lumina-style) */
+.gradient-text {
+  background: linear-gradient(135deg, #FF2D2D 0%, #FF6B35 50%, #FFA62D 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Mesh gradient orbs en hero */
+.hero-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* Marquee infinito (logos / categorías) */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 40s linear infinite;
+}
+.marquee-track:hover { animation-play-state: paused; }
+
+/* Subtle float (decorative elements) */
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+.float-slow { animation: float-slow 6s ease-in-out infinite; }
+
+/* Pulse halo for "live" / "open" badges */
+@keyframes halo-pulse {
+  0%   { box-shadow: 0 0 0 0   rgba(16, 185, 129, 0.6); }
+  70%  { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0   rgba(16, 185, 129, 0); }
+}
+.halo-pulse { animation: halo-pulse 2s infinite; }
+
+/* Grain overlay (matte / cinematic feel) */
+.grain {
+  position: relative;
+}
+.grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.08 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  opacity: 0.5;
+}
+
+/* Card lift on hover */
+.lift-on-hover {
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+              box-shadow 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.lift-on-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 24px 40px -20px rgba(0,0,0,0.18);
+}
+
+/* Underline on hover (CTA links) */
+.link-underline {
+  position: relative;
+}
+.link-underline::after {
+  content: '';
+  position: absolute;
+  left: 0; bottom: -2px;
+  width: 100%; height: 1px;
+  background: currentColor;
+  transform-origin: right;
+  transform: scaleX(0);
+  transition: transform 0.4s cubic-bezier(0.7, 0, 0.3, 1);
+}
+.link-underline:hover::after {
+  transform-origin: left;
+  transform: scaleX(1);
+}
+
+/* Smooth section scroll */
+html { scroll-behavior: smooth; }

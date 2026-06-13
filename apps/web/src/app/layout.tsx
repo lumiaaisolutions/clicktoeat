@@ -8,17 +8,31 @@ export const metadata: Metadata = {
     template:  '%s · ClickToEat',
   },
   description:
-    'SaaS para que tu local de comida tenga su propia landing y reciba pedidos por WhatsApp.',
+    'Plataforma para que cada local de comida tenga su propia landing y reciba pedidos directo por WhatsApp. Sin app del cliente, sin comisiones.',
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+    apple: [
+      { url: '/apple-icon.svg', type: 'image/svg+xml', sizes: '180x180' },
+    ],
+  },
   openGraph: {
     type: 'website',
     locale: 'es_MX',
     siteName: 'ClickToEat',
+    title: 'ClickToEat — Pide por WhatsApp',
+    description: 'Tu antojo, a un mensaje de distancia.',
   },
-  twitter: { card: 'summary_large_image' },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ClickToEat — Pide por WhatsApp',
+    description: 'Tu antojo, a un mensaje de distancia.',
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#FF2D2D',
+  themeColor: '#0B0B0F',
   width: 'device-width',
   initialScale: 1,
 };
