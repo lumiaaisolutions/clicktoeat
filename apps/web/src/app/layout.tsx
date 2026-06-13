@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { InitialLoader } from '@/components/ui/InitialLoader';
+import { RouteTransition } from '@/components/ui/RouteTransition';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
@@ -48,7 +50,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Geist:wght@300;400;500;600;700&display=swap"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <InitialLoader />
+        <RouteTransition />
+        {children}
+      </body>
     </html>
   );
 }

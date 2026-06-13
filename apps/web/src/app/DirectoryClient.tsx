@@ -7,6 +7,9 @@ import { cn, formatMXN } from '@/lib/utils';
 import { QRCode, downloadQR } from '@/components/ui/QRCode';
 import { Logo } from '@/components/ui/Logo';
 import { Icon } from '@/components/ui/Icon';
+import { ScrollPhoneSequence } from '@/components/landing/ScrollPhoneSequence';
+import { WhyClickToEatSection } from '@/components/landing/WhyClickToEatSection';
+import { SystemPreviewSection } from '@/components/landing/SystemPreviewSection';
 import type { LocalDirectorio } from './page';
 
 const FAV_KEY = 'clicktoeat:favs';
@@ -262,7 +265,9 @@ export function DirectoryClient({ locales }: { locales: LocalDirectorio[] }) {
         )}
       </section>
 
-      <FeaturesSection />
+      <ScrollPhoneSequence />
+      <WhyClickToEatSection />
+      <SystemPreviewSection />
       <CTAOwnerSection />
       <ShareQRSection />
       <Footer />
@@ -485,79 +490,6 @@ function EmptyState({ title, description }: { title: string; description: string
       <p className="ce-display text-xl font-bold mb-1 mt-3">{title}</p>
       <p className="text-muted text-sm">{description}</p>
     </div>
-  );
-}
-
-/* ─────────── Features ─────────── */
-
-function FeaturesSection() {
-  const features = [
-    {
-      icon: 'message-circle' as const,
-      title: 'Pedidos por WhatsApp',
-      desc: 'El cliente abre WhatsApp con el mensaje pre-armado. Tú confirmas y entregas. Cero fricción.',
-    },
-    {
-      icon: 'zap' as const,
-      title: 'Sin app, sin cuenta',
-      desc: 'El cliente entra, elige, pide. No descarga nada, no se registra. Convierte más.',
-    },
-    {
-      icon: 'shield' as const,
-      title: '0% de comisiones',
-      desc: 'El dinero del pedido es tuyo, completo. Sin intermediarios entre tú y tu cliente.',
-    },
-    {
-      icon: 'qr-code' as const,
-      title: 'QR para tu local',
-      desc: 'Imprime tu QR único y ponlo en la barra, mesa o vitrina. Cada pedido entra a tu panel.',
-    },
-  ];
-
-  return (
-    <section className="bg-ink text-[color:var(--ce-bg)] relative overflow-hidden">
-      <div aria-hidden className="absolute inset-0 pointer-events-none">
-        <div className="hero-orb" style={{ background: '#FF2D2D', width: 400, height: 400, top: '20%', left: '-10%', opacity: 0.2 }} />
-        <div className="hero-orb" style={{ background: '#FFA62D', width: 360, height: 360, bottom: '-20%', right: '-10%', opacity: 0.15 }} />
-      </div>
-
-      <div className="relative px-4 sm:px-6 py-20 sm:py-28 max-w-6xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-80px' }}
-          transition={{ duration: 0.6 }}
-        >
-          <p className="text-xs sm:text-sm font-medium uppercase tracking-[0.18em] opacity-60 inline-flex items-center gap-2">
-            <Icon name="sparkles" size={14} className="text-amber-300" />
-            Por qué ClickToEat
-          </p>
-          <h2 className="ce-display mt-3 text-3xl sm:text-5xl md:text-6xl font-bold leading-tight max-w-3xl">
-            Pensado para el local,<br />
-            <span className="gradient-text">construido para el cliente.</span>
-          </h2>
-        </motion.div>
-
-        <div className="mt-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {features.map((f, i) => (
-            <motion.div
-              key={f.title}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.5, delay: i * 0.08 }}
-              className="rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur p-6 lift-on-hover"
-            >
-              <div className="w-11 h-11 rounded-2xl bg-white/10 grid place-items-center">
-                <Icon name={f.icon} size={20} />
-              </div>
-              <h3 className="ce-display text-xl font-bold mt-4">{f.title}</h3>
-              <p className="text-sm opacity-70 mt-2 leading-relaxed">{f.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
   );
 }
 

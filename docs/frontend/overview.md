@@ -5,12 +5,24 @@
 ## Caras del frontend
 
 ### Pública
-- **Directorio** (`/`): lista de locales activos. Server Component.
-- **Landing por local** (`/[slug]`): menú, carrito, captura de pedido, botón WhatsApp.
+- **Directorio** (`/`): home / lista de locales activos. Server Component que renderiza `DirectoryClient`. Ver [`directorio-publico.md`](./directorio-publico.md).
+- **Landing por local** (`/[slug]`): menú, carrito, captura de pedido, botón WhatsApp. Ver [`landing.md`](./landing.md).
 
 ### Privada
 - **Login** (`/login`).
-- **Panel admin** (`/admin/*`): branding, productos, categorías, inventario, recetas, compras, métricas, horarios, QR, POS, perfil, locales (super_admin).
+- **Panel admin** (`/admin/*`): branding, productos, categorías, inventario, recetas, compras, métricas, horarios, QR, POS, perfil, locales (super_admin). Ver [`admin.md`](./admin.md).
+
+## Subsistemas transversales (todos documentados aparte)
+
+| Tema | Documento |
+|------|-----------|
+| Secciones modulares de la home | [`landing-sections.md`](./landing-sections.md) |
+| Patrones de animación scroll | [`scroll-animations.md`](./scroll-animations.md) |
+| Sistema de loaders (Initial / Route / RSC) | [`loaders.md`](./loaders.md) |
+| Iconos inline estilo Lucide | [`icon-system.md`](./icon-system.md) |
+| Routing / structure | [`routing.md`](./routing.md) |
+| Stores (Zustand) | [`stores.md`](./stores.md) |
+| Componentes UI compartidos | [`components.md`](./components.md) |
 
 ## Stack
 
@@ -28,22 +40,29 @@
 ```
 src/
 ├── app/                    # rutas (App Router)
-│   ├── layout.tsx          # root: fuentes, metadata
+│   ├── layout.tsx          # root: fuentes, metadata, InitialLoader, RouteTransition
+│   ├── loading.tsx         # Suspense fallback del root segment
 │   ├── page.tsx            # directorio público (RSC)
-│   ├── DirectoryClient.tsx # cliente del directorio
+│   ├── DirectoryClient.tsx # cliente del directorio (orquestador de secciones)
 │   ├── [slug]/             # landing del local
+│   │   └── loading.tsx     # Suspense fallback del slug
 │   ├── login/
+│   ├── forgot-password/
+│   ├── reset-password/
 │   └── admin/              # panel del owner (todas las páginas)
 │       ├── layout.tsx      # sidebar + notificaciones bell + guard
+│       ├── loading.tsx     # Suspense fallback compact
 │       └── */page.tsx
 ├── components/
-│   ├── ui/                 # Button, Modal, FormField, Logo, QRCode, ...
+│   ├── ui/                 # Button, Modal, FormField, Logo, Icon, BrandLoader, etc.
+│   ├── landing/            # ScrollPhoneSequence, WhyClickToEatSection, SystemPreviewSection
 │   └── admin/              # ImageUpload, LeafletMap, LocationPicker, NotificacionesBell
 ├── store/                  # Zustand: auth, cart, notificaciones, toast
 └── lib/
     ├── api.ts              # axios + tokenStore + fetchMenu (RSC fetcher)
     ├── types.ts            # interfaces compartidas
     ├── utils.ts            # cn(), formatMXN()
+    ├── echo.ts             # stub Pusher/Echo (pre-implementación broadcasting)
     └── whatsapp.ts         # buildWhatsAppUrl (espejo del builder PHP)
 ```
 
