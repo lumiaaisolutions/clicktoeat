@@ -24,18 +24,45 @@ export interface IconOption {
  * SVG path, después añádelo aquí.
  */
 export const CATEGORY_ICONS: IconOption[] = [
-  { value: 'utensils',   label: 'Comida' },
-  { value: 'pizza',      label: 'Pizza' },
-  { value: 'cake',       label: 'Postres / pastel' },
-  { value: 'ice-cream',  label: 'Helados' },
-  { value: 'coffee',     label: 'Bebidas calientes' },
-  { value: 'beer',       label: 'Bebidas frías' },
-  { value: 'salad',      label: 'Saludable' },
-  { value: 'flame',      label: 'Especialidades / picante' },
-  { value: 'storefront', label: 'Take-away' },
-  { value: 'truck',      label: 'Delivery' },
-  { value: 'sparkles',   label: 'Especiales' },
-  { value: 'star-filled', label: 'Destacados' },
+  // Comida específica
+  { value: 'utensils',     label: 'Comida' },
+  { value: 'pizza',        label: 'Pizza' },
+  { value: 'sandwich',     label: 'Sandwich / burger' },
+  { value: 'soup',         label: 'Sopa / caldo' },
+  { value: 'beef',         label: 'Carnes' },
+  { value: 'drumstick',    label: 'Pollo / aves' },
+  { value: 'fish',         label: 'Pescado / mariscos' },
+  { value: 'egg',          label: 'Desayunos' },
+  { value: 'croissant',    label: 'Panadería' },
+  { value: 'popcorn',      label: 'Snacks' },
+
+  // Postres
+  { value: 'cake',         label: 'Postres / pastel' },
+  { value: 'ice-cream',    label: 'Helados' },
+  { value: 'cherry',       label: 'Postres con fruta' },
+  { value: 'popsicle',     label: 'Paletas' },
+  { value: 'apple',        label: 'Fruta natural' },
+
+  // Bebidas
+  { value: 'coffee',       label: 'Café / calientes' },
+  { value: 'beer',         label: 'Cerveza' },
+  { value: 'wine',         label: 'Vinos' },
+  { value: 'martini-glass', label: 'Cócteles' },
+  { value: 'cup-soda',     label: 'Refrescos' },
+  { value: 'milk',         label: 'Lácteos / batidos' },
+
+  // Conceptos
+  { value: 'salad',        label: 'Saludable' },
+  { value: 'sprout',       label: 'Vegano' },
+  { value: 'wheat',        label: 'Sin gluten' },
+  { value: 'flame',        label: 'Picante' },
+  { value: 'sun',          label: 'Desayunos / brunch' },
+  { value: 'moon',         label: 'Cena' },
+  { value: 'gift',         label: 'Combos / paquetes' },
+  { value: 'sparkles',     label: 'Especiales' },
+  { value: 'star-filled',  label: 'Destacados' },
+  { value: 'storefront',   label: 'Take-away' },
+  { value: 'truck',        label: 'Delivery' },
 ];
 
 interface IconPickerProps {

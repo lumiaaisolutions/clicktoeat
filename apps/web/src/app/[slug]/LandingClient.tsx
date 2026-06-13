@@ -1306,7 +1306,7 @@ function CategoryButton({
     <button
       onClick={onClick}
       className={cn(
-        'group relative inline-flex items-center gap-2 px-5 sm:px-6 py-3 rounded-2xl whitespace-nowrap tap-target',
+        'group relative inline-flex items-center gap-3 pl-5 sm:pl-6 pr-12 sm:pr-14 py-3 rounded-2xl whitespace-nowrap tap-target',
         'text-sm font-semibold transition-all duration-300',
         active
           ? 'text-white shadow-[0_10px_24px_-8px_rgba(0,0,0,0.35)] hover:-translate-y-0.5 hover:shadow-[0_18px_32px_-10px_rgba(0,0,0,0.45)]'
@@ -1321,48 +1321,67 @@ function CategoryButton({
           : undefined
       }
     >
-      <span className="pr-1">{nombre}</span>
+      <span>{nombre}</span>
 
-      {/* Icono que "sobresale" del botón — posición top-right con escala mayor
-          que el botón, rotación sutil y sombra propia. Crea la sensación 3D. */}
+      {/* Icono "flotante" sobresaliendo del botón — sin círculo de fondo,
+          más grande (size 32), drop-shadow propio para sensación 3D.
+          Rotación sutil + scale al hover (estilo "Contact button" envelope). */}
       <span
         className={cn(
-          'relative -mr-3 -my-3 grid place-items-center w-11 h-11 rounded-2xl shrink-0',
-          'shadow-[0_6px_16px_-4px_rgba(0,0,0,0.35)] transition-transform duration-300',
-          'rotate-[8deg] group-hover:rotate-[16deg] group-hover:scale-110',
-          active
-            ? 'bg-white text-ink'
-            : 'bg-ink text-white',
+          'absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 sm:translate-x-3 pointer-events-none',
+          'transition-transform duration-300 ease-out',
+          'rotate-[10deg] group-hover:rotate-[18deg] group-hover:scale-110 group-hover:translate-x-3 sm:group-hover:translate-x-4',
+          active ? 'text-white' : 'text-ink',
         )}
-        style={
-          active
-            ? {
-                color: 'var(--ce-accent)',
-              }
-            : undefined
-        }
+        style={{
+          filter: 'drop-shadow(0 6px 8px rgba(0, 0, 0, 0.35))',
+        }}
       >
-        <Icon name={icon} size={20} />
+        <Icon name={icon} size={32} strokeWidth={2.2} />
       </span>
     </button>
   );
 }
 
 /* Heurística para inferir un icono cuando la categoría aún no tiene uno
-   asignado en BD. Mira palabras clave del nombre. */
+   asignado en BD. Mira palabras clave del nombre y mapea al set expandido. */
 function iconForCategoria(nombre: string): IconName {
   const n = nombre.toLowerCase();
-  if (/(postre|pastel|cake|brownie|cookie|galleta|repost)/.test(n)) return 'cake';
-  if (/(helado|nieve|ice|sorbete)/.test(n)) return 'ice-cream';
+  // Postres / dulces
+  if (/(paleta|popsicle|chupachup)/.test(n)) return 'popsicle';
+  if (/(helado|nieve|ice ?cream|sorbete|gelato)/.test(n)) return 'ice-cream';
+  if (/(cherry|fresa|frut|berry|tropic)/.test(n) && /(postre|dulce)/.test(n)) return 'cherry';
+  if (/(postre|pastel|cake|brownie|cookie|galleta|repost|donut|cup ?cake|tart)/.test(n)) return 'cake';
+  if (/(manzana|apple|fruta(?!l)|fruit)/.test(n)) return 'apple';
+  // Bebidas
+  if (/(vino|wine)/.test(n)) return 'wine';
+  if (/(coctel|cóctel|cocktail|martini|mezcal|tequila|whisky|trago)/.test(n)) return 'martini-glass';
+  if (/(cerveza|beer|cheve|chela)/.test(n)) return 'beer';
+  if (/(refresco|soda|coke|cola|pepsi|sprite|fanta)/.test(n)) return 'cup-soda';
+  if (/(leche|milk|malteada|batido|smoothie|frapp|frappe)/.test(n)) return 'milk';
+  if (/(café|cafe|coffee|capuchino|latte|mocha|chocolate|té|tea|infusi)/.test(n)) return 'coffee';
+  if (/(bebida|agua|jugo|drink)/.test(n)) return 'cup-soda';
+  // Comida específica
   if (/(pizza)/.test(n)) return 'pizza';
-  if (/(café|cafe|coffee|capuchino|latte|mocha|chocolate)/.test(n)) return 'coffee';
-  if (/(cerveza|beer|alcohol|tragos|coctel|cóctel)/.test(n)) return 'beer';
-  if (/(bebida|agua|jugo|refresco|soda|smoothie|malteada|frapp)/.test(n)) return 'coffee';
-  if (/(ensalad|vegan|veggie|saludab|sano|fit|verde)/.test(n)) return 'salad';
-  if (/(picante|spicy|hot|flam|asado|parrilla|carnes?)/.test(n)) return 'flame';
-  if (/(promo|oferta|combo|deal)/.test(n)) return 'sparkles';
-  if (/(destacad|popular|especial|chef|recomend)/.test(n)) return 'star-filled';
-  if (/(taco|burrito|quesadilla|enchilada|tortilla|mexican)/.test(n)) return 'utensils';
-  if (/(hamburguesa|burger|sandwich|hot ?dog|pita)/.test(n)) return 'utensils';
+  if (/(hamburguesa|burger|sandwich|hot ?dog|pita|wrap|sub)/.test(n)) return 'sandwich';
+  if (/(sopa|caldo|soup|crema|consomé|consome|pozole|menudo)/.test(n)) return 'soup';
+  if (/(carne|steak|bisteck|res|cecina|asada|arrachera|costilla|ribs|beef|cordero|cerdo)/.test(n)) return 'beef';
+  if (/(pollo|alit|chicken|pavo|nugget)/.test(n)) return 'drumstick';
+  if (/(pescado|fish|marisco|camaron|camarón|atún|atun|salmon|salmón|ceviche|tilapia)/.test(n)) return 'fish';
+  if (/(huevo|egg|omelette|chilaquil|desayun)/.test(n)) return 'egg';
+  if (/(pan|bread|croissant|panaderia|panadería|bagel|baguette|bollo|concha)/.test(n)) return 'croissant';
+  if (/(palomita|popcorn|snack|botana|chips|fritura)/.test(n)) return 'popcorn';
+  if (/(taco|burrito|quesadilla|enchilada|tortilla|mexican|antojito|gordita|sope|tlayuda|tamal)/.test(n)) return 'utensils';
+  // Conceptos
+  if (/(ensalad|salad|verde fresco)/.test(n)) return 'salad';
+  if (/(vegan|plant|plant ?based)/.test(n)) return 'sprout';
+  if (/(sin ?gluten|gluten ?free|integral|cereal|grano)/.test(n)) return 'wheat';
+  if (/(picante|spicy|hot|flam|parrilla|grill)/.test(n)) return 'flame';
+  if (/(desayun|breakfast|brunch|matutino|mañana|maniana)/.test(n)) return 'sun';
+  if (/(cena|dinner|nocturno|noche|night)/.test(n)) return 'moon';
+  if (/(combo|paquete|pack|menú del día|menu del dia|familiar|family|para compartir)/.test(n)) return 'gift';
+  if (/(saludab|sano|fit|light|low cal)/.test(n)) return 'salad';
+  if (/(promo|oferta|deal|descuento)/.test(n)) return 'sparkles';
+  if (/(destacad|popular|recomendad|favorito|chef|signature|especial)/.test(n)) return 'star-filled';
   return 'utensils';
 }
