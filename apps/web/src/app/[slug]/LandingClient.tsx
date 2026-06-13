@@ -862,6 +862,36 @@ type Producto = MenuResponse['data']['productos'][number];
  * El panel activo NO requiere modal aparte — todo se hace inline. Más
  * rápido (1 tap para ver detalle + agregar) y más mobile-friendly.
  */
+/**
+ * Calcula cuántos productos caben por fila según el viewport.
+ * Render inicial = 4 (PC) para evitar hydration mismatch — el `useEffect`
+ * ajusta al breakpoint real en el primer paint.
+ */
+function useColsPerRow(): number {
+  const [cols, setCols] = useState(4);
+  useEffect(() => {
+    const compute = () => {
+      const w = window.innerWidth;
+      if (w >= 1024) setCols(4);       // lg+
+      else if (w >= 640) setCols(3);   // sm — tablet
+      else setCols(2);                  // <sm — mobile
+    };
+    compute();
+    window.addEventListener('resize', compute);
+    return () => window.removeEventListener('resize', compute);
+  }, []);
+  return cols;
+}
+
+function chunk<T>(arr: T[], size: number): T[][] {
+  if (size <= 0) return [arr];
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) {
+    out.push(arr.slice(i, i + size));
+  }
+  return out;
+}
+
 function ProductAccordion({
   productos, cerrado, onAdd,
 }: {
@@ -869,11 +899,22 @@ function ProductAccordion({
   cerrado: boolean;
   onAdd: (producto: Producto, qty: number) => void;
 }) {
-  const [activeId, setActiveId] = useState<number | null>(null);
+  // Uno abierto por default — el primero de la lista.
+  const [activeId, setActiveId] = useState<number | null>(productos[0]?.id ?? null);
   const [qty, setQty] = useState(1);
+  const cols = useColsPerRow();
 
-  // Reset cantidad al cambiar de panel
+  // Reset cantidad al cambiar de panel.
   useEffect(() => { setQty(1); }, [activeId]);
+
+  // Si cambia la categoría / la lista, el activeId puede apuntar a un id
+  // que ya no existe — recolocar al primero de la nueva lista.
+  useEffect(() => {
+    if (activeId == null || !productos.some((p) => p.id === activeId)) {
+      setActiveId(productos[0]?.id ?? null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productos]);
 
   if (productos.length === 0) {
     return (
@@ -883,22 +924,35 @@ function ProductAccordion({
     );
   }
 
+  // Chunk de productos en filas de `cols`. Cada fila es un accordion
+  // independiente visualmente, pero comparten el mismo activeId (solo
+  // uno expandido en todo el sistema).
+  const rows = chunk(productos, cols);
+
   return (
-    <div className="flex flex-col md:flex-row gap-2 sm:gap-3 h-auto md:h-[480px]">
-      {productos.map((p) => (
-        <AccordionPanel
-          key={p.id}
-          producto={p}
-          active={activeId === p.id}
-          cerrado={cerrado}
-          qty={qty}
-          onActivate={() => setActiveId(activeId === p.id ? null : p.id)}
-          onChangeQty={setQty}
-          onAdd={() => {
-            onAdd(p, qty);
-            setActiveId(null);  // colapsar tras agregar
-          }}
-        />
+    <div className="space-y-3 sm:space-y-4">
+      {rows.map((row, rowIdx) => (
+        <div
+          key={rowIdx}
+          className="flex gap-2 sm:gap-3 h-[420px] sm:h-[480px]"
+        >
+          {row.map((p) => (
+            <AccordionPanel
+              key={p.id}
+              producto={p}
+              active={activeId === p.id}
+              cerrado={cerrado}
+              qty={qty}
+              onActivate={() => setActiveId(activeId === p.id ? null : p.id)}
+              onChangeQty={setQty}
+              onAdd={() => {
+                onAdd(p, qty);
+                // tras agregar, dejamos el panel abierto para que pueda agregar más
+                // si quiere — el cart drawer se abre solo.
+              }}
+            />
+          ))}
+        </div>
       ))}
     </div>
   );
@@ -921,11 +975,10 @@ function AccordionPanel({
       transition={{ duration: 0.7, ease: [0.2, 0.8, 0.2, 1] }}
       onClick={!active ? onActivate : undefined}
       className={cn(
-        'relative rounded-2xl sm:rounded-3xl overflow-hidden shrink-0',
-        'bg-cover bg-center bg-ink/90',
+        'relative rounded-2xl sm:rounded-3xl overflow-hidden bg-cover bg-center h-full',
         active
-          ? 'cursor-default md:flex-[5] flex-none h-[480px] md:h-full'
-          : 'cursor-pointer md:flex-[0.5] flex-none h-[120px] md:h-full hover:opacity-95',
+          ? 'cursor-default flex-[5]'
+          : 'cursor-pointer flex-[0.5] hover:opacity-95',
       )}
       style={{
         backgroundImage: producto.imagen ? `url(${producto.imagen})` : undefined,
@@ -945,38 +998,27 @@ function AccordionPanel({
         </span>
       )}
 
-      {/* Precio — siempre visible cuando colapsado (sutil), oculto cuando expandido
-          porque el total ya se muestra en el botón "Agregar · $XX". */}
+      {/* Precio — pill grande con fondo opaco. Oculto cuando expandido porque
+          el total ya se muestra en el botón "Agregar · $XX". */}
       {!active && (
         <span
-          className="absolute top-3 right-3 z-10 px-2.5 py-1 rounded-full backdrop-blur bg-white/15 text-white text-xs font-bold scale-90 opacity-85"
+          className="absolute top-3 right-3 z-10 px-3 py-1.5 rounded-full bg-ink text-white text-sm font-bold shadow-md ce-display tabular-nums"
         >
           {formatMXN(producto.precio)}
         </span>
       )}
 
-      {/* CONTENIDO COLAPSADO — título vertical (desktop) o horizontal mini (mobile) */}
+      {/* CONTENIDO COLAPSADO — título vertical con writing-mode (todos los breakpoints).
+          writing-mode: vertical-rl + rotate-180 hace que el texto fluya de abajo hacia
+          arriba sin overflow ni clipping (vs rotate -90 que saca el texto del flujo). */}
       {!active && (
-        <>
-          {/* Mobile: título centrado horizontalmente */}
-          <div className="md:hidden absolute inset-x-0 bottom-3 px-4 text-white">
-            <p className="ce-display font-bold text-base sm:text-lg leading-tight line-clamp-1">
-              {producto.nombre}
-            </p>
-            {producto.descripcion && (
-              <p className="text-xs opacity-80 line-clamp-1 mt-0.5">
-                {producto.descripcion}
-              </p>
-            )}
-          </div>
-
-          {/* Desktop: título rotado -90 (vertical) */}
-          <div className="hidden md:flex absolute inset-x-0 bottom-6 justify-center">
-            <p className="ce-display font-bold text-base text-white whitespace-nowrap -rotate-90 origin-center translate-y-12">
-              {producto.nombre}
-            </p>
-          </div>
-        </>
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-2">
+          <p
+            className="ce-display font-bold text-sm sm:text-base text-white text-center [writing-mode:vertical-rl] rotate-180 line-clamp-1 max-h-[80%] drop-shadow-md"
+          >
+            {producto.nombre}
+          </p>
+        </div>
       )}
 
       {/* CONTENIDO EXPANDIDO — título + descripción + selector + agregar */}
