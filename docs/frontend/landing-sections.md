@@ -99,6 +99,67 @@ El mockup imita visualmente el `/admin/pedidos`:
 No es interactivo. Sirve para que el dueño potencial sepa qué le espera
 del lado del operador antes de registrarse.
 
+## Local Card — la card del catálogo
+
+La card de cada local (`LocalCard` en `DirectoryClient.tsx`) tiene varias
+animaciones de hover y un layout pensado para no chocar elementos.
+
+### Layout
+
+```
+┌────────────────────────────┐
+│ [● Abierto]      [★]       │  ← badges top-left, star top-right
+│ [↗ 1.2 km]                 │     (badges nunca colisionan con avatar)
+│                            │
+│       [Banner image]       │  ← h-44, scale 1 → 1.06 on hover (700ms)
+│       (gradient bottom)    │
+│                            │
+│  (•) Avatar 14×14          │  ← overlap -mt-7, animación scale 0.85→1 entry
+│                            │
+│  Nombre del Local          │
+│  tagline corto             │
+│                            │
+│  [9] [~30 min] [$ 20]      │  ← chips de stats con border
+│                            │
+│  📍 Dirección truncada     │
+│                            │
+│  ─────────────────────     │  ← divider
+│  Ver menú             →    │  ← arrow doble: el primero sale, el segundo entra
+└────────────────────────────┘
+```
+
+### Animaciones
+
+- **Tilt 3D al hover**: `useMotionValue` para mouse X/Y, normalizado a [0,1].
+  `useSpring` suaviza el seguimiento. `useTransform` mapea a `rotateX` ±3°
+  y `rotateY` ±3°. `transformPerspective: 800px` da profundidad realista.
+
+- **Spotlight que sigue al cursor**: `useMotionTemplate` construye un
+  `radial-gradient(360px circle at <X>% <Y>%, rgba(255,45,45,0.10), transparent 50%)`
+  que se renderiza en una capa absoluta sobre la card. Aparece on hover.
+
+- **Banner zoom-in**: `scale: 1 → 1.06` con duración 700 ms y curva
+  `cubic-bezier(0.2,0.8,0.2,1)`. Crea sensación cinematográfica.
+
+- **Avatar entry**: `scale: 0.85 → 1, opacity 0 → 1` con delay 100 ms al
+  montar la card. Hace que el avatar "se pose" tras el banner aparecer.
+
+- **Lift y shadow**: `whileHover={{ y: -6 }}` + shadow más profundo
+  `0_24px_60px_-30px_rgba(0,0,0,0.22)`.
+
+- **Doble arrow en CTA "Ver menú"**: el primero sale hacia la derecha
+  (`translate-x-6`), el segundo entra desde la izquierda (`translate-x-0`).
+  Crea la sensación de "el icono se reemplaza".
+
+### Bug arreglado (junio 2026)
+
+El badge "Abierto" estaba en `bottom-3 left-3` del banner y el avatar
+sobresalía con `-mt-10` desde el cuerpo. Ambos coincidían en la zona
+inferior izquierda del banner — el badge tapaba al avatar.
+
+Fix: badge movido a `top-3 left-3` (opuesto al star de favoritos). Avatar
+movido a `-mt-7` con padding propio. Sin solapamiento.
+
 ## Convenciones para agregar una sección nueva
 
 1. Crear archivo en `apps/web/src/components/landing/<Nombre>Section.tsx`

@@ -1,8 +1,16 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import {
+  motion,
+  AnimatePresence,
+  useScroll,
+  useTransform,
+  useMotionValue,
+  useSpring,
+  useMotionTemplate,
+} from 'framer-motion';
 import { cn, formatMXN } from '@/lib/utils';
 import { QRCode, downloadQR } from '@/components/ui/QRCode';
 import { Logo } from '@/components/ui/Logo';
@@ -382,18 +390,63 @@ function Hero({
 }
 
 function Stat({ value, label, highlight }: { value: number | string; label: string; highlight?: boolean }) {
+  const isNumeric = typeof value === 'number';
+  const displayValue = isNumeric ? <CountUp to={value} /> : value;
+
   return (
-    <div>
+    <motion.div
+      whileHover={{ y: -2 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+      className="cursor-default"
+    >
       <div className={cn(
-        'ce-display text-3xl sm:text-4xl md:text-5xl font-bold leading-none flex items-center gap-2',
+        'ce-display text-3xl sm:text-4xl md:text-5xl font-bold leading-none flex items-center gap-2 tabular-nums',
         highlight && 'text-emerald-600',
       )}>
         {highlight && <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 halo-pulse" />}
-        {value}
+        {displayValue}
       </div>
       <div className="text-xs sm:text-sm text-muted mt-1 uppercase tracking-wider">{label}</div>
-    </div>
+    </motion.div>
   );
+}
+
+/**
+ * Counter que animar 0 → value cuando entra al viewport. Usa rAF para no
+ * re-renderizar React 60 veces — solo el textContent del span muta.
+ */
+function CountUp({ to, duration = 1.2 }: { to: number; duration?: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [started, setStarted] = useState(false);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !started) {
+        setStarted(true);
+        obs.disconnect();
+      }
+    }, { threshold: 0.3 });
+    obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, [started]);
+
+  useEffect(() => {
+    if (!started || !ref.current) return;
+    const start = performance.now();
+    const node = ref.current;
+    let raf = 0;
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / (duration * 1000));
+      const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+      node.textContent = String(Math.round(to * eased));
+      if (t < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [started, to, duration]);
+
+  return <span ref={ref}>{started ? undefined : 0}</span>;
 }
 
 /* ─────────── Cerca de ti ─────────── */
@@ -471,14 +524,25 @@ function SectionHeader({
       initial={{ opacity: 0, y: 12 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.5 }}
-      className="mb-6"
+      transition={{ duration: 0.55, ease: [0.2, 0.8, 0.2, 1] }}
+      className="mb-8 flex items-end justify-between flex-wrap gap-4"
     >
-      <p className="text-xs text-muted font-medium uppercase tracking-[0.18em] inline-flex items-center gap-2">
-        <Icon name={iconName} size={14} className="text-[color:var(--ce-accent)]" />
-        {kicker}
-      </p>
-      <h2 className="ce-display mt-2 text-2xl md:text-3xl font-bold">{title}</h2>
+      <div>
+        <p className="text-xs text-muted font-medium uppercase tracking-[0.18em] inline-flex items-center gap-2">
+          <Icon name={iconName} size={14} className="text-[color:var(--ce-accent)]" />
+          {kicker}
+        </p>
+        <h2 className="ce-display mt-2 text-2xl md:text-3xl font-bold tracking-tight">{title}</h2>
+      </div>
+      {/* Línea decorativa que se expande de derecha a izquierda */}
+      <motion.span
+        aria-hidden
+        initial={{ scaleX: 0 }}
+        whileInView={{ scaleX: 1 }}
+        viewport={{ once: true, margin: '-60px' }}
+        transition={{ duration: 0.7, delay: 0.2 }}
+        className="h-px bg-line w-24 origin-right hidden sm:block"
+      />
     </motion.div>
   );
 }
@@ -733,12 +797,8 @@ function Footer() {
       </div>
 
       <div className="border-t border-line">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center gap-2 justify-between text-xs text-muted">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-center sm:justify-start text-xs text-muted">
           <p>© {year} ClickToEat. Todos los derechos reservados.</p>
-          <p className="inline-flex items-center gap-1.5">
-            <Icon name="heart-filled" size={12} className="text-[color:var(--ce-accent)]" />
-            Hecho con cuidado en México
-          </p>
         </div>
       </div>
     </footer>
@@ -756,116 +816,175 @@ function LocalCard({
   distanciaKm?: number;
 }) {
   const abierto = abiertoDe(local);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Mouse tracking para spotlight + tilt 3D sutil.
+  // useSpring suaviza el seguimiento — sin spring, el cursor se siente "saltarín".
+  const mouseX = useMotionValue(0.5);
+  const mouseY = useMotionValue(0.5);
+  const smoothX = useSpring(mouseX, { stiffness: 200, damping: 25 });
+  const smoothY = useSpring(mouseY, { stiffness: 200, damping: 25 });
+
+  const rotateX = useTransform(smoothY, [0, 1], [3, -3]);
+  const rotateY = useTransform(smoothX, [0, 1], [-3, 3]);
+  const spotlightX = useTransform(smoothX, (v) => `${v * 100}%`);
+  const spotlightY = useTransform(smoothY, (v) => `${v * 100}%`);
+  const spotlight = useMotionTemplate`radial-gradient(360px circle at ${spotlightX} ${spotlightY}, rgba(255,45,45,0.10), transparent 50%)`;
+
+  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = cardRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    mouseX.set((e.clientX - rect.left) / rect.width);
+    mouseY.set((e.clientY - rect.top) / rect.height);
+  }
+
+  function handleMouseLeave() {
+    mouseX.set(0.5);
+    mouseY.set(0.5);
+  }
 
   return (
     <motion.article
+      ref={cardRef}
       layout
       variants={{
-        hidden:  { opacity: 0, y: 16 },
+        hidden:  { opacity: 0, y: 24 },
         visible: { opacity: 1, y: 0 },
       }}
       initial="hidden"
       animate="visible"
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
-      className="group relative rounded-3xl overflow-hidden border border-line bg-white shadow-soft lift-on-hover"
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.55, ease: [0.2, 0.8, 0.2, 1] }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{ rotateX, rotateY, transformPerspective: 800 }}
+      whileHover={{ y: -6 }}
+      className="group relative rounded-3xl border border-line bg-white shadow-soft hover:shadow-[0_24px_60px_-30px_rgba(0,0,0,0.22)] transition-shadow [transform-style:preserve-3d]"
     >
+      {/* Spotlight que sigue al cursor — capa encima de la card */}
+      <motion.span
+        aria-hidden
+        style={{ background: spotlight }}
+        className="absolute inset-0 rounded-3xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10"
+      />
+
+      {/* Star — top right, fuera del flujo */}
       <button
         onClick={(e) => { e.preventDefault(); onToggleFav(local.slug); }}
         aria-label={isFav ? 'Quitar de favoritos' : 'Marcar como favorito'}
         className={cn(
-          'absolute top-3 right-3 z-10 w-10 h-10 rounded-full grid place-items-center backdrop-blur transition tap-target',
-          isFav ? 'bg-amber-400 text-white' : 'bg-white/85 hover:bg-white text-ink/70',
+          'absolute top-3 right-3 z-20 w-10 h-10 rounded-full grid place-items-center backdrop-blur transition tap-target',
+          isFav ? 'bg-amber-400 text-white shadow-md' : 'bg-white/85 hover:bg-white text-ink/70',
         )}
       >
         <Icon name={isFav ? 'star-filled' : 'star'} size={16} />
       </button>
 
-      {distanciaKm !== undefined && (
-        <span className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur text-[11px] font-medium text-ink/80 inline-flex items-center gap-1.5">
-          <Icon name="navigation" size={11} className="text-[color:var(--ce-accent)]" />
-          {distanciaKm.toFixed(distanciaKm < 1 ? 2 : 1)} km
-        </span>
-      )}
-
-      <Link href={`/${local.slug}`} className="block">
-        <div
-          className="h-44 bg-cover bg-center relative grain"
-          style={{
-            backgroundImage: local.banner ? `url(${local.banner})` : undefined,
-            background: !local.banner
-              ? `linear-gradient(135deg, ${local.colorPrimario}33, ${local.colorPrimario}11)`
-              : undefined,
-          }}
-        >
-          {abierto !== null && (
+      {/* Badges superiores — opuesto al star, evitan colisión con avatar */}
+      <div className="absolute top-3 left-3 z-20 flex flex-col items-start gap-1.5">
+        {abierto !== null && (
+          <span className={cn(
+            'px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider font-medium inline-flex items-center gap-1.5 backdrop-blur shadow-sm',
+            abierto ? 'bg-emerald-600/95 text-white' : 'bg-black/60 text-white',
+          )}>
             <span className={cn(
-              'absolute bottom-3 left-3 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider font-medium inline-flex items-center gap-1.5 backdrop-blur',
-              abierto ? 'bg-emerald-600/95 text-white' : 'bg-black/60 text-white',
-            )}>
-              <span className={cn(
-                'w-1.5 h-1.5 rounded-full',
-                abierto ? 'bg-white halo-pulse' : 'bg-white/70',
-              )} />
-              {abierto ? 'Abierto' : 'Cerrado'}
-            </span>
-          )}
+              'w-1.5 h-1.5 rounded-full',
+              abierto ? 'bg-white halo-pulse' : 'bg-white/70',
+            )} />
+            {abierto ? 'Abierto' : 'Cerrado'}
+          </span>
+        )}
+        {distanciaKm !== undefined && (
+          <span className="px-2.5 py-1 rounded-full bg-white/95 backdrop-blur text-[11px] font-medium text-ink/85 inline-flex items-center gap-1.5 shadow-sm">
+            <Icon name="navigation" size={11} className="text-[color:var(--ce-accent)]" />
+            {distanciaKm.toFixed(distanciaKm < 1 ? 2 : 1)} km
+          </span>
+        )}
+      </div>
+
+      <Link href={`/${local.slug}`} className="block rounded-3xl overflow-hidden">
+        {/* Banner con zoom-in en hover y overlay para legibilidad del avatar */}
+        <div className="relative h-44 overflow-hidden">
+          <div
+            className="absolute inset-0 bg-cover bg-center transition-transform duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] group-hover:scale-[1.06]"
+            style={{
+              backgroundImage: local.banner ? `url(${local.banner})` : undefined,
+              background: !local.banner
+                ? `linear-gradient(135deg, ${local.colorPrimario}33, ${local.colorPrimario}11)`
+                : undefined,
+            }}
+          />
+          {/* Gradient overlay bottom-to-top para asegurar contraste del avatar */}
+          <div aria-hidden className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/35 to-transparent pointer-events-none" />
         </div>
 
-        <div className="p-5">
-          <div className="flex items-start gap-3">
-            <div
-              className="w-10 h-10 rounded-full -mt-10 border-2 border-white shadow-soft shrink-0 grid place-items-center text-white font-bold ce-display overflow-hidden"
-              style={{ background: local.colorPrimario }}
-            >
-              {local.logo
-                ? <img src={local.logo} alt="" className="w-full h-full rounded-full object-cover" />
-                : local.nombre.charAt(0)}
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="ce-display text-lg font-bold truncate">{local.nombre}</h3>
-              {local.tagline && <p className="text-xs text-muted line-clamp-2 mt-0.5">{local.tagline}</p>}
-            </div>
-          </div>
+        {/* Avatar overlap — bottom-left del banner, no colisiona con badges arriba */}
+        <div className="relative px-5">
+          <motion.div
+            initial={{ scale: 0.85, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="w-14 h-14 rounded-full -mt-7 border-[3px] border-white shadow-md grid place-items-center text-white font-bold ce-display overflow-hidden relative z-10"
+            style={{ background: local.colorPrimario }}
+          >
+            {local.logo
+              ? <img src={local.logo} alt="" className="w-full h-full rounded-full object-cover" />
+              : <span className="text-xl">{local.nombre.charAt(0)}</span>}
+          </motion.div>
+        </div>
 
-          <div className="mt-4 flex items-center gap-3 text-xs text-muted flex-wrap">
+        <div className="px-5 pt-3 pb-5">
+          <h3 className="ce-display text-xl font-bold leading-tight truncate">{local.nombre}</h3>
+          {local.tagline && (
+            <p className="text-xs text-muted line-clamp-2 mt-1 leading-relaxed">{local.tagline}</p>
+          )}
+
+          <div className="mt-4 flex items-center gap-2 flex-wrap">
             {local.productosCount !== undefined && (
-              <span className="inline-flex items-center gap-1">
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[color:var(--ce-bg)] border border-line text-[11px] text-ink/70">
                 <Icon name="utensils" size={11} />
-                {local.productosCount} {local.productosCount === 1 ? 'producto' : 'productos'}
+                {local.productosCount}
               </span>
             )}
             {local.deliveryMinutos > 0 && (
-              <>
-                <span>·</span>
-                <span className="inline-flex items-center gap-1">
-                  <Icon name="clock" size={11} />
-                  ~{local.deliveryMinutos} min
-                </span>
-              </>
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[color:var(--ce-bg)] border border-line text-[11px] text-ink/70">
+                <Icon name="clock" size={11} />
+                ~{local.deliveryMinutos} min
+              </span>
             )}
             {local.deliveryFee > 0 && (
-              <>
-                <span>·</span>
-                <span className="inline-flex items-center gap-1">
-                  <Icon name="truck" size={11} />
-                  {formatMXN(local.deliveryFee)}
-                </span>
-              </>
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[color:var(--ce-bg)] border border-line text-[11px] text-ink/70">
+                <Icon name="truck" size={11} />
+                {formatMXN(local.deliveryFee)}
+              </span>
             )}
           </div>
 
           {local.direccion && (
-            <p className="mt-2 text-xs text-muted truncate inline-flex items-center gap-1">
-              <Icon name="map-pin" size={11} className="shrink-0" />
+            <p className="mt-3 text-xs text-muted truncate inline-flex items-center gap-1.5">
+              <Icon name="map-pin" size={11} className="shrink-0 text-ink/40" />
               {local.direccion}
             </p>
           )}
 
-          <p className="mt-4 text-sm font-medium text-ink group-hover:text-[color:var(--ce-accent)] flex items-center gap-1 transition">
-            Ver menú
-            <Icon name="arrow-right" size={14} className="group-hover:translate-x-0.5 transition" />
-          </p>
+          {/* CTA con doble arrow animado */}
+          <div className="mt-5 pt-4 border-t border-line flex items-center justify-between">
+            <span className="text-sm font-medium ce-display group-hover:text-[color:var(--ce-accent)] transition">
+              Ver menú
+            </span>
+            <span className="relative inline-flex items-center justify-end w-6 overflow-hidden">
+              <Icon
+                name="arrow-right"
+                size={16}
+                className="text-ink/70 group-hover:text-[color:var(--ce-accent)] transition-all duration-300 group-hover:translate-x-6"
+              />
+              <Icon
+                name="arrow-right"
+                size={16}
+                className="absolute right-0 -translate-x-6 text-[color:var(--ce-accent)] transition-transform duration-300 group-hover:translate-x-0"
+              />
+            </span>
+          </div>
         </div>
       </Link>
     </motion.article>
