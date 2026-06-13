@@ -158,28 +158,51 @@ export function LandingClient({ menu }: Props) {
         </div>
       </header>
 
-      {/* BANNER DE CERRADO — solo cuando el local no acepta pedidos */}
-      {cerrado && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-red-50 border-y-2 border-red-300"
-        >
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
-            <span className="w-9 h-9 rounded-full bg-red-100 border border-red-300 grid place-items-center text-red-700 shrink-0">
-              <Icon name="alert-triangle" size={18} />
-            </span>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-red-900 text-sm sm:text-base">
-                No estamos aceptando pedidos en este momento.
-              </p>
-              <p className="text-xs text-red-700 mt-0.5">
-                {estado?.mensaje ?? 'Vuelve más tarde.'}
-              </p>
+      {/* BANNER DE CERRADO — estilo restaurante premium: barra accent vertical
+          a la izquierda + icon reloj con halo pulse + tipografía display +
+          badge "CERRADO" a la derecha con pulse blanco. */}
+      {cerrado && (() => {
+        // El mensaje del backend puede venir como "Cerrado · abre hoy a las 17:30".
+        // Limpiar el prefijo redundante.
+        const mensajeLimpio = (estado?.mensaje as string | undefined)
+          ?.replace(/^(Abierto|Cerrado)\s*[·.,-]?\s*/i, '')
+          ?.trim() || 'Vuelve más tarde.';
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+            className="relative bg-white border-b border-line shadow-soft overflow-hidden"
+          >
+            {/* Barra accent vertical roja a la izquierda — sello de restaurante */}
+            <span aria-hidden className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-red-500 to-red-600" />
+
+            <div className="max-w-5xl mx-auto px-5 sm:px-7 py-4 sm:py-5 flex items-center gap-4">
+              {/* Icon reloj con halo pulse (ring expandiéndose) */}
+              <span className="relative shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-red-50 border border-red-200 grid place-items-center text-red-600">
+                <span aria-hidden className="absolute inset-0 rounded-full bg-red-400/30 animate-ping" />
+                <Icon name="clock" size={20} className="relative" />
+              </span>
+
+              {/* Texto principal con jerarquía editorial */}
+              <div className="flex-1 min-w-0">
+                <p className="ce-display text-base sm:text-lg font-bold text-ink leading-tight tracking-tight">
+                  Volvemos pronto
+                </p>
+                <p className="text-xs sm:text-sm text-muted mt-0.5 leading-relaxed">
+                  {mensajeLimpio}
+                </p>
+              </div>
+
+              {/* Badge CERRADO derecha (oculto en mobile estrecho) */}
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold uppercase tracking-[0.15em] shadow-sm shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-white halo-pulse" />
+                Cerrado
+              </span>
             </div>
-          </div>
-        </motion.div>
-      )}
+          </motion.div>
+        );
+      })()}
 
       {/* CATEGORÍAS — chips horizontales con snap */}
       <nav className="sticky top-0 z-30 glass border-b border-line">
@@ -924,19 +947,19 @@ function ProductAccordion({
   cerrado: boolean;
   onAdd: (producto: Producto, qty: number) => void;
 }) {
-  // Uno abierto por default — el primero de la lista.
-  const [activeId, setActiveId] = useState<number | null>(productos[0]?.id ?? null);
+  // Ningún panel activo por default — el usuario decide cuál abrir.
+  const [activeId, setActiveId] = useState<number | null>(null);
   const [qty, setQty] = useState(1);
   const cols = useColsPerRow();
 
   // Reset cantidad al cambiar de panel.
   useEffect(() => { setQty(1); }, [activeId]);
 
-  // Si cambia la categoría / la lista, el activeId puede apuntar a un id
-  // que ya no existe — recolocar al primero de la nueva lista.
+  // Si cambia la categoría y el activeId apunta a un producto que ya no
+  // existe en la lista nueva, colapsar todo.
   useEffect(() => {
-    if (activeId == null || !productos.some((p) => p.id === activeId)) {
-      setActiveId(productos[0]?.id ?? null);
+    if (activeId != null && !productos.some((p) => p.id === activeId)) {
+      setActiveId(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productos]);
@@ -1118,12 +1141,12 @@ function AccordionPanel({
         )}
       </AnimatePresence>
 
-      {/* Cerrar panel (X) — siempre arriba a la derecha cuando activo */}
+      {/* Cerrar panel (X) — botón rojo prominente arriba a la derecha cuando activo */}
       {active && (
         <button
           onClick={(e) => { e.stopPropagation(); onActivate(); }}
           aria-label="Cerrar"
-          className="absolute top-3 right-3 w-10 h-10 rounded-full bg-white/15 backdrop-blur grid place-items-center hover:bg-white/30 transition z-30"
+          className="absolute top-3 right-3 w-10 h-10 rounded-full bg-red-500 grid place-items-center hover:bg-red-600 hover:scale-110 active:scale-95 transition-all shadow-lg ring-2 ring-red-400/50 z-30"
         >
           <Icon name="x" size={16} className="text-white" />
         </button>
