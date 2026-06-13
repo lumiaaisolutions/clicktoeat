@@ -104,8 +104,8 @@ function BrowserMockup() {
       </div>
 
       <div className="grid grid-cols-12 min-h-[360px] text-[10px]">
-        {/* Sidebar */}
-        <aside className="col-span-3 border-r border-line bg-[color:var(--ce-bg)] p-3 space-y-1">
+        {/* Sidebar — oculta en mobile (apretado, no aporta) */}
+        <aside className="hidden sm:block col-span-3 border-r border-line bg-[color:var(--ce-bg)] p-3 space-y-1">
           <div className="ce-display font-bold text-[12px] mb-3">Click<span className="opacity-50">To</span>Eat</div>
           {['Pedidos', 'Productos', 'Inventario', 'Compras', 'Métricas', 'Branding', 'QR', 'Staff'].map((item, i) => (
             <div
@@ -118,8 +118,8 @@ function BrowserMockup() {
           ))}
         </aside>
 
-        {/* Main */}
-        <main className="col-span-9 p-4">
+        {/* Main — ocupa todo el ancho en mobile */}
+        <main className="col-span-12 sm:col-span-9 p-4">
           <div className="flex items-center justify-between">
             <div>
               <div className="ce-display font-bold text-[14px]">Pedidos de hoy</div>

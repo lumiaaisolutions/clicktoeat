@@ -95,78 +95,82 @@ function DesktopLayout() {
   );
 }
 
-/* ─────────── Mobile: lista vertical + phone arriba sticky compact ─────────── */
+/* ─────────── Mobile: lista limpia con iconos grandes (sin phone) ─────────── */
 
+/**
+ * En mobile NO mostramos el phone porque el usuario ya está usando uno —
+ * meter otra simulación de phone sobre el texto crea overlap, ruido y se
+ * pierde el contenido. La narrativa de "qué ve el cliente" funciona mejor
+ * como lista de cards con icono representativo de cada paso.
+ */
 function MobileLayout() {
-  const ref = useRef<HTMLDivElement>(null);
-  // En mobile la sección es de altura natural; el progreso es del propio
-  // bloque visible para que el phone sticky encima cambie de frame mientras
-  // se scrolllea por los steps.
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ['start 0.4', 'end 0.6'],
-  });
+  const STEP_ICONS = {
+    Catálogo: 'utensils',
+    Checkout: 'plus',
+    WhatsApp: 'whatsapp',
+    Panel:    'storefront',
+  } as const;
 
   return (
-    <section ref={ref} className="lg:hidden relative bg-[color:var(--ce-bg)] py-16">
+    <section className="lg:hidden relative bg-[color:var(--ce-bg)] py-20">
       <div className="px-4 sm:px-6 max-w-xl mx-auto">
-        <p className="text-xs text-muted font-medium uppercase tracking-[0.18em] inline-flex items-center gap-2">
+        <motion.p
+          initial={{ opacity: 0, y: 8 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-40px' }}
+          transition={{ duration: 0.4 }}
+          className="text-xs text-muted font-medium uppercase tracking-[0.18em] inline-flex items-center gap-2"
+        >
           <Icon name="sparkles" size={14} className="text-ink/60" />
           Así funciona
-        </p>
-        <h2 className="ce-display mt-3 text-3xl sm:text-4xl font-bold leading-[1.05] tracking-tight">
+        </motion.p>
+        <motion.h2
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-40px' }}
+          transition={{ duration: 0.55, delay: 0.05, ease: [0.2, 0.8, 0.2, 1] }}
+          className="ce-display mt-3 text-3xl sm:text-4xl font-bold leading-[1.05] tracking-tight"
+        >
           Del antojo al pedido<br />
           en <span className="text-ink/60">cuatro pasos</span>.
-        </h2>
+        </motion.h2>
 
-        {/* Phone sticky compact arriba de los steps mientras se scrollea la lista.
-            Top 4rem para no chocar con el sticky header del search bar. */}
-        <div className="sticky top-16 z-10 mt-8 flex justify-center pointer-events-none">
-          <PhoneShell progress={scrollYProgress} compact />
-        </div>
-
-        <ol className="mt-6 space-y-8 relative">
+        <ol className="mt-10 space-y-3">
           {STEPS.map((s, i) => (
-            <MobileStep key={s.title} index={i} step={s} progress={scrollYProgress} />
+            <motion.li
+              key={s.title}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ duration: 0.5, delay: i * 0.08, ease: [0.2, 0.8, 0.2, 1] }}
+              className="group flex gap-4 items-start rounded-2xl border border-line bg-white p-4 hover:border-ink/30 transition-colors"
+            >
+              {/* Icono grande representativo del paso */}
+              <div className="shrink-0 w-12 h-12 rounded-xl bg-[color:var(--ce-bg)] border border-line grid place-items-center text-ink/80 group-hover:scale-110 transition-transform">
+                <Icon name={STEP_ICONS[s.accent as keyof typeof STEP_ICONS]} size={20} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-medium tracking-widest text-muted">
+                    0{i + 1}
+                  </span>
+                  <span className="w-1 h-1 rounded-full bg-muted/50" />
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-muted font-medium">
+                    {s.accent}
+                  </p>
+                </div>
+                <h3 className="ce-display text-lg font-bold mt-1.5 leading-tight">
+                  {s.title}
+                </h3>
+                <p className="text-sm text-muted mt-1.5 leading-relaxed">
+                  {s.desc}
+                </p>
+              </div>
+            </motion.li>
           ))}
         </ol>
       </div>
     </section>
-  );
-}
-
-function MobileStep({
-  index, step, progress,
-}: {
-  index: number;
-  step: typeof STEPS[number];
-  progress: MotionValue<number>;
-}) {
-  const total = STEPS.length;
-  const start = index / total;
-  const end   = (index + 1) / total;
-  const opacity = useTransform(progress, [start - 0.1, start, end, end + 0.1], [0.4, 1, 1, 0.4]);
-  const barH = useTransform(progress, [start, end], ['0%', '100%']);
-
-  return (
-    <motion.li style={{ opacity }} className="flex gap-4 items-start">
-      <div className="relative shrink-0 w-8 flex flex-col items-center">
-        <span className="text-[10px] font-medium tracking-widest text-muted">
-          0{index + 1}
-        </span>
-        <span className="mt-2 w-px flex-1 bg-line relative h-16">
-          <motion.span
-            style={{ height: barH }}
-            className="absolute left-0 top-0 w-px bg-ink origin-top"
-          />
-        </span>
-      </div>
-      <div className="-mt-0.5 flex-1">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-muted font-medium">{step.accent}</p>
-        <h3 className="ce-display text-xl font-bold mt-1 leading-tight">{step.title}</h3>
-        <p className="text-sm text-muted mt-1.5 leading-relaxed">{step.desc}</p>
-      </div>
-    </motion.li>
   );
 }
 

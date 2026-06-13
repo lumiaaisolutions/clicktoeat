@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Field, Textarea, Switch } from '@/components/ui/FormField';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
+import { cn } from '@/lib/utils';
 import { ImageUpload } from '@/components/admin/ImageUpload';
 import { LocationPicker } from '@/components/admin/LocationPicker';
 
@@ -160,9 +161,9 @@ export default function BrandingPage() {
               <p className="block text-sm font-medium mb-2">Métodos de pago aceptados</p>
               <div className="flex flex-col gap-2">
                 {([
-                  { value: 'efectivo',        label: '💵 Efectivo' },
-                  { value: 'tarjeta_entrega', label: '💳 Tarjeta a la entrega' },
-                  { value: 'transferencia',   label: '📲 Transferencia / SPEI' },
+                  { value: 'efectivo',        label: 'Efectivo' },
+                  { value: 'tarjeta_entrega', label: 'Tarjeta a la entrega' },
+                  { value: 'transferencia',   label: 'Transferencia / SPEI' },
                 ] as const).map(({ value, label }) => {
                   const activos = draft.metodos_pago ?? ['efectivo', 'tarjeta_entrega', 'transferencia'];
                   const checked = activos.includes(value);
@@ -193,36 +194,104 @@ export default function BrandingPage() {
           </Section>
         </div>
 
-        {/* Live preview */}
+        {/* Live preview — refleja el rediseño real de la landing /[slug] */}
         <aside className="lg:col-span-1">
           <div className="sticky top-6">
             <p className="text-xs uppercase tracking-wider text-muted mb-2">Vista previa</p>
-            <div className="rounded-3xl border border-line overflow-hidden shadow-soft" style={previewVars}>
-              <div
-                className="h-32 bg-cover bg-center"
-                style={{ backgroundImage: draft.banner_url ? `url(${draft.banner_url})` : undefined, background: !draft.banner_url ? 'linear-gradient(135deg, #ddd, #f3f3ee)' : undefined }}
-              />
-              <div className="p-4">
-                <div className="flex items-center gap-3">
-                  {draft.logo_url && (
-                    <img src={draft.logo_url} className="w-10 h-10 rounded-full border-2 border-white -mt-10 bg-white object-cover" />
-                  )}
-                  <div className="ce-display font-bold">{draft.nombre || 'Tu local'}</div>
+            <div className="rounded-3xl border border-line overflow-hidden shadow-soft bg-surface" style={previewVars}>
+              {/* HERO con banner + gradient overlay + logo + nombre + pill abierto */}
+              <div className="relative h-44 overflow-hidden">
+                <div
+                  className="absolute inset-0 bg-cover bg-center"
+                  style={{
+                    backgroundImage: draft.banner_url ? `url(${draft.banner_url})` : undefined,
+                    background: !draft.banner_url ? 'linear-gradient(135deg, #ddd, #f3f3ee)' : undefined,
+                  }}
+                />
+                {/* Gradient overlay para legibilidad */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
+                {/* Pill ABIERTO superior izquierda */}
+                <div className="absolute top-3 left-3">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/95 text-white text-[10px] font-semibold backdrop-blur shadow-sm">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white halo-pulse" />
+                    Abierto
+                  </span>
                 </div>
-                <p className="text-xs mt-2 opacity-70">{draft.tagline || 'Tu tagline aparecerá aquí'}</p>
-                <button
-                  className="mt-3 w-full py-2 rounded-xl text-white text-sm font-medium"
+                {/* Logo + Nombre inferior */}
+                <div className="absolute left-3 right-3 bottom-3 text-white">
+                  {draft.logo_url && (
+                    <img
+                      src={draft.logo_url}
+                      className="w-11 h-11 rounded-xl border-2 border-white shadow-md bg-white object-cover mb-2"
+                      alt=""
+                    />
+                  )}
+                  <div className="ce-display font-bold text-lg leading-tight truncate">
+                    {draft.nombre || 'Tu local'}
+                  </div>
+                  {draft.tagline && (
+                    <p className="text-[10px] opacity-90 line-clamp-1 mt-0.5">{draft.tagline}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* CHIPS de categorías */}
+              <div className="px-3 pt-3 pb-1 flex gap-1.5 overflow-hidden">
+                {['Destacados', 'Bebidas', 'Postres'].map((c, i) => (
+                  <span
+                    key={c}
+                    className={cn(
+                      'text-[9px] font-medium px-2 py-1 rounded-full whitespace-nowrap border',
+                      i === 0
+                        ? 'text-white border-transparent'
+                        : 'bg-surface border-line text-ink/70',
+                    )}
+                    style={i === 0 ? { background: 'var(--ce-accent)' } : undefined}
+                  >
+                    {c}
+                  </span>
+                ))}
+              </div>
+
+              {/* PRODUCTO card mini */}
+              <div className="px-3 py-2">
+                <div className="rounded-xl border border-line bg-surface p-2 flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-100 to-amber-200 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-semibold truncate">Producto destacado</p>
+                    <p className="text-[10px] text-muted">$ 0.00</p>
+                  </div>
+                  <div
+                    className="text-[9px] uppercase tracking-wider px-2 py-1 rounded-lg text-white font-bold"
+                    style={{ background: 'var(--ce-accent)' }}
+                  >
+                    Ver
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer barra cart flotante mini */}
+              <div className="px-3 pb-3 pt-1">
+                <div
+                  className="rounded-xl text-white text-[10px] font-semibold py-2 px-3 flex items-center justify-between"
                   style={{ background: 'var(--ce-accent)' }}
                 >
-                  Pedir por WhatsApp
-                </button>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="w-4 h-4 rounded-full bg-white/20 grid place-items-center text-[8px] font-bold">
+                      1
+                    </span>
+                    producto
+                  </span>
+                  <span>$ 0.00 →</span>
+                </div>
               </div>
             </div>
+
             <a
               href={local.public_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-flex items-center justify-center gap-1.5 w-full text-center text-sm underline"
+              className="mt-3 inline-flex items-center justify-center gap-1.5 w-full text-center text-sm underline hover:text-[color:var(--ce-accent)] transition"
             >
               Ver landing real
               <Icon name="arrow-up-right" size={13} />

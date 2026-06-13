@@ -146,10 +146,12 @@ if (( SKIP_MIGRATE == 0 )); then
 fi
 
 log "Reconstruyendo caches productivos..."
+# view:cache se omite porque este es un API puro sin Blade. Si se incluye,
+# Symfony Finder explota porque resources/views no existe. config:cache y
+# route:cache son los que realmente importan.
 remote "cd ${REMOTE_API_PATH} && \
     php artisan config:cache && \
-    php artisan route:cache && \
-    php artisan view:cache" \
+    php artisan route:cache" \
     || fail "Construcción de caches falló"
 
 # ─── Health check post-deploy ─────────────────────────────────
