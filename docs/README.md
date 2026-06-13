@@ -61,6 +61,8 @@ Documentación viva del proyecto. **Regla**: cada tema vive en su propio `.md` d
 - [Uploads de imágenes](features/uploads.md)
 - [Branding / personalización](features/branding.md)
 - [QR del menú](features/qr.md)
+- [**SaaS Billing** — Stripe Checkout + suscripciones](features/saas-billing.md) — 3 planes con trial 14 d
+- [**Feature gating** — qué módulo desbloquea cada plan](features/feature-gating.md)
 
 ### Modelos
 - [Local](models/local.md)
@@ -131,6 +133,7 @@ Documentación viva del proyecto. **Regla**: cada tema vive en su propio `.md` d
 - [ADR-008: Idempotency-Key como header opcional](decisions/ADR-008-idempotency-key.md)
 - [ADR-009: Audit log con Observers (no event sourcing)](decisions/ADR-009-audit-log-via-observers.md)
 - [ADR-010: Rate limit por tenant en endpoints públicos críticos](decisions/ADR-010-rate-limit-por-tenant.md)
+- [ADR-011: SaaS con 3 planes pagados y feature gating](decisions/ADR-011-saas-pricing-and-feature-gating.md)
 
 ### Runbooks
 - [Rotar `APP_KEY`](runbook/rotar-app-key.md)
@@ -145,6 +148,8 @@ Documentación viva del proyecto. **Regla**: cada tema vive en su propio `.md` d
 - [Configurar MAIL con Hostinger Email](runbook/setup-mail-hostinger.md)
 - [Migrar uploads de filesystem a S3/B2](runbook/migrar-uploads-a-s3-b2.md)
 - [Reemplazar polling con Reverb (tiempo real)](runbook/integrar-reverb.md)
+- [**Configurar Stripe** — productos, precios, webhook, portal](runbook/configurar-stripe.md)
+- [**Cambiar precio de un plan** — procedimiento ops](runbook/cambiar-precio-plan.md)
 - [Postmortems — índice + template](runbook/postmortems/README.md)
 - [Drills — índice + template](runbook/drills/README.md)
 

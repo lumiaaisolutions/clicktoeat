@@ -6,6 +6,39 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+### Added — Plan SaaS documentado (junio 2026, pre-implementación)
+
+- **`docs/decisions/ADR-011-saas-pricing-and-feature-gating.md`** — decisión de
+  convertir ClickToEat en SaaS con tres planes ($99 Esencial, $299 Profesional,
+  $499 Premium MXN/mes), trial 14 días sin tarjeta, Stripe Checkout, slug bajo
+  dominio principal.
+- **`docs/features/saas-billing.md`** — arquitectura del módulo: tablas
+  (`plans`, extensiones a `locales`, `subscription_events`), modelos, endpoints
+  (`/billing/checkout`, `/billing/session/{id}`, `/onboarding/{step}`,
+  `/webhooks/stripe`, `/billing/portal`), handlers de webhooks por tipo de
+  evento, flujo end-to-end con diagrama, plan de implementación por fases
+  (~13 días dev), métricas SaaS a trackear (MRR, churn, LTV).
+- **`docs/features/feature-gating.md`** — catálogo de 13 feature keys + 3
+  límites cuantitativos (`max_productos`, `max_categorias`, `max_staff`),
+  middleware `RequiresFeature` con `402 Payment Required`, Policies con
+  `PlanLimitException`, store frontend `usePlan` con `has(feature)`,
+  componentes `<LockedFeature>` (overlay blureado, no oculta) y `<UpgradeCard>`,
+  sidebar con candado, banner de trial countdown, errores 402 codificados
+  (`FEATURE_LOCKED`, `PLAN_LIMIT`, `PLAN_INACTIVE`).
+- **`docs/runbook/configurar-stripe.md`** — setup paso a paso del Stripe
+  Dashboard (crear 3 productos + precios recurring MXN, obtener API keys,
+  configurar webhook con 7 eventos, Customer Portal con cancelación + cambio
+  de plan, Tax/IVA con RFC, pegar variables al `.env`, correr seeder, probar
+  flujo end-to-end con tarjeta `4242 4242 4242 4242`, pasar Test → Live).
+- **`docs/runbook/cambiar-precio-plan.md`** — procedimiento ops para subir
+  precios con grandfathering vs migración masiva, las 3 estrategias, comando
+  `saas:migrar-subscripciones` con prorrateo, requisitos legales (30 días
+  aviso por LFPC México), errores que evitar (editar `unit_amount` de un
+  Price existente, borrar Price con subscriptions activas).
+
+> **Implementación no iniciada**: los 5 archivos describen el plan completo.
+> Ver ADR-011 para la decisión y `saas-billing.md` para el plan por fases.
+
 ### Added — Frontend landing v2 (junio 2026)
 
 - **`apps/web/src/components/landing/BurgerSequence.tsx`** — image-sequence
