@@ -86,12 +86,52 @@ export default function BrandingPage() {
 
   return (
     <div>
-      <header className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <div>
-          <h1 className="ce-display text-2xl md:text-4xl font-bold">Branding</h1>
-          <p className="text-muted text-sm mt-1">Personaliza cómo se ve tu landing pública.</p>
+      {/* HERO estilo landing — kicker + headline grande + tagline + CTA save */}
+      <header className="relative mb-8 sm:mb-10 overflow-hidden rounded-3xl border border-line bg-gradient-to-br from-white via-[color:var(--ce-bg)] to-white px-6 sm:px-8 py-8 sm:py-10">
+        {/* Orbs decorativos sutiles — mismo lenguaje visual del landing */}
+        <div aria-hidden className="absolute inset-0 pointer-events-none opacity-40">
+          <div className="hero-orb" style={{ background: '#FF2D2D', width: 280, height: 280, top: -100, right: -60 }} />
+          <div className="hero-orb" style={{ background: '#10b981', width: 220, height: 220, bottom: -100, left: '20%', opacity: 0.4 }} />
         </div>
-        <Button onClick={onSave} loading={saving}>Guardar cambios</Button>
+
+        <div className="relative flex items-end justify-between gap-4 flex-wrap">
+          <div className="max-w-2xl">
+            <p className="text-xs text-muted font-medium uppercase tracking-[0.18em] inline-flex items-center gap-2">
+              <Icon name="sparkles" size={14} className="text-[color:var(--ce-accent)]" />
+              Branding
+            </p>
+            <h1 className="ce-display mt-2 text-3xl sm:text-4xl md:text-5xl font-bold leading-[1.05] tracking-tight">
+              Personaliza cómo se ve<br />
+              <span className="gradient-text">tu landing pública.</span>
+            </h1>
+            <p className="mt-3 text-sm sm:text-base text-muted">
+              Identidad, imágenes, colores, contacto y redes — todo lo que tu cliente verá al abrir tu URL.
+            </p>
+          </div>
+
+          {/* CTA save con estilo del landing */}
+          <button
+            onClick={onSave}
+            disabled={saving}
+            className={cn(
+              'group inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-white text-sm sm:text-base font-medium transition tap-target shrink-0',
+              saving ? 'bg-ink/50 cursor-wait' : 'bg-ink hover:bg-ink/90 shadow-lg',
+            )}
+          >
+            {saving ? (
+              <>
+                <Icon name="compass" size={16} className="animate-spin" />
+                Guardando…
+              </>
+            ) : (
+              <>
+                <Icon name="check" size={16} />
+                Guardar cambios
+                <Icon name="arrow-right" size={16} className="group-hover:translate-x-0.5 transition" />
+              </>
+            )}
+          </button>
+        </div>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -312,16 +352,22 @@ function Section({
   hint?: string;
 }) {
   return (
-    <section className="group rounded-3xl border border-line bg-white p-5 sm:p-6 hover:border-ink/30 hover:shadow-soft transition">
+    <section className="group relative rounded-3xl border border-line bg-white p-5 sm:p-6 hover:border-ink/30 hover:shadow-glass transition-all duration-300">
+      {/* Indicador accent rojo top-left que aparece on hover */}
+      <span
+        aria-hidden
+        className="absolute top-0 left-6 w-12 h-[3px] rounded-b-full bg-[color:var(--ce-accent)] origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500"
+      />
+
       <header className="flex items-start gap-3 mb-5 pb-4 border-b border-line">
         {icon && (
-          <span className="shrink-0 w-10 h-10 rounded-xl bg-[color:var(--ce-bg)] border border-line grid place-items-center text-ink/80 group-hover:bg-ink group-hover:text-white group-hover:border-transparent transition">
+          <span className="shrink-0 w-11 h-11 rounded-2xl bg-[color:var(--ce-bg)] border border-line grid place-items-center text-ink/80 group-hover:bg-ink group-hover:text-white group-hover:border-transparent group-hover:scale-105 transition-all duration-300">
             <Icon name={icon} size={18} />
           </span>
         )}
         <div className="flex-1 min-w-0">
-          <h2 className="ce-display font-bold text-lg leading-tight">{title}</h2>
-          {hint && <p className="text-xs text-muted mt-0.5">{hint}</p>}
+          <h2 className="ce-display font-bold text-lg leading-tight tracking-tight">{title}</h2>
+          {hint && <p className="text-xs text-muted mt-0.5 leading-relaxed">{hint}</p>}
         </div>
       </header>
       {children}

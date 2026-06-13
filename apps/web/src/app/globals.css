@@ -193,3 +193,78 @@ body {
 
 /* Smooth section scroll */
 html { scroll-behavior: smooth; }
+
+/* ─────────── Social cards 3D (footer landing local) ───────────
+ *
+ * Tarjetas isométricas inclinadas con pseudo-elementos para lados 3D.
+ * Hover: levanta + sombra más profunda + cambia al color de la red.
+ * Cada red define su color con la CSS var --brand del elemento.
+ */
+.social-3d {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  background: #fff;
+  color: #262626;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transform: rotate(-12deg) skewX(8deg);
+  box-shadow: -12px 12px 16px rgba(0, 0, 0, 0.18);
+  transition: transform 350ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              box-shadow 350ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              background 350ms ease, color 350ms ease;
+  border-radius: 6px;
+  min-width: 180px;
+  isolation: isolate;
+}
+.social-3d::before,
+.social-3d::after {
+  content: '';
+  position: absolute;
+  background: rgba(0, 0, 0, 0.12);
+  transition: background 350ms ease;
+  z-index: -1;
+}
+.social-3d::before {
+  top: 6px;
+  left: -12px;
+  height: 100%;
+  width: 12px;
+  transform: skewY(-45deg);
+}
+.social-3d::after {
+  bottom: -12px;
+  left: -6px;
+  height: 12px;
+  width: 100%;
+  transform: skewX(-45deg);
+}
+.social-3d:hover {
+  transform: rotate(-12deg) skewX(8deg) translate(12px, -10px);
+  box-shadow: -28px 28px 28px rgba(0, 0, 0, 0.28);
+  background: var(--brand, #262626);
+  color: #fff;
+}
+.social-3d:hover::before {
+  background: var(--brand-dark, rgba(0, 0, 0, 0.3));
+}
+.social-3d:hover::after {
+  background: var(--brand-light, rgba(0, 0, 0, 0.18));
+}
+
+/* En mobile reducimos inclinación para que las tarjetas no se encimen */
+@media (max-width: 640px) {
+  .social-3d {
+    transform: rotate(-6deg) skewX(4deg);
+    box-shadow: -8px 8px 10px rgba(0, 0, 0, 0.15);
+    padding: 0.85rem 1.25rem;
+    font-size: 0.85rem;
+    min-width: 150px;
+  }
+  .social-3d:hover {
+    transform: rotate(-6deg) skewX(4deg) translate(6px, -5px);
+  }
+}

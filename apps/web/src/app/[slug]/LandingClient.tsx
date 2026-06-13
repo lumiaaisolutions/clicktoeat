@@ -292,32 +292,45 @@ export function LandingClient({ menu }: Props) {
             <h3 className="ce-display mt-2 text-2xl sm:text-3xl font-bold leading-tight">
               También estamos en redes
             </h3>
-            <div className="mt-5 flex flex-wrap gap-2.5">
-              {local.redes.ig && (
-                <SocialPill
-                  href={local.redes.ig.startsWith('http') ? local.redes.ig : `https://instagram.com/${local.redes.ig.replace(/^@/, '')}`}
-                  label="Instagram"
-                  icon="instagram"
-                  gradient="linear-gradient(135deg, #f9a825 0%, #e91e8c 50%, #9c27b0 100%)"
-                />
-              )}
+            <ul className="mt-8 flex flex-wrap items-start gap-6 sm:gap-10 list-none pl-0">
               {local.redes.fb && (
-                <SocialPill
-                  href={local.redes.fb.startsWith('http') ? local.redes.fb : `https://facebook.com/${local.redes.fb}`}
-                  label="Facebook"
-                  icon="facebook"
-                  gradient="#1877f2"
-                />
+                <li>
+                  <SocialCard3D
+                    href={local.redes.fb.startsWith('http') ? local.redes.fb : `https://facebook.com/${local.redes.fb}`}
+                    label="Facebook"
+                    icon="facebook"
+                    brand="#1877f2"
+                    brandDark="#0e58b8"
+                    brandLight="#4287e0"
+                  />
+                </li>
+              )}
+              {local.redes.ig && (
+                <li>
+                  <SocialCard3D
+                    href={local.redes.ig.startsWith('http') ? local.redes.ig : `https://instagram.com/${local.redes.ig.replace(/^@/, '')}`}
+                    label="Instagram"
+                    icon="instagram"
+                    /* Gradient real de Instagram aplicado vía CSS var */
+                    brand="linear-gradient(135deg, #f9a825 0%, #e91e8c 50%, #9c27b0 100%)"
+                    brandDark="#a5215c"
+                    brandLight="#d34583"
+                  />
+                </li>
               )}
               {local.redes.tt && (
-                <SocialPill
-                  href={local.redes.tt.startsWith('http') ? local.redes.tt : `https://tiktok.com/@${local.redes.tt.replace(/^@/, '')}`}
-                  label="TikTok"
-                  icon="sparkles"
-                  gradient="#010101"
-                />
+                <li>
+                  <SocialCard3D
+                    href={local.redes.tt.startsWith('http') ? local.redes.tt : `https://tiktok.com/@${local.redes.tt.replace(/^@/, '')}`}
+                    label="TikTok"
+                    icon="sparkles"
+                    brand="#000000"
+                    brandDark="#222222"
+                    brandLight="#444444"
+                  />
+                </li>
               )}
-            </div>
+            </ul>
           </motion.div>
         )}
       </footer>
@@ -818,28 +831,40 @@ function DeliveryAddressInput({ direccion, onDireccionChange, onMapClick, lat, l
   );
 }
 
-/* ───── Social pill animada con icon ───── */
+/* ───── Social Card 3D — tarjetas isométricas inclinadas con lados 3D ─────
+ *
+ * CSS principal en globals.css (.social-3d). Aquí solo pasamos las CSS vars
+ * con los colores específicos de cada red (background hover + lado izq + lado inf).
+ * El gradient de Instagram se aplica también vía CSS var (background acepta
+ * tanto colores sólidos como gradients).
+ */
 
-function SocialPill({
-  href, label, icon, gradient,
-}: { href: string; label: string; icon: 'instagram' | 'facebook' | 'sparkles'; gradient: string }) {
+function SocialCard3D({
+  href, label, icon, brand, brandDark, brandLight,
+}: {
+  href: string;
+  label: string;
+  icon: 'instagram' | 'facebook' | 'sparkles';
+  brand: string;
+  brandDark: string;
+  brandLight: string;
+}) {
   return (
-    <motion.a
+    <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      whileHover={{ y: -2, scale: 1.03 }}
-      whileTap={{ scale: 0.95 }}
-      transition={{ type: 'spring', stiffness: 380, damping: 20 }}
-      className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-white text-sm font-semibold shadow-sm transition-shadow hover:shadow-md"
-      style={{ background: gradient }}
+      aria-label={label}
+      className="social-3d"
+      style={{
+        ['--brand' as string]: brand,
+        ['--brand-dark' as string]: brandDark,
+        ['--brand-light' as string]: brandLight,
+      }}
     >
-      <span className="w-5 h-5 rounded-md bg-white/20 grid place-items-center group-hover:rotate-6 transition-transform">
-        <Icon name={icon} size={12} />
-      </span>
+      <Icon name={icon} size={22} />
       {label}
-      <Icon name="arrow-up-right" size={12} className="opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition" />
-    </motion.a>
+    </a>
   );
 }
 
@@ -998,26 +1023,28 @@ function AccordionPanel({
         </span>
       )}
 
-      {/* Precio — pill grande con fondo opaco. Oculto cuando expandido porque
-          el total ya se muestra en el botón "Agregar · $XX". */}
+      {/* Precio — pill grande verde emerald, alto contraste sobre cualquier imagen.
+          Oculto cuando expandido porque el total ya vive en "Agregar · $XX". */}
       {!active && (
         <span
-          className="absolute top-3 right-3 z-10 px-3 py-1.5 rounded-full bg-ink text-white text-sm font-bold shadow-md ce-display tabular-nums"
+          className="absolute top-3 right-3 z-10 px-3 py-1.5 rounded-full bg-emerald-600 text-white text-sm font-bold shadow-lg ce-display tabular-nums ring-2 ring-emerald-500/40"
         >
           {formatMXN(producto.precio)}
         </span>
       )}
 
-      {/* CONTENIDO COLAPSADO — título vertical con writing-mode (todos los breakpoints).
-          writing-mode: vertical-rl + rotate-180 hace que el texto fluya de abajo hacia
-          arriba sin overflow ni clipping (vs rotate -90 que saca el texto del flujo). */}
+      {/* CONTENIDO COLAPSADO — título vertical legible de ABAJO HACIA ARRIBA con
+          letras orientadas correctamente. Patrón: container fijo de N px rotado
+          -90°, el texto dentro está en horizontal natural y trunca con ellipsis
+          si excede. Después de la rotación visualmente se ve vertical, legible
+          inclinando la cabeza hacia la izquierda (estándar idiomas occidentales). */}
       {!active && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-2">
-          <p
-            className="ce-display font-bold text-sm sm:text-base text-white text-center [writing-mode:vertical-rl] rotate-180 line-clamp-1 max-h-[80%] drop-shadow-md"
-          >
-            {producto.nombre}
-          </p>
+        <div className="absolute inset-0 grid place-items-center overflow-hidden pointer-events-none px-2">
+          <div className="-rotate-90 origin-center w-[340px] sm:w-[400px] overflow-hidden">
+            <p className="ce-display font-bold text-base sm:text-lg text-white text-center truncate drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] tracking-tight">
+              {producto.nombre}
+            </p>
+          </div>
         </div>
       )}
 
