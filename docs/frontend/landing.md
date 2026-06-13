@@ -2,6 +2,48 @@
 
 `apps/web/src/app/[slug]/page.tsx` + `LandingClient.tsx`.
 
+## Productos — Accordion expansible (junio 2026)
+
+El grid clásico de cards fue reemplazado por un **accordion estilo paneles**
+(inspirado en el patrón Traversy):
+
+- **Estado inicial**: todos los productos colapsados (flex 0.5 / altura mínima).
+- **Click en un panel** → se expande (flex 5), el resto vuelve a compacto.
+- **Panel expandido** muestra inline: título grande, descripción, selector
+  +/- de cantidad y botón "Agregar · $XX" (total dinámico).
+- **Panel colapsado** muestra: imagen de fondo + título (vertical en desktop,
+  horizontal en mobile) + precio sutil arriba a la derecha.
+- **Tag POPULAR** siempre visible arriba a la izquierda si el producto lo tiene.
+
+### Responsive
+
+| Breakpoint | Comportamiento |
+|------------|----------------|
+| `md+` | Flex horizontal — paneles a lo ancho, expansión lateral |
+| `<md` | Flex vertical — paneles apilados, expansión hacia abajo (altura 120px → 480px) |
+
+### UX justificación
+
+- 1 tap para ver detalle Y agregar → más rápido que tap → modal → cantidad → agregar.
+- El precio sutil cuando colapsado evita saturar visual; cuando expandido, el total
+  vive en el botón "Agregar · $XX".
+- La X de cerrar solo aparece cuando hay panel activo, en la esquina superior derecha.
+- Tras "Agregar" el panel se colapsa automáticamente y se abre el cart drawer.
+
+### Por qué no modal aparte
+
+Antes había un `ProductPreview` modal. Tradeoffs:
+
+| | Modal aparte | Accordion inline |
+|---|---|---|
+| Taps para agregar 1 producto | 3 | 1-2 |
+| Mobile UX | Bottom sheet ok | Más natural — sin overlay |
+| Vista del menú completo | Se oculta | Se mantiene como contexto |
+| Animación | Slide-up de modal | Expansion lateral / vertical |
+
+El accordion gana en velocidad y en mantener el menú visible. El componente
+`ProductPreview` legacy queda en el archivo pero ya no se monta.
+
 ## Flujo
 
 ```

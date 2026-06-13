@@ -36,7 +36,6 @@ export function LandingClient({ menu }: Props) {
   const [activeCat, setActiveCat] = useState(categorias[0]?.slug ?? null);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [previewProduct, setPreviewProduct] = useState<typeof productos[number] | null>(null);
   // El carrito vive en localStorage (Zustand persist). En SSR está vacío y al
   // hidratar lee localStorage → si tiene items, el HTML del cliente difiere
   // del server (hydration error). Marcamos `mounted` y SOLO leemos el carrito
@@ -203,90 +202,25 @@ export function LandingClient({ menu }: Props) {
         </div>
       </nav>
 
-      {/* PRODUCTOS — 1 col mobile, 2 cols tablet+ */}
-      <section className="max-w-5xl mx-auto px-3 sm:px-4 py-6 sm:py-10 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5">
-        <AnimatePresence mode="popLayout">
-          {productosFiltrados.map((p, i) => (
-            <motion.article
-              key={p.id}
-              layout
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.4, delay: Math.min(i * 0.04, 0.4), ease: [0.2, 0.8, 0.2, 1] }}
-              whileHover={{ y: -3 }}
-              className="group rounded-2xl sm:rounded-3xl bg-surface border border-line shadow-soft hover:shadow-glass overflow-hidden flex cursor-pointer transition-shadow"
-              onClick={() => setPreviewProduct(p)}
-            >
-              {p.imagen && (
-                <div className="w-24 sm:w-32 md:w-40 shrink-0 overflow-hidden">
-                  <img
-                    src={p.imagen}
-                    alt=""
-                    className="w-full h-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] group-hover:scale-110"
-                  />
-                </div>
-              )}
-              <div className="flex-1 p-3 sm:p-4 flex flex-col min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="ce-display font-bold text-base sm:text-lg leading-tight line-clamp-1">{p.nombre}</h3>
-                  {p.tag && (
-                    <span
-                      className="text-[9px] sm:text-[10px] uppercase tracking-wider px-2 py-0.5 sm:py-1 rounded-full text-white whitespace-nowrap shrink-0 font-semibold"
-                      style={{ background: 'var(--ce-accent)' }}
-                    >
-                      {p.tag}
-                    </span>
-                  )}
-                </div>
-                {p.descripcion && (
-                  <p className="text-xs sm:text-sm text-muted mt-1 line-clamp-2">{p.descripcion}</p>
-                )}
-                <div className="mt-auto flex items-center justify-between pt-2 sm:pt-3 gap-2">
-                  <span className="font-bold text-sm sm:text-base">{formatMXN(p.precio)}</span>
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-white text-sm font-medium whitespace-nowrap transition',
-                      cerrado ? 'bg-gray-300' : 'group-hover:scale-[1.03] group-hover:shadow-md',
-                    )}
-                    style={cerrado ? undefined : { background: 'var(--ce-accent)' }}
-                  >
-                    {cerrado ? (
-                      <Icon name="alert-triangle" size={14} />
-                    ) : (
-                      <>
-                        <Icon name="plus" size={14} />
-                        Ver
-                      </>
-                    )}
-                  </span>
-                </div>
-              </div>
-            </motion.article>
-          ))}
-        </AnimatePresence>
+      {/* PRODUCTOS — Accordion expansible (horizontal en md+, vertical en mobile) */}
+      <section className="max-w-5xl mx-auto px-3 sm:px-4 py-6 sm:py-10">
+        <ProductAccordion
+          productos={productosFiltrados}
+          cerrado={cerrado}
+          onAdd={(producto, qty) => {
+            cart.add({
+              productoId: producto.id,
+              nombre: producto.nombre,
+              precio: producto.precio,
+              imagen: producto.imagen,
+              extras: [],
+              lineKey: `${producto.id}`,
+              cantidad: qty,
+            });
+            setCartOpen(true);
+          }}
+        />
       </section>
-
-      {/* PRODUCT PREVIEW MODAL */}
-      <ProductPreview
-        product={previewProduct}
-        cerrado={cerrado}
-        onClose={() => setPreviewProduct(null)}
-        onAdd={(qty) => {
-          if (!previewProduct) return;
-          cart.add({
-            productoId: previewProduct.id,
-            nombre: previewProduct.nombre,
-            precio: previewProduct.precio,
-            imagen: previewProduct.imagen,
-            extras: [],
-            lineKey: `${previewProduct.id}`,
-            cantidad: qty,
-          });
-          setPreviewProduct(null);
-          setCartOpen(true);
-        }}
-      />
 
       {/* FOOTER INFO — card de estado + redes sociales prominentes */}
       <footer className="max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-16 space-y-8">
@@ -912,6 +846,224 @@ function SocialPill({
 /* ───── Product Preview (bottom sheet con selector de cantidad) ───── */
 
 type Producto = MenuResponse['data']['productos'][number];
+
+/* ───── Product Accordion (panels que se expanden al click) ─────
+ *
+ * Inspirado en el patrón clásico de Brad Traversy:
+ * - Estado inicial: todos los paneles con flex: 0.5 (compactos)
+ * - Click en un panel → ese pasa a flex: 5 (expandido), los otros vuelven a 0.5
+ * - El expandido muestra título grande, descripción, selector +/- y "Agregar"
+ * - Los compactos muestran solo el título vertical (rotado -90°) + precio sutil
+ *
+ * Responsive:
+ * - md+: flex-row horizontal (accordion lateral)
+ * - <md: flex-col vertical (acordeón apilado, el activo crece en altura)
+ *
+ * El panel activo NO requiere modal aparte — todo se hace inline. Más
+ * rápido (1 tap para ver detalle + agregar) y más mobile-friendly.
+ */
+function ProductAccordion({
+  productos, cerrado, onAdd,
+}: {
+  productos: Producto[];
+  cerrado: boolean;
+  onAdd: (producto: Producto, qty: number) => void;
+}) {
+  const [activeId, setActiveId] = useState<number | null>(null);
+  const [qty, setQty] = useState(1);
+
+  // Reset cantidad al cambiar de panel
+  useEffect(() => { setQty(1); }, [activeId]);
+
+  if (productos.length === 0) {
+    return (
+      <div className="rounded-2xl border border-line bg-surface p-10 text-center text-muted text-sm">
+        No hay productos en esta categoría.
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col md:flex-row gap-2 sm:gap-3 h-auto md:h-[480px]">
+      {productos.map((p) => (
+        <AccordionPanel
+          key={p.id}
+          producto={p}
+          active={activeId === p.id}
+          cerrado={cerrado}
+          qty={qty}
+          onActivate={() => setActiveId(activeId === p.id ? null : p.id)}
+          onChangeQty={setQty}
+          onAdd={() => {
+            onAdd(p, qty);
+            setActiveId(null);  // colapsar tras agregar
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function AccordionPanel({
+  producto, active, cerrado, qty, onActivate, onChangeQty, onAdd,
+}: {
+  producto: Producto;
+  active: boolean;
+  cerrado: boolean;
+  qty: number;
+  onActivate: () => void;
+  onChangeQty: (q: number) => void;
+  onAdd: () => void;
+}) {
+  return (
+    <motion.div
+      layout
+      transition={{ duration: 0.7, ease: [0.2, 0.8, 0.2, 1] }}
+      onClick={!active ? onActivate : undefined}
+      className={cn(
+        'relative rounded-2xl sm:rounded-3xl overflow-hidden shrink-0',
+        'bg-cover bg-center bg-ink/90',
+        active
+          ? 'cursor-default md:flex-[5] flex-none h-[480px] md:h-full'
+          : 'cursor-pointer md:flex-[0.5] flex-none h-[120px] md:h-full hover:opacity-95',
+      )}
+      style={{
+        backgroundImage: producto.imagen ? `url(${producto.imagen})` : undefined,
+        backgroundColor: producto.imagen ? undefined : 'var(--ce-ink)',
+      }}
+    >
+      {/* Gradient overlay para legibilidad */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10 pointer-events-none" />
+
+      {/* Tag POPULAR si aplica — esquina superior izquierda */}
+      {producto.tag && (
+        <span
+          className="absolute top-3 left-3 z-10 text-[10px] uppercase tracking-wider px-2 py-1 rounded-full text-white font-bold shadow-sm backdrop-blur"
+          style={{ background: 'var(--ce-accent)' }}
+        >
+          {producto.tag}
+        </span>
+      )}
+
+      {/* Precio — siempre visible cuando colapsado (sutil), oculto cuando expandido
+          porque el total ya se muestra en el botón "Agregar · $XX". */}
+      {!active && (
+        <span
+          className="absolute top-3 right-3 z-10 px-2.5 py-1 rounded-full backdrop-blur bg-white/15 text-white text-xs font-bold scale-90 opacity-85"
+        >
+          {formatMXN(producto.precio)}
+        </span>
+      )}
+
+      {/* CONTENIDO COLAPSADO — título vertical (desktop) o horizontal mini (mobile) */}
+      {!active && (
+        <>
+          {/* Mobile: título centrado horizontalmente */}
+          <div className="md:hidden absolute inset-x-0 bottom-3 px-4 text-white">
+            <p className="ce-display font-bold text-base sm:text-lg leading-tight line-clamp-1">
+              {producto.nombre}
+            </p>
+            {producto.descripcion && (
+              <p className="text-xs opacity-80 line-clamp-1 mt-0.5">
+                {producto.descripcion}
+              </p>
+            )}
+          </div>
+
+          {/* Desktop: título rotado -90 (vertical) */}
+          <div className="hidden md:flex absolute inset-x-0 bottom-6 justify-center">
+            <p className="ce-display font-bold text-base text-white whitespace-nowrap -rotate-90 origin-center translate-y-12">
+              {producto.nombre}
+            </p>
+          </div>
+        </>
+      )}
+
+      {/* CONTENIDO EXPANDIDO — título + descripción + selector + agregar */}
+      <AnimatePresence>
+        {active && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.45, delay: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
+            className="absolute inset-0 flex flex-col justify-end p-5 sm:p-6 text-white"
+          >
+            <h3 className="ce-display font-bold text-2xl sm:text-3xl md:text-4xl leading-tight">
+              {producto.nombre}
+            </h3>
+            {producto.descripcion && (
+              <p className="mt-2 text-sm sm:text-base opacity-90 leading-relaxed max-w-md">
+                {producto.descripcion}
+              </p>
+            )}
+
+            {/* Selector + botón agregar */}
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              {/* Cantidad selector */}
+              <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur rounded-full p-1.5">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onChangeQty(Math.max(1, qty - 1)); }}
+                  disabled={qty === 1}
+                  aria-label="Restar"
+                  className="w-9 h-9 rounded-full bg-white/20 grid place-items-center disabled:opacity-40 hover:bg-white/30 transition tap-target"
+                >
+                  <Icon name="minus" size={14} className="text-white" />
+                </button>
+                <span className="w-7 text-center font-bold tabular-nums text-lg">{qty}</span>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onChangeQty(qty + 1); }}
+                  aria-label="Sumar"
+                  className="w-9 h-9 rounded-full bg-white/20 grid place-items-center hover:bg-white/30 transition tap-target"
+                >
+                  <Icon name="plus" size={14} className="text-white" />
+                </button>
+              </div>
+
+              {/* CTA Agregar */}
+              <button
+                onClick={(e) => { e.stopPropagation(); if (!cerrado) onAdd(); }}
+                disabled={cerrado}
+                className={cn(
+                  'flex-1 min-w-[180px] inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full font-medium tap-target transition',
+                  cerrado
+                    ? 'bg-white/20 text-white/60 cursor-not-allowed'
+                    : 'bg-white text-ink hover:scale-[1.02] active:scale-95 shadow-lg',
+                )}
+              >
+                {cerrado ? (
+                  <>
+                    <Icon name="alert-triangle" size={16} />
+                    Cerrado
+                  </>
+                ) : (
+                  <>
+                    <Icon name="plus" size={16} />
+                    Agregar · {formatMXN(producto.precio * qty)}
+                  </>
+                )}
+              </button>
+
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Cerrar panel (X) — siempre arriba a la derecha cuando activo */}
+      {active && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onActivate(); }}
+          aria-label="Cerrar"
+          className="absolute top-3 right-3 w-10 h-10 rounded-full bg-white/15 backdrop-blur grid place-items-center hover:bg-white/30 transition z-30"
+        >
+          <Icon name="x" size={16} className="text-white" />
+        </button>
+      )}
+    </motion.div>
+  );
+}
+
+/* ───── ProductPreview legacy (mantenido por si se usa en otro lado) ───── */
 
 function ProductPreview({
   product, cerrado, onClose, onAdd,
