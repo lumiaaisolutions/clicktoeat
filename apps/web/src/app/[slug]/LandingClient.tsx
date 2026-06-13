@@ -7,7 +7,7 @@ import { useCart } from '@/store/cart';
 import { buildWhatsAppUrl } from '@/lib/whatsapp';
 import { cn, formatMXN } from '@/lib/utils';
 import type { MenuResponse } from '@/lib/api';
-import { Icon } from '@/components/ui/Icon';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import 'leaflet/dist/leaflet.css';
 
 const LeafletMap = dynamic(() => import('@/components/admin/LeafletMap'), { ssr: false, loading: () => <div className="h-48 rounded-xl border border-line bg-line/30 animate-pulse" /> });
@@ -204,24 +204,21 @@ export function LandingClient({ menu }: Props) {
         );
       })()}
 
-      {/* CATEGORÍAS — chips horizontales con snap */}
+      {/* CATEGORÍAS — tabs estilo botón premium: gradient + icono sobresaliendo
+          + sombra realista. Centrados horizontalmente. Color del local. */}
       <nav className="sticky top-0 z-30 glass border-b border-line">
-        <div className="max-w-5xl mx-auto px-2 sm:px-4 py-2 sm:py-3 flex gap-2 overflow-x-auto scroll-x-snap no-scrollbar">
-          {categorias.map((c) => (
-            <button
-              key={c.slug}
-              onClick={() => setActiveCat(c.slug)}
-              className={cn(
-                'px-3 sm:px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition border shrink-0 tap-target',
-                activeCat === c.slug
-                  ? 'text-white border-transparent'
-                  : 'bg-surface border-line hover:border-ink/40',
-              )}
-              style={activeCat === c.slug ? { background: 'var(--ce-accent)' } : undefined}
-            >
-              {c.nombre}
-            </button>
-          ))}
+        <div className="max-w-5xl mx-auto px-2 sm:px-4 py-4 sm:py-5">
+          <div className="flex flex-wrap justify-center items-center gap-5 sm:gap-7">
+            {categorias.map((c) => (
+              <CategoryButton
+                key={c.slug}
+                nombre={c.nombre}
+                icon={(c.icono as IconName | undefined) ?? iconForCategoria(c.nombre)}
+                active={activeCat === c.slug}
+                onClick={() => setActiveCat(c.slug)}
+              />
+            ))}
+          </div>
         </div>
       </nav>
 
@@ -1292,4 +1289,80 @@ function ProductPreview({
       )}
     </AnimatePresence>
   );
+}
+
+/* ───── Category Button — estilo botón premium con icono sobresaliendo ─────
+ *
+ * Inspirado en el patrón "Contact button" con icono 3D que asoma. El color
+ * de fondo del botón activo viene del CSS var --ce-accent (lo configura el
+ * dueño desde /admin/branding). El icono inactivo es sutilmente más chico
+ * y sin gradient.
+ */
+
+function CategoryButton({
+  nombre, icon, active, onClick,
+}: { nombre: string; icon: IconName; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'group relative inline-flex items-center gap-2 px-5 sm:px-6 py-3 rounded-2xl whitespace-nowrap tap-target',
+        'text-sm font-semibold transition-all duration-300',
+        active
+          ? 'text-white shadow-[0_10px_24px_-8px_rgba(0,0,0,0.35)] hover:-translate-y-0.5 hover:shadow-[0_18px_32px_-10px_rgba(0,0,0,0.45)]'
+          : 'bg-surface text-ink border border-line hover:border-ink/40 hover:-translate-y-0.5 hover:shadow-md',
+      )}
+      style={
+        active
+          ? {
+              background:
+                'linear-gradient(135deg, var(--ce-accent) 0%, color-mix(in srgb, var(--ce-accent) 70%, black) 100%)',
+            }
+          : undefined
+      }
+    >
+      <span className="pr-1">{nombre}</span>
+
+      {/* Icono que "sobresale" del botón — posición top-right con escala mayor
+          que el botón, rotación sutil y sombra propia. Crea la sensación 3D. */}
+      <span
+        className={cn(
+          'relative -mr-3 -my-3 grid place-items-center w-11 h-11 rounded-2xl shrink-0',
+          'shadow-[0_6px_16px_-4px_rgba(0,0,0,0.35)] transition-transform duration-300',
+          'rotate-[8deg] group-hover:rotate-[16deg] group-hover:scale-110',
+          active
+            ? 'bg-white text-ink'
+            : 'bg-ink text-white',
+        )}
+        style={
+          active
+            ? {
+                color: 'var(--ce-accent)',
+              }
+            : undefined
+        }
+      >
+        <Icon name={icon} size={20} />
+      </span>
+    </button>
+  );
+}
+
+/* Heurística para inferir un icono cuando la categoría aún no tiene uno
+   asignado en BD. Mira palabras clave del nombre. */
+function iconForCategoria(nombre: string): IconName {
+  const n = nombre.toLowerCase();
+  if (/(postre|pastel|cake|brownie|cookie|galleta|repost)/.test(n)) return 'cake';
+  if (/(helado|nieve|ice|sorbete)/.test(n)) return 'ice-cream';
+  if (/(pizza)/.test(n)) return 'pizza';
+  if (/(café|cafe|coffee|capuchino|latte|mocha|chocolate)/.test(n)) return 'coffee';
+  if (/(cerveza|beer|alcohol|tragos|coctel|cóctel)/.test(n)) return 'beer';
+  if (/(bebida|agua|jugo|refresco|soda|smoothie|malteada|frapp)/.test(n)) return 'coffee';
+  if (/(ensalad|vegan|veggie|saludab|sano|fit|verde)/.test(n)) return 'salad';
+  if (/(picante|spicy|hot|flam|asado|parrilla|carnes?)/.test(n)) return 'flame';
+  if (/(promo|oferta|combo|deal)/.test(n)) return 'sparkles';
+  if (/(destacad|popular|especial|chef|recomend)/.test(n)) return 'star-filled';
+  if (/(taco|burrito|quesadilla|enchilada|tortilla|mexican)/.test(n)) return 'utensils';
+  if (/(hamburguesa|burger|sandwich|hot ?dog|pita)/.test(n)) return 'utensils';
+  return 'utensils';
 }

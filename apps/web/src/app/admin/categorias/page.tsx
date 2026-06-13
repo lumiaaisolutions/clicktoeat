@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/Button';
 import { Field, Switch } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { IconPicker } from '@/components/ui/IconPicker';
+import { Icon, type IconName } from '@/components/ui/Icon';
 
 export default function CategoriasPage() {
   const [items, setItems] = useState<Categoria[] | null>(null);
@@ -95,7 +97,16 @@ export default function CategoriasPage() {
               <tbody>
                 {items.map((c) => (
                   <tr key={c.id} className="border-t border-line">
-                    <td className="px-4 py-3 font-medium">{c.nombre}</td>
+                    <td className="px-4 py-3 font-medium">
+                      <span className="inline-flex items-center gap-2">
+                        {c.icono && (
+                          <span className="w-7 h-7 rounded-lg bg-[color:var(--ce-bg)] border border-line grid place-items-center text-ink/70 shrink-0">
+                            <Icon name={c.icono as IconName} size={14} />
+                          </span>
+                        )}
+                        {c.nombre}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 font-mono text-xs text-muted">{c.slug}</td>
                     <td className="px-4 py-3 text-right">{c.productos_count ?? 0}</td>
                     <td className="px-4 py-3 text-right">{c.orden}</td>
@@ -183,13 +194,21 @@ function CategoriaModal({
 
   return (
     <Modal open={open} onClose={onClose} title={categoria ? 'Editar categoría' : 'Nueva categoría'}>
-      <form onSubmit={onSubmit}>
+      <form onSubmit={onSubmit} className="space-y-4">
         <Field label="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} error={errors.nombre} required maxLength={80} />
-        <Field label="Icono (font-awesome)" value={icono} onChange={(e) => setIcono(e.target.value)} hint="p.ej. fa-pizza-slice" error={errors.icono} />
-        <Field label="Orden" type="number" value={orden} onChange={(e) => setOrden(Number(e.target.value))} error={errors.orden} />
+
+        <IconPicker
+          label="Icono"
+          hint="Aparece junto al nombre en los tabs de la landing pública."
+          value={(icono as IconName | '') || null}
+          onChange={(v) => setIcono(v)}
+        />
+        {errors.icono && <p className="text-xs text-red-600">{errors.icono}</p>}
+
+        <Field label="Orden" type="number" value={orden} onChange={(e) => setOrden(Number(e.target.value))} error={errors.orden} hint="Menor número aparece primero." />
         <Switch label="Activa" hint="Si se desactiva, no aparece en la landing pública" checked={activo} onChange={setActivo} />
 
-        <div className="flex gap-2 justify-end mt-4">
+        <div className="flex gap-2 justify-end pt-2 border-t border-line">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
           <Button type="submit" loading={saving}>Guardar</Button>
         </div>
