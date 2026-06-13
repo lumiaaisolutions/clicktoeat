@@ -1341,7 +1341,7 @@ function CategoryButton({
     <button
       onClick={onClick}
       className={cn(
-        'group relative inline-flex items-center gap-3 pl-5 sm:pl-6 pr-16 sm:pr-20 py-3 rounded-2xl whitespace-nowrap tap-target',
+        'group relative inline-flex items-center gap-3 pl-5 sm:pl-6 pr-20 sm:pr-24 py-3 rounded-2xl whitespace-nowrap tap-target',
         'text-sm font-semibold transition-all duration-300',
         active
           ? 'text-white shadow-[0_10px_24px_-8px_rgba(0,0,0,0.35)] hover:-translate-y-0.5 hover:shadow-[0_18px_32px_-10px_rgba(0,0,0,0.45)]'
@@ -1358,22 +1358,28 @@ function CategoryButton({
     >
       <span>{nombre}</span>
 
-      {/* Icono grande sobresaliendo del botón — fondo SÓLIDO ink (negro) que
-          NO se transparenta sobre ningún color de fondo del local. Stroke
-          blanco grueso para máxima legibilidad. Posición absoluta a la
-          derecha con translate fuera del botón (estilo Contact envelope). */}
+      {/* Icono GRANDE flotante sin background — el ícono solo "vuela" fuera del
+          botón. Truco para que sea visible sobre cualquier color del local:
+          doble drop-shadow blanco (efecto contorno tipo sticker) + drop-shadow
+          oscuro inferior (profundidad 3D). El icono en sí es ink (negro) +
+          stroke grueso para presencia. */}
       <span
         className={cn(
-          'absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 sm:translate-x-4',
-          'w-14 h-14 sm:w-16 sm:h-16 rounded-2xl grid place-items-center pointer-events-none',
-          'bg-ink text-white shrink-0',
-          'shadow-[0_8px_20px_-4px_rgba(0,0,0,0.45),0_4px_8px_-2px_rgba(0,0,0,0.3)]',
-          'transition-all duration-300 ease-out',
+          'absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 sm:translate-x-6',
+          'pointer-events-none text-ink',
+          'transition-transform duration-300 ease-out',
           'rotate-[10deg] group-hover:rotate-[18deg] group-hover:scale-110',
-          'group-hover:translate-x-4 sm:group-hover:translate-x-5',
+          'group-hover:translate-x-5 sm:group-hover:translate-x-7',
         )}
+        style={{
+          /* Doble drop-shadow blanco = contorno tipo sticker. Después drop-shadow
+             oscuro inferior = profundidad. Funciona sobre cualquier fondo. */
+          filter:
+            'drop-shadow(0 0 2px white) drop-shadow(0 0 2px white) ' +
+            'drop-shadow(0 0 1px white) drop-shadow(0 6px 8px rgba(0,0,0,0.4))',
+        }}
       >
-        <Icon name={icon} size={28} strokeWidth={2.4} />
+        <Icon name={icon} size={56} strokeWidth={2.5} />
       </span>
     </button>
   );

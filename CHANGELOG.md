@@ -6,6 +6,88 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+### Added — Pulido landing del local + Icon system expandido (2026-06-13)
+
+**Landing del local (`/[slug]`)**
+
+- **Banner CERRADO premium**: barra accent vertical roja gradient + icon
+  clock con halo ping + tipografía display "Volvemos pronto" + badge CERRADO
+  con halo-pulse. Mensaje regex-limpiado (sin "Cerrado · Cerrado · …" duplicado).
+- **Tabs categorías rediseñadas (CategoryButton)**: gradient diagonal del
+  color del local activo, icono FLOTANTE size 56 con doble drop-shadow blanco
+  (efecto sticker contorno) + drop-shadow oscuro inferior. Funciona sobre
+  cualquier color de fondo del local. Rotación 10° → 18° en hover, scale-110.
+- **Productos accordion** (ProductAccordion + AccordionPanel) — paneles
+  expansibles estilo Brad Traversy: flex-0.5 ↔ flex-5, chunks responsive
+  (4/3/2 por fila en lg/sm/mobile), selector +/- cantidad inline, botón
+  "Agregar · $XX" con total dinámico, X roja para cerrar.
+- **Footer dark restaurante**: bg-ink, grid 2 cols (identidad local + redes
+  3D), accent line gradient superior con el color del local, bottom bar con
+  copyright + **"Desarrollado por LUMIA ↗"** link a lumiaaisolutions.com con
+  gradient hover effect.
+- Status card duplicado del footer **eliminado** (ya estaba en el banner top).
+
+**Icon system expandido**
+
+- **+20 SVG nuevos**: sandwich, soup, beef, drumstick, fish, egg, croissant,
+  popcorn, cherry, popsicle, wine, martini-glass, cup-soda, milk, sprout,
+  wheat, sun, moon, gift, apple. Total ahora ~50 iconos.
+- **IconPicker** (`components/ui/IconPicker.tsx`): selector visual con 31
+  opciones curadas para food/restaurant. Reemplaza el viejo input "fa-pizza-slice"
+  del modal `/admin/categorias`.
+- **iconForCategoria()** en LandingClient: regex helper que infiere icono
+  representativo por keyword del nombre (50+ palabras en español). Fallback: utensils.
+- Admin `/admin/categorias`: tabla con badge mini del icono al lado del nombre.
+
+**Permisos granulares de staff (esta misma sesión)**
+
+- Migración `add_permisos_to_users` (JSON column nullable).
+- Backend: `User::MODULOS_VALIDOS` (12 keys), `puedeAcceder()`, `permisosEfectivos()`.
+- `StaffController` store/update aceptan `permisos[]` validados.
+- `AuthController::me` expone `permisos` efectivos.
+- Frontend: modal `/admin/staff` con 4 presets (Cajero, Encargado de cocina,
+  Manager, Personalizado) + 12 checkboxes de módulos con descripción + icon.
+- Sidebar admin filtra NavItem por `user.permisos` (owner ve todo, staff lo
+  que tenga listado).
+- Docs: `docs/features/staff-permissions.md` con arquitectura completa de
+  las 2 capas (plan SaaS + permisos staff).
+
+**Branding admin pulido**
+
+- Hero estilo landing con orbs gradient + kicker SPARKLES + headline grande
+  con gradient-text "tu landing pública" + tagline + CTA "Guardar cambios"
+  con animations.
+- Sections con barra accent roja top-left que aparece en hover (scaleX 0→1).
+- Preview card refleja el rediseño real de la landing del local
+  (hero, chips categorías, producto mini, cart bar).
+
+**Bug fixes del día**
+
+- Avatar/badge clash en LocalCard (badge "Abierto" tapaba al avatar circular).
+- Texto vertical "al revés" en panels accordion (writing-mode → rotate -90 con
+  truncate, letras correctas legibles de abajo hacia arriba).
+- Precio en panels colapsados: bg-ink → bg-emerald-600 + ring + shadow (verde,
+  alto contraste).
+- "Cerrado · Cerrado · abre mañana" duplicado en footer y banner (regex elimina prefijo).
+- Botón X cerrar panel: bg-white/15 translúcido → bg-red-500 prominente.
+
+**Deploy + infra fixes del día**
+
+- `apps/api/.htaccess` y `apps/api/public/.htaccess` agregados al repo (el
+  rsync los borraba con `--delete`, dejando la API caída).
+- `deploy-api.sh` excludes ampliados para preservar `storage/app/public/` y
+  `public/storage` — uploads jamás se tocan por deploy.
+- `deploy-api.sh` removido `view:cache` (este API no usa Blade, explotaba).
+- `deploy-web.sh` arreglado para BSD tar (cp -R staging en vez de `--transform`).
+- `deploy-web.sh` ruta correcta del nodejs en Hostinger
+  (`~/domains/clicktoeat.lumiaaisolutions.com/nodejs/`).
+- Hosting documentado correctamente: VPS Hostinger con CageFS (no Business
+  Shared como decía la doc original).
+- `public/storage` convertido a symlink correcto a `storage/app/public/`
+  (estándar Laravel). Las nuevas uploads ya persisten ante futuros deploys.
+- Runbook nuevo: [`docs/runbook/recuperar-uploads-perdidos.md`](docs/runbook/recuperar-uploads-perdidos.md)
+  con post-mortem del incidente del 2026-06-12.
+
 ### Added — Plan SaaS documentado (junio 2026, pre-implementación)
 
 - **`docs/decisions/ADR-011-saas-pricing-and-feature-gating.md`** — decisión de

@@ -35,8 +35,29 @@ Props:
 | Accionable | `plus`, `minus`, `x`, `check`, `check-circle`, `download`, `copy` |
 | Estado | `star`, `star-filled`, `heart`, `heart-filled`, `alert-triangle`, `bell`, `circle` |
 | Marca / dominio | `whatsapp`, `utensils`, `storefront`, `qr-code`, `truck`, `clock`, `phone`, `message-circle` |
-| Decorativo | `sparkles`, `zap`, `shield` |
+| Decorativo | `sparkles`, `zap`, `shield`, `sun`, `moon`, `gift` |
 | Social | `instagram`, `facebook` |
+| **Food — comida** | `pizza`, `sandwich`, `soup`, `beef`, `drumstick`, `fish`, `egg`, `croissant`, `popcorn` |
+| **Food — postres** | `cake`, `ice-cream`, `cherry`, `popsicle`, `apple` |
+| **Food — bebidas** | `coffee`, `beer`, `wine`, `martini-glass`, `cup-soda`, `milk` |
+| **Food — conceptos** | `salad`, `sprout`, `wheat`, `flame` |
+
+> Total al 2026-06-13: **~50 iconos**. Cobertura amplia de food/restaurant
+> tras la expansión de junio 2026 para el sistema de categorías.
+
+## IconPicker — selector visual para admin
+
+`components/ui/IconPicker.tsx` provee un selector de iconos con vista
+previa para que el owner elija desde `/admin/categorias`:
+
+- **Grid 4-6 cols** con 31 opciones curadas (food/restaurant).
+- Cada opción con label en español user-friendly.
+- Preview grande del seleccionado arriba del grid + checkmark verde en la opción activa.
+- Reemplazó el viejo input de texto "Icono (font-awesome)" que pedía
+  adivinar `fa-pizza-slice`.
+
+La lista `CATEGORY_ICONS` está exportada del módulo y puede reutilizarse en
+otros lugares (ej. tabs públicos del directorio).
 
 Para agregar uno nuevo:
 

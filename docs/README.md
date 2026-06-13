@@ -2,7 +2,11 @@
 
 Documentación viva del proyecto. **Regla**: cada tema vive en su propio `.md` dentro de la carpeta temática correspondiente — no se consolidan temas distintos en un solo archivo.
 
-> Última verificación contra código: 2026-06-12.
+> Última verificación contra código: 2026-06-13.
+
+> 🚦 **¿Retomas el proyecto después de un descanso?** Empieza por
+> [`CONTINUAR.md`](CONTINUAR.md) — snapshot del estado, pendientes y
+> cómo proceder.
 
 ---
 
