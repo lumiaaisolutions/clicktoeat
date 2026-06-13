@@ -159,6 +159,23 @@ curl -I https://clicktoeat-api.lumiaaisolutions.com/up
 
 ## Si algo se rompe en prod
 
+0. **Frontend con HTTP 503 tras deploy** (Passenger arranca con
+   `pthread_create: Resource temporarily unavailable`): hay procesos
+   `next-server` huérfanos acumulados. Solución:
+   ```bash
+   ssh -i ~/.ssh/id_ed25519 -p 65002 u221820910@86.38.202.72 '
+   pkill -9 -f "next-server"
+   sleep 3
+   cd /home/u221820910/domains/clicktoeat.lumiaaisolutions.com/nodejs
+   touch tmp/restart.txt
+   '
+   sleep 10
+   curl -s -o /dev/null -w "%{http_code}\n" https://clicktoeat.lumiaaisolutions.com/  # 200
+   ```
+   Esto pasa cuando hay >5 deploys en un día. CageFS tiene límite bajo de
+   procesos por usuario. Pasa fácil en sesiones intensas — el código no
+   tiene nada que ver.
+
 1. **Frontend caído**: rollback rápido
    ```bash
    ssh -i ~/.ssh/id_ed25519 -p 65002 u221820910@86.38.202.72 '
