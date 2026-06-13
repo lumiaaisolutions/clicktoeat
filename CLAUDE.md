@@ -8,11 +8,14 @@
 |---|---|
 | Frontend | https://clicktoeat.lumiaaisolutions.com |
 | API | https://clicktoeat-api.lumiaaisolutions.com |
-| Hosting | Hostinger **Business Shared** (Phoenix, AZ — `us-phx-web943.main-hosting.eu`) |
-| SSH | `ssh -i ~/.ssh/hostinger_clicktoeat -p 65002 u221820910@86.38.202.72` |
+| Hosting | Hostinger **VPS** (Phoenix, AZ) con **CageFS** (usuario SSH enjaulado) |
+| SSH | `ssh -i ~/.ssh/hostinger_clicktoeat -p 65002 u221820910@86.38.202.72` (alterna: `~/.ssh/id_ed25519`) |
 | BD | MySQL managed (`localhost`, BD `u221820910_clicktoeat`) |
-| Web server | **LiteSpeed** (no nginx/Apache) — config via `.htaccess` |
-| Node runtime | **Passenger** (`lsnode`) en `/home/u221820910/nodejs/` |
+| Web server | **LiteSpeed** — config via `.htaccess` (compat Apache) |
+| Node runtime | **Passenger** (`lsnode`) en `~/domains/clicktoeat.lumiaaisolutions.com/nodejs/` |
+| API root | `~/domains/clicktoeat-api.lumiaaisolutions.com/public_html/` |
+| Uploads | `~/.../public_html/storage/app/public/uploads/` (symlink desde `public/storage` — junio 2026) |
+| Backups | Snapshots semanales en hPanel `/vps/<id>/backups` — **full-restore destructivo** (no parcial). Daily backups = add-on $6/mes |
 
 **Cualquier cambio que afecte runtime de prod**: leer [`docs/infra/deploy-hostinger.md`](docs/infra/deploy-hostinger.md) primero. Scripts de deploy + rollback en [`scripts/`](scripts/).
 
@@ -117,17 +120,41 @@ Ver [`docs/architecture/multi-tenancy.md`](docs/architecture/multi-tenancy.md) y
 - Si agregas/cambias una columna → actualizar `docs/database/schema.md`.
 - Si tomas una decisión arquitectónica grande → ADR en `docs/decisions/`.
 
-### Hostinger Business Shared — restricciones
-El plan productivo es **Shared**, no VPS. Asume lo siguiente:
+### Hostinger VPS + CageFS — restricciones reales
+
+El producto se llama **VPS Hostinger** (`/vps/<id>` en hPanel) pero el SSH del
+usuario está **enjaulado con CageFS** — funcionalmente comparte casi todas
+las limitaciones de un plan Shared. Asume lo siguiente:
+
 - ❌ **No hay Docker en prod.** El `docker-compose.yml` es para dev local únicamente.
-- ❌ **No hay sudo, ni systemctl, ni /etc/cron.d.** Crons se gestionan desde **hPanel → Trabajos Cron**.
-- ❌ **No se pueden instalar paquetes** con apt/yum. Para herramientas extras (`rclone`, etc.) → binarios standalone en `~/bin/`.
+- ❌ **No hay sudo real** (estás enjaulado). Crons se gestionan desde **hPanel → Trabajos Cron**, no `crontab -e` ni `/etc/cron.d`.
+- ❌ **No hay `apt`/`yum`** ni acceso a `/etc/`. Herramientas extras → binarios standalone en `~/bin/` (rclone, etc.).
+- ❌ **No ves procesos del host** (`ps aux`, `ss`, `netstat` solo muestran lo tuyo).
 - ❌ **El usuario MySQL no tiene `SUPER`, `RELOAD`, `--routines`, `--triggers`**. `mysqldump` debe usar `--no-tablespaces`, sin routines/triggers.
+- ⚠️ **Backups del panel = full-restore destructivo del VM completo**. NO se puede restaurar solo un directorio. Para restauración granular hay que SSH al snapshot externamente o pagar plan superior.
 - ✅ **PHP corre como LSPHP** (LiteSpeed PHP). Restart de workers con `touch .htaccess` o desde hPanel.
 - ✅ **Node corre con Passenger** (`lsnode`). Restart con `passenger-config restart-app /path` o `touch tmp/restart.txt`.
-- ✅ **Headers de seguridad** se configuran en `.htaccess` (LiteSpeed lee sintaxis Apache), no en nginx.
+- ✅ **Headers de seguridad** se configuran en `.htaccess` (LiteSpeed lee sintaxis Apache).
 - ✅ **HTTPS** Let's Encrypt auto-renovado por Hostinger (no requiere acción).
 - ✅ **Healthcheck** está en `/up` (Laravel 11 default), NO en `/api/v1/health`.
+- ✅ **Snapshots semanales** automáticos en hPanel `/vps/<id>/backups`. Daily backups = add-on $6/mes.
+
+### `.htaccess` críticos (NO los borres ni los toques con `touch`)
+
+- `apps/api/.htaccess` (committed) → manda `^(.*)$` a `public/$1` (entry de Laravel).
+- `apps/api/public/.htaccess` (committed) → reescribe a `index.php`.
+- `apps/web/...` (Passenger maneja, NO uses `.htaccess`).
+
+⚠️ **`touch .htaccess` lo SOBRESCRIBE** si lo redirigís a archivo vacío.
+Para reiniciar LSPHP usar `touch -a .htaccess` (solo actualiza atime).
+
+### Uploads de imágenes (junio 2026)
+
+- Disk `public` de Laravel → escribe a `storage/app/public/uploads/`.
+- `public/storage` es **symlink** a `storage/app/public/` (estándar Laravel).
+- LiteSpeed sirve URL `/storage/uploads/...` siguiendo el symlink.
+- `deploy-api.sh` excluye **ambos paths** del rsync — uploads jamás se tocan por deploy.
+- Si las imágenes desaparecen tras deploy: ver [`docs/runbook/recuperar-uploads-perdidos.md`](docs/runbook/recuperar-uploads-perdidos.md).
 
 ## Convenciones de naming
 

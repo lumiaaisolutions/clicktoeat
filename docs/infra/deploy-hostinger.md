@@ -1,20 +1,26 @@
 # Infra — Deploy a Hostinger (producción)
 
-> Setup productivo actual. Documento fuente: `datos-deploy.md` (entregado por el equipo). Última verificación: 2026-06-12.
+> Setup productivo actual. Última verificación: 2026-06-13.
 
 ## Resumen
 
 | Componente | Detalle |
 |-----------|---------|
 | **Proveedor** | Hostinger |
-| **Plan** | Business Shared Hosting |
-| **Servidor** | `us-phx-web943.main-hosting.eu` (Phoenix, AZ) |
+| **Plan** | **VPS con CageFS** (panel: `hpanel.hostinger.com/vps/1698236/`) |
+| **OS** | Ubuntu 24.04 LTS (template Hostinger) |
+| **Servidor** | Phoenix, AZ — `srv1698236.hstgr.cloud` |
 | **Panel** | hPanel |
 | **Frontend** | https://clicktoeat.lumiaaisolutions.com (Next.js 14 standalone vía Passenger/lsnode) |
 | **API** | https://clicktoeat-api.lumiaaisolutions.com (Laravel 11 + PHP 8.3.30) |
 | **BD** | MySQL managed (localhost en el mismo servidor) |
-| **Web server** | LiteSpeed |
+| **Web server** | LiteSpeed (config vía `.htaccess` compat Apache) |
 | **HTTPS** | Let's Encrypt (cert R13, renovación automática) |
+
+> ⚠️ **VPS pero enjaulado**: aunque comercialmente es "VPS", el usuario SSH
+> está dentro de **CageFS** — sin sudo real, sin `crontab`/`/etc/cron.d`, sin
+> `apt`, sin ver procesos del host. Funcionalmente equivalente a Shared.
+> No te engañe el nombre.
 
 ## SSH
 
@@ -249,25 +255,42 @@ Notificar a Slack (`#alertas-clicktoeat`) o email del on-call.
 
 ## Backups
 
+### Backups nativos del VPS (hPanel)
+
+Disponibles en hPanel → **VPS** → **Snapshots & Backups** (`/vps/<id>/backups`).
+
+| Característica | Valor real (verificado 2026-06-13) |
+|---|---|
+| Frecuencia auto | **Semanal** (no diaria) |
+| Retención | 2 snapshots rotando (más viejo + más reciente) |
+| Restauración | **FULL del VM** — destructivo, no granular |
+| Daily backups | Add-on de $6 USD/mes en hPanel |
+
+⚠️ **Limitación crítica**: el botón "Restore" del panel **reemplaza todo el
+servidor** (código, BD, configs, uploads). NO permite restaurar solo un
+directorio. Si necesitas recuperar un archivo específico:
+
+1. Mejor opción: extraerlo de un VPS temporal restaurando a otro server.
+2. O confiar en el backup propio off-site (siguiente sección).
+
+Ver [`runbook/recuperar-uploads-perdidos.md`](../runbook/recuperar-uploads-perdidos.md)
+para el caso real que vivimos (junio 2026 — perdimos 7 imágenes por un rsync
+sin excludes correctos; los snapshots de Hostinger eran semanales y el más
+viejo ya no tenía esas fotos).
+
 ### Pendiente operativo principal: backup propio off-site
 
-El equipo identificó que Hostinger ofrece backups del panel pero no son suficientes para SLA serio. Se planeó:
+Los snapshots de Hostinger NO bastan para SLA serio porque son full-VM y
+solo semanales. El plan es:
 
-- Script propio: [`scripts/backup-mysql.sh`](../../scripts/backup-mysql.sh) (production-ready para Hostinger Business Shared).
-- Upload off-site: Backblaze B2 vía rclone standalone.
-- Cron diario configurado desde hPanel (sin `/etc/cron.d`).
-- Dead-man switch via Healthchecks.io.
+- **Script propio**: [`scripts/backup-mysql.sh`](../../scripts/backup-mysql.sh) (production-ready para Hostinger VPS/CageFS).
+- **Upload off-site**: Backblaze B2 (o Wasabi) vía rclone standalone en `~/bin/`.
+- **Cron diario** configurado desde hPanel (no `/etc/cron.d` — CageFS lo bloquea).
+- **Dead-man switch** vía Healthchecks.io.
+- **Pendiente**: extender el script para que también suba `storage/app/public/uploads/`
+  (BD + uploads). Sin esto, no hay forma de recuperar imágenes individuales.
 
 **Procedimiento de setup**: ver [`scripts/README.md`](../../scripts/README.md) → "Setup del backup en el servidor (primera vez)".
-
-### Backups nativos de Hostinger (panel)
-
-Hostinger Business incluye backups automáticos accesibles desde hPanel:
-- Frecuencia: diaria (por confirmar).
-- Retención: 7 días (estándar Business, confirmar plan exacto).
-- Restauración: vía panel, downtime de minutos.
-
-> Conservar como **secundario**. El primario debe ser el script propio con off-site real (B2).
 
 ## LiteSpeed-specific notes
 

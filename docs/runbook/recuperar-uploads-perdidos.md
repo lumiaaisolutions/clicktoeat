@@ -40,19 +40,35 @@ ssh -i ~/.ssh/id_ed25519 -p 65002 u221820910@86.38.202.72 \
 
 ### Si ambas ubicaciones se perdieron:
 
-Restaurar desde el backup más reciente:
+**Opción A — Snapshot del VPS Hostinger (full-restore, DESTRUCTIVO)**
+
+Disponible en hPanel → VPS → Snapshots & Backups. **Riesgos**:
+- Reemplaza TODO el servidor, no solo las uploads.
+- Pierdes cualquier código/BD posterior al snapshot.
+- Snapshots son **semanales**; si la pérdida fue hace > 7 días, el más
+  viejo ya rotó y no las tiene.
+
+Solo úsalo si:
+- El snapshot es reciente (≤ 24 h tras la pérdida).
+- Estás dispuesto a re-aplicar cualquier cambio posterior manualmente.
+
+**Opción B — Backup propio off-site (no implementado, TODO)**
+
+Si `scripts/backup-mysql.sh` se extendiera para subir uploads a B2:
 
 ```bash
-# Backups locales del servidor (3 días)
-ls ~/backups/
-
-# Backups off-site en B2 (cuando esté activado)
 rclone copy b2:clicktoeat-backups/uploads/<fecha>/ \
-  /home/u221820910/domains/clicktoeat-api.lumiaaisolutions.com/public_html/public/storage/uploads/
+  /home/u221820910/domains/clicktoeat-api.lumiaaisolutions.com/public_html/storage/app/public/uploads/
 ```
 
-Las uploads NO se incluyen en `backup-mysql.sh` (solo BD). Para backup de
-uploads usar runbook independiente — TODO.
+Pendiente implementar — ver TODO al final del doc.
+
+**Opción C — Re-subir manualmente desde admin**
+
+Si las opciones A/B no aplican, el owner re-sube las imágenes desde
+`/admin/productos`. Tedioso pero confiable. Las nuevas se guardarán en
+`storage/app/public/uploads/` (disk `public`) y serán accesibles vía el
+symlink `public/storage`.
 
 ### Mejor opción a largo plazo: convertir `public/storage` en symlink
 
@@ -98,16 +114,47 @@ para el patrón actual de backups.
 
 ## Post-mortem 2026-06-13
 
+### Timeline
+
 - **2026-06-12 23:50**: deploy-api.sh corrió con excludes incompletos
   (solo excluía `storage/app/public/uploads/` pero no `public/storage`).
 - **rsync --delete** borró ~10 imágenes en `public/storage/uploads/` que no
-  estaban en el repo.
-- **Detectado**: ~5 min después por screenshot del usuario mostrando productos
+  estaban en el repo. En ese momento `public/storage` era directorio físico
+  (NO symlink) — algunas imágenes vivían duplicadas en
+  `storage/app/public/uploads/`, otras solo en `public/storage/`.
+- **2026-06-13 00:00**: detectado por screenshot del usuario mostrando productos
   con `[?]`.
-- **Recuperado**: `cp -R -n storage/app/public/uploads/. public/storage/uploads/`
-  copió las imágenes faltantes desde el disk de Laravel. Cero data loss porque
-  las imágenes vivían duplicadas.
-- **Fix permanente**: excludes ampliados + este runbook documentado.
+- **Recuperación parcial**: `cp -R -n storage/app/public/uploads/. public/storage/uploads/`
+  restauró 8 archivos que estaban duplicados.
+- **Pérdida real**: 7 imágenes que vivían SOLO en `public/storage/uploads/`
+  se perdieron. Snapshot del VPS más reciente (semanal, ~7 días atrás) ya
+  no las tenía porque eran subidas posteriores a esa fecha.
+- **Decisión del owner**: NO usar full-restore del snapshot (perdería 8 días
+  de código nuevo); re-subir las 7 imágenes manualmente desde admin.
+
+### Fixes permanentes aplicados
+
+1. **`scripts/deploy-api.sh`** excludes ampliados:
+   ```
+   --exclude='storage/app/public/'
+   --exclude='public/storage'
+   --exclude='public/storage/'
+   ```
+2. **`public/storage` convertido a symlink** correcto a `../storage/app/public`.
+   Ahora ambos paths son la misma carpeta física — imposible que se desincronicen.
+3. **Este runbook** + actualización de `CLAUDE.md` y `docs/infra/deploy-hostinger.md`
+   reflejando que el hosting es **VPS+CageFS** (no Shared como decía la doc vieja).
+
+### Lessons learned
+
+- Los snapshots del VPS Hostinger son **semanales** y **full-restore destructivo**.
+  No bastan como backup primario.
+- El backup off-site propio (script + B2) **debe incluir uploads**, no solo BD.
+  TODO crítico para resolver antes de los siguientes 50 clientes.
+- `cp -R -n` (no `cp -R` solo) — el `-n` no sobreescribe archivos existentes,
+  perfecto para recuperaciones no-destructivas.
+- **Siempre** rename antes de `rm -rf`: usé `mv public/storage public/storage.backup-20260613`
+  antes de crear el symlink. Si algo fallaba, rollback era 1 comando.
 
 ## Ver también
 
