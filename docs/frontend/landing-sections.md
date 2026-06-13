@@ -10,13 +10,86 @@
 
 | Archivo | Propósito | Animación característica |
 |---------|-----------|--------------------------|
-| `ScrollPhoneSequence.tsx` | Demostración visual del flujo del cliente en 4 frames | Image-sequence scrubbing (estilo Apple) |
+| `BurgerSequence.tsx` | Image-sequence scrubbing real con 168 JPGs | Canvas fixed right-50vw, scroll-driven |
+| `ScrollPhoneSequence.tsx` | Demostración visual del flujo del cliente en 4 frames | Image-sequence scrubbing (estilo Apple) con SVG/HTML |
 | `WhyClickToEatSection.tsx` | 4 razones por las que el producto existe | Editorial — números 01-04, scroll fade staggered, headline sticky |
 | `SystemPreviewSection.tsx` | Browser mockup del panel admin + texto explicativo | Parallax y scale del mockup |
 
 `CTAOwnerSection`, `ShareQRSection`, `Footer` y `Hero` siguen viviendo en
 `DirectoryClient.tsx` porque son co-dependientes con su estado local
 (`url` del QR, `userCoords`, etc.).
+
+## BurgerSequence — image-sequence scrubbing con frames reales
+
+Componente con **168 frames JPG** (1280×720, ~26 KB cada uno, 4.3 MB total)
+montados como secuencia controlada por scroll. La animación es una hamburguesa
+que se va armando/desarmando conforme el usuario scrollea.
+
+### Layout
+
+- `position: fixed`, `right: 0`, `inset-y-0`, `width: 50vw`
+- `z-index: 0` — detrás del contenido editorial
+- `hidden lg:block` — **no se renderiza en mobile** (peso prohibitivo)
+- Mask gradient izquierdo (`mask-image: linear-gradient(to right, transparent 0%, black 18%)`)
+  para fundir con el texto del hero sin línea dura
+
+### Scroll mapping
+
+| Scroll progress | Frame index | Visibilidad |
+|-----------------|-------------|-------------|
+| 0% → 1% | 0 | Fade-in (0.85 → 1) |
+| 1% → 34% | 0 → 167 | Animación corre completa |
+| 34% → 42% | 167 | Fade-out (1 → 0) |
+| 42% → 100% | — | Invisible |
+
+La animación termina antes de las secciones full-width
+(`ScrollPhoneSequence`, `WhyClickToEat`, `SystemPreview`) porque sus
+fondos `bg-white`/`bg-bg` cubrirían el canvas y crearía conflicto visual.
+
+### Pipeline técnico
+
+```
+useEffect (mount once)
+   │
+   ├─ for i in 0..167: new Image(); img.src = `/frames/burger/...`
+   │     └─ img.onload → setLoadedCount(c+1)
+   │
+useScroll()
+   └─ scrollYProgress
+        │
+        ├─ useTransform → rawIndex
+        │     └─ useSpring → smoothIndex (stiffness 120, damping 28)
+        │           └─ useMotionValueEvent('change') → drawFrame(v)
+        │                 └─ ctx.drawImage(imagesRef.current[Math.floor(v)])
+        │
+        └─ useTransform → opacity
+              └─ <motion.canvas style={{ opacity }} />
+```
+
+`useSpring` suaviza el scrub aunque el trackpad mande saltos discretos.
+`useMotionValueEvent` muta el canvas **fuera** del ciclo de render de React
+— ningún componente se re-renderiza durante el scroll.
+
+### Resilencia
+
+Si el frame objetivo aún no terminó de cargar (típico en los primeros
+200ms), `drawFrame()` busca el frame cargado más cercano (±n) y lo
+dibuja para evitar flicker o pantalla en blanco.
+
+### Performance
+
+- **Bundle JS**: ~3 KB del componente.
+- **Network**: 168 GETs paralelos (~4.3 MB total). Cacheable indefinidamente.
+- **Render**: una vez cargados, redibujar es `ctx.drawImage` — <1 ms.
+- **DPR-aware**: canvas se redimensiona al `devicePixelRatio` (cap 2) para
+  sharp en pantallas HiDPI sin desperdiciar memoria.
+
+### Cuándo NO usar
+
+- Si los frames pesan >10 MB total — móviles 3G/4G sufren.
+- Si la animación no contribuye al mensaje (es solo decorativa).
+- Si el contenido editorial necesita TODO el ancho del viewport — el
+  canvas requiere ~50% del width para verse decente.
 
 ## ScrollPhoneSequence — anatomía
 

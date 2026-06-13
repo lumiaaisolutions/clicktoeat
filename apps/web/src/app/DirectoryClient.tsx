@@ -18,6 +18,7 @@ import { Icon } from '@/components/ui/Icon';
 import { ScrollPhoneSequence } from '@/components/landing/ScrollPhoneSequence';
 import { WhyClickToEatSection } from '@/components/landing/WhyClickToEatSection';
 import { SystemPreviewSection } from '@/components/landing/SystemPreviewSection';
+import { BurgerSequence } from '@/components/landing/BurgerSequence';
 import type { LocalDirectorio } from './page';
 
 const FAV_KEY = 'clicktoeat:favs';
@@ -141,6 +142,9 @@ export function DirectoryClient({ locales }: { locales: LocalDirectorio[] }) {
 
   return (
     <main className="min-h-screen relative">
+      {/* Image-sequence scrubbing — anclado a la derecha del viewport por toda la landing */}
+      <BurgerSequence />
+
       <Hero
         totalLocales={totalLocales}
         totalAbiertos={totalAbiertos}
@@ -299,91 +303,95 @@ function Hero({
 
   return (
     <section className="relative overflow-hidden">
-      {/* mesh gradient orbs */}
+      {/* mesh gradient orbs — solo los del lado izquierdo. El derecho lo
+          ocupa BurgerSequence ahora. */}
       <div aria-hidden className="absolute inset-0 pointer-events-none">
         <div className="hero-orb" style={{ background: '#FF2D2D', width: 480, height: 480, top: -120, left: -80 }} />
-        <div className="hero-orb" style={{ background: '#FFA62D', width: 380, height: 380, top: 40, right: -100, opacity: 0.35 }} />
-        <div className="hero-orb" style={{ background: '#10b981', width: 320, height: 320, bottom: -120, left: '40%', opacity: 0.18 }} />
+        <div className="hero-orb" style={{ background: '#10b981', width: 320, height: 320, bottom: -120, left: '20%', opacity: 0.15 }} />
       </div>
 
       <motion.div
         style={{ y: heroY, opacity: heroOpacity }}
         className="relative px-6 pt-12 pb-20 sm:pt-16 sm:pb-28 max-w-6xl mx-auto"
       >
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <Logo variant="lockup" size={36} />
-        </motion.div>
-
-        <motion.p
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="mt-10 text-xs sm:text-sm text-muted font-medium uppercase tracking-[0.18em] inline-flex items-center gap-2"
-        >
-          <Icon name="sparkles" size={14} className="text-[color:var(--ce-accent)]" />
-          Directorio de locales
-        </motion.p>
-
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
-          className="ce-display mt-4 text-5xl sm:text-6xl md:text-8xl font-bold leading-[0.95] tracking-tight"
-        >
-          Tu antojo,<br />
-          a <span className="gradient-text">un mensaje</span><br />
-          de distancia.
-        </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="mt-6 max-w-2xl text-base sm:text-lg text-muted"
-        >
-          Elige tu local favorito y pide directo por WhatsApp. Sin app, sin cuenta, sin comisiones.
-        </motion.p>
-
-        {/* CTAs */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.55 }}
-          className="mt-8 flex flex-wrap gap-3"
-        >
-          <button
-            onClick={onCercaClick}
-            disabled={locating}
-            className="group inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-ink text-white text-sm sm:text-base font-medium hover:bg-ink/90 transition tap-target disabled:opacity-60"
+        {/* En desktop el texto se constriñe a la mitad izquierda — la derecha
+            la cubre el canvas fixed con la hamburguesa. */}
+        <div className="lg:max-w-[52%]">
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
           >
-            <Icon name={locating ? 'compass' : 'navigation'} size={18} className={locating ? 'animate-spin' : ''} />
-            {locating ? 'Buscando…' : 'Negocios cerca de ti'}
-            {!locating && <Icon name="arrow-right" size={16} className="group-hover:translate-x-0.5 transition" />}
-          </button>
-          <a
-            href="#locales"
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl border border-line bg-white/70 backdrop-blur text-sm sm:text-base font-medium hover:border-ink/40 transition tap-target"
-          >
-            <Icon name="utensils" size={18} />
-            Ver todos los locales
-          </a>
-        </motion.div>
+            <Logo variant="lockup" size={36} />
+          </motion.div>
 
-        {/* Stats row */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.7 }}
-          className="mt-14 grid grid-cols-3 gap-3 sm:gap-6 max-w-xl"
-        >
-          <Stat value={totalLocales} label="locales" />
-          <Stat value={totalAbiertos} label="abiertos" highlight />
-          <Stat value="0%" label="comisión" />
-        </motion.div>
+          <motion.p
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="mt-10 text-xs sm:text-sm text-muted font-medium uppercase tracking-[0.18em] inline-flex items-center gap-2"
+          >
+            <Icon name="sparkles" size={14} className="text-[color:var(--ce-accent)]" />
+            Directorio de locales
+          </motion.p>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
+            className="ce-display mt-4 text-5xl sm:text-6xl md:text-7xl xl:text-8xl font-bold leading-[0.95] tracking-tight"
+          >
+            Tu antojo,<br />
+            a <span className="gradient-text">un mensaje</span><br />
+            de distancia.
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="mt-6 max-w-xl text-base sm:text-lg text-muted"
+          >
+            Elige tu local favorito y pide directo por WhatsApp. Sin app, sin cuenta, sin comisiones.
+          </motion.p>
+
+          {/* CTAs */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.55 }}
+            className="mt-8 flex flex-wrap gap-3"
+          >
+            <button
+              onClick={onCercaClick}
+              disabled={locating}
+              className="group inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-ink text-white text-sm sm:text-base font-medium hover:bg-ink/90 transition tap-target disabled:opacity-60"
+            >
+              <Icon name={locating ? 'compass' : 'navigation'} size={18} className={locating ? 'animate-spin' : ''} />
+              {locating ? 'Buscando…' : 'Negocios cerca de ti'}
+              {!locating && <Icon name="arrow-right" size={16} className="group-hover:translate-x-0.5 transition" />}
+            </button>
+            <a
+              href="#locales"
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl border border-line bg-white/70 backdrop-blur text-sm sm:text-base font-medium hover:border-ink/40 transition tap-target"
+            >
+              <Icon name="utensils" size={18} />
+              Ver todos los locales
+            </a>
+          </motion.div>
+
+          {/* Stats row */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.7 }}
+            className="mt-14 grid grid-cols-3 gap-3 sm:gap-6 max-w-xl"
+          >
+            <Stat value={totalLocales} label="locales" />
+            <Stat value={totalAbiertos} label="abiertos" highlight />
+            <Stat value="0%" label="comisión" />
+          </motion.div>
+        </div>
       </motion.div>
     </section>
   );

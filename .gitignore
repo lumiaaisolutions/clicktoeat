@@ -26,3 +26,7 @@ backups/
 
 # TypeScript incremental build cache (Next.js no lo necesita versionado)
 apps/web/tsconfig.tsbuildinfo
+
+# Carpeta de frames "fuente" — los frames servidos están en apps/web/public/frames/
+# Esta carpeta raíz es solo la copia local de origen
+/Frames/
