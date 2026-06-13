@@ -151,6 +151,7 @@ Documentación viva del proyecto. **Regla**: cada tema vive en su propio `.md` d
 - [Reemplazar polling con Reverb (tiempo real)](runbook/integrar-reverb.md)
 - [**Configurar Stripe** — productos, precios, webhook, portal](runbook/configurar-stripe.md)
 - [**Cambiar precio de un plan** — procedimiento ops](runbook/cambiar-precio-plan.md)
+- [**Recuperar uploads borrados** por deploy](runbook/recuperar-uploads-perdidos.md)
 - [Postmortems — índice + template](runbook/postmortems/README.md)
 - [Drills — índice + template](runbook/drills/README.md)
 

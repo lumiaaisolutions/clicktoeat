@@ -101,7 +101,13 @@ RSYNC_OPTS=(
     --exclude='.gitignore'
     --exclude='vendor/'
     --exclude='node_modules/'
-    --exclude='storage/app/public/uploads/'
+    # Uploads del usuario — viven SOLO en servidor. Preservar en ambas
+    # ubicaciones (la "fuente" en storage/app/public y la "servida" en
+    # public/storage que es symlink hacia la primera). El rsync --delete
+    # las borraba si no se excluyen explícitamente.
+    --exclude='storage/app/public/'
+    --exclude='public/storage'
+    --exclude='public/storage/'
     --exclude='storage/framework/cache/*'
     --exclude='storage/framework/sessions/*'
     --exclude='storage/framework/views/*'
