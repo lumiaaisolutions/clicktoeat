@@ -28,7 +28,7 @@ SSH_HOST="86.38.202.72"
 SSH_PORT="65002"
 SSH_USER="u221820910"
 SSH_KEY="${SSH_KEY:-$HOME/.ssh/hostinger_clicktoeat}"
-REMOTE_NODE_PATH="/home/u221820910/nodejs"
+REMOTE_NODE_PATH="/home/u221820910/domains/clicktoeat.lumiaaisolutions.com/nodejs"
 API_URL="${API_URL:-https://clicktoeat-api.lumiaaisolutions.com/api/v1}"
 APP_URL="${APP_URL:-https://clicktoeat.lumiaaisolutions.com}"
 HEALTH_URL="${APP_URL}/"
@@ -92,14 +92,18 @@ TARBALL="${TMP_DIR}/web-build.tar.gz"
 # Standalone trae su propio package.json + node_modules mínimo.
 # .next/static debe ir en .next/static dentro del standalone.
 # public se copia a la raíz del standalone.
+#
+# Usamos staging directory en vez de `tar --transform` porque BSD tar
+# (macOS default) no lo soporta. cp -R + tar simple funciona en ambos.
 cd "${LOCAL_WEB_DIR}"
-tar -czf "${TARBALL}" \
-    --transform 's,^\.next/standalone/,,' \
-    --transform 's,^\.next/static,.next/static,' \
-    --transform 's,^public,public,' \
-    .next/standalone \
-    .next/static \
-    public
+
+STAGING="${TMP_DIR}/staging"
+mkdir -p "${STAGING}/.next"
+cp -R .next/standalone/. "${STAGING}/"
+cp -R .next/static       "${STAGING}/.next/static"
+cp -R public             "${STAGING}/public"
+
+tar -czf "${TARBALL}" -C "${STAGING}" .
 
 TARBALL_SIZE=$(stat -c%s "${TARBALL}" 2>/dev/null || stat -f%z "${TARBALL}")
 log "Tarball: $(( TARBALL_SIZE / 1024 / 1024 )) MB"
