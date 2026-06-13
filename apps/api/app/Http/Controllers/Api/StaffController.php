@@ -49,11 +49,20 @@ class StaffController extends Controller
      */
     public function store(StoreStaffRequest $request): JsonResponse
     {
+        $permisos = $request->input('permisos');
+        // Si el frontend mandó array vacío, lo persistimos como default mínimo
+        // (acceso a pedidos). null o ausente también → default.
+        if (! is_array($permisos) || $permisos === []) {
+            $permisos = User::PERMISOS_DEFAULT_STAFF;
+        }
+        $permisos = array_values(array_intersect($permisos, User::MODULOS_VALIDOS));
+
         $staff = User::create([
             'nombre'             => $request->input('nombre'),
             'email'              => $request->input('email'),
             'password'           => Hash::make($request->input('password')),
             'rol'                => 'staff',
+            'permisos'           => $permisos,
             'local_id'           => $request->user()->local_id,
             'email_verified_at'  => now(),
         ]);
@@ -95,6 +104,15 @@ class StaffController extends Controller
         if (isset($data['password'])) {
             $data['password'] = Hash::make($data['password']);
             $staff->tokens()->delete();
+        }
+
+        // Normalizar permisos: filtrar a módulos válidos.
+        if (array_key_exists('permisos', $data)) {
+            $permisos = $data['permisos'];
+            if (! is_array($permisos) || $permisos === []) {
+                $permisos = User::PERMISOS_DEFAULT_STAFF;
+            }
+            $data['permisos'] = array_values(array_intersect($permisos, User::MODULOS_VALIDOS));
         }
 
         $staff->update($data);

@@ -14,6 +14,7 @@ class StaffResource extends JsonResource
             'nombre'             => $this->nombre,
             'email'              => $this->email,
             'rol'                => $this->rol,
+            'permisos'           => $this->resource->permisosEfectivos(),
             'local_id'           => $this->local_id,
             'email_verified_at'  => $this->email_verified_at?->toIso8601String(),
             'last_token_used_at' => $this->whenLoaded('tokens', fn () => $this->tokens->max('last_used_at')?->toIso8601String()),

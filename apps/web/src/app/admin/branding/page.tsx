@@ -97,12 +97,12 @@ export default function BrandingPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Formulario */}
         <div className="lg:col-span-2 space-y-6">
-          <Section title="Identidad">
+          <Section title="Identidad" icon="sparkles" hint="Nombre y descripción corta que se muestran en tu landing.">
             <Field label="Nombre" value={draft.nombre ?? ''} onChange={(e) => set('nombre', e.target.value)} error={errors.nombre} />
             <Textarea label="Tagline" value={draft.tagline ?? ''} onChange={(e) => set('tagline', e.target.value)} error={errors.tagline} maxLength={200} />
           </Section>
 
-          <Section title="Imágenes">
+          <Section title="Imágenes" icon="storefront" hint="Logo y banner del local. JPG, PNG o WebP — máx 5 MB.">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p className="block text-sm font-medium mb-1">Logo</p>
@@ -125,7 +125,7 @@ export default function BrandingPage() {
             </div>
           </Section>
 
-          <Section title="Colores">
+          <Section title="Colores" icon="qr-code" hint="Paleta de tu marca. Se aplican a la landing en tiempo real.">
             <div className="grid grid-cols-3 gap-3">
               <ColorField label="Primario"   value={draft.color_primario   ?? ''} onChange={(v) => set('color_primario', v)}   error={errors.color_primario}   />
               <ColorField label="Secundario" value={draft.color_secundario ?? ''} onChange={(v) => set('color_secundario', v)} error={errors.color_secundario} />
@@ -139,7 +139,7 @@ export default function BrandingPage() {
             />
           </Section>
 
-          <Section title="Contacto & operación">
+          <Section title="Contacto y operación" icon="phone" hint="WhatsApp, dirección y métodos de pago aceptados.">
             <Field label="WhatsApp" value={draft.whatsapp ?? ''} onChange={(e) => set('whatsapp', e.target.value)} hint="Sólo dígitos, con LADA (p.ej. 5215512345678)" error={errors.whatsapp} />
             <Field label="Teléfono" value={draft.telefono ?? ''} onChange={(e) => set('telefono', e.target.value)} error={errors.telefono} />
             <div>
@@ -187,7 +187,7 @@ export default function BrandingPage() {
             </div>
           </Section>
 
-          <Section title="Redes sociales">
+          <Section title="Redes sociales" icon="instagram" hint="Usuario o URL completa. Aparece en el footer de tu landing.">
             <Field label="Instagram" value={draft.redes_sociales?.ig ?? ''} onChange={(e) => set('redes_sociales', { ...draft.redes_sociales, ig: e.target.value })} />
             <Field label="Facebook"  value={draft.redes_sociales?.fb ?? ''} onChange={(e) => set('redes_sociales', { ...draft.redes_sociales, fb: e.target.value })} />
             <Field label="TikTok"    value={draft.redes_sociales?.tt ?? ''} onChange={(e) => set('redes_sociales', { ...draft.redes_sociales, tt: e.target.value })} />
@@ -303,10 +303,27 @@ export default function BrandingPage() {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title, children, icon, hint,
+}: {
+  title: string;
+  children: React.ReactNode;
+  icon?: 'sparkles' | 'utensils' | 'storefront' | 'instagram' | 'phone' | 'map-pin' | 'qr-code';
+  hint?: string;
+}) {
   return (
-    <section className="rounded-2xl border border-line bg-white p-5">
-      <h2 className="ce-display font-bold mb-4">{title}</h2>
+    <section className="group rounded-3xl border border-line bg-white p-5 sm:p-6 hover:border-ink/30 hover:shadow-soft transition">
+      <header className="flex items-start gap-3 mb-5 pb-4 border-b border-line">
+        {icon && (
+          <span className="shrink-0 w-10 h-10 rounded-xl bg-[color:var(--ce-bg)] border border-line grid place-items-center text-ink/80 group-hover:bg-ink group-hover:text-white group-hover:border-transparent transition">
+            <Icon name={icon} size={18} />
+          </span>
+        )}
+        <div className="flex-1 min-w-0">
+          <h2 className="ce-display font-bold text-lg leading-tight">{title}</h2>
+          {hint && <p className="text-xs text-muted mt-0.5">{hint}</p>}
+        </div>
+      </header>
       {children}
     </section>
   );

@@ -16,6 +16,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property string $nombre
  * @property string $email
  * @property string $rol
+ * @property array|null $permisos
  * @property int|null $local_id
  */
 class User extends Authenticatable implements CanResetPassword
@@ -33,7 +34,7 @@ class User extends Authenticatable implements CanResetPassword
     }
 
     protected $fillable = [
-        'nombre', 'email', 'password', 'rol', 'local_id',
+        'nombre', 'email', 'password', 'rol', 'local_id', 'permisos',
     ];
 
     protected $hidden = [
@@ -45,8 +46,24 @@ class User extends Authenticatable implements CanResetPassword
         return [
             'email_verified_at' => 'datetime',
             'password'          => 'hashed',
+            'permisos'          => 'array',
         ];
     }
+
+    /**
+     * Módulos default si el staff fue creado sin permisos explícitos.
+     */
+    public const PERMISOS_DEFAULT_STAFF = ['pedidos'];
+
+    /**
+     * Lista exhaustiva de módulos a los que se puede dar permiso.
+     * Ver docs/features/staff-permissions.md
+     */
+    public const MODULOS_VALIDOS = [
+        'pedidos', 'pos', 'productos', 'categorias', 'inventario',
+        'compras', 'recetas', 'metricas', 'branding', 'qr', 'horarios',
+        'audit_log',
+    ];
 
     public function local(): BelongsTo
     {
@@ -61,5 +78,43 @@ class User extends Authenticatable implements CanResetPassword
     public function isOwner(): bool
     {
         return $this->rol === 'owner';
+    }
+
+    public function isStaff(): bool
+    {
+        return $this->rol === 'staff';
+    }
+
+    /**
+     * Lista efectiva de permisos: owner/super_admin tienen todos, staff los
+     * que tenga listados (o el default si NULL).
+     *
+     * @return list<string>
+     */
+    public function permisosEfectivos(): array
+    {
+        if ($this->isOwner() || $this->isSuperAdmin()) {
+            return self::MODULOS_VALIDOS;
+        }
+
+        $permisosAttr = $this->getAttributes()['permisos'] ?? null;
+        if ($permisosAttr === null) {
+            return self::PERMISOS_DEFAULT_STAFF;
+        }
+        $arr = is_string($permisosAttr) ? json_decode($permisosAttr, true) : $permisosAttr;
+        return is_array($arr) ? array_values(array_intersect($arr, self::MODULOS_VALIDOS)) : self::PERMISOS_DEFAULT_STAFF;
+    }
+
+    /**
+     * ¿Este usuario puede acceder al módulo dado?
+     *
+     * Casos:
+     *  - owner / super_admin → TRUE siempre.
+     *  - staff con permiso explícito → TRUE.
+     *  - staff sin permiso → FALSE.
+     */
+    public function puedeAcceder(string $modulo): bool
+    {
+        return in_array($modulo, $this->permisosEfectivos(), true);
     }
 }

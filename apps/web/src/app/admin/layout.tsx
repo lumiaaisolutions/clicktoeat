@@ -16,7 +16,15 @@ type IconName =
   | 'home' | 'chart' | 'cart' | 'bell' | 'package' | 'list'
   | 'box' | 'receipt' | 'clock' | 'qr' | 'palette' | 'store';
 
-interface NavItem { href: string; label: string; icon: IconName }
+interface NavItem {
+  href: string;
+  label: string;
+  icon: IconName;
+  /** Si está, el staff DEBE tener este módulo en su permisos para verlo. Owner ignora. */
+  permiso?: string;
+  /** Si true, solo owner/super_admin pueden verlo. */
+  ownerOnly?: boolean;
+}
 
 function Icon({ name, className }: { name: IconName; className?: string }) {
   const stroke = {
@@ -97,20 +105,26 @@ function UserCard({ user, onLogout }: { user: UserCardData; onLogout: () => void
   );
 }
 
+/**
+ * NavItem.permiso = key del módulo que debe estar en user.permisos para que
+ * se renderice. Owner siempre tiene todos los módulos (ver puedeAcceder en
+ * backend). Items sin permiso = visibles para todos (Inicio, Equipo solo
+ * owner se filtra aparte).
+ */
 const NAV_OWNER: NavItem[] = [
   { href: '/admin',              label: 'Inicio',      icon: 'home' },
-  { href: '/admin/metricas',     label: 'Reportes',    icon: 'chart' },
-  { href: '/admin/punto-venta',  label: 'Venta',       icon: 'cart' },
-  { href: '/admin/pedidos',      label: 'Pedidos',     icon: 'bell' },
-  { href: '/admin/productos',    label: 'Productos',   icon: 'package' },
-  { href: '/admin/categorias',   label: 'Categorías',  icon: 'list' },
-  { href: '/admin/inventario',   label: 'Inventario',  icon: 'box' },
-  { href: '/admin/compras',      label: 'Compras',     icon: 'receipt' },
-  { href: '/admin/horarios',     label: 'Horarios',    icon: 'clock' },
-  { href: '/admin/qr',           label: 'QR',          icon: 'qr' },
-  { href: '/admin/branding',     label: 'Branding',    icon: 'palette' },
-  { href: '/admin/staff',        label: 'Equipo',      icon: 'list' },
-  { href: '/admin/audit-log',    label: 'Audit log',   icon: 'list' },
+  { href: '/admin/metricas',     label: 'Reportes',    icon: 'chart',   permiso: 'metricas' },
+  { href: '/admin/punto-venta',  label: 'Venta',       icon: 'cart',    permiso: 'pos' },
+  { href: '/admin/pedidos',      label: 'Pedidos',     icon: 'bell',    permiso: 'pedidos' },
+  { href: '/admin/productos',    label: 'Productos',   icon: 'package', permiso: 'productos' },
+  { href: '/admin/categorias',   label: 'Categorías',  icon: 'list',    permiso: 'categorias' },
+  { href: '/admin/inventario',   label: 'Inventario',  icon: 'box',     permiso: 'inventario' },
+  { href: '/admin/compras',      label: 'Compras',     icon: 'receipt', permiso: 'compras' },
+  { href: '/admin/horarios',     label: 'Horarios',    icon: 'clock',   permiso: 'horarios' },
+  { href: '/admin/qr',           label: 'QR',          icon: 'qr',      permiso: 'qr' },
+  { href: '/admin/branding',     label: 'Branding',    icon: 'palette', permiso: 'branding' },
+  { href: '/admin/staff',        label: 'Equipo',      icon: 'list',    ownerOnly: true },
+  { href: '/admin/audit-log',    label: 'Audit log',   icon: 'list',    permiso: 'audit_log' },
 ];
 
 const NAV_SUPER: NavItem[] = [
@@ -190,10 +204,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // Cerrar drawer al cambiar de ruta
   useEffect(() => { setDrawerOpen(false); }, [pathname]);
 
-  const nav = useMemo<NavItem[]>(
-    () => (user?.rol === 'super_admin' ? NAV_SUPER : NAV_OWNER),
-    [user?.rol],
-  );
+  const nav = useMemo<NavItem[]>(() => {
+    if (user?.rol === 'super_admin') return NAV_SUPER;
+    if (!user) return [];
+
+    const isOwner = user.rol === 'owner';
+    const permisos = user.permisos;
+
+    return NAV_OWNER.filter((item) => {
+      if (item.ownerOnly && !isOwner) return false;
+      // Owner siempre ve todo
+      if (isOwner) return true;
+      // Staff: si no requiere permiso, lo ve (caso "Inicio"). Si requiere, debe tenerlo.
+      if (!item.permiso) return true;
+      return permisos?.includes(item.permiso) ?? false;
+    });
+  }, [user]);
 
   if (!user) {
     return (

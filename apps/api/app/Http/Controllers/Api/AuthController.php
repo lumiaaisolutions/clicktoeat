@@ -107,7 +107,11 @@ class AuthController extends Controller
     {
         $user = $request->user()->load('local');
 
-        return response()->json(['user' => $user]);
+        // Exponer permisos efectivos (owner/super_admin = todos; staff = listados o default)
+        $payload = $user->toArray();
+        $payload['permisos'] = $user->permisosEfectivos();
+
+        return response()->json(['user' => $payload]);
     }
 
     /**

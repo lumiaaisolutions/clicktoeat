@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Staff;
 
+use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -23,7 +24,10 @@ class UpdateStaffRequest extends FormRequest
                 Rule::unique('users', 'email')->ignore($staff?->id),
             ],
             // Password opcional al editar — sólo si owner quiere resetear
-            'password'              => ['sometimes', 'required', 'confirmed', Password::min(8)->letters()->numbers()],
+            'password'              => ['sometimes', 'required', Password::min(8)->letters()->numbers()],
+            'password_confirmation' => ['sometimes'],
+            'permisos'              => ['sometimes', 'array'],
+            'permisos.*'            => ['string', 'in:'.implode(',', User::MODULOS_VALIDOS)],
         ];
     }
 }

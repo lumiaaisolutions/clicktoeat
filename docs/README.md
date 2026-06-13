@@ -61,6 +61,7 @@ Documentación viva del proyecto. **Regla**: cada tema vive en su propio `.md` d
 - [Uploads de imágenes](features/uploads.md)
 - [Branding / personalización](features/branding.md)
 - [QR del menú](features/qr.md)
+- [**Permisos de staff** — qué módulo ve cada empleado](features/staff-permissions.md)
 - [**SaaS Billing** — Stripe Checkout + suscripciones](features/saas-billing.md) — 3 planes con trial 14 d
 - [**Feature gating** — qué módulo desbloquea cada plan](features/feature-gating.md)
 

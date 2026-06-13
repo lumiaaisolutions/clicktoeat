@@ -288,26 +288,77 @@ export function LandingClient({ menu }: Props) {
         }}
       />
 
-      {/* FOOTER INFO */}
-      <footer className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10 text-sm text-muted space-y-4">
-        {(local as any).estado && (local as any).estado.abierto !== null && (
-          <div className="flex items-center gap-2">
-            <span className={cn(
-              'inline-block w-2 h-2 rounded-full',
-              (local as any).estado.abierto ? 'bg-emerald-500' : 'bg-red-500',
-            )} />
-            <span className="text-ink font-medium">
-              {(local as any).estado.abierto ? 'Abierto ahora' : 'Cerrado'}
-            </span>
-            <span className="text-muted">· {(local as any).estado.mensaje}</span>
-          </div>
-        )}
+      {/* FOOTER INFO — card de estado + redes sociales prominentes */}
+      <footer className="max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-16 space-y-8">
+        {/* Status card grande con icono + texto */}
+        {(local as any).estado && (local as any).estado.abierto !== null && (() => {
+          const est = (local as any).estado;
+          // El mensaje del backend a veces viene como "Cerrado · abre mañana a las 17:30".
+          // Limpiamos el prefijo redundante del estado.
+          const mensajeLimpio = (est.mensaje as string)
+            .replace(/^(Abierto|Cerrado)\s*[·.,-]?\s*/i, '')
+            .trim();
+          const isOpen = est.abierto === true;
+          return (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ duration: 0.5 }}
+              className={cn(
+                'rounded-3xl border p-5 sm:p-6 flex items-start gap-4',
+                isOpen
+                  ? 'border-emerald-200 bg-emerald-50'
+                  : 'border-red-200 bg-red-50',
+              )}
+            >
+              <span className={cn(
+                'shrink-0 w-12 h-12 rounded-2xl grid place-items-center text-white shadow-sm',
+                isOpen ? 'bg-emerald-500' : 'bg-red-500',
+              )}>
+                <Icon name={isOpen ? 'check-circle' : 'clock'} size={22} />
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="ce-display text-xl sm:text-2xl font-bold leading-tight">
+                    {isOpen ? 'Abierto ahora' : 'Cerrado por ahora'}
+                  </h3>
+                  {isOpen && (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 halo-pulse" />
+                      En línea
+                    </span>
+                  )}
+                </div>
+                {mensajeLimpio && (
+                  <p className={cn(
+                    'mt-1 text-sm sm:text-base',
+                    isOpen ? 'text-emerald-900/80' : 'text-red-900/80',
+                  )}>
+                    {mensajeLimpio}
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          );
+        })()}
 
-        {/* Redes sociales — animadas con hover effect */}
+        {/* Redes sociales con título grande */}
         {local.redes && Object.keys(local.redes).some((k) => local.redes![k]) && (
-          <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-muted font-medium mb-3">Síguenos</p>
-            <div className="flex flex-wrap gap-2.5">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-40px' }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            <p className="text-xs text-muted font-medium uppercase tracking-[0.18em] inline-flex items-center gap-2">
+              <span className="w-6 h-px bg-ink/40" />
+              Síguenos
+            </p>
+            <h3 className="ce-display mt-2 text-2xl sm:text-3xl font-bold leading-tight">
+              También estamos en redes
+            </h3>
+            <div className="mt-5 flex flex-wrap gap-2.5">
               {local.redes.ig && (
                 <SocialPill
                   href={local.redes.ig.startsWith('http') ? local.redes.ig : `https://instagram.com/${local.redes.ig.replace(/^@/, '')}`}
@@ -333,7 +384,7 @@ export function LandingClient({ menu }: Props) {
                 />
               )}
             </div>
-          </div>
+          </motion.div>
         )}
       </footer>
 

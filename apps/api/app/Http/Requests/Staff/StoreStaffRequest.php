@@ -18,7 +18,10 @@ class StoreStaffRequest extends FormRequest
         return [
             'nombre'                => ['required', 'string', 'min:2', 'max:120'],
             'email'                 => ['required', 'email:rfc', 'unique:users,email'],
-            'password'              => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
+            'password'              => ['required', Password::min(8)->letters()->numbers()],
+            'password_confirmation' => ['sometimes'],
+            'permisos'              => ['sometimes', 'array'],
+            'permisos.*'            => ['string', 'in:'.implode(',', User::MODULOS_VALIDOS)],
         ];
     }
 }

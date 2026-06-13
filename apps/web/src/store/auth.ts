@@ -9,6 +9,8 @@ export interface AuthUser {
   nombre: string;
   email: string;
   rol: 'super_admin' | 'owner' | 'staff';
+  /** Módulos a los que el user puede acceder. Owner = todos. */
+  permisos?: string[];
   local_id: number | null;
 }
 

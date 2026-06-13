@@ -254,6 +254,7 @@ export interface Staff {
   nombre: string;
   email: string;
   rol: 'super_admin' | 'owner' | 'staff';
+  permisos: string[];
   local_id: number | null;
   email_verified_at: string | null;
   last_token_used_at?: string | null;
