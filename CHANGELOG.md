@@ -6,6 +6,83 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+### Changed — Landing del local: rediseño editorial cálido (2026-06-14)
+
+Reescritura completa de `apps/web/src/app/[slug]/LandingClient.tsx`
+adaptando el lenguaje visual del template "Menú Digital" (warm cream +
+serif editorial + cards lift + cart FAB con sheen+ring) a la data real
+del cliente. Cero datos hardcodeados: banner, logo, color primario,
+categorías con icono editable, productos, redes y horarios siguen
+viniendo del backend.
+
+**Diseño y UX**
+- **Hero** subido a `clamp(440px, 76vh, 660px)` con tagline uppercase
+  letterspaced + nombre del local en **Instrument Serif** clamp(46–84px)
+  centrado abajo. Logo/inicial circular glass arriba-izq, theme toggle
+  (sol/luna) arriba-der, chevron-down bob como scroll hint.
+- **Info card flotante** (-mt-70 sobre el hero) con status dot pulsante
+  verde/rojo/gris según `estado.abierto`, horario condensado por
+  `formatHorarios()` ("Lun – Dom · 9:00 – 22:00") y ubicación.
+- **Categorías**: chips horizontales scroll-x con icono pequeño + nombre
+  (estilo HTML reference). Activo = gradient diagonal del `--ce-accent`.
+  Reemplaza al `CategoryButton` con "icono volando" del rediseño anterior.
+- **Productos**: vuelve a **grid de cards** (`auto-fill 260px`) con
+  imagen 16/11 que hace `scale(1.07)` en hover, título Hanken bold,
+  precio accent, botón `+` gradient redondeado. Reemplaza al accordion
+  expansible — un grid escaneable es más legible para un menú.
+- **ProductDetailSheet**: bottom-sheet con cantidad +/- y "Añadir · $XX"
+  gradient. Tap en card abre el sheet; tap en `+` agrega directo al carrito.
+- **Cart FAB** rediseñado: pill "MI PEDIDO · $XX" con sheen recorriendo
+  diagonal + ring pulse + count badge `pop`. Respeta safe-area-inset.
+- **CartDrawer**: panel derecha estilo HTML reference con items en
+  `ce-row-in` stagger, footer "Confirmar pedido →" gradient accent.
+- **CheckoutSheet**: bottom sheet con resumen tabular, form vertical
+  (nombre/tipo entrega con icons truck/storefront/dirección+leaflet/
+  teléfono/pago) y botón WhatsApp `#25D366` 58px alto con sombra verde
+  profunda. Mantiene fallback `buildWhatsAppUrl` para casos de red caída.
+- **Footer dark** se mantuvo con credit LUMIA + accent line top + 3 cols
+  (identidad/contacto/redes) + bottom bar; redes ahora son pills circulares
+  42×42 que cambian background al `--ce-accent` en hover (en vez del
+  isométrico 3D anterior — más cercano al template referencia).
+
+**Tipografía**
+- Cargadas en `apps/web/src/app/layout.tsx`: **Instrument Serif** (italic/regular)
+  y **Hanken Grotesk** (400–800) junto con las que ya existían.
+- Clases utilitarias nuevas en `globals.css`:
+  - `.ce-serif` → Instrument Serif (display editorial).
+  - `.ce-body`  → Hanken Grotesk (UI cálido del landing).
+- `.ce-display` (Bricolage Grotesque) sigue para directorio público + admin.
+- Documentado en [`docs/frontend/typography.md`](docs/frontend/typography.md).
+
+**Animaciones (CSS keyframes)**
+- 11 keyframes nuevos en `globals.css` sección "Landing del local":
+  `ce-pop`, `ce-bob`, `ce-pulse-dot`, `ce-fade-swap`, `ce-sheen`,
+  `ce-cart-ring`, `ce-row-in` + `.ce-pimg`/`.ce-card` (hover scale + lift).
+- Clase `.ce-warm` (selección cálida del accent) y `.ce-chips-scroll`
+  (oculta scrollbar de los chips horizontales).
+
+**Lógica mantenida**
+- `iconForCategoria()` para fallback cuando admin no asignó icono.
+- `useCart` store + `setLocal(slug)` purge entre locales.
+- `buildWhatsAppUrl` builder con fallback de red.
+- `DeliveryAddressInput` con Nominatim + LeafletMap + Haversine para
+  validar radio de entrega.
+- Banner CERRADO premium se mantiene (rediseñado con tono más cálido
+  en `bg-red-50` consistente con el cream warm).
+- Theme toggle es **local** (estado del componente, no persiste).
+  `branding.darkMode` define el estado inicial.
+
+**Métricas**
+- Bundle `/[slug]`: **31 kB → 16.8 kB** (reorganización + menos lógica
+  de accordion).
+
+**Documentación**
+- `docs/frontend/landing.md` reescrito con la nueva estructura.
+- `docs/frontend/typography.md` creado (nuevo) — fuentes y reglas.
+- Pendiente removido: input "Notas (opcional)" del HTML reference —
+  nuestro backend acepta notas por item de carrito, no global; se quitó
+  del form para no engañar al usuario.
+
 ### Added — Pulido landing del local + Icon system expandido (2026-06-13)
 
 **Landing del local (`/[slug]`)**

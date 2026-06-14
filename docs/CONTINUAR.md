@@ -1,6 +1,6 @@
 # Cómo continuar el proyecto en otra sesión
 
-> Snapshot al **2026-06-13**. Si abres el proyecto en una sesión nueva
+> Snapshot al **2026-06-14**. Si abres el proyecto en una sesión nueva
 > (otro día, otra máquina, otro dev), lee este archivo primero.
 
 ## Estado actual del sistema
@@ -21,6 +21,20 @@ curl -I https://clicktoeat-api.lumiaaisolutions.com/up  # 200
 ```
 
 ## ¿Por dónde voy?
+
+### ✅ Cerrado en sesión 2026-06-14 (hoy)
+
+- **Rediseño editorial cálido de la landing del local** (`/[slug]`):
+  hero 76vh con Instrument Serif, info card flotante con status pulse,
+  chips horizontales de categorías, grid de cards de productos (volvió
+  el grid, dejó el accordion), cart FAB con sheen+ring, checkout sheet
+  con form completo. Bundle bajó de 31 kB a 16.8 kB. Tipografía nueva:
+  `.ce-serif` (Instrument Serif) + `.ce-body` (Hanken Grotesk) cargadas
+  en `layout.tsx`. 11 keyframes nuevos en `globals.css`. Ver
+  [`frontend/landing.md`](frontend/landing.md) y
+  [`frontend/typography.md`](frontend/typography.md).
+- Eliminado input "Notas (opcional)" del checkout (no se enviaba al
+  backend, era engañoso).
 
 ### ✅ Cerrado en sesión 2026-06-12 al 2026-06-13
 
@@ -89,6 +103,18 @@ Trial: 14 días sin tarjeta (decidido).
    Cerrar gap antes de Fase 11.
 5. **UptimeRobot** apuntando a `/up` (API) y `/` (Web). Antes del primer
    cliente pagado.
+6. **Theme toggle del landing del local** no persiste — alterna sol/luna
+   solo durante la visita. Agregar `localStorage.setItem('ce-theme', …)`
+   en `LandingClient` si decidimos que vale la pena (decision pendiente).
+7. **Variantes/extras de productos en `ProductDetailSheet`** — hoy se
+   ignora `producto.extras` y siempre se agrega sin extras seleccionados.
+   Bloqueante cuando un local active recetas con grupos opcionales.
+8. **Notas globales del pedido** — el campo se removió del checkout
+   porque el backend solo acepta `notas` por item. Si se quiere
+   reintroducir, agregar columna `pedidos.notas` + payload + UI.
+9. **Partir `LandingClient.tsx` (~30 KB)** en sub-componentes
+   (Hero, InfoCard, Categorias, ProductGrid, etc.) cuando toque tocarlo
+   de nuevo. Hoy es legible pero el archivo está grandote.
 
 ## Cómo retomar — checklist al abrir el repo
 
@@ -210,5 +236,6 @@ curl -I https://clicktoeat-api.lumiaaisolutions.com/up
 
 ---
 
-**Última actualización**: 2026-06-13 — sesión Rediseño landing v2 + permisos staff
-+ icon system expandido + footer LUMIA.
+**Última actualización**: 2026-06-14 — sesión Rediseño editorial cálido de
+la landing del local (Instrument Serif + Hanken Grotesk, info card flotante,
+chips horizontales, grid de cards, cart FAB con sheen+ring, checkout sheet).

@@ -849,7 +849,6 @@ function CheckoutSheet({
   const [nombre,         setNombre]         = useState('');
   const [telefono,       setTelefono]       = useState('');
   const [direccion,      setDireccion]      = useState('');
-  const [notas,          setNotas]          = useState('');
   const [clienteLat,     setClienteLat]     = useState<number | null>(null);
   const [clienteLng,     setClienteLng]     = useState<number | null>(null);
   const [fueraDeRango,   setFueraDeRango]   = useState(false);
@@ -1110,19 +1109,6 @@ function CheckoutSheet({
                     onChange={(e) => setTelefono(e.target.value)}
                     autoComplete="tel"
                     inputMode="numeric"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[12.5px] font-bold mb-1.5" style={{ color: 'var(--ce-muted)' }}>
-                    Notas (opcional)
-                  </label>
-                  <input
-                    className={inputCls}
-                    style={{ borderColor: 'rgba(35,25,15,0.08)' }}
-                    placeholder="Sin cebolla, salsa aparte…"
-                    value={notas}
-                    onChange={(e) => setNotas(e.target.value)}
                   />
                 </div>
 

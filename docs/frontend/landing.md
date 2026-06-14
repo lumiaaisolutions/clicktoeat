@@ -1,239 +1,338 @@
 # Frontend — Landing pública del local
 
-`apps/web/src/app/[slug]/page.tsx` + `LandingClient.tsx`.
+`apps/web/src/app/[slug]/page.tsx` (SSR) + `LandingClient.tsx` (cliente).
 
-## Estructura general (junio 2026)
+> Última actualización: 2026-06-14 — rediseño editorial cálido. Ver entrada
+> en `CHANGELOG.md` "Changed — Landing del local: rediseño editorial cálido".
+
+## Look & feel
+
+Inspirado en el patrón "menú digital cálido de restaurante" (cream warm bg
++ serif display + cards lift + cart FAB con sheen+ring). Toda la
+identidad cromática viene de `branding.*` del local: el cliente la
+configura desde `/admin/branding` y la landing la refleja en CSS vars en
+caliente — **ningún dato del template es hardcodeado**.
+
+Tipografías (cargadas en `apps/web/src/app/layout.tsx` desde Google Fonts):
+
+- **Instrument Serif** (`.ce-serif`) — display editorial: nombre del local
+  en hero, título de categoría, resumen del checkout, footer.
+- **Hanken Grotesk** (`.ce-body`) — UI/body en cards de producto y cart.
+- **Bricolage Grotesque** (`.ce-display`) — heredada del directorio público;
+  no se usa en este landing salvo overlays globales.
+- **Geist** (default `font-sans`) — fallback general del proyecto.
+
+Ver [`typography.md`](typography.md) para reglas de cuándo usar cada una.
+
+## Estructura general
 
 ```
 LandingClient
-├── Hero con banner background + logo + nombre + pill abierto/cerrado
-├── Banner "Volvemos pronto" (sticky top, solo si cerrado)
-├── Tabs de categorías (CategoryButton) — gradient accent + icono flotante
-├── Accordion de productos (ProductAccordion + AccordionPanel)
-├── Footer dark — info local + redes 3D + "Desarrollado por LUMIA"
-├── FloatingCartBar (fixed bottom)
-├── CartDrawer (slide-in)
-├── CheckoutSheet (modal)
+├── Hero (76vh) — banner + overlay + top bar glass + tagline + nombre serif + chevron bob
+├── Info card flotante (-mt-70) — status pulse dot + horario + ubicación
+├── Banner CERRADO (sólo si estado.abierto === false, debajo del card)
+├── Sticky bar de categorías — chips horizontales scroll-x con icono editable
+├── Section productos — grid auto-fill 260px con product cards
+├── Footer dark — identidad + contacto + redes + LUMIA credit
+├── ProductDetailSheet — bottom sheet con cantidad + Añadir
+├── CartFab — FAB con sheen + ring pulse + count badge pop
+├── CartDrawer — panel derecha
+└── CheckoutSheet — bottom sheet con resumen + form + WhatsApp button verde
 ```
 
-## Banner CERRADO — estilo restaurante premium
+## Hero
 
-Cuando el local NO acepta pedidos (`estado.abierto === false`), se renderiza
-un banner sticky-top con:
-- Línea **vertical roja gradient** a la izquierda (sello de menú físico).
-- Icon clock con **halo ping** rojo expandiéndose.
-- Tipografía display: **"Volvemos pronto"** (cálido, no app-ish).
-- Mensaje secundario limpio (regex elimina el "Cerrado · Cerrado · …" duplicado).
-- Badge **CERRADO** a la derecha (oculto en mobile estrecho) con dot halo-pulse.
+- Altura: `clamp(440px, 76vh, 660px)`.
+- Imagen `branding.banner` con `scale(1.08)→1` en mount (1.6s).
+- Overlay gradient 4-stops oscuro (top:.30 / .05 / .20 / bottom:.74) para
+  legibilidad en cualquier banner.
+- Top bar:
+  - Izquierda: avatar 46×46 — si hay `branding.logo` se usa, si no muestra
+    la inicial del `local.nombre` sobre fondo glass `rgba(255,255,255,.16)`
+    con backdrop-blur 14px.
+  - Derecha: botón theme toggle (sol/luna). Alterna `dark` local del
+    componente — **no persiste**, solo alterna mientras el visitante está
+    en la página. El `branding.darkMode` del owner define el estado inicial.
+- Texto centrado abajo (`bottom:118px`):
+  - Tagline en uppercase, `letter-spacing:.32em`, `opacity:.86`.
+  - Nombre en Instrument Serif `clamp(46px, 9vw, 84px)` `line-height:.98`.
+- Scroll hint: chevron-down con animación `ce-bob` 2.4s infinite.
 
-## Tabs de categorías (CategoryButton)
+## Info card flotante
 
-Botones rediseñados estilo "Contact button" premium con icono **flotante grande**:
+- `margin-top:-70px` para superponer hero, `z-index:8`.
+- `max-width:640px`, `border-radius:24px`, sombra grande
+  `0 24px 60px -20px rgba(35,25,15,.28)`.
+- Tres celdas separadas por divisores verticales (ocultos en mobile):
+  1. **Status dot** con animación `ce-pulse-dot` 2.4s:
+     - Verde `#2DA05A` + label "Abierto" si `estado.abierto === true`.
+     - Rojo `#DC2626` + "Cerrado" si `estado.abierto === false`.
+     - Gris `#A89C90` + "Sin horario" si `null`.
+  2. **Horario** (icon `clock` accent) — generado por `formatHorarios()` que
+     condensa los 7 días si todos comparten el mismo horario
+     (`"Lun – Dom · 9:00 – 22:00"`) o lista días con horario común.
+  3. **Ubicación** (icon `map-pin` accent) — `local.direccion`.
 
-- **Centrados** horizontalmente con `flex-wrap justify-center gap-5/7`.
-- **Activo**: gradient diagonal `var(--ce-accent)` → mezcla 70% accent + 30% black.
-  Shadow profunda. Hover lift `-translate-y-0.5` + shadow más grande.
-- **Inactivo**: `bg-surface` + border-line. Mismo hover lift.
-- **Icono SIN background, size 56, strokeWidth 2.5**, posición absolute
-  derecha con `translate-x-4 sm:6` (sale del botón).
-- **Truco "sticker"**: filter `drop-shadow blanco x3` (contorno) + `drop-shadow oscuro` (profundidad).
-  Funciona sobre cualquier color de fondo del local — el contorno blanco
-  hace que el icono ink sea siempre legible.
-- **Rotación 10° base** → 18° + scale-110 + translate-x extra en hover.
-- Color del accent siempre viene de `var(--ce-accent)` — lo configura el owner.
+## Banner CERRADO
 
-### iconForCategoria() — inferencia automática
+Cuando `estado.abierto === false`, **además** del status dot rojo en el
+info card, se renderiza un banner cálido debajo:
 
-Función helper en `LandingClient.tsx` que mira el nombre de la categoría
-y mapea a un icono representativo del catálogo de 31 (Icon system).
-Cubre 50+ keywords en español por familia:
+- Fondo `bg-red-50` con barra accent vertical roja a la izquierda.
+- Icon `clock` rojo con halo `animate-ping`.
+- Texto Instrument Serif "Volvemos pronto" + mensaje del backend limpiado
+  (regex elimina prefijo redundante `"Cerrado · "`).
+- Badge `CERRADO` derecha con dot `halo-pulse` blanco.
 
-| Familia | Keywords (ej) | Icono |
+## Categorías — chips scroll-x
+
+Reemplazaron al "CategoryButton con icono volando" de la versión anterior.
+
+- Sticky top (`top:0`, `z-30`), fondo glass `rgba(251,248,243,.82)` (o
+  `rgba(22,17,13,.82)` en dark) con backdrop-blur 20px.
+- Flex horizontal scrollable (`ce-chips-scroll` oculta scrollbar).
+- Cada chip:
+  - Inactivo: `bg-surface` + border-line, hover `-translate-y-0.5`.
+  - Activo: gradient diagonal `var(--ce-accent)` → mezcla 78% accent +
+    22% black, texto blanco, sombra `0 8px 22px -8px rgba(0,0,0,.32)`.
+- Icon a la izquierda del texto, size 13, strokeWidth 2.4. Viene de
+  `categoria.icono` (editable desde `/admin/categorias`) o de
+  `iconForCategoria()` cuando es `null`.
+
+### `iconForCategoria()` — inferencia automática
+
+Helper en `LandingClient.tsx`. Mira el nombre y mapea a un icono del set
+de ~50 (Icon system) cubriendo 50+ keywords en español:
+
+| Familia | Keywords (ej) | Icono fallback |
 |---|---|---|
-| Postres | `pastel`, `cake`, `helado`, `paleta`, `fruta` | `cake`, `ice-cream`, `popsicle`, `cherry`, `apple` |
-| Bebidas | `café`, `vino`, `cerveza`, `coctel`, `refresco`, `leche` | `coffee`, `wine`, `beer`, `martini-glass`, `cup-soda`, `milk` |
-| Comida | `pizza`, `burger`, `sopa`, `carne`, `pollo`, `pescado`, `huevo`, `pan`, `snack` | `pizza`, `sandwich`, `soup`, `beef`, `drumstick`, `fish`, `egg`, `croissant`, `popcorn` |
-| Conceptos | `vegano`, `gluten`, `picante`, `desayuno`, `cena`, `combo` | `sprout`, `wheat`, `flame`, `sun`, `moon`, `gift` |
+| Postres | `pastel`, `cake`, `helado`, `paleta` | `cake`, `ice-cream`, `popsicle` |
+| Bebidas | `café`, `vino`, `cerveza`, `coctel` | `coffee`, `wine`, `beer`, `martini-glass` |
+| Comida | `pizza`, `burger`, `sopa`, `carne` | `pizza`, `sandwich`, `soup`, `beef` |
+| Conceptos | `vegano`, `picante`, `desayuno`, `combo` | `sprout`, `flame`, `sun`, `gift` |
 
-Fallback: `utensils`. Si la categoría tiene `icono` en BD, se usa ese.
+Fallback final: `utensils`. Si el owner asignó `categoria.icono` en BD se
+respeta ese.
 
-## Productos — Accordion expansible (junio 2026)
+## Productos — grid de cards
 
-El grid clásico de cards fue reemplazado por un **accordion estilo paneles**
-(inspirado en el patrón Traversy):
+Tras la sesión 2026-06-14 se sustituyó el accordion expansible por un
+**grid de cards** estilo "menú clásico de restaurante" — la decisión es
+volver a un patrón que el comensal lee de un vistazo sin tener que
+expandir paneles.
 
-- **Estado inicial**: todos los productos colapsados (flex 0.5 / altura mínima).
-- **Click en un panel** → se expande (flex 5), el resto vuelve a compacto.
-- **Panel expandido** muestra inline: título grande, descripción, selector
-  +/- de cantidad y botón "Agregar · $XX" (total dinámico).
-- **Panel colapsado** muestra: imagen de fondo + título (vertical en desktop,
-  horizontal en mobile) + precio sutil arriba a la derecha.
-- **Tag POPULAR** siempre visible arriba a la izquierda si el producto lo tiene.
+- `grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr))`.
+- Gap `clamp(14px, 2.4vw, 22px)`.
+- Animación `ce-fade-swap` al cambiar de categoría (`key={activeCat}`).
 
-### Responsive
+Cada card:
 
-| Breakpoint | Comportamiento |
-|------------|----------------|
-| `md+` | Flex horizontal — paneles a lo ancho, expansión lateral |
-| `<md` | Flex vertical — paneles apilados, expansión hacia abajo (altura 120px → 480px) |
+- `border-radius:22px`, sombra `0 10px 30px -12px rgba(35,25,15,.18)`.
+- Imagen `aspect-ratio:16/11` con clase `.ce-pimg` (hover → `scale(1.07)`
+  en 600ms `cubic-bezier(.22,.61,.36,1)`).
+- Hover en card: `translateY(-6px)` + sombra más profunda (`.ce-card`).
+- Tag (`producto.tag`): pill superior izquierda con `var(--ce-accent)`.
+- Título Hanken bold 16.5px.
+- Descripción 2 líneas con `-webkit-line-clamp:2`.
+- Precio Hanken extrabold 18px en color del accent.
+- Botón `+` 44×44 con gradient + sombra del accent — click NO abre el
+  detail; agrega directo al carrito (1 unidad) y abre el cart drawer.
+- Click en el cuerpo de la card abre el `ProductDetailSheet` (modal).
 
-### UX justificación
+## ProductDetailSheet
 
-- 1 tap para ver detalle Y agregar → más rápido que tap → modal → cantidad → agregar.
-- El precio sutil cuando colapsado evita saturar visual; cuando expandido, el total
-  vive en el botón "Agregar · $XX".
-- La X de cerrar solo aparece cuando hay panel activo, en la esquina superior derecha.
-- Tras "Agregar" el panel se colapsa automáticamente y se abre el cart drawer.
+- Bottom sheet (mobile) / centered modal (sm+) con animación
+  spring (`detailIn` semantically): `y:40→0` con `stiffness:320, damping:32`.
+- Backdrop oscuro `rgba(20,12,6,.5)` con backdrop-blur 6px.
+- Imagen 16/10 + botón X arriba (gira 90° en hover) + tag.
+- Título Instrument Serif 30px, descripción 14.5px.
+- Selector cantidad (`-` qty `+`) en pill con border-line.
+- Botón "Añadir · $XX" gradient ce-accent → 72% accent + 28% black.
 
-### Por qué no modal aparte
+## CartFab
 
-Antes había un `ProductPreview` modal. Tradeoffs:
+- Posición `fixed bottom-right`, respeta safe-area.
+- Pill 64px alto con dos zonas:
+  - Círculo con icon `utensils` + count badge blanco arriba-derecha con
+    animación `ce-pop` al cambiar (key={count}).
+  - Texto "MI PEDIDO" (uppercase letterspaced) + total grande.
+- Tres efectos overlay:
+  - `ce-cart-ring` — borde 2px del accent que escala 0.9→1.32 y se
+    desvanece cada 2.8s.
+  - `ce-sheen` — gradient blanco diagonal recorriendo de izq a der cada
+    4.5s (`skewX(-18deg)`).
+  - Hover: `-translate-y-3px` + brightness 1.10.
 
-| | Modal aparte | Accordion inline |
-|---|---|---|
-| Taps para agregar 1 producto | 3 | 1-2 |
-| Mobile UX | Bottom sheet ok | Más natural — sin overlay |
-| Vista del menú completo | Se oculta | Se mantiene como contexto |
-| Animación | Slide-up de modal | Expansion lateral / vertical |
+## CartDrawer
 
-El accordion gana en velocidad y en mantener el menú visible. El componente
-`ProductPreview` legacy queda en el archivo pero ya no se monta.
+- Panel derecho `min(440px, 92vw)` con animación `x:'100%'→0` (400ms,
+  cubic-bezier panel-in).
+- Header: "TU PEDIDO" uppercase accent + count Instrument Serif + botón X
+  (rota 90° hover).
+- Lista de items con animación `ce-row-in` stagger (delay = idx × 0.05s).
+- Cada item: imagen 60×60 + nombre + total línea + control qty.
+- Footer: total Hanken extrabold + botón "Confirmar pedido →" gradient
+  accent. Si `cerrado` el botón se grisea y muestra warning.
 
-## Flujo
+## CheckoutSheet
+
+Bottom sheet (mobile) / modal centered (sm+) con fondo `#FBF8F3`.
+
+- Botón volver ← (translate-x-0.5 hover) + "Último paso" uppercase accent
+  + "Confirma tu pedido" Instrument Serif 30px.
+- **Resumen**: card con border-line, cada line item `Nº× nombre … total`,
+  línea de envío si delivery, total grande tabular-nums.
+- **Form** vertical:
+  - Tu nombre
+  - Tipo de entrega: toggle 2 botones (`delivery` con icon `truck` y
+    `pickup` con icon `storefront`). El activo tiene gradient accent.
+  - Si `delivery`: `DeliveryAddressInput` con Nominatim autocomplete +
+    LeafletMap + botón "Usar mi ubicación aproximada" + indicador de
+    distancia / fuera de rango.
+  - Teléfono.
+  - Método de pago `<select>` con `local.metodosPago`.
+- Botón final: alto 58px, gradient WhatsApp `#25D366`, icon `whatsapp`,
+  sombra verde profunda. Se desactiva si `sending`, `cerrado`,
+  `!nombre`, `!telefono`, o `delivery && (!direccion || fueraDeRango)`.
+
+> **Nota:** el HTML de referencia incluía un campo "Notas (opcional)"
+> general del pedido. **No está en producción** porque nuestro backend
+> acepta `notas` por item de carrito, no global, y no quisimos engañar al
+> usuario con un campo que se pierde. Cuando se implemente notas globales
+> en `pedidos`, agregar el input en `CheckoutSheet` y mandar a
+> `payload.notas`.
+
+## Flujo de pedido (sin cambios funcionales)
 
 ```
 GET /tacos-el-gordo
-   │
    ▼
-app/[slug]/page.tsx (Server Component)
-   ├── fetchMenu(slug)                       // lib/api.ts
-   │     ├── fetch /public/menu/{slug} (cache: 'no-store')
-   │     └── 404 → throw MenuNotFoundError → not-found.tsx
-   └── return <LandingClient data={...} />
+page.tsx (SSR) → fetchMenu(slug) → 404 NotFoundError → not-found.tsx
    ▼
-LandingClient (Client)
-   ├── Setea CSS vars de branding en root
-   ├── Renderiza hero + sticky bar de categorías
-   ├── Renderiza grilla de productos por categoría
-   ├── Sheet de carrito (controlado por useCart)
-   ├── Checkout flow: form → POST /public/pedidos/{slug} → abre wa.me
+<LandingClient data={...} />
+   ├── Setea CSS vars: --ce-accent ← branding.colorPrimario
+   ├── Renderiza hero + info card + categorías + productos
+   ├── useCart(): setLocal(slug) → purga si era otro local
+   ▼
+Click producto → ProductDetailSheet → onAdd(qty) → cart.add()
+   ▼
+CartDrawer → "Confirmar pedido" → CheckoutSheet
+   ▼
+POST /api/v1/public/pedidos/{slug}
+   ├── 409 stock insuficiente → mostrar faltantes
+   ├── 422 validación → mostrar mensaje
+   └── ok → window.open(whatsapp_url) + cart.clear()
 ```
-
-## Estructura del menú renderizado
-
-1. **Hero**: logo, nombre, tagline, badge de estado ("Abierto · cierra a las 23:00"), redes sociales.
-2. **Sticky nav** con tabs por categoría (scroll-spy).
-3. **Producto card**: imagen, nombre, descripción, precio (con descuento si aplica), tag, botón "Agregar".
-4. **Modal de producto** al hacer click: selector de extras (radio/checkbox según `kind`), notas, cantidad. Acumula `precio_unitario`.
-5. **Carrito side-sheet**: lista de items, edición de cantidades, subtotal + entrega + total.
-6. **Checkout**: campos de cliente, método de entrega, método de pago. Si delivery → captura dirección (+ opcional lat/lng del navegador).
-7. **POST** → respuesta con `whatsapp_url` → `window.open(url)` → carrito se limpia.
 
 ## CSS vars de branding
 
-`LandingClient` inyecta:
+`LandingClient` inyecta en root:
 ```css
-:root {
-  --ce-accent: <color_primario>;
-  --ce-ink:    <color_secundario>;
-  --ce-bg:     <color_fondo>;
-  /* (otros derivados como --ce-line, --ce-surface ya están en globals.css) */
-}
+--ce-accent: <branding.colorPrimario>;
+background:  <branding.colorFondo || '#FBF8F3'>;
+color:       var(--ce-ink);
 ```
 
-Tailwind tiene mapeo en `tailwind.config.ts`:
-```ts
-colors: {
-  ink: 'var(--ce-ink, #0B0B0F)',
-  bg:  'var(--ce-bg,  #FAFAF7)',
-  accent: 'var(--ce-accent, #FF2D2D)',
-  ...
-}
-```
+`.ce-dark` se aplica si el theme toggle local lo activa o si
+`branding.darkMode` es true al inicio.
 
-→ usar `bg-accent` / `text-ink` aplica los colores del local al instante.
+Tailwind `tailwind.config.ts` mapea `accent`, `ink`, `bg`, `line`, `muted`,
+`surface` a las vars `--ce-*`, así que `bg-accent` / `text-ink` rinden
+con el color del local automáticamente.
 
 ## Carrito
 
-Store `useCart` (ver [`frontend/stores.md`](stores.md#cart-storecartts)).
-
-- `lineKey` único por (producto + hash de extras + notas) — permite añadir el mismo producto con dos configuraciones distintas como líneas separadas.
-- Al entrar a una landing nueva, `setLocal(slug)` purga si era de otro local.
-- Sobrevive recarga (localStorage).
+Store `useCart` (ver [`stores.md`](stores.md#cart-storecartts)). Sin cambios.
+- `lineKey` único por (producto + hash extras + notas).
+- `setLocal(slug)` purga al cambiar de local.
+- Persiste en localStorage.
 
 ## Validaciones cliente
 
-Antes de pegar al backend:
-- Cliente nombre + teléfono requeridos.
-- Si delivery → dirección requerida.
-- Items > 0.
-
-El backend valida igual; el cliente sólo evita roundtrips obvios.
-
-## Botón WhatsApp
-
-El backend devuelve `whatsapp_url` ya armada. Frontend hace `window.open(whatsappUrl, '_blank')`. Si por alguna razón no viene, hace fallback a `buildWhatsAppUrl(...)` local (espejo del builder PHP — ver [`features/whatsapp.md`](../features/whatsapp.md)).
+- `!nombre || !telefono` → submit deshabilitado.
+- `delivery && (!direccion || fueraDeRango)` → submit deshabilitado.
+- Backend valida igual (Form Requests).
 
 ## Errores
 
-- 409 stock insuficiente → mensaje con la lista de `faltantes`.
-- 409 cerrado → mensaje "El local no está aceptando pedidos ahora" + horario sugerido.
-- 422 fuera de radio → mensaje con la distancia.
-- 422 validación → muestra `errors` en los campos.
+- 409 stock → lista `faltantes`.
+- 422 → `body.message`.
+- Fallback de red: `buildWhatsAppUrl()` local — abre WhatsApp aunque la
+  API esté caída.
 
-Todo via `toast.error(...)` + estado del form.
+## Estado abierto/cerrado
 
-## Estado abierto / cerrado
+Calculado server-side y serializado como `data.local.estado: { abierto, mensaje }`.
+Cliente sólo refleja. Hidratación segura — no se vuelve a calcular en
+cliente para evitar mismatch.
 
-Viene en `data.local.estado` calculado server-side. Frontend sólo renderiza el `mensaje` y eventualmente deshabilita el checkout (`abierto !== true`).
+## Animaciones (clases CSS)
 
-Por qué server-side: usar `new Date()` en cliente causaba hydration mismatch en Next 14 cuando el servidor y el cliente arrancaban en milisegundos distintos.
+Definidas en `globals.css` (sección "Landing del local — editorial / restaurante"):
+
+| Clase | Uso | Origen |
+|---|---|---|
+| `.ce-pop` | Count badge del cart FAB al cambiar | `@keyframes ce-pop` 450ms |
+| `.ce-bob` | Chevron scroll hint del hero | infinite 2.4s |
+| `.ce-pulse-dot` | Status dot del info card | infinite 2.4s, color custom via `--ce-dot-glow` |
+| `.ce-fade-swap` | Grid al cambiar de categoría | 500ms |
+| `.ce-sheen` | Reflejo recorriendo el cart FAB | infinite 4.5s |
+| `.ce-cart-ring` | Ring expandiéndose en cart FAB | infinite 2.8s |
+| `.ce-row-in` | Items del cart al aparecer (stagger) | 420ms |
+| `.ce-pimg` + `.ce-card` | Hover scale + lift en product cards | 600ms / 350ms |
+
+Animaciones de motion (framer-motion) se usan en sheets (`spring`),
+banner cerrado (`y:-8→0`), hero img (`scale 1.08→1`) y CartDrawer
+(`x:100%→0`). Ver el componente para detalles.
 
 ## Performance
 
-- `cache: 'no-store'` significa "siempre fresco". El backend es rápido (~50ms con MySQL local).
-- Imágenes son `<img>` plano (no `next/image`) en `LandingClient` porque vienen de uploads dinámicos sin pre-procesado.
-- Producción: nginx sirve archivos estáticos con `expires 7d` para fuentes/css/js (ver `docker/nginx/default.conf`).
+- Bundle de `/[slug]`: **16.8 kB** (antes ~31 kB con accordion).
+- Imágenes `<img>` plano (no `next/image`) — vienen de uploads dinámicos.
+- `cache: 'no-store'` en `fetchMenu` → siempre fresco.
+- Fuentes: 4 familias cargadas en `layout.tsx` con `&display=swap`.
 
-## Pendiente
+## Footer
 
-- Partir `LandingClient.tsx` (~31 KB) en sub-componentes (Hero, MenuList, ProductModal, CartSheet, Checkout).
-- SEO: `generateMetadata({ params })` para producir `<title>` específico del local.
-- OG image dinámica.
-- Skeleton durante el fetch inicial (hoy es 100% SSR, no aplica).
-- PWA + service worker para que la landing funcione offline (fase 5).
-
-## Footer — restaurante premium dark
-
-Estructura final del footer del local (al fondo de la landing):
+Dark restaurante premium. Sin cambios sustanciales tras el rediseño:
 
 ```
 ┌─ accent line top (gradient transparent → var(--ce-accent) → transparent) ─┐
 │                                                                            │
-│  [Logo local]   Nombre del local              SÍGUENOS                    │
-│                 tagline                                                    │
-│                 📍 dirección                  [FB 3D] [IG 3D] [TT 3D]    │
-│                 📱 +WhatsApp                                              │
+│  [Logo]   Nombre del local            CONTACTO         SÍGUENOS           │
+│           tagline                     📍 dirección     [IG][FB][WA]      │
+│                                       📞 teléfono                          │
+│                                       🕐 horario                           │
 │                                                                            │
 │  ─────────────────────────────────────────────────                       │
-│  © 2026 Local. Todos los derechos reservados.   Desarrollado por LUMIA ↗ │
+│  © 2026 Local. Todos los derechos reservados.   Desarrollado por LUMIA   │
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Características:
+- Identidad: logo 44×44 + nombre Instrument Serif 30px + tagline.
+- Contacto: dirección, teléfono o WhatsApp, horario.
+- Redes: pills circulares 42×42 con border `white/20`. Hover cambia
+  background a `var(--ce-accent)` y `-translate-y-3px`.
+- Bottom bar: copyright + "Desarrollado por LUMIA" con underline accent.
 
-- **bg-ink** (negro) full-width — contraste premium estilo restaurante.
-- **Orb gradient** decorativo del color del local arriba a la derecha (opacity 20%).
-- **Línea accent superior** horizontal (gradient transparent → ce-accent → transparent).
-- **Grid 2 cols** en md+: identidad + redes. Stack en mobile.
-- **Identidad**: logo (12×12 con border-white/20) + nombre display + tagline +
-  dirección con icon map-pin + WhatsApp clickeable con icon verde.
-- **Redes 3D**: tarjetas isométricas con color real de cada red (Facebook
-  blue, Instagram gradient pink-purple oficial, TikTok black).
-- **Bottom bar** separado con border-t white/10:
-  - Copyright: `© YEAR {nombre local}. Todos los derechos reservados.`
-  - **"Desarrollado por LUMIA ↗"** → link a https://lumiaaisolutions.com
-  - "LUMIA" tiene gradient effect on hover (from ce-accent → white).
+## Pendientes / mejoras conocidas
 
-El status card "Cerrado por ahora" del footer **fue eliminado** (junio 2026) —
-ya existe el banner top sticky y el bottom redundancia.
+- Persistir el theme toggle del visitante en `localStorage`.
+- Renderizar variantes de producto (extras) en el `ProductDetailSheet` —
+  hoy se ignora `producto.extras` y siempre se agrega sin extras seleccionados.
+  Es relevante cuando un local activa el módulo de extras/recetas.
+- Notas globales del pedido (ver nota en CheckoutSheet) — requiere backend.
+- SEO: `generateMetadata({ params })` para `<title>` dinámico.
+- OG image dinámica.
+- Partir `LandingClient.tsx` (~30 KB) en sub-componentes
+  (Hero, InfoCard, Categorias, ProductGrid, etc.).
+- PWA + offline (Fase 5).
+
+## Ver también
+
+- [`typography.md`](typography.md) — fuentes y reglas de uso
+- [`icon-system.md`](icon-system.md) — el componente `<Icon>` y `IconPicker`
+- [`stores.md`](stores.md#cart-storecartts) — Zustand `useCart`
+- [`scroll-animations.md`](scroll-animations.md) — patrones de la home
+- [`../features/whatsapp.md`](../features/whatsapp.md) — formato del mensaje
+- [`../features/branding.md`](../features/branding.md) — qué edita el owner

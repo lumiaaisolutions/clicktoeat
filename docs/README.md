@@ -95,6 +95,7 @@ Documentación viva del proyecto. **Regla**: cada tema vive en su propio `.md` d
 - [Patrones de scroll-animations](frontend/scroll-animations.md) — viewport, parallax, scrubbing, tilt 3D, counter
 - [Sistema de loaders](frontend/loaders.md) — InitialLoader, RouteTransition, app/loading.tsx
 - [Sistema de iconos](frontend/icon-system.md) — Icon component inline (estilo Lucide, sin lucide-react)
+- [Tipografía](frontend/typography.md) — Instrument Serif / Hanken Grotesk / Bricolage / Geist y reglas de uso
 - [Geolocalización "Cerca de ti"](frontend/geolocation.md) — geolocation API + Haversine
 
 ### Infra / DevOps
