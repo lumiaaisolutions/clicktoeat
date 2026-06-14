@@ -39,6 +39,8 @@ body {
 }
 
 .ce-display { font-family: "Bricolage Grotesque", system-ui, sans-serif; letter-spacing: -0.02em; }
+.ce-serif   { font-family: "Instrument Serif", "Georgia", serif; letter-spacing: -0.01em; font-weight: 400; }
+.ce-body    { font-family: "Hanken Grotesk", system-ui, sans-serif; }
 
 .glass {
   background: rgba(255,255,255,0.65);
@@ -268,3 +270,76 @@ html { scroll-behavior: smooth; }
     transform: rotate(-6deg) skewX(4deg) translate(6px, -5px);
   }
 }
+
+/* ─────────── Landing del local — editorial / restaurante ───────────
+ *
+ * Keyframes inspirados en el patrón "menú digital cálido" (cream warm bg
+ * + serif display + cards lift + cart FAB con ring+sheen). Usado por
+ * /[slug]/LandingClient.tsx.
+ */
+
+@keyframes ce-pop {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.22); }
+  100% { transform: scale(1); }
+}
+.ce-pop { animation: ce-pop .45s cubic-bezier(.34,1.56,.64,1); }
+
+@keyframes ce-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(6px); }
+}
+.ce-bob { animation: ce-bob 2.4s ease-in-out infinite; }
+
+@keyframes ce-pulse-dot {
+  0%, 100% { opacity: 1;  box-shadow: 0 0 0 0   var(--ce-dot-glow, rgba(45,160,90,.5)); }
+  50%      { opacity: .6; box-shadow: 0 0 0 6px rgba(45,160,90,0); }
+}
+.ce-pulse-dot { animation: ce-pulse-dot 2.4s ease-in-out infinite; }
+
+@keyframes ce-fade-swap {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: none; }
+}
+.ce-fade-swap { animation: ce-fade-swap .5s cubic-bezier(.25,.1,.25,1); }
+
+@keyframes ce-sheen {
+  0%        { transform: translateX(-120%) skewX(-18deg); }
+  60%, 100% { transform: translateX(320%)  skewX(-18deg); }
+}
+.ce-sheen { animation: ce-sheen 4.5s ease-in-out infinite; }
+
+@keyframes ce-cart-ring {
+  0%        { transform: scale(.9);  opacity: .55; }
+  70%, 100% { transform: scale(1.32); opacity: 0;  }
+}
+.ce-cart-ring { animation: ce-cart-ring 2.8s ease-out infinite; }
+
+@keyframes ce-row-in {
+  from { opacity: 0; transform: translateX(26px); }
+  to   { opacity: 1; transform: none; }
+}
+.ce-row-in { animation: ce-row-in .42s cubic-bezier(.25,.1,.25,1) both; }
+
+/* Cards: hover lift en imagen */
+.ce-pimg { transition: transform .6s cubic-bezier(.22,.61,.36,1); }
+.ce-card:hover .ce-pimg { transform: scale(1.07); }
+.ce-card {
+  transition: transform .35s cubic-bezier(.25,.1,.25,1),
+              box-shadow .35s cubic-bezier(.25,.1,.25,1);
+}
+.ce-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 24px 60px -20px rgba(35,25,15,.28);
+}
+@media (hover:none) {
+  .ce-card:active { transform: translateY(-3px); }
+  .ce-card:active .ce-pimg { transform: scale(1.05); }
+}
+
+/* Selección color cálido del accent del local */
+.ce-warm ::selection { background: color-mix(in srgb, var(--ce-accent) 22%, transparent); }
+
+/* Scrollbar discreto para chips de categorías */
+.ce-chips-scroll::-webkit-scrollbar { display: none; }
+.ce-chips-scroll { scrollbar-width: none; -ms-overflow-style: none; }

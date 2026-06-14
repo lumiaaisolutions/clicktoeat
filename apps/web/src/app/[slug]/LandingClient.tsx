@@ -6,71 +6,77 @@ import dynamic from 'next/dynamic';
 import { useCart } from '@/store/cart';
 import { buildWhatsAppUrl } from '@/lib/whatsapp';
 import { cn, formatMXN } from '@/lib/utils';
-import type { MenuResponse } from '@/lib/api';
+import type { MenuResponse, MenuProducto } from '@/lib/api';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import 'leaflet/dist/leaflet.css';
 
-const LeafletMap = dynamic(() => import('@/components/admin/LeafletMap'), { ssr: false, loading: () => <div className="h-48 rounded-xl border border-line bg-line/30 animate-pulse" /> });
+const LeafletMap = dynamic(() => import('@/components/admin/LeafletMap'), {
+  ssr: false,
+  loading: () => <div className="h-48 rounded-xl border border-line bg-line/30 animate-pulse" />,
+});
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-interface Props {
-  menu: MenuResponse['data'];
-}
+type Local     = MenuResponse['data']['local'];
+type Branding  = MenuResponse['data']['branding'];
+type Categoria = MenuResponse['data']['categorias'][number];
+type Producto  = MenuProducto;
+
+interface Props { menu: MenuResponse['data']; }
 
 export function LandingClient({ menu }: Props) {
   const { local, branding, categorias, productos } = menu;
   const cart = useCart();
 
-  // Estado de apertura calculado server-side. Si está cerrado (false), bloquear
-  // todas las acciones de compra. Si es null (sin horario), permitir.
   const estado     = (local as any).estado as { abierto: boolean | null; mensaje: string } | undefined;
   const cerrado    = estado?.abierto === false;
+  const horarioStr = useMemo(() => formatHorarios(local.horarios), [local.horarios]);
+  const initial    = (local.nombre || '?').trim().charAt(0).toUpperCase();
 
-  const [activeCat, setActiveCat] = useState(categorias[0]?.slug ?? null);
-  const [cartOpen, setCartOpen] = useState(false);
+  const [activeCat,    setActiveCat]    = useState<string | null>(categorias[0]?.slug ?? null);
+  const [cartOpen,     setCartOpen]     = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  // El carrito vive en localStorage (Zustand persist). En SSR está vacío y al
-  // hidratar lee localStorage → si tiene items, el HTML del cliente difiere
-  // del server (hydration error). Marcamos `mounted` y SOLO leemos el carrito
-  // después de la hidratación.
+  const [detail,       setDetail]       = useState<Producto | null>(null);
+  const [dark,         setDark]         = useState<boolean>(!!branding.darkMode);
+
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
-
-  // Cuando entras a un slug distinto al carrito anterior, se purga
-  useEffect(() => {
-    cart.setLocal(local.slug);
-  }, [local.slug]);
+  useEffect(() => { cart.setLocal(local.slug); }, [local.slug]);
 
   const productosFiltrados = useMemo(
-    () =>
-      activeCat
-        ? productos.filter((p) => p.categoria.slug === activeCat)
-        : productos,
+    () => (activeCat ? productos.filter((p) => p.categoria.slug === activeCat) : productos),
     [activeCat, productos],
   );
 
-  // Después de hidratar leemos el carrito; antes mostramos vacío (igual que SSR).
+  const activeCategoria = useMemo(
+    () => categorias.find((c) => c.slug === activeCat) ?? null,
+    [activeCat, categorias],
+  );
+
   const itemCount = mounted ? cart.itemCount() : 0;
   const subtotal  = mounted ? cart.subtotal()  : 0;
 
   return (
     <div
-      className={cn('min-h-screen pb-32', branding.darkMode && 'ce-dark')}
+      className={cn('ce-warm min-h-screen', dark && 'ce-dark')}
       style={{
         ['--ce-accent' as any]: branding.colorPrimario,
-        background: branding.darkMode ? 'var(--ce-bg)' : (branding.colorFondo || 'var(--ce-bg)'),
-        color: 'var(--ce-ink)',
+        background: dark ? 'var(--ce-bg)' : (branding.colorFondo || '#FBF8F3'),
+        color:      'var(--ce-ink)',
       }}
     >
-      {/* HERO */}
-      <header className="relative h-64 sm:h-80 md:h-[28rem] overflow-hidden">
+      {/* ===================== HERO ===================== */}
+      <header
+        className="relative w-full overflow-hidden bg-[#F3ECE1]"
+        style={{ height: 'clamp(440px, 76vh, 660px)' }}
+      >
         {branding.banner && (
           <motion.img
             initial={{ scale: 1.08 }}
@@ -81,317 +87,254 @@ export function LandingClient({ menu }: Props) {
             className="absolute inset-0 w-full h-full object-cover"
           />
         )}
-        {/* Gradient overlay con dos capas para mejor legibilidad */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent" />
+        {/* Gradient overlay 4-stop para legibilidad en cualquier banner */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'linear-gradient(180deg, rgba(20,12,6,.30) 0%, rgba(20,12,6,.05) 32%, rgba(20,12,6,.20) 62%, rgba(20,12,6,.74) 100%)',
+          }}
+        />
 
-        <div className="relative z-10 h-full max-w-5xl mx-auto px-4 sm:px-6 flex flex-col justify-end pb-6 sm:pb-10 text-white">
-          {branding.logo && (
-            <motion.img
-              initial={{ opacity: 0, y: 12, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              src={branding.logo}
-              alt={local.nombre}
-              className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-2xl object-cover bg-white border-[3px] border-white shadow-xl mb-4"
-            />
-          )}
-          {/* Pill de estado con halo pulse */}
-          {(local as any).estado && (
+        {/* TOP BAR — avatar inicial glass + theme toggle */}
+        <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 sm:px-6 md:px-10 py-4 sm:py-5">
+          <div className="flex items-center gap-3">
+            {branding.logo ? (
+              <img
+                src={branding.logo}
+                alt={local.nombre}
+                className="w-12 h-12 sm:w-[46px] sm:h-[46px] rounded-full object-cover border border-white/40 shadow-[0_6px_18px_rgba(0,0,0,0.25)] bg-white"
+              />
+            ) : (
+              <div
+                className="w-12 h-12 sm:w-[46px] sm:h-[46px] rounded-full grid place-items-center text-white ce-serif text-2xl border border-white/35 shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
+                style={{
+                  background: 'rgba(255,255,255,0.16)',
+                  backdropFilter: 'blur(14px) saturate(140%)',
+                  WebkitBackdropFilter: 'blur(14px) saturate(140%)',
+                }}
+              >
+                {initial}
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setDark((d) => !d)}
+            aria-label="Cambiar tema"
+            className="w-11 h-11 rounded-full grid place-items-center text-white border border-white/35 hover:-translate-y-0.5 hover:bg-white/30 transition tap-target"
+            style={{
+              background: 'rgba(255,255,255,0.16)',
+              backdropFilter: 'blur(14px) saturate(140%)',
+              WebkitBackdropFilter: 'blur(14px) saturate(140%)',
+            }}
+          >
+            <Icon name={dark ? 'sun' : 'moon'} size={18} />
+          </button>
+        </div>
+
+        {/* HERO TEXT — tagline pequeño uppercase + nombre Instrument Serif gigante */}
+        <div className="absolute inset-x-0 bottom-[118px] z-[5] px-4 sm:px-6 md:px-10 text-center">
+          {local.tagline && (
             <motion.div
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.45, delay: 0.2 }}
-              className="mb-3 inline-flex items-center gap-1.5 self-start"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 0.86, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="text-white text-[12px] font-semibold uppercase mb-2.5"
+              style={{ letterSpacing: '0.32em', textShadow: '0 2px 12px rgba(0,0,0,.5)' }}
             >
-              <span className={cn(
-                'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-md shadow-sm',
-                (local as any).estado.abierto === true  ? 'bg-emerald-500/95 text-white'
-                : (local as any).estado.abierto === false ? 'bg-red-500/95 text-white'
-                : 'bg-white/30 text-white',
-              )}>
-                <span className={cn(
-                  'w-1.5 h-1.5 rounded-full bg-white',
-                  (local as any).estado.abierto === true && 'halo-pulse',
-                )} />
-                {(local as any).estado.abierto === true ? 'Abierto'
-                 : (local as any).estado.abierto === false ? 'Cerrado'
-                 : 'Horario no disponible'}
-              </span>
-              {(local as any).estado.mensaje && (local as any).estado.abierto !== null && (
-                <span className="hidden xs:inline text-xs opacity-90">
-                  · {(local as any).estado.mensaje.replace(/^(Abierto|Cerrado)\s*[·.]?\s*/, '')}
-                </span>
-              )}
+              {local.tagline}
             </motion.div>
           )}
-
           <motion.h1
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.25, ease: [0.2, 0.8, 0.2, 1] }}
-            className="ce-display text-4xl sm:text-5xl md:text-7xl font-bold leading-[0.95] tracking-tight"
+            transition={{ duration: 0.6, delay: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
+            className="ce-serif text-white m-0"
+            style={{
+              fontSize: 'clamp(46px, 9vw, 84px)',
+              lineHeight: 0.98,
+              textShadow: '0 4px 30px rgba(0,0,0,.45)',
+            }}
           >
             {local.nombre}
           </motion.h1>
-          {local.tagline && (
-            <motion.p
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.35 }}
-              className="mt-2 sm:mt-3 max-w-xl opacity-90 text-sm sm:text-base"
-            >
-              {local.tagline}
-            </motion.p>
-          )}
-          {local.direccion && (
-            <motion.p
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: 0.42 }}
-              className="mt-3 sm:mt-4 text-xs sm:text-sm opacity-85 inline-flex items-center gap-1.5"
-            >
-              <Icon name="map-pin" size={13} />
-              {local.direccion}
-            </motion.p>
-          )}
+        </div>
+
+        {/* SCROLL HINT — chevron con bob */}
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-5 z-[5] text-white/80 ce-bob">
+          <Icon name="chevron-down" size={20} />
         </div>
       </header>
 
-      {/* BANNER DE CERRADO — estilo restaurante premium: barra accent vertical
-          a la izquierda + icon reloj con halo pulse + tipografía display +
-          badge "CERRADO" a la derecha con pulse blanco. */}
-      {cerrado && (() => {
-        // El mensaje del backend puede venir como "Cerrado · abre hoy a las 17:30".
-        // Limpiar el prefijo redundante.
-        const mensajeLimpio = (estado?.mensaje as string | undefined)
-          ?.replace(/^(Abierto|Cerrado)\s*[·.,-]?\s*/i, '')
-          ?.trim() || 'Vuelve más tarde.';
-        return (
+      {/* ===================== MAIN ===================== */}
+      <main className="relative z-[2] max-w-[1140px] mx-auto px-[clamp(14px,3.5vw,28px)] pb-0">
+        {/* INFO CARD FLOTANTE — status + horario + ubicación. -mt-70 sobre hero */}
+        <section className="relative z-[8] flex justify-center" style={{ marginTop: '-70px' }}>
           <motion.div
-            initial={{ opacity: 0, y: -12 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
-            className="relative bg-white border-b border-line shadow-soft overflow-hidden"
+            transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+            className="w-full max-w-[640px] rounded-3xl bg-surface border border-line p-4 sm:p-5 md:px-7 md:py-5 flex flex-wrap items-center gap-y-3 hover:-translate-y-[3px] transition-transform duration-400"
+            style={{ boxShadow: '0 24px 60px -20px rgba(35,25,15,.28)' }}
           >
-            {/* Barra accent vertical roja a la izquierda — sello de restaurante */}
-            <span aria-hidden className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-red-500 to-red-600" />
+            {/* Status dot */}
+            <div className="flex items-center gap-2.5 shrink-0 pr-4 md:pr-6">
+              {(() => {
+                const isOpen   = estado?.abierto === true;
+                const isClosed = estado?.abierto === false;
+                const color    = isClosed ? '#DC2626' : isOpen ? '#2DA05A' : '#A89C90';
+                const label    = isClosed ? 'Cerrado' : isOpen ? 'Abierto' : 'Sin horario';
+                return (
+                  <>
+                    <span
+                      className="w-2.5 h-2.5 rounded-full ce-pulse-dot"
+                      style={{
+                        background: color,
+                        ['--ce-dot-glow' as any]: `${color}80`,
+                      }}
+                    />
+                    <div className="flex flex-col leading-tight">
+                      <span className="text-[15px] font-extrabold ce-body" style={{ color }}>
+                        {label}
+                      </span>
+                      <span
+                        className="text-[11px] font-semibold uppercase"
+                        style={{ color: 'var(--ce-muted)', letterSpacing: '0.12em' }}
+                      >
+                        Ahora
+                      </span>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
 
-            <div className="max-w-5xl mx-auto px-5 sm:px-7 py-4 sm:py-5 flex items-center gap-4">
-              {/* Icon reloj con halo pulse (ring expandiéndose) */}
-              <span className="relative shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-red-50 border border-red-200 grid place-items-center text-red-600">
-                <span aria-hidden className="absolute inset-0 rounded-full bg-red-400/30 animate-ping" />
-                <Icon name="clock" size={20} className="relative" />
-              </span>
+            <span aria-hidden className="hidden sm:block w-px self-stretch bg-line" />
 
-              {/* Texto principal con jerarquía editorial */}
-              <div className="flex-1 min-w-0">
-                <p className="ce-display text-base sm:text-lg font-bold text-ink leading-tight tracking-tight">
-                  Volvemos pronto
-                </p>
-                <p className="text-xs sm:text-sm text-muted mt-0.5 leading-relaxed">
-                  {mensajeLimpio}
-                </p>
+            {/* Horario */}
+            <div className="flex items-center gap-3 flex-1 min-w-[130px] pl-0 sm:pl-5 md:pl-6">
+              <Icon name="clock" size={16} style={{ color: 'var(--ce-accent)' }} />
+              <div className="flex flex-col leading-tight min-w-0">
+                <span className="text-[13.5px] font-bold truncate">Horario</span>
+                <span className="text-[11.5px] truncate" style={{ color: 'var(--ce-muted)' }}>
+                  {horarioStr}
+                </span>
               </div>
+            </div>
 
-              {/* Badge CERRADO derecha (oculto en mobile estrecho) */}
-              <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold uppercase tracking-[0.15em] shadow-sm shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-white halo-pulse" />
-                Cerrado
-              </span>
+            <span aria-hidden className="hidden sm:block w-px self-stretch bg-line" />
+
+            {/* Ubicación */}
+            <div className="flex items-center gap-3 flex-1 min-w-[130px] pl-0 sm:pl-5 md:pl-6">
+              <Icon name="map-pin" size={16} style={{ color: 'var(--ce-accent)' }} />
+              <div className="flex flex-col leading-tight min-w-0">
+                <span className="text-[13.5px] font-bold truncate">Ubicación</span>
+                <span className="text-[11.5px] truncate" style={{ color: 'var(--ce-muted)' }}>
+                  {local.direccion || 'Consultar'}
+                </span>
+              </div>
             </div>
           </motion.div>
-        );
-      })()}
+        </section>
 
-      {/* CATEGORÍAS — tabs estilo botón premium: gradient + icono sobresaliendo
-          + sombra realista. Centrados horizontalmente. Color del local. */}
-      <nav className="sticky top-0 z-30 glass border-b border-line">
-        <div className="max-w-5xl mx-auto px-2 sm:px-4 py-4 sm:py-5">
-          <div className="flex flex-wrap justify-center items-center gap-5 sm:gap-7">
+        {/* BANNER CERRADO premium — solo si cerrado, debajo del info card */}
+        {cerrado && (
+          <ClosedBanner mensaje={estado?.mensaje} />
+        )}
+      </main>
+
+      {/* STICKY CATEGORY BAR — chips horizontales scroll-x */}
+      <div
+        className="sticky top-0 z-30 border-b border-line"
+        style={{
+          background: dark ? 'rgba(22,17,13,.82)' : 'rgba(251,248,243,.82)',
+          backdropFilter: 'blur(20px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+          marginTop: 26,
+        }}
+      >
+        <div className="max-w-[1140px] mx-auto px-[clamp(10px,3vw,28px)]">
+          <div className="ce-chips-scroll flex gap-2.5 overflow-x-auto py-3 px-0.5">
             {categorias.map((c) => (
-              <CategoryButton
+              <CategoryChip
                 key={c.slug}
-                nombre={c.nombre}
-                icon={(c.icono as IconName | undefined) ?? iconForCategoria(c.nombre)}
+                categoria={c}
                 active={activeCat === c.slug}
                 onClick={() => setActiveCat(c.slug)}
               />
             ))}
           </div>
         </div>
-      </nav>
+      </div>
 
-      {/* PRODUCTOS — Accordion expansible (horizontal en md+, vertical en mobile) */}
-      <section className="max-w-5xl mx-auto px-3 sm:px-4 py-6 sm:py-10">
-        <ProductAccordion
-          productos={productosFiltrados}
-          cerrado={cerrado}
-          onAdd={(producto, qty) => {
-            cart.add({
-              productoId: producto.id,
-              nombre: producto.nombre,
-              precio: producto.precio,
-              imagen: producto.imagen,
-              extras: [],
-              lineKey: `${producto.id}`,
-              cantidad: qty,
-            });
-            setCartOpen(true);
-          }}
-        />
-      </section>
-
-      {/* FOOTER — estilo restaurante premium dark con info, redes y crédito LUMIA */}
-      <footer className="relative bg-ink text-white mt-12 sm:mt-16 overflow-hidden">
-        {/* Accent gradient sutil top — usa el color del local */}
-        <span
-          aria-hidden
-          className="absolute top-0 left-0 right-0 h-1"
-          style={{
-            background: 'linear-gradient(90deg, transparent 0%, var(--ce-accent) 50%, transparent 100%)',
-          }}
-        />
-        {/* Orb gradient decorativo */}
-        <div aria-hidden className="absolute inset-0 pointer-events-none opacity-20">
-          <div
-            className="hero-orb"
+      {/* PRODUCT SECTION — solo categoría activa, grid responsive */}
+      <main
+        id="menu-top"
+        className="max-w-[1140px] mx-auto px-[clamp(14px,3.5vw,28px)] pb-16"
+        style={{ paddingTop: 14, scrollMarginTop: 74 }}
+      >
+        <div className="flex items-baseline gap-3 my-7">
+          <h3
+            className="ce-serif m-0 shrink-0 whitespace-nowrap"
+            style={{ fontSize: 'clamp(26px, 4.6vw, 38px)' }}
+          >
+            {activeCategoria?.nombre || 'Menú'}
+          </h3>
+          <span
+            aria-hidden
+            className="flex-1 h-px"
             style={{
-              background: 'var(--ce-accent)',
-              width: 480,
-              height: 480,
-              top: -200,
-              right: -120,
+              background: 'linear-gradient(to right, color-mix(in srgb, var(--ce-ink) 14%, transparent), transparent)',
             }}
           />
+          <span
+            className="text-xs font-semibold whitespace-nowrap"
+            style={{ color: 'var(--ce-muted)' }}
+          >
+            {productosFiltrados.length} {productosFiltrados.length === 1 ? 'platillo' : 'platillos'}
+          </span>
         </div>
 
-        <div className="relative max-w-5xl mx-auto px-5 sm:px-6 py-12 sm:py-16">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16">
-            {/* Columna 1: identidad del local */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-40px' }}
-              transition={{ duration: 0.5 }}
-            >
-              <div className="flex items-center gap-3 mb-4">
-                {branding.logo && (
-                  <img
-                    src={branding.logo}
-                    alt={local.nombre}
-                    className="w-12 h-12 rounded-xl object-cover bg-white border-2 border-white/20"
-                  />
-                )}
-                <p className="ce-display text-xl sm:text-2xl font-bold leading-tight tracking-tight">
-                  {local.nombre}
-                </p>
-              </div>
-              {local.tagline && (
-                <p className="text-sm text-white/70 leading-relaxed max-w-sm">
-                  {local.tagline}
-                </p>
-              )}
-              {local.direccion && (
-                <p className="mt-4 text-xs text-white/60 inline-flex items-start gap-2 max-w-sm">
-                  <Icon name="map-pin" size={14} className="mt-0.5 shrink-0 text-white/40" />
-                  <span>{local.direccion}</span>
-                </p>
-              )}
-              {local.whatsapp && (
-                <a
-                  href={`https://wa.me/${local.whatsapp.replace(/\D/g, '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-4 inline-flex items-center gap-2 text-xs text-white/80 hover:text-white transition"
-                >
-                  <Icon name="whatsapp" size={14} className="text-emerald-400" />
-                  +{local.whatsapp}
-                </a>
-              )}
-            </motion.div>
-
-            {/* Columna 2: redes sociales */}
-            {local.redes && Object.keys(local.redes).some((k) => local.redes![k]) && (
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-40px' }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-              >
-                <p className="text-xs text-white/50 font-medium uppercase tracking-[0.18em] inline-flex items-center gap-2 mb-5">
-                  <span className="w-6 h-px bg-white/30" />
-                  Síguenos
-                </p>
-                <ul className="flex flex-wrap items-start gap-5 sm:gap-8 list-none pl-0">
-                  {local.redes.fb && (
-                    <li>
-                      <SocialCard3D
-                        href={local.redes.fb.startsWith('http') ? local.redes.fb : `https://facebook.com/${local.redes.fb}`}
-                        label="Facebook"
-                        icon="facebook"
-                        brand="#1877f2"
-                        brandDark="#0e58b8"
-                        brandLight="#4287e0"
-                      />
-                    </li>
-                  )}
-                  {local.redes.ig && (
-                    <li>
-                      <SocialCard3D
-                        href={local.redes.ig.startsWith('http') ? local.redes.ig : `https://instagram.com/${local.redes.ig.replace(/^@/, '')}`}
-                        label="Instagram"
-                        icon="instagram"
-                        brand="linear-gradient(135deg, #f9a825 0%, #e91e8c 50%, #9c27b0 100%)"
-                        brandDark="#a5215c"
-                        brandLight="#d34583"
-                      />
-                    </li>
-                  )}
-                  {local.redes.tt && (
-                    <li>
-                      <SocialCard3D
-                        href={local.redes.tt.startsWith('http') ? local.redes.tt : `https://tiktok.com/@${local.redes.tt.replace(/^@/, '')}`}
-                        label="TikTok"
-                        icon="sparkles"
-                        brand="#000000"
-                        brandDark="#222222"
-                        brandLight="#444444"
-                      />
-                    </li>
-                  )}
-                </ul>
-              </motion.div>
-            )}
+        {productosFiltrados.length === 0 ? (
+          <div className="rounded-2xl border border-line bg-surface p-10 text-center text-muted text-sm">
+            No hay productos en esta categoría.
           </div>
-
-          {/* Bottom bar: copyright + LUMIA */}
-          <div className="mt-12 sm:mt-16 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-            <p className="text-white/50 text-center sm:text-left">
-              © {new Date().getFullYear()} {local.nombre}. Todos los derechos reservados.
-            </p>
-            <a
-              href="https://lumiaaisolutions.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group inline-flex items-center gap-1.5 text-white/60 hover:text-white transition"
-            >
-              Desarrollado por
-              <span className="font-semibold tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/70 group-hover:from-[color:var(--ce-accent)] group-hover:via-white group-hover:to-white transition-all">
-                LUMIA
-              </span>
-              <Icon
-                name="arrow-up-right"
-                size={12}
-                className="text-white/40 group-hover:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition"
+        ) : (
+          <div
+            key={activeCat ?? 'all'}
+            className="ce-fade-swap grid gap-[clamp(14px,2.4vw,22px)]"
+            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))' }}
+          >
+            {productosFiltrados.map((p) => (
+              <ProductCard
+                key={p.id}
+                producto={p}
+                cerrado={cerrado}
+                onOpen={() => setDetail(p)}
+                onAdd={() => {
+                  cart.add({
+                    productoId: p.id,
+                    nombre:     p.nombre,
+                    precio:     p.precio,
+                    imagen:     p.imagen ?? null,
+                    extras:     [],
+                    lineKey:    `${p.id}`,
+                    cantidad:   1,
+                  });
+                  setCartOpen(true);
+                }}
               />
-            </a>
+            ))}
           </div>
-        </div>
-      </footer>
+        )}
+      </main>
 
-      {/* FLOATING WHATSAPP / CART */}
-      <FloatingCartBar
+      {/* FOOTER — restaurante premium dark con LUMIA credit */}
+      <Footer local={local} branding={branding} />
+
+      {/* CART FAB — sheen + ring + count pop */}
+      <CartFab
         count={itemCount}
         subtotal={subtotal}
         cerrado={cerrado}
@@ -405,6 +348,26 @@ export function LandingClient({ menu }: Props) {
         onCheckout={() => { setCartOpen(false); setCheckoutOpen(true); }}
       />
 
+      <ProductDetailSheet
+        producto={detail}
+        cerrado={cerrado}
+        onClose={() => setDetail(null)}
+        onAdd={(qty) => {
+          if (!detail) return;
+          cart.add({
+            productoId: detail.id,
+            nombre:     detail.nombre,
+            precio:     detail.precio,
+            imagen:     detail.imagen ?? null,
+            extras:     [],
+            lineKey:    `${detail.id}`,
+            cantidad:   qty,
+          });
+          setDetail(null);
+          setCartOpen(true);
+        }}
+      />
+
       <CheckoutSheet
         open={checkoutOpen}
         cerrado={cerrado}
@@ -416,172 +379,512 @@ export function LandingClient({ menu }: Props) {
   );
 }
 
-function FloatingCartBar({
+/* ───── Banner CERRADO ───── */
+
+function ClosedBanner({ mensaje }: { mensaje?: string }) {
+  const limpio = (mensaje ?? '').replace(/^(Abierto|Cerrado)\s*[·.,-]?\s*/i, '').trim() || 'Vuelve más tarde.';
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1], delay: 0.1 }}
+      className="relative mt-4 rounded-2xl bg-red-50 border border-red-100 overflow-hidden"
+    >
+      <span aria-hidden className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-red-500 to-red-600" />
+      <div className="px-5 sm:px-7 py-4 sm:py-5 flex items-center gap-4">
+        <span className="relative shrink-0 w-12 h-12 rounded-full bg-white border border-red-200 grid place-items-center text-red-600">
+          <span aria-hidden className="absolute inset-0 rounded-full bg-red-400/30 animate-ping" />
+          <Icon name="clock" size={18} className="relative" />
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="ce-serif text-lg sm:text-xl text-red-900 leading-tight m-0">
+            Volvemos pronto
+          </p>
+          <p className="text-xs sm:text-sm text-red-700/80 mt-0.5 leading-relaxed m-0">
+            {limpio}
+          </p>
+        </div>
+        <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold uppercase shadow-sm shrink-0" style={{ letterSpacing: '0.15em' }}>
+          <span className="w-1.5 h-1.5 rounded-full bg-white halo-pulse" />
+          Cerrado
+        </span>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ───── Category Chip — pill horizontal con icono pequeño + nombre ───── */
+
+function CategoryChip({
+  categoria, active, onClick,
+}: { categoria: Categoria; active: boolean; onClick: () => void }) {
+  const icon = (categoria.icono as IconName | undefined) ?? iconForCategoria(categoria.nombre);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'inline-flex items-center gap-2 whitespace-nowrap font-semibold text-[13px] rounded-full transition-all duration-300 px-4 py-2.5 border',
+        active
+          ? 'text-white border-transparent shadow-[0_8px_22px_-8px_rgba(0,0,0,0.32)] hover:-translate-y-0.5'
+          : 'border-line bg-surface hover:border-ink/30 hover:-translate-y-0.5',
+      )}
+      style={active ? {
+        background: 'linear-gradient(135deg, var(--ce-accent) 0%, color-mix(in srgb, var(--ce-accent) 78%, black) 100%)',
+      } : undefined}
+    >
+      <Icon name={icon} size={13} strokeWidth={2.4} />
+      <span>{categoria.nombre}</span>
+    </button>
+  );
+}
+
+/* ───── Product Card — imagen aspect 16/11 con hover scale + precio accent + + ───── */
+
+function ProductCard({
+  producto, cerrado, onOpen, onAdd,
+}: {
+  producto: Producto;
+  cerrado:  boolean;
+  onOpen:   () => void;
+  onAdd:    () => void;
+}) {
+  return (
+    <article
+      onClick={onOpen}
+      className="ce-card relative bg-surface border border-line rounded-3xl overflow-hidden cursor-pointer"
+      style={{ boxShadow: '0 10px 30px -12px rgba(35,25,15,.18)' }}
+    >
+      {/* Imagen */}
+      <div className="relative w-full overflow-hidden bg-[#FBF7F1]" style={{ aspectRatio: '16 / 11' }}>
+        <div className="ce-pimg absolute inset-0">
+          {producto.imagen ? (
+            <img src={producto.imagen} alt={producto.nombre} className="w-full h-full object-cover" loading="lazy" />
+          ) : (
+            <div className="w-full h-full grid place-items-center text-muted text-xs">
+              <Icon name="utensils" size={32} className="opacity-30" />
+            </div>
+          )}
+        </div>
+        {producto.tag && (
+          <span
+            className="absolute top-3 left-3 z-10 text-[10px] uppercase px-2.5 py-1 rounded-full text-white font-bold shadow-sm"
+            style={{
+              background: 'var(--ce-accent)',
+              letterSpacing: '0.08em',
+            }}
+          >
+            {producto.tag}
+          </span>
+        )}
+      </div>
+
+      {/* Cuerpo */}
+      <div className="px-4 py-4 pb-[17px]">
+        <h4 className="ce-body font-bold text-[16.5px] leading-snug m-0 mb-1.5">
+          {producto.nombre}
+        </h4>
+        {producto.descripcion && (
+          <p
+            className="text-[13px] leading-[1.5] m-0 mb-3.5"
+            style={{
+              color: 'var(--ce-muted)',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}
+          >
+            {producto.descripcion}
+          </p>
+        )}
+        <div className="flex items-center justify-between gap-2.5">
+          <span
+            className="ce-body font-extrabold text-lg tabular-nums"
+            style={{ color: 'var(--ce-accent)', letterSpacing: '-0.01em' }}
+          >
+            {formatMXN(producto.precio)}
+          </span>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); if (!cerrado) onAdd(); }}
+            disabled={cerrado}
+            aria-label="Añadir"
+            className="w-11 h-11 rounded-2xl border-0 text-white grid place-items-center transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed tap-target"
+            style={{
+              background: 'linear-gradient(135deg, var(--ce-accent) 0%, color-mix(in srgb, var(--ce-accent) 72%, black) 100%)',
+              boxShadow: '0 6px 16px -6px color-mix(in srgb, var(--ce-accent) 50%, transparent)',
+            }}
+          >
+            <Icon name="plus" size={16} />
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+/* ───── Product Detail Sheet — bottom sheet con cantidad + Agregar ───── */
+
+function ProductDetailSheet({
+  producto, cerrado, onClose, onAdd,
+}: {
+  producto: Producto | null;
+  cerrado:  boolean;
+  onClose:  () => void;
+  onAdd:    (qty: number) => void;
+}) {
+  const [qty, setQty] = useState(1);
+  useEffect(() => { if (producto) setQty(1); }, [producto]);
+
+  return (
+    <AnimatePresence>
+      {producto && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+          onClick={onClose}
+          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-6"
+          style={{ background: 'rgba(20,12,6,.5)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
+        >
+          <motion.div
+            onClick={(e) => e.stopPropagation()}
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+            className="w-full max-w-[480px] bg-surface overflow-y-auto rounded-t-[28px] sm:rounded-[28px] max-h-[92vh] sm:max-h-[86vh] shadow-[0_-20px_60px_rgba(0,0,0,0.3)]"
+          >
+            <div className="relative w-full overflow-hidden bg-[#FBF7F1]" style={{ aspectRatio: '16 / 10' }}>
+              {producto.imagen ? (
+                <img src={producto.imagen} alt={producto.nombre} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full grid place-items-center">
+                  <Icon name="utensils" size={56} className="opacity-25" />
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Cerrar"
+                className="absolute top-3.5 right-3.5 w-10 h-10 rounded-full bg-white/95 text-ink grid place-items-center shadow-md hover:rotate-90 transition-transform duration-200 tap-target"
+              >
+                <Icon name="x" size={16} />
+              </button>
+              {producto.tag && (
+                <span
+                  className="absolute top-3.5 left-3.5 text-[10px] uppercase px-2.5 py-1 rounded-full text-white font-bold shadow-sm"
+                  style={{ background: 'var(--ce-accent)', letterSpacing: '0.08em' }}
+                >
+                  {producto.tag}
+                </span>
+              )}
+            </div>
+
+            <div className="p-5 sm:p-7 pt-6">
+              <h3 className="ce-serif text-3xl leading-[1.05] m-0 mb-2">{producto.nombre}</h3>
+              {producto.descripcion && (
+                <p className="text-[14.5px] leading-relaxed m-0 mb-6" style={{ color: 'var(--ce-muted)' }}>
+                  {producto.descripcion}
+                </p>
+              )}
+              <div className="flex items-center justify-between gap-4 mb-6">
+                <span
+                  className="ce-body font-extrabold text-[26px] tabular-nums"
+                  style={{ color: 'var(--ce-accent)', letterSpacing: '-0.01em' }}
+                >
+                  {formatMXN(producto.precio)}
+                </span>
+                <div
+                  className="flex items-center gap-1 rounded-full p-1.5 border border-line"
+                  style={{ background: '#FBF7F1' }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setQty((q) => Math.max(1, q - 1))}
+                    disabled={qty === 1}
+                    aria-label="Restar"
+                    className="w-[38px] h-[38px] rounded-full bg-surface text-ink grid place-items-center shadow-sm active:scale-90 disabled:opacity-40 transition-transform"
+                  >
+                    <Icon name="minus" size={14} />
+                  </button>
+                  <span className="min-w-[34px] text-center text-lg font-extrabold tabular-nums">{qty}</span>
+                  <button
+                    type="button"
+                    onClick={() => setQty((q) => q + 1)}
+                    aria-label="Sumar"
+                    className="w-[38px] h-[38px] rounded-full bg-surface text-ink grid place-items-center shadow-sm active:scale-90 transition-transform"
+                  >
+                    <Icon name="plus" size={14} />
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => !cerrado && onAdd(qty)}
+                disabled={cerrado}
+                className={cn(
+                  'w-full h-14 rounded-2xl text-white ce-body font-extrabold text-base inline-flex items-center justify-center gap-2.5 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed tap-target',
+                )}
+                style={{
+                  background: cerrado
+                    ? '#9CA3AF'
+                    : 'linear-gradient(135deg, var(--ce-accent) 0%, color-mix(in srgb, var(--ce-accent) 72%, black) 100%)',
+                  boxShadow: cerrado ? undefined : '0 14px 30px -10px color-mix(in srgb, var(--ce-accent) 50%, transparent)',
+                }}
+              >
+                {cerrado ? (
+                  <><Icon name="alert-triangle" size={16} /> Local cerrado</>
+                ) : (
+                  <><Icon name="plus" size={16} /> Añadir · {formatMXN(producto.precio * qty)}</>
+                )}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+/* ───── Cart FAB — sheen + ring pulse + count badge pop ───── */
+
+function CartFab({
   count, subtotal, cerrado, onClick,
 }: { count: number; subtotal: number; cerrado: boolean; onClick: () => void }) {
   if (count === 0) return null;
   return (
-    <motion.div
-      initial={{ y: 100 }}
-      animate={{ y: 0 }}
-      className="fixed bottom-3 inset-x-3 z-40 md:inset-x-auto md:right-6 md:bottom-6 md:w-80 pb-safe"
+    <motion.button
+      type="button"
+      initial={{ y: 80, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ type: 'spring', stiffness: 280, damping: 24 }}
+      onClick={onClick}
+      className={cn(
+        'fixed z-40 h-16 pr-6 pl-[9px] border-0 rounded-[34px] text-white cursor-pointer flex items-center gap-3 overflow-hidden transition-all duration-200 hover:-translate-y-[3px] hover:brightness-110 active:scale-[0.96]',
+      )}
+      style={{
+        right:  'clamp(16px, 4vw, 30px)',
+        bottom: 'max(env(safe-area-inset-bottom), clamp(16px, 4vw, 30px))',
+        background: cerrado
+          ? '#6B7280'
+          : 'linear-gradient(135deg, var(--ce-accent) 0%, color-mix(in srgb, var(--ce-accent) 72%, black) 100%)',
+        boxShadow:
+          '0 18px 42px -10px color-mix(in srgb, var(--ce-accent) 60%, transparent), inset 0 1px 0 rgba(255,255,255,.28)',
+      }}
     >
-      <button
-        onClick={onClick}
-        className={cn(
-          'w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 sm:py-4 rounded-2xl text-white shadow-glass font-medium text-sm sm:text-base tap-target',
-          cerrado && 'bg-gray-500',
-        )}
-        style={cerrado ? undefined : { background: 'var(--ce-accent)' }}
-      >
-        <span className="inline-flex items-center gap-2">
-          {cerrado ? (
-            <>
-              <Icon name="alert-triangle" size={16} />
-              Cerrado
-            </>
-          ) : (
-            <>
-              <span className="w-6 h-6 rounded-full bg-white/20 grid place-items-center text-xs font-bold">{count}</span>
-              {count === 1 ? 'producto' : 'productos'}
-            </>
-          )}
+      <span
+        aria-hidden
+        className="ce-cart-ring absolute inset-[-3px] rounded-[36px] border-2 pointer-events-none"
+        style={{ borderColor: 'var(--ce-accent)' }}
+      />
+      <span
+        aria-hidden
+        className="ce-sheen absolute top-0 left-0 w-1/3 h-full pointer-events-none"
+        style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent)' }}
+      />
+      <span className="relative z-[1] grid place-items-center w-[46px] h-[46px] rounded-full shrink-0" style={{ background: 'rgba(255,255,255,.2)' }}>
+        <Icon name="utensils" size={18} />
+        <span
+          key={count}
+          className="ce-pop absolute -top-1.5 -right-[7px] min-w-[21px] h-[21px] px-1.5 rounded-full bg-white text-[11.5px] font-extrabold grid place-items-center"
+          style={{ color: 'var(--ce-accent)', boxShadow: '0 3px 9px rgba(0,0,0,.22)' }}
+        >
+          {count}
         </span>
-        <span className="inline-flex items-center gap-1.5">
-          {formatMXN(subtotal)}
-          {!cerrado && <Icon name="arrow-right" size={14} />}
+      </span>
+      <span className="relative z-[1] flex flex-col items-start leading-[1.08] pr-1">
+        <span className="text-[10px] font-semibold opacity-90 uppercase" style={{ letterSpacing: '0.12em' }}>
+          Mi pedido
         </span>
-      </button>
-    </motion.div>
+        <span className="text-[17px] font-extrabold" style={{ letterSpacing: '-0.01em' }}>
+          {cerrado ? 'Cerrado' : formatMXN(subtotal)}
+        </span>
+      </span>
+    </motion.button>
   );
 }
+
+/* ───── Cart Drawer — panel derecha estilo HTML ───── */
 
 function CartDrawer({
   open, cerrado, onClose, onCheckout,
 }: { open: boolean; cerrado: boolean; onClose: () => void; onCheckout: () => void }) {
   const cart = useCart();
-  if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex">
-      <button aria-label="Cerrar" onClick={onClose} className="flex-1 bg-black/50" />
-      <motion.aside
-        initial={{ x: 400 }}
-        animate={{ x: 0 }}
-        className="w-full max-w-md bg-surface h-full flex flex-col shadow-glass"
-      >
-        <header className="px-4 sm:px-5 py-3 sm:py-4 border-b border-line flex items-center justify-between">
-          <h3 className="ce-display font-bold text-lg sm:text-xl">Tu pedido</h3>
-          <button
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="w-10 h-10 rounded-xl hover:bg-line/50 grid place-items-center tap-target"
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+          onClick={onClose}
+          className="fixed inset-0 z-[70] flex justify-end"
+          style={{ background: 'rgba(20,12,6,.5)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
+        >
+          <motion.aside
+            onClick={(e) => e.stopPropagation()}
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+            className="w-[min(440px,92vw)] h-full flex flex-col bg-surface shadow-[-20px_0_60px_rgba(0,0,0,0.3)]"
           >
-            <Icon name="x" size={18} />
-          </button>
-        </header>
-        <ul className="flex-1 overflow-auto divide-y divide-line scroll-fine">
-          {cart.items.length === 0 ? (
-            <li className="p-10 text-center text-muted text-sm">Carrito vacío</li>
-          ) : cart.items.map((i) => (
-            <li key={i.lineKey} className="p-3 sm:p-4 flex gap-3">
-              {i.imagen && <img src={i.imagen} alt="" className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover shrink-0" />}
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm sm:text-base truncate">{i.nombre}</div>
-                <div className="text-xs sm:text-sm text-muted">{formatMXN(i.precio)}</div>
-              </div>
-              <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                <button
-                  onClick={() => cart.setQty(i.lineKey, i.cantidad - 1)}
-                  aria-label="Restar"
-                  className="w-9 h-9 rounded-full border border-line tap-target grid place-items-center hover:bg-line/40"
+            <header className="flex items-center justify-between px-5 sm:px-6 pt-5 pb-4 border-b border-line">
+              <div>
+                <div
+                  className="text-[11px] font-bold uppercase mb-0.5"
+                  style={{ color: 'var(--ce-accent)', letterSpacing: '0.2em' }}
                 >
-                  <Icon name="minus" size={14} />
-                </button>
-                <span className="w-6 text-center text-sm font-medium tabular-nums">{i.cantidad}</span>
-                <button
-                  onClick={() => cart.setQty(i.lineKey, i.cantidad + 1)}
-                  aria-label="Sumar"
-                  className="w-9 h-9 rounded-full border border-line tap-target grid place-items-center hover:bg-line/40"
-                >
-                  <Icon name="plus" size={14} />
-                </button>
+                  Tu pedido
+                </div>
+                <h3 className="ce-serif text-2xl m-0">{cart.itemCount()} artículos</h3>
               </div>
-            </li>
-          ))}
-        </ul>
-        <footer className="p-4 sm:p-5 border-t border-line pb-safe">
-          <div className="flex justify-between mb-3 text-sm sm:text-base">
-            <span>Subtotal</span>
-            <span className="font-bold">{formatMXN(cart.subtotal())}</span>
-          </div>
-          {cerrado && (
-            <div className="mb-3 px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700">
-              🔒 El local está cerrado. No puedes finalizar el pedido en este momento.
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Cerrar"
+                className="w-[42px] h-[42px] rounded-full border border-line grid place-items-center hover:rotate-90 transition-transform"
+                style={{ background: '#FBF7F1' }}
+              >
+                <Icon name="x" size={16} />
+              </button>
+            </header>
+
+            <div className="flex-1 overflow-y-auto scroll-fine px-3 sm:px-5 py-2">
+              {cart.items.length === 0 ? (
+                <div className="p-10 text-center text-muted text-sm">Carrito vacío</div>
+              ) : cart.items.map((i, idx) => (
+                <div
+                  key={i.lineKey}
+                  className="ce-row-in flex items-center gap-3 p-3 mb-2.5 rounded-2xl border border-line transition-all duration-250 hover:-translate-x-[3px]"
+                  style={{ background: '#FBF7F1', animationDelay: `${idx * 0.05}s` }}
+                >
+                  <div className="w-[60px] h-[60px] rounded-2xl overflow-hidden shrink-0 bg-surface">
+                    {i.imagen ? (
+                      <img src={i.imagen} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full grid place-items-center"><Icon name="utensils" size={20} className="opacity-30" /></div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[14.5px] font-bold leading-snug mb-0.5 truncate">{i.nombre}</div>
+                    <div className="text-[13px] font-bold" style={{ color: 'var(--ce-accent)' }}>
+                      {formatMXN(i.precio * i.cantidad)}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-0.5 rounded-full border border-line p-1 shrink-0" style={{ background: '#FBF7F1' }}>
+                    <button
+                      type="button"
+                      onClick={() => cart.setQty(i.lineKey, i.cantidad - 1)}
+                      aria-label="Restar"
+                      className="w-[30px] h-[30px] rounded-full bg-surface grid place-items-center shadow-sm active:scale-90 transition-transform"
+                    >
+                      <Icon name="minus" size={12} />
+                    </button>
+                    <span className="min-w-[26px] text-center text-sm font-extrabold tabular-nums">{i.cantidad}</span>
+                    <button
+                      type="button"
+                      onClick={() => cart.setQty(i.lineKey, i.cantidad + 1)}
+                      aria-label="Sumar"
+                      className="w-[30px] h-[30px] rounded-full bg-surface grid place-items-center shadow-sm active:scale-90 transition-transform"
+                    >
+                      <Icon name="plus" size={12} />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
-          <button
-            onClick={onCheckout}
-            disabled={cart.itemCount() === 0 || cerrado}
-            className={cn(
-              'w-full py-3 sm:py-3.5 rounded-2xl text-white font-medium disabled:opacity-40 tap-target text-base',
-              cerrado && 'bg-gray-400',
-            )}
-            style={cerrado ? undefined : { background: 'var(--ce-accent)' }}
-          >
-            {cerrado ? 'Cerrado' : 'Continuar'}
-          </button>
-        </footer>
-      </motion.aside>
-    </div>
+
+            <footer className="px-5 sm:px-6 pt-4 pb-5 sm:pb-6 border-t border-line bg-surface pb-safe">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm font-semibold" style={{ color: 'var(--ce-muted)' }}>Total</span>
+                <span className="ce-body text-[26px] font-extrabold tabular-nums" style={{ letterSpacing: '-0.02em' }}>
+                  {formatMXN(cart.subtotal())}
+                </span>
+              </div>
+              {cerrado && (
+                <div className="mb-3 px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700">
+                  🔒 El local está cerrado. No puedes finalizar el pedido en este momento.
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={onCheckout}
+                disabled={cart.itemCount() === 0 || cerrado}
+                className="w-full h-14 rounded-2xl text-white ce-body font-extrabold text-base inline-flex items-center justify-center gap-2.5 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed tap-target"
+                style={{
+                  background: cerrado
+                    ? '#9CA3AF'
+                    : 'linear-gradient(135deg, var(--ce-accent) 0%, color-mix(in srgb, var(--ce-accent) 72%, black) 100%)',
+                  boxShadow: cerrado ? undefined : '0 14px 30px -10px color-mix(in srgb, var(--ce-accent) 50%, transparent)',
+                }}
+              >
+                {cerrado ? 'Cerrado' : (<>Confirmar pedido <Icon name="arrow-right" size={16} /></>)}
+              </button>
+            </footer>
+          </motion.aside>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
+
+/* ───── Checkout Sheet — bottom sheet con datos cliente + delivery + WhatsApp ───── */
 
 function CheckoutSheet({
   open, onClose, local, cerrado, mensajeCerrado,
 }: {
   open: boolean;
   onClose: () => void;
-  local: MenuResponse['data']['local'];
+  local: Local;
   cerrado: boolean;
   mensajeCerrado?: string;
 }) {
   const cart = useCart();
-  const [nombre, setNombre] = useState('');
-  const [telefono, setTelefono] = useState('');
-  const [direccion, setDireccion] = useState('');
-  const [clienteLat, setClienteLat] = useState<number | null>(null);
-  const [clienteLng, setClienteLng] = useState<number | null>(null);
-  const [fueraDeRango, setFueraDeRango] = useState(false);
-  const [metodo, setMetodo] = useState<'pickup' | 'delivery'>('pickup');
-  const [pago, setPago] = useState<'efectivo' | 'tarjeta_entrega' | 'transferencia'>(
+  const [nombre,         setNombre]         = useState('');
+  const [telefono,       setTelefono]       = useState('');
+  const [direccion,      setDireccion]      = useState('');
+  const [notas,          setNotas]          = useState('');
+  const [clienteLat,     setClienteLat]     = useState<number | null>(null);
+  const [clienteLng,     setClienteLng]     = useState<number | null>(null);
+  const [fueraDeRango,   setFueraDeRango]   = useState(false);
+  const [metodo,         setMetodo]         = useState<'pickup' | 'delivery'>('pickup');
+  const [pago,           setPago]           = useState<'efectivo' | 'tarjeta_entrega' | 'transferencia'>(
     (local.metodosPago?.[0] ?? 'efectivo') as any,
   );
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [sending,        setSending]        = useState(false);
+  const [error,          setError]          = useState<string | null>(null);
 
   const handleMapClick = (lat: number, lng: number) => {
     setClienteLat(lat);
     setClienteLng(lng);
-    // Validar radio si el local tiene ubicación configurada
     if (local.lat && local.lng) {
       const dist = haversineKm(local.lat, local.lng, lat, lng);
       setFueraDeRango(dist > (local.delivery.radioKm ?? 5));
     }
-    // Reverse geocode
     fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=es`)
       .then((r) => r.json())
       .then((d) => d.display_name && setDireccion(d.display_name))
       .catch(() => {});
   };
 
-  if (!open) return null;
-
   const handleSend = async () => {
     setError(null);
     setSending(true);
     try {
       const payload = {
-        cliente:        { nombre, telefono, direccion: metodo === 'delivery' ? direccion : null, lat: metodo === 'delivery' ? clienteLat : null, lng: metodo === 'delivery' ? clienteLng : null },
+        cliente: {
+          nombre,
+          telefono,
+          direccion: metodo === 'delivery' ? direccion : null,
+          lat:       metodo === 'delivery' ? clienteLat : null,
+          lng:       metodo === 'delivery' ? clienteLng : null,
+        },
         metodo_entrega: metodo,
         metodo_pago:    pago,
         items: cart.items.map((i) => ({
@@ -591,21 +894,14 @@ function CheckoutSheet({
           extras:      i.extras,
         })),
       };
-
-      // 1) Persistir el pedido (descuenta inventario en el server)
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080/api/v1'}/public/pedidos/${local.slug}`,
-        {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body:    JSON.stringify(payload),
-        },
+        { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(payload) },
       );
-
       if (res.status === 409) {
         const body = await res.json();
         const items = (body.faltantes ?? []).map((f: any) =>
-          `${f.ingrediente} (faltan ${(f.requerido - f.disponible).toFixed(2)}${f.unidad})`
+          `${f.ingrediente} (faltan ${(f.requerido - f.disponible).toFixed(2)}${f.unidad})`,
         ).join(', ');
         setError(`Sin stock suficiente: ${items}. Quita algo del carrito o intenta más tarde.`);
         return;
@@ -616,7 +912,6 @@ function CheckoutSheet({
         return;
       }
       if (!res.ok) {
-        // Fallback: usa el builder local para no bloquear al cliente
         const fallbackUrl = buildWhatsAppUrl(local, cart.items, {
           cliente: { nombre, telefono, direccion },
           metodoEntrega: metodo, metodoPago: pago,
@@ -626,20 +921,17 @@ function CheckoutSheet({
         onClose();
         return;
       }
-
       const body = await res.json();
-      const url  = body.whatsapp_url
-        ?? buildWhatsAppUrl(local, cart.items, {
-              cliente: { nombre, telefono, direccion },
-              metodoEntrega: metodo, metodoPago: pago,
-              folio: body.data?.codigo,
-            });
-
+      const url  = body.whatsapp_url ?? buildWhatsAppUrl(local, cart.items, {
+        cliente:       { nombre, telefono, direccion },
+        metodoEntrega: metodo,
+        metodoPago:    pago,
+        folio:         body.data?.codigo,
+      });
       window.open(url, '_blank', 'noopener,noreferrer');
       cart.clear();
       onClose();
     } catch (e) {
-      // Sin red: fallback al builder local — al menos abre WhatsApp
       const url = buildWhatsAppUrl(local, cart.items, {
         cliente: { nombre, telefono, direccion },
         metodoEntrega: metodo, metodoPago: pago,
@@ -652,139 +944,253 @@ function CheckoutSheet({
     }
   };
 
-  const fee = metodo === 'delivery' ? local.delivery.fee : 0;
+  const fee   = metodo === 'delivery' ? local.delivery.fee : 0;
   const total = cart.subtotal() + fee;
 
+  const inputCls =
+    'w-full h-12 px-4 rounded-2xl border-2 text-base bg-surface focus:outline-none transition-all';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/50">
-      <motion.div
-        initial={{ y: '100%', opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: '100%', opacity: 0 }}
-        transition={{ type: 'spring', damping: 30, stiffness: 280 }}
-        className="w-full md:max-w-md bg-surface rounded-t-3xl md:rounded-3xl p-4 sm:p-6 max-h-[92vh] overflow-auto pb-safe scroll-fine"
-      >
-        <div className="md:hidden flex justify-center -mt-2 mb-2">
-          <span className="block w-10 h-1.5 rounded-full bg-line" />
-        </div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="ce-display font-bold text-lg sm:text-xl">Tus datos</h3>
-          <button onClick={onClose} aria-label="Cerrar" className="tap-target rounded-xl hover:bg-line/50 grid place-items-center">✕</button>
-        </div>
-
-        <label className="block text-sm font-medium mb-1">Nombre</label>
-        <input
-          className="w-full mb-3 px-3 py-2.5 border border-line rounded-xl text-base min-h-[44px]"
-          value={nombre}
-          onChange={(e) => setNombre(e.target.value)}
-          autoComplete="name"
-        />
-
-        <label className="block text-sm font-medium mb-1">Teléfono</label>
-        <input
-          type="tel"
-          className="w-full mb-3 px-3 py-2.5 border border-line rounded-xl text-base min-h-[44px]"
-          value={telefono}
-          onChange={(e) => setTelefono(e.target.value)}
-          autoComplete="tel"
-          inputMode="numeric"
-        />
-
-        <div className="flex gap-2 mb-3">
-          {(['pickup', 'delivery'] as const).map((m) => (
-            <button
-              key={m}
-              onClick={() => setMetodo(m)}
-              className={cn('flex-1 py-3 rounded-xl border font-medium tap-target',
-                metodo === m ? 'text-white border-transparent' : 'border-line bg-surface')}
-              style={metodo === m ? { background: 'var(--ce-accent)' } : undefined}
-            >
-              {m === 'pickup' ? '🏪 Recoger' : '🛵 Entrega'}
-            </button>
-          ))}
-        </div>
-
-        {metodo === 'delivery' && (
-          <div className="mb-3 space-y-2">
-            <label className="block text-sm font-medium">Dirección de entrega</label>
-            <DeliveryAddressInput
-              direccion={direccion}
-              onDireccionChange={setDireccion}
-              onMapClick={handleMapClick}
-              lat={clienteLat}
-              lng={clienteLng}
-              localLat={local.lat ?? null}
-              localLng={local.lng ?? null}
-            />
-            {fueraDeRango && (
-              <div className="px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 inline-flex items-start gap-2">
-                <Icon name="alert-triangle" size={14} className="mt-0.5 shrink-0" />
-                <span>Esta dirección está fuera de nuestra zona de entrega ({local.delivery.radioKm} km). Por favor elige otra ubicación.</span>
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+          onClick={onClose}
+          className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center"
+          style={{ background: 'rgba(20,12,6,.5)' }}
+        >
+          <motion.div
+            onClick={(e) => e.stopPropagation()}
+            initial={{ y: '100%', opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: '100%', opacity: 0 }}
+            transition={{ type: 'spring', damping: 30, stiffness: 280 }}
+            className="w-full sm:max-w-[560px] bg-surface rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-auto scroll-fine pb-safe"
+            style={{ background: '#FBF8F3' }}
+          >
+            <div className="px-5 sm:px-7 pt-5 pb-8">
+              <div className="sm:hidden flex justify-center mb-2"><span className="w-10 h-1.5 rounded-full bg-line" /></div>
+              <div className="flex items-center gap-3 mb-6">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Volver"
+                  className="w-11 h-11 rounded-full border border-line bg-surface grid place-items-center shrink-0 hover:-translate-x-0.5 transition-transform"
+                >
+                  <Icon name="arrow-right" size={16} className="rotate-180" />
+                </button>
+                <div>
+                  <div
+                    className="text-[11px] font-bold uppercase mb-0.5"
+                    style={{ color: 'var(--ce-accent)', letterSpacing: '0.2em' }}
+                  >
+                    Último paso
+                  </div>
+                  <h2 className="ce-serif text-3xl m-0 leading-none">Confirma tu pedido</h2>
+                </div>
               </div>
-            )}
-            {clienteLat && clienteLng && !fueraDeRango && local.lat && local.lng && (
-              <p className="text-xs text-green-700 inline-flex items-center gap-1.5">
-                <Icon name="check-circle" size={13} />
-                Dentro del área de entrega ({haversineKm(local.lat, local.lng, clienteLat, clienteLng).toFixed(1)} km)
+
+              {/* Resumen */}
+              <div
+                className="bg-surface border border-line rounded-3xl px-5 py-4 mb-5"
+                style={{ boxShadow: '0 10px 30px -12px rgba(35,25,15,.18)' }}
+              >
+                <div
+                  className="text-[11px] font-bold uppercase mb-3"
+                  style={{ color: 'var(--ce-muted)', letterSpacing: '0.18em' }}
+                >
+                  Resumen
+                </div>
+                {cart.items.map((i) => (
+                  <div key={i.lineKey} className="flex justify-between gap-3 py-1.5 text-sm">
+                    <span>
+                      <span className="font-extrabold" style={{ color: 'var(--ce-accent)' }}>{i.cantidad}×</span>{' '}
+                      {i.nombre}
+                    </span>
+                    <span className="font-bold whitespace-nowrap tabular-nums">{formatMXN(i.precio * i.cantidad)}</span>
+                  </div>
+                ))}
+                {fee > 0 && (
+                  <div className="flex justify-between gap-3 py-1.5 text-sm">
+                    <span>Envío</span>
+                    <span className="font-bold tabular-nums">{formatMXN(fee)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center mt-3 pt-3.5 border-t border-line">
+                  <span className="text-[15px] font-bold" style={{ color: 'var(--ce-muted)' }}>Total</span>
+                  <span className="text-2xl font-extrabold tabular-nums" style={{ letterSpacing: '-0.02em' }}>
+                    {formatMXN(total)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Form */}
+              <div className="flex flex-col gap-3.5 mb-5">
+                <div>
+                  <label className="block text-[12.5px] font-bold mb-1.5" style={{ color: 'var(--ce-muted)' }}>
+                    Tu nombre
+                  </label>
+                  <input
+                    className={inputCls}
+                    style={{ borderColor: 'rgba(35,25,15,0.08)' }}
+                    placeholder="¿A nombre de quién?"
+                    value={nombre}
+                    onChange={(e) => setNombre(e.target.value)}
+                    autoComplete="name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[12.5px] font-bold mb-1.5" style={{ color: 'var(--ce-muted)' }}>
+                    Tipo de entrega
+                  </label>
+                  <div className="flex gap-2 rounded-2xl p-1.5 border border-line" style={{ background: '#FBF7F1' }}>
+                    {(['delivery', 'pickup'] as const).map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setMetodo(m)}
+                        className={cn(
+                          'flex-1 py-3 rounded-xl text-sm font-bold inline-flex items-center justify-center gap-2 transition-all',
+                          metodo === m ? 'text-white shadow-md' : '',
+                        )}
+                        style={metodo === m ? {
+                          background: 'linear-gradient(135deg, var(--ce-accent), color-mix(in srgb, var(--ce-accent) 72%, black))',
+                        } : undefined}
+                      >
+                        <Icon name={m === 'pickup' ? 'storefront' : 'truck'} size={14} />
+                        {m === 'pickup' ? 'Recoger' : 'A domicilio'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {metodo === 'delivery' && (
+                  <div className="space-y-2">
+                    <label className="block text-[12.5px] font-bold" style={{ color: 'var(--ce-muted)' }}>
+                      Dirección de entrega
+                    </label>
+                    <DeliveryAddressInput
+                      direccion={direccion}
+                      onDireccionChange={setDireccion}
+                      onMapClick={handleMapClick}
+                      lat={clienteLat}
+                      lng={clienteLng}
+                      localLat={local.lat ?? null}
+                      localLng={local.lng ?? null}
+                    />
+                    {fueraDeRango && (
+                      <div className="px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 inline-flex items-start gap-2">
+                        <Icon name="alert-triangle" size={14} className="mt-0.5 shrink-0" />
+                        <span>Fuera de zona de entrega ({local.delivery.radioKm} km). Elige otra ubicación.</span>
+                      </div>
+                    )}
+                    {clienteLat && clienteLng && !fueraDeRango && local.lat && local.lng && (
+                      <p className="text-xs text-green-700 inline-flex items-center gap-1.5">
+                        <Icon name="check-circle" size={13} />
+                        Dentro del área ({haversineKm(local.lat, local.lng, clienteLat, clienteLng).toFixed(1)} km)
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-[12.5px] font-bold mb-1.5" style={{ color: 'var(--ce-muted)' }}>
+                    Teléfono
+                  </label>
+                  <input
+                    type="tel"
+                    className={inputCls}
+                    style={{ borderColor: 'rgba(35,25,15,0.08)' }}
+                    placeholder="Para confirmar tu pedido"
+                    value={telefono}
+                    onChange={(e) => setTelefono(e.target.value)}
+                    autoComplete="tel"
+                    inputMode="numeric"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[12.5px] font-bold mb-1.5" style={{ color: 'var(--ce-muted)' }}>
+                    Notas (opcional)
+                  </label>
+                  <input
+                    className={inputCls}
+                    style={{ borderColor: 'rgba(35,25,15,0.08)' }}
+                    placeholder="Sin cebolla, salsa aparte…"
+                    value={notas}
+                    onChange={(e) => setNotas(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[12.5px] font-bold mb-1.5" style={{ color: 'var(--ce-muted)' }}>
+                    Método de pago
+                  </label>
+                  <select
+                    className={inputCls}
+                    style={{ borderColor: 'rgba(35,25,15,0.08)' }}
+                    value={pago}
+                    onChange={(e) => setPago(e.target.value as any)}
+                  >
+                    {(local.metodosPago ?? ['efectivo', 'tarjeta_entrega', 'transferencia']).map((m) => (
+                      <option key={m} value={m}>
+                        {m === 'efectivo' ? 'Efectivo' : m === 'tarjeta_entrega' ? 'Tarjeta a la entrega' : 'Transferencia / SPEI'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {cerrado && (
+                <div className="mb-3 px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 flex items-start gap-2">
+                  <Icon name="alert-triangle" size={14} className="mt-0.5 shrink-0" />
+                  <div>
+                    <strong className="block">Local cerrado</strong>
+                    <span className="text-xs">{mensajeCerrado ?? 'No estamos aceptando pedidos en este momento.'}</span>
+                  </div>
+                </div>
+              )}
+              {error && (
+                <div className="mb-3 px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={sending || cerrado || !nombre || !telefono || (metodo === 'delivery' && (!direccion || fueraDeRango))}
+                className="w-full h-[58px] rounded-3xl text-white ce-body font-extrabold text-base inline-flex items-center justify-center gap-2.5 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed tap-target"
+                style={{
+                  background: '#25D366',
+                  boxShadow: '0 14px 32px -10px rgba(37,211,102,.55)',
+                }}
+              >
+                <Icon name="whatsapp" size={20} />
+                {sending ? 'Enviando…' : cerrado ? 'Cerrado · no se puede enviar' : 'Enviar pedido por WhatsApp'}
+              </button>
+              <p className="text-center text-xs mt-3.5" style={{ color: 'var(--ce-muted)' }}>
+                Se abrirá WhatsApp con tu pedido listo para enviar.
               </p>
-            )}
-          </div>
-        )}
-
-        <label className="block text-sm font-medium mb-1">Pago</label>
-        <select
-          className="w-full mb-4 px-3 py-2.5 border border-line rounded-xl text-base min-h-[44px]"
-          value={pago}
-          onChange={(e) => setPago(e.target.value as any)}
-        >
-          {(local.metodosPago ?? ['efectivo', 'tarjeta_entrega', 'transferencia']).map((m) => (
-            <option key={m} value={m}>
-              {m === 'efectivo' ? '💵 Efectivo' : m === 'tarjeta_entrega' ? '💳 Tarjeta a la entrega' : '📲 Transferencia / SPEI'}
-            </option>
-          ))}
-        </select>
-
-        <div className="rounded-xl bg-line/20 p-3 mb-4">
-          <div className="flex justify-between mb-1 text-sm"><span>Subtotal</span><span className="font-mono">{formatMXN(cart.subtotal())}</span></div>
-          {fee > 0 && <div className="flex justify-between mb-1 text-sm"><span>Envío</span><span className="font-mono">{formatMXN(fee)}</span></div>}
-          <div className="flex justify-between font-bold pt-1 border-t border-line"><span>Total</span><span className="font-mono">{formatMXN(total)}</span></div>
-        </div>
-
-        {cerrado && (
-          <div className="mb-3 px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 flex items-start gap-2">
-            <span>🔒</span>
-            <div>
-              <strong className="block">Local cerrado</strong>
-              <span className="text-xs">{mensajeCerrado ?? 'No estamos aceptando pedidos en este momento.'}</span>
             </div>
-          </div>
-        )}
-
-        {error && (
-          <div className="mb-3 px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
-            {error}
-          </div>
-        )}
-
-        <button
-          onClick={handleSend}
-          disabled={sending || cerrado || !nombre || !telefono || (metodo === 'delivery' && (!direccion || fueraDeRango))}
-          className={cn(
-            'w-full py-3 rounded-2xl text-white font-medium disabled:opacity-40',
-            cerrado && 'bg-gray-400',
-          )}
-          style={cerrado ? undefined : { background: '#25D366' }}
-        >
-          {cerrado ? 'Cerrado · no se puede enviar' : sending ? 'Enviando…' : 'Enviar pedido por WhatsApp'}
-        </button>
-      </motion.div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
+/* ───── DeliveryAddressInput (mantenido) ───── */
+
 interface NominatimResult { display_name: string; lat: string; lon: string; }
 
-function DeliveryAddressInput({ direccion, onDireccionChange, onMapClick, lat, lng, localLat, localLng }: {
+function DeliveryAddressInput({
+  direccion, onDireccionChange, onMapClick, lat, lng, localLat, localLng,
+}: {
   direccion: string;
   onDireccionChange: (v: string) => void;
   onMapClick: (lat: number, lng: number) => void;
@@ -819,16 +1225,11 @@ function DeliveryAddressInput({ direccion, onDireccionChange, onMapClick, lat, l
   };
 
   const [locating, setLocating] = useState(false);
-
   const useMyLocation = () => {
     if (!navigator.geolocation) return;
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        onMapClick(latitude, longitude);
-        setLocating(false);
-      },
+      (pos) => { onMapClick(pos.coords.latitude, pos.coords.longitude); setLocating(false); },
       () => setLocating(false),
       { timeout: 8000 },
     );
@@ -842,8 +1243,9 @@ function DeliveryAddressInput({ direccion, onDireccionChange, onMapClick, lat, l
           value={direccion}
           onChange={(e) => search(e.target.value)}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
-          placeholder="Coloca tu dirección completa..."
-          className="w-full px-3 py-2.5 border border-line rounded-xl text-base min-h-[44px] bg-surface pr-10"
+          placeholder="Calle, número, colonia y referencias"
+          className="w-full h-12 px-4 rounded-2xl border-2 text-base bg-surface focus:outline-none"
+          style={{ borderColor: 'rgba(35,25,15,0.08)' }}
         />
         {open && suggestions.length > 0 && (
           <ul className="absolute z-50 w-full mt-1 bg-surface border border-line rounded-xl shadow-lg overflow-hidden max-h-48 overflow-y-auto">
@@ -859,22 +1261,18 @@ function DeliveryAddressInput({ direccion, onDireccionChange, onMapClick, lat, l
         type="button"
         onClick={useMyLocation}
         disabled={locating}
-        className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-line text-sm text-muted hover:bg-line/30 disabled:opacity-50"
+        className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-2xl border border-line text-sm text-muted hover:bg-line/30 disabled:opacity-50"
       >
         {locating ? (
-          <>
-            <Icon name="compass" size={14} className="animate-spin" />
-            Obteniendo ubicación…
-          </>
+          <><Icon name="compass" size={14} className="animate-spin" /> Obteniendo ubicación…</>
         ) : (
-          <>
-            <Icon name="navigation" size={14} />
-            Usar mi ubicación aproximada
-          </>
+          <><Icon name="navigation" size={14} /> Usar mi ubicación aproximada</>
         )}
       </button>
-      <p className="text-xs text-muted">Ajusta el punto en el mapa para mayor precisión.</p>
-      <div className="h-48 rounded-xl overflow-hidden border border-line">
+      <p className="text-xs" style={{ color: 'var(--ce-muted)' }}>
+        Ajusta el punto en el mapa para mayor precisión.
+      </p>
+      <div className="h-48 rounded-2xl overflow-hidden border border-line">
         <LeafletMap
           lat={lat}
           lng={lng}
@@ -886,516 +1284,178 @@ function DeliveryAddressInput({ direccion, onDireccionChange, onMapClick, lat, l
   );
 }
 
-/* ───── Social Card 3D — tarjetas isométricas inclinadas con lados 3D ─────
- *
- * CSS principal en globals.css (.social-3d). Aquí solo pasamos las CSS vars
- * con los colores específicos de cada red (background hover + lado izq + lado inf).
- * El gradient de Instagram se aplica también vía CSS var (background acepta
- * tanto colores sólidos como gradients).
- */
+/* ───── Footer — dark restaurante premium con LUMIA ───── */
 
-function SocialCard3D({
-  href, label, icon, brand, brandDark, brandLight,
-}: {
-  href: string;
-  label: string;
-  icon: 'instagram' | 'facebook' | 'sparkles';
-  brand: string;
-  brandDark: string;
-  brandLight: string;
-}) {
+function Footer({ local, branding }: { local: Local; branding: Branding }) {
+  const hasRedes = !!local.redes && Object.keys(local.redes).some((k) => local.redes![k]);
+  return (
+    <footer className="relative text-white mt-5 overflow-hidden" style={{ background: '#211A13' }}>
+      <span
+        aria-hidden
+        className="absolute top-0 left-0 right-0 h-1"
+        style={{ background: 'linear-gradient(90deg, transparent 0%, var(--ce-accent) 50%, transparent 100%)' }}
+      />
+      <div aria-hidden className="absolute inset-0 pointer-events-none opacity-20">
+        <div
+          className="hero-orb"
+          style={{ background: 'var(--ce-accent)', width: 480, height: 480, top: -200, right: -120 }}
+        />
+      </div>
+      <div className="relative max-w-[1140px] mx-auto px-5 sm:px-10 py-12 sm:py-16 pb-7">
+        <div className="flex flex-wrap gap-y-9 gap-x-12 justify-between">
+          {/* Identidad */}
+          <div className="max-w-[300px]">
+            <div className="flex items-center gap-3 mb-3">
+              {branding.logo && (
+                <img src={branding.logo} alt={local.nombre} className="w-11 h-11 rounded-xl object-cover bg-white border-2 border-white/20" />
+              )}
+              <p className="ce-serif text-[30px] leading-none m-0">{local.nombre}</p>
+            </div>
+            {local.tagline && (
+              <p className="text-[13.5px] leading-relaxed m-0 text-white/60">{local.tagline}</p>
+            )}
+          </div>
+
+          {/* Contacto */}
+          <div>
+            <div
+              className="text-[11px] font-bold uppercase mb-3.5"
+              style={{ color: 'var(--ce-accent)', letterSpacing: '0.2em' }}
+            >
+              Contacto
+            </div>
+            <div className="flex flex-col gap-2.5 text-[13.5px] text-white/80">
+              {local.direccion && (
+                <span className="inline-flex items-center gap-2.5">
+                  <Icon name="map-pin" size={14} className="text-white/50 shrink-0" />
+                  {local.direccion}
+                </span>
+              )}
+              {(local.telefono || local.whatsapp) && (
+                <span className="inline-flex items-center gap-2.5">
+                  <Icon name="phone" size={14} className="text-white/50 shrink-0" />
+                  {local.telefono || local.whatsapp}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-2.5">
+                <Icon name="clock" size={14} className="text-white/50 shrink-0" />
+                {formatHorarios(local.horarios)}
+              </span>
+            </div>
+          </div>
+
+          {/* Redes */}
+          {hasRedes && (
+            <div>
+              <div
+                className="text-[11px] font-bold uppercase mb-3.5"
+                style={{ color: 'var(--ce-accent)', letterSpacing: '0.2em' }}
+              >
+                Síguenos
+              </div>
+              <div className="flex gap-2.5">
+                {local.redes?.ig && (
+                  <SocialPill
+                    href={local.redes.ig.startsWith('http') ? local.redes.ig : `https://instagram.com/${local.redes.ig.replace(/^@/, '')}`}
+                    label="Instagram"
+                    icon="instagram"
+                  />
+                )}
+                {local.redes?.fb && (
+                  <SocialPill
+                    href={local.redes.fb.startsWith('http') ? local.redes.fb : `https://facebook.com/${local.redes.fb}`}
+                    label="Facebook"
+                    icon="facebook"
+                  />
+                )}
+                {local.whatsapp && (
+                  <SocialPill
+                    href={`https://wa.me/${local.whatsapp.replace(/\D/g, '')}`}
+                    label="WhatsApp"
+                    icon="whatsapp"
+                  />
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom bar */}
+        <div className="h-px mt-8 mb-4" style={{ background: 'linear-gradient(to right, transparent, rgba(239,231,220,.16), transparent)' }} />
+        <div className="flex flex-wrap gap-2 justify-between items-center text-xs text-white/50">
+          <span>© {new Date().getFullYear()} {local.nombre}. Todos los derechos reservados.</span>
+          <span>
+            Desarrollado por{' '}
+            <a
+              href="https://lumiaaisolutions.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white font-bold tracking-wide pb-[1px]"
+              style={{ borderBottom: '1px solid var(--ce-accent)' }}
+            >
+              LUMIA
+            </a>
+          </span>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+function SocialPill({ href, label, icon }: { href: string; label: string; icon: IconName }) {
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
       aria-label={label}
-      className="social-3d"
-      style={{
-        ['--brand' as string]: brand,
-        ['--brand-dark' as string]: brandDark,
-        ['--brand-light' as string]: brandLight,
-      }}
+      className="w-[42px] h-[42px] rounded-full border border-white/20 grid place-items-center text-white transition-all duration-300 hover:-translate-y-[3px] hover:border-transparent"
+      style={{ ['--hover-bg' as any]: 'var(--ce-accent)' }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'var(--ce-accent)'; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; }}
     >
-      <Icon name={icon} size={22} />
-      {label}
+      <Icon name={icon} size={16} />
     </a>
   );
 }
 
-/* ───── Product Preview (bottom sheet con selector de cantidad) ───── */
+/* ───── Helpers ───── */
 
-type Producto = MenuResponse['data']['productos'][number];
+const DIAS_ORDER: Record<string, number> = {
+  lun: 1, mar: 2, mie: 3, jue: 4, vie: 5, sab: 6, dom: 7,
+};
+const DIAS_LABEL: Record<string, string> = {
+  lun: 'Lun', mar: 'Mar', mie: 'Mié', jue: 'Jue', vie: 'Vie', sab: 'Sáb', dom: 'Dom',
+};
 
-/* ───── Product Accordion (panels que se expanden al click) ─────
- *
- * Inspirado en el patrón clásico de Brad Traversy:
- * - Estado inicial: todos los paneles con flex: 0.5 (compactos)
- * - Click en un panel → ese pasa a flex: 5 (expandido), los otros vuelven a 0.5
- * - El expandido muestra título grande, descripción, selector +/- y "Agregar"
- * - Los compactos muestran solo el título vertical (rotado -90°) + precio sutil
- *
- * Responsive:
- * - md+: flex-row horizontal (accordion lateral)
- * - <md: flex-col vertical (acordeón apilado, el activo crece en altura)
- *
- * El panel activo NO requiere modal aparte — todo se hace inline. Más
- * rápido (1 tap para ver detalle + agregar) y más mobile-friendly.
- */
-/**
- * Calcula cuántos productos caben por fila según el viewport.
- * Render inicial = 4 (PC) para evitar hydration mismatch — el `useEffect`
- * ajusta al breakpoint real en el primer paint.
- */
-function useColsPerRow(): number {
-  const [cols, setCols] = useState(4);
-  useEffect(() => {
-    const compute = () => {
-      const w = window.innerWidth;
-      if (w >= 1024) setCols(4);       // lg+
-      else if (w >= 640) setCols(3);   // sm — tablet
-      else setCols(2);                  // <sm — mobile
-    };
-    compute();
-    window.addEventListener('resize', compute);
-    return () => window.removeEventListener('resize', compute);
-  }, []);
-  return cols;
-}
-
-function chunk<T>(arr: T[], size: number): T[][] {
-  if (size <= 0) return [arr];
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) {
-    out.push(arr.slice(i, i + size));
+function formatHorarios(horarios: Local['horarios']): string {
+  if (!horarios || horarios.length === 0) return 'Consultar';
+  const sorted = [...horarios]
+    .filter((h) => h.dia && h.open && h.close)
+    .sort((a, b) => (DIAS_ORDER[a.dia.toLowerCase()] ?? 9) - (DIAS_ORDER[b.dia.toLowerCase()] ?? 9));
+  if (sorted.length === 0) return 'Consultar';
+  const firstOpen = sorted[0].open.slice(0, 5);
+  const firstClose = sorted[0].close.slice(0, 5);
+  const sameSchedule = sorted.every((h) => h.open.slice(0, 5) === firstOpen && h.close.slice(0, 5) === firstClose);
+  if (sameSchedule && sorted.length === 7) {
+    return `Lun – Dom · ${firstOpen} – ${firstClose}`;
   }
-  return out;
-}
-
-function ProductAccordion({
-  productos, cerrado, onAdd,
-}: {
-  productos: Producto[];
-  cerrado: boolean;
-  onAdd: (producto: Producto, qty: number) => void;
-}) {
-  // Ningún panel activo por default — el usuario decide cuál abrir.
-  const [activeId, setActiveId] = useState<number | null>(null);
-  const [qty, setQty] = useState(1);
-  const cols = useColsPerRow();
-
-  // Reset cantidad al cambiar de panel.
-  useEffect(() => { setQty(1); }, [activeId]);
-
-  // Si cambia la categoría y el activeId apunta a un producto que ya no
-  // existe en la lista nueva, colapsar todo.
-  useEffect(() => {
-    if (activeId != null && !productos.some((p) => p.id === activeId)) {
-      setActiveId(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productos]);
-
-  if (productos.length === 0) {
-    return (
-      <div className="rounded-2xl border border-line bg-surface p-10 text-center text-muted text-sm">
-        No hay productos en esta categoría.
-      </div>
-    );
+  if (sameSchedule) {
+    const dias = sorted.map((h) => DIAS_LABEL[h.dia.toLowerCase()] ?? h.dia).join(', ');
+    return `${dias} · ${firstOpen} – ${firstClose}`;
   }
-
-  // Chunk de productos en filas de `cols`. Cada fila es un accordion
-  // independiente visualmente, pero comparten el mismo activeId (solo
-  // uno expandido en todo el sistema).
-  const rows = chunk(productos, cols);
-
-  return (
-    <div className="space-y-3 sm:space-y-4">
-      {rows.map((row, rowIdx) => (
-        <div
-          key={rowIdx}
-          className="flex gap-2 sm:gap-3 h-[420px] sm:h-[480px]"
-        >
-          {row.map((p) => (
-            <AccordionPanel
-              key={p.id}
-              producto={p}
-              active={activeId === p.id}
-              cerrado={cerrado}
-              qty={qty}
-              onActivate={() => setActiveId(activeId === p.id ? null : p.id)}
-              onChangeQty={setQty}
-              onAdd={() => {
-                onAdd(p, qty);
-                // tras agregar, dejamos el panel abierto para que pueda agregar más
-                // si quiere — el cart drawer se abre solo.
-              }}
-            />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
+  return `${DIAS_LABEL[sorted[0].dia.toLowerCase()] ?? sorted[0].dia} ${firstOpen}–${firstClose}…`;
 }
 
-function AccordionPanel({
-  producto, active, cerrado, qty, onActivate, onChangeQty, onAdd,
-}: {
-  producto: Producto;
-  active: boolean;
-  cerrado: boolean;
-  qty: number;
-  onActivate: () => void;
-  onChangeQty: (q: number) => void;
-  onAdd: () => void;
-}) {
-  return (
-    <motion.div
-      layout
-      transition={{ duration: 0.7, ease: [0.2, 0.8, 0.2, 1] }}
-      onClick={!active ? onActivate : undefined}
-      className={cn(
-        'relative rounded-2xl sm:rounded-3xl overflow-hidden bg-cover bg-center h-full',
-        active
-          ? 'cursor-default flex-[5]'
-          : 'cursor-pointer flex-[0.5] hover:opacity-95',
-      )}
-      style={{
-        backgroundImage: producto.imagen ? `url(${producto.imagen})` : undefined,
-        backgroundColor: producto.imagen ? undefined : 'var(--ce-ink)',
-      }}
-    >
-      {/* Gradient overlay para legibilidad */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10 pointer-events-none" />
-
-      {/* Tag POPULAR si aplica — esquina superior izquierda */}
-      {producto.tag && (
-        <span
-          className="absolute top-3 left-3 z-10 text-[10px] uppercase tracking-wider px-2 py-1 rounded-full text-white font-bold shadow-sm backdrop-blur"
-          style={{ background: 'var(--ce-accent)' }}
-        >
-          {producto.tag}
-        </span>
-      )}
-
-      {/* Precio — pill grande verde emerald, alto contraste sobre cualquier imagen.
-          Oculto cuando expandido porque el total ya vive en "Agregar · $XX". */}
-      {!active && (
-        <span
-          className="absolute top-3 right-3 z-10 px-3 py-1.5 rounded-full bg-emerald-600 text-white text-sm font-bold shadow-lg ce-display tabular-nums ring-2 ring-emerald-500/40"
-        >
-          {formatMXN(producto.precio)}
-        </span>
-      )}
-
-      {/* CONTENIDO COLAPSADO — título vertical legible de ABAJO HACIA ARRIBA con
-          letras orientadas correctamente. Patrón: container fijo de N px rotado
-          -90°, el texto dentro está en horizontal natural y trunca con ellipsis
-          si excede. Después de la rotación visualmente se ve vertical, legible
-          inclinando la cabeza hacia la izquierda (estándar idiomas occidentales). */}
-      {!active && (
-        <div className="absolute inset-0 grid place-items-center overflow-hidden pointer-events-none px-2">
-          <div className="-rotate-90 origin-center w-[340px] sm:w-[400px] overflow-hidden">
-            <p className="ce-display font-bold text-base sm:text-lg text-white text-center truncate drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] tracking-tight">
-              {producto.nombre}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* CONTENIDO EXPANDIDO — título + descripción + selector + agregar */}
-      <AnimatePresence>
-        {active && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.45, delay: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
-            className="absolute inset-0 flex flex-col justify-end p-5 sm:p-6 text-white"
-          >
-            <h3 className="ce-display font-bold text-2xl sm:text-3xl md:text-4xl leading-tight">
-              {producto.nombre}
-            </h3>
-            {producto.descripcion && (
-              <p className="mt-2 text-sm sm:text-base opacity-90 leading-relaxed max-w-md">
-                {producto.descripcion}
-              </p>
-            )}
-
-            {/* Selector + botón agregar */}
-            <div className="mt-5 flex flex-wrap items-center gap-3">
-              {/* Cantidad selector */}
-              <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur rounded-full p-1.5">
-                <button
-                  onClick={(e) => { e.stopPropagation(); onChangeQty(Math.max(1, qty - 1)); }}
-                  disabled={qty === 1}
-                  aria-label="Restar"
-                  className="w-9 h-9 rounded-full bg-white/20 grid place-items-center disabled:opacity-40 hover:bg-white/30 transition tap-target"
-                >
-                  <Icon name="minus" size={14} className="text-white" />
-                </button>
-                <span className="w-7 text-center font-bold tabular-nums text-lg">{qty}</span>
-                <button
-                  onClick={(e) => { e.stopPropagation(); onChangeQty(qty + 1); }}
-                  aria-label="Sumar"
-                  className="w-9 h-9 rounded-full bg-white/20 grid place-items-center hover:bg-white/30 transition tap-target"
-                >
-                  <Icon name="plus" size={14} className="text-white" />
-                </button>
-              </div>
-
-              {/* CTA Agregar */}
-              <button
-                onClick={(e) => { e.stopPropagation(); if (!cerrado) onAdd(); }}
-                disabled={cerrado}
-                className={cn(
-                  'flex-1 min-w-[180px] inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full font-medium tap-target transition',
-                  cerrado
-                    ? 'bg-white/20 text-white/60 cursor-not-allowed'
-                    : 'bg-white text-ink hover:scale-[1.02] active:scale-95 shadow-lg',
-                )}
-              >
-                {cerrado ? (
-                  <>
-                    <Icon name="alert-triangle" size={16} />
-                    Cerrado
-                  </>
-                ) : (
-                  <>
-                    <Icon name="plus" size={16} />
-                    Agregar · {formatMXN(producto.precio * qty)}
-                  </>
-                )}
-              </button>
-
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Cerrar panel (X) — botón rojo prominente arriba a la derecha cuando activo */}
-      {active && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onActivate(); }}
-          aria-label="Cerrar"
-          className="absolute top-3 right-3 w-10 h-10 rounded-full bg-red-500 grid place-items-center hover:bg-red-600 hover:scale-110 active:scale-95 transition-all shadow-lg ring-2 ring-red-400/50 z-30"
-        >
-          <Icon name="x" size={16} className="text-white" />
-        </button>
-      )}
-    </motion.div>
-  );
-}
-
-/* ───── ProductPreview legacy (mantenido por si se usa en otro lado) ───── */
-
-function ProductPreview({
-  product, cerrado, onClose, onAdd,
-}: {
-  product: Producto | null;
-  cerrado: boolean;
-  onClose: () => void;
-  onAdd: (qty: number) => void;
-}) {
-  const [qty, setQty] = useState(1);
-
-  useEffect(() => {
-    if (product) setQty(1);
-  }, [product]);
-
-  return (
-    <AnimatePresence>
-      {product && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6">
-          <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="absolute inset-0 bg-black/55 backdrop-blur-sm"
-          />
-          <motion.div
-            initial={{ y: '100%', opacity: 0.85 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: '100%', opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-            className="relative w-full max-w-md bg-surface rounded-t-3xl sm:rounded-3xl shadow-glass overflow-hidden max-h-[88vh] flex flex-col"
-          >
-            {/* Drag handle (estética en mobile) */}
-            <div className="sm:hidden flex justify-center pt-2 pb-1">
-              <span className="w-12 h-1 rounded-full bg-line" />
-            </div>
-
-            {/* Close button absolute */}
-            <button
-              onClick={onClose}
-              aria-label="Cerrar"
-              className="absolute top-3 right-3 z-20 w-10 h-10 rounded-full bg-white/95 backdrop-blur grid place-items-center shadow-sm hover:bg-white tap-target"
-            >
-              <Icon name="x" size={18} />
-            </button>
-
-            {/* Imagen grande con zoom suave al entrar */}
-            {product.imagen ? (
-              <div className="relative w-full aspect-[4/3] overflow-hidden bg-line/30">
-                <motion.img
-                  initial={{ scale: 1.08 }}
-                  animate={{ scale: 1 }}
-                  transition={{ duration: 0.7, ease: [0.2, 0.8, 0.2, 1] }}
-                  src={product.imagen}
-                  alt={product.nombre}
-                  className="w-full h-full object-cover"
-                />
-                {product.tag && (
-                  <span
-                    className="absolute top-3 left-3 text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full text-white font-bold shadow-sm"
-                    style={{ background: 'var(--ce-accent)' }}
-                  >
-                    {product.tag}
-                  </span>
-                )}
-              </div>
-            ) : (
-              <div className="aspect-[4/3] bg-gradient-to-br from-line to-line/40" />
-            )}
-
-            <div className="flex-1 overflow-auto p-5 sm:p-6">
-              <h3 className="ce-display text-2xl sm:text-3xl font-bold leading-tight">{product.nombre}</h3>
-              {product.descripcion && (
-                <p className="mt-3 text-sm sm:text-base text-muted leading-relaxed">{product.descripcion}</p>
-              )}
-
-              <div className="mt-5 flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-muted font-medium">Precio</p>
-                  <p className="ce-display text-2xl font-bold mt-0.5">{formatMXN(product.precio)}</p>
-                </div>
-
-                {/* Selector de cantidad +/- */}
-                <div className="flex items-center gap-3 bg-[color:var(--ce-bg)] rounded-full p-1.5 border border-line">
-                  <button
-                    onClick={() => setQty((q) => Math.max(1, q - 1))}
-                    disabled={qty === 1}
-                    aria-label="Restar"
-                    className="w-9 h-9 rounded-full bg-white border border-line tap-target grid place-items-center hover:bg-line/40 disabled:opacity-40"
-                  >
-                    <Icon name="minus" size={14} />
-                  </button>
-                  <span className="w-7 text-center text-lg font-bold ce-display tabular-nums">{qty}</span>
-                  <button
-                    onClick={() => setQty((q) => q + 1)}
-                    aria-label="Sumar"
-                    className="w-9 h-9 rounded-full bg-white border border-line tap-target grid place-items-center hover:bg-line/40"
-                  >
-                    <Icon name="plus" size={14} />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer con CTA "Agregar" — sticky */}
-            <footer className="p-4 sm:p-5 border-t border-line pb-safe">
-              <button
-                onClick={() => !cerrado && onAdd(qty)}
-                disabled={cerrado}
-                className={cn(
-                  'w-full inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl text-white font-medium tap-target transition',
-                  cerrado ? 'bg-gray-400 cursor-not-allowed' : 'hover:opacity-90 active:scale-[0.98]',
-                )}
-                style={cerrado ? undefined : { background: 'var(--ce-accent)' }}
-              >
-                {cerrado ? (
-                  <>
-                    <Icon name="alert-triangle" size={16} />
-                    Local cerrado
-                  </>
-                ) : (
-                  <>
-                    <Icon name="plus" size={16} />
-                    Agregar al pedido · {formatMXN(product.precio * qty)}
-                  </>
-                )}
-              </button>
-            </footer>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
-  );
-}
-
-/* ───── Category Button — estilo botón premium con icono sobresaliendo ─────
- *
- * Inspirado en el patrón "Contact button" con icono 3D que asoma. El color
- * de fondo del botón activo viene del CSS var --ce-accent (lo configura el
- * dueño desde /admin/branding). El icono inactivo es sutilmente más chico
- * y sin gradient.
- */
-
-function CategoryButton({
-  nombre, icon, active, onClick,
-}: { nombre: string; icon: IconName; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'group relative inline-flex items-center gap-3 pl-5 sm:pl-6 pr-20 sm:pr-24 py-3 rounded-2xl whitespace-nowrap tap-target',
-        'text-sm font-semibold transition-all duration-300',
-        active
-          ? 'text-white shadow-[0_10px_24px_-8px_rgba(0,0,0,0.35)] hover:-translate-y-0.5 hover:shadow-[0_18px_32px_-10px_rgba(0,0,0,0.45)]'
-          : 'bg-surface text-ink border border-line hover:border-ink/40 hover:-translate-y-0.5 hover:shadow-md',
-      )}
-      style={
-        active
-          ? {
-              background:
-                'linear-gradient(135deg, var(--ce-accent) 0%, color-mix(in srgb, var(--ce-accent) 70%, black) 100%)',
-            }
-          : undefined
-      }
-    >
-      <span>{nombre}</span>
-
-      {/* Icono GRANDE flotante sin background — el ícono solo "vuela" fuera del
-          botón. Truco para que sea visible sobre cualquier color del local:
-          doble drop-shadow blanco (efecto contorno tipo sticker) + drop-shadow
-          oscuro inferior (profundidad 3D). El icono en sí es ink (negro) +
-          stroke grueso para presencia. */}
-      <span
-        className={cn(
-          'absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 sm:translate-x-6',
-          'pointer-events-none text-ink',
-          'transition-transform duration-300 ease-out',
-          'rotate-[10deg] group-hover:rotate-[18deg] group-hover:scale-110',
-          'group-hover:translate-x-5 sm:group-hover:translate-x-7',
-        )}
-        style={{
-          /* Doble drop-shadow blanco = contorno tipo sticker. Después drop-shadow
-             oscuro inferior = profundidad. Funciona sobre cualquier fondo. */
-          filter:
-            'drop-shadow(0 0 2px white) drop-shadow(0 0 2px white) ' +
-            'drop-shadow(0 0 1px white) drop-shadow(0 6px 8px rgba(0,0,0,0.4))',
-        }}
-      >
-        <Icon name={icon} size={56} strokeWidth={2.5} />
-      </span>
-    </button>
-  );
-}
-
-/* Heurística para inferir un icono cuando la categoría aún no tiene uno
-   asignado en BD. Mira palabras clave del nombre y mapea al set expandido. */
+/* Heurística para inferir icono desde el nombre cuando la categoría no tiene
+   uno asignado en BD. El admin puede editar el icono desde /admin/categorias. */
 function iconForCategoria(nombre: string): IconName {
   const n = nombre.toLowerCase();
-  // Postres / dulces
   if (/(paleta|popsicle|chupachup)/.test(n)) return 'popsicle';
   if (/(helado|nieve|ice ?cream|sorbete|gelato)/.test(n)) return 'ice-cream';
   if (/(cherry|fresa|frut|berry|tropic)/.test(n) && /(postre|dulce)/.test(n)) return 'cherry';
   if (/(postre|pastel|cake|brownie|cookie|galleta|repost|donut|cup ?cake|tart)/.test(n)) return 'cake';
   if (/(manzana|apple|fruta(?!l)|fruit)/.test(n)) return 'apple';
-  // Bebidas
   if (/(vino|wine)/.test(n)) return 'wine';
   if (/(coctel|cóctel|cocktail|martini|mezcal|tequila|whisky|trago)/.test(n)) return 'martini-glass';
   if (/(cerveza|beer|cheve|chela)/.test(n)) return 'beer';
@@ -1403,7 +1463,6 @@ function iconForCategoria(nombre: string): IconName {
   if (/(leche|milk|malteada|batido|smoothie|frapp|frappe)/.test(n)) return 'milk';
   if (/(café|cafe|coffee|capuchino|latte|mocha|chocolate|té|tea|infusi)/.test(n)) return 'coffee';
   if (/(bebida|agua|jugo|drink)/.test(n)) return 'cup-soda';
-  // Comida específica
   if (/(pizza)/.test(n)) return 'pizza';
   if (/(hamburguesa|burger|sandwich|hot ?dog|pita|wrap|sub)/.test(n)) return 'sandwich';
   if (/(sopa|caldo|soup|crema|consomé|consome|pozole|menudo)/.test(n)) return 'soup';
@@ -1414,7 +1473,6 @@ function iconForCategoria(nombre: string): IconName {
   if (/(pan|bread|croissant|panaderia|panadería|bagel|baguette|bollo|concha)/.test(n)) return 'croissant';
   if (/(palomita|popcorn|snack|botana|chips|fritura)/.test(n)) return 'popcorn';
   if (/(taco|burrito|quesadilla|enchilada|tortilla|mexican|antojito|gordita|sope|tlayuda|tamal)/.test(n)) return 'utensils';
-  // Conceptos
   if (/(ensalad|salad|verde fresco)/.test(n)) return 'salad';
   if (/(vegan|plant|plant ?based)/.test(n)) return 'sprout';
   if (/(sin ?gluten|gluten ?free|integral|cereal|grano)/.test(n)) return 'wheat';
