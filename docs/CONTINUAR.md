@@ -35,6 +35,17 @@ curl -I https://clicktoeat-api.lumiaaisolutions.com/up  # 200
   [`frontend/typography.md`](frontend/typography.md).
 - Eliminado input "Notas (opcional)" del checkout (no se enviaba al
   backend, era engañoso).
+- **Vista móvil del local más densa**: cards `grid-cols-2`, imagen 1/1,
+  paddings/tipografía reducidos, descripción oculta en mobile (visible
+  en el detail sheet). En `sm+` se mantiene el diseño anterior intacto.
+- **Home `/` con copy condensado**: Hero, Why, System, CTAOwner y QR
+  con titulares y descripciones más breves (6-9 palabras por título,
+  1 línea por body).
+- **Nuevo `PinnedFoodStory`** (`components/landing/PinnedFoodStory.tsx`):
+  3 frames con foto real (Unsplash) + texto cycling controlado por
+  `scrollYProgress`. Imagen sticky con cross-fade entre frames + progress
+  bar inferior. Reemplaza a `ScrollPhoneSequence` (legacy, queda en
+  repo). Bundle `/` baja de 19.3 → 17.5 kB.
 
 ### ✅ Cerrado en sesión 2026-06-12 al 2026-06-13
 
@@ -236,6 +247,7 @@ curl -I https://clicktoeat-api.lumiaaisolutions.com/up
 
 ---
 
-**Última actualización**: 2026-06-14 — sesión Rediseño editorial cálido de
-la landing del local (Instrument Serif + Hanken Grotesk, info card flotante,
-chips horizontales, grid de cards, cart FAB con sheen+ring, checkout sheet).
+**Última actualización**: 2026-06-14 — sesión Rediseño editorial cálido del
+landing del local + mobile compacto (grid 2 cols con cards densas) + home
+con copy condensado y nueva sección `PinnedFoodStory` (imagen sticky con
+cross-fade entre 3 frames de foto real).

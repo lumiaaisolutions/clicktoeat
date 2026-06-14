@@ -11,7 +11,8 @@
 | Archivo | Propósito | Animación característica |
 |---------|-----------|--------------------------|
 | `BurgerSequence.tsx` | Image-sequence scrubbing real con 168 JPGs | Canvas fixed right-50vw, scroll-driven |
-| `ScrollPhoneSequence.tsx` | Demostración visual del flujo del cliente en 4 frames | Image-sequence scrubbing (estilo Apple) con SVG/HTML |
+| **`PinnedFoodStory.tsx`** (2026-06-14) | 3 frames imagen+texto con foto real (Unsplash) — historia visual breve | Image sticky + cross-fade entre frames + progress bar inferior |
+| `ScrollPhoneSequence.tsx` (legacy) | Demostración del flujo en 4 frames con phone mockup SVG/HTML | Image-sequence scrubbing — **no se monta desde 2026-06-14**, queda en repo por si se rescata |
 | `WhyClickToEatSection.tsx` | 4 razones por las que el producto existe | Editorial — números 01-04, scroll fade staggered, headline sticky |
 | `SystemPreviewSection.tsx` | Browser mockup del panel admin + texto explicativo | Parallax y scale del mockup |
 
@@ -91,7 +92,87 @@ dibuja para evitar flicker o pantalla en blanco.
 - Si el contenido editorial necesita TODO el ancho del viewport — el
   canvas requiere ~50% del width para verse decente.
 
-## ScrollPhoneSequence — anatomía
+## PinnedFoodStory — anatomía (2026-06-14)
+
+Reemplazó a `ScrollPhoneSequence` en la home (`<PinnedFoodStory />` se monta
+después de los locales, antes de `WhyClickToEatSection`). Cuenta una
+historia visual breve con **3 frames** de foto real + texto conciso:
+
+| # | Kicker | Título | Body |
+|---|--------|--------|------|
+| 01 | Antojo | "El antojo entra por la pantalla." | "Tu menú, con foto y precio real, abierto en el celular." |
+| 02 | Pedido | "Un toque y va directo a tu WhatsApp." | "Sin app que descargar, sin cuenta que crear." |
+| 03 | Tuyo | "Cero comisiones. Cero intermediarios." | "El pedido es de tu cliente. El dinero, todo tuyo." |
+
+### Layout
+
+- Section de altura `frames * 110vh` (= 330vh con 3 frames). Eso da una
+  ventana de 1.1 viewports por frame — pausa cómoda + transición tranquila.
+- Dentro: `sticky top-0 h-screen` con grid `lg:grid-cols-2`:
+  - **Imagen** (lg-order 1): `aspect-[4/5]` con `border-radius:24px`,
+    sombra grande. Mobile la pone debajo del texto.
+  - **Texto** (lg-order 2): kicker uppercase letterspaced + título Bricolage
+    bold clamp(4xl-6xl) + body 1 línea texto-muted.
+- Barra de progreso inferior (3 segmentos) sobre la imagen indica el frame
+  activo y se llena de izquierda a derecha mientras scrolleas.
+
+### Cross-fade implementación
+
+Cada frame mapea a un rango `[i/total, (i+1)/total]` de `scrollYProgress`.
+La función helper `frameOpacity(index, total, progress)` genera una
+`MotionValue` con 4 keyframes:
+
+```
+[start - fadeIn,  start,  end,  end + fadeIn]
+[opacityFrom,     1,      1,    opacityTo  ]
+```
+
+- El primer frame nunca se desvanece por la izquierda (queda visible al
+  llegar a la sección desde arriba).
+- El último nunca se desvanece por la derecha (queda hasta que sales).
+- `fadeIn = segment * 0.18` — ventana de cross-fade del 18% del segmento.
+
+Cada `FrameImage` también recibe `scale: 1.05 → 1` para un sutil zoom-out
+durante el frame activo (ken-burns sin ser invasivo).
+
+Cada `FrameText` además se desliza `y: 30 → 0` 15% antes de la entrada,
+para que el texto se "ensamble" mientras la imagen aparece.
+
+### Imágenes
+
+Las 3 fotos vienen de Unsplash (uso comercial libre, sin atribución
+obligatoria). Para sustituirlas por shots propios o por imágenes del CMS,
+editar el array `FRAMES` en `PinnedFoodStory.tsx`:
+
+```ts
+const FRAMES: Frame[] = [
+  { image: 'https://…/comida.jpg',  alt: '…', kicker: '01 · Antojo', icon: 'sparkles',  title: '…', body: '…' },
+  { image: 'https://…/whatsapp.jpg', alt: '…', kicker: '02 · Pedido', icon: 'whatsapp',  title: '…', body: '…' },
+  { image: 'https://…/local.jpg',    alt: '…', kicker: '03 · Tuyo',   icon: 'storefront', title: '…', body: '…' },
+];
+```
+
+`next.config.mjs` ya tiene `images.unsplash.com` en `images.remotePatterns`
+por si se migra a `next/image` (hoy usa `<motion.img>` plano por
+simplicidad).
+
+### Performance
+
+- Primera imagen con `loading="eager"`, resto con `loading="lazy"`
+  (cargan cuando entran al viewport).
+- Sin canvas, sin frames hidratados — solo 3 `<img>` overlapped con
+  opacity controlada por `useTransform`. Trivial de renderizar a 60fps.
+- Bundle de `/` bajó de 19.3 → 17.5 kB al sustituir
+  `ScrollPhoneSequence` (que era 463 líneas con mockup SVG completo).
+
+### Cuándo NO usar
+
+- Si necesitas más de 5 frames — el cross-fade se vuelve confuso. Prefiere
+  un carrusel con autoplay pausable.
+- Si las imágenes pesan más de ~250 KB cada una — ajusta el `q=80` de
+  Unsplash o cambia a srcset por viewport.
+
+## ScrollPhoneSequence — anatomía (legacy — no se monta desde 2026-06-14)
 
 Implementa **image-sequence scrubbing** sin necesidad de PNGs:
 

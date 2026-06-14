@@ -19,13 +19,20 @@ DirectoryClient (orquestador)
 ├── SearchBar sticky           (in-file)
 ├── Favoritos                  (localStorage)
 ├── Catálogo de locales        (cards grid con tilt 3D + spotlight)
-├── ScrollPhoneSequence        (4 frames SVG/HTML sincronizados con scroll)
-├── WhyClickToEatSection       (4 features editorial 01-04)
-├── SystemPreviewSection       (texto + mockup admin con parallax)
+├── PinnedFoodStory            (3 frames foto real + texto cycling, image sticky)
+├── WhyClickToEatSection       (4 features editorial 01-04 — copy condensado)
+├── SystemPreviewSection       (texto + mockup admin con parallax — copy condensado)
 ├── CTAOwnerSection            (in-file — phone mockup + checklist)
 ├── ShareQRSection             (in-file)
 └── Footer                     (in-file — link a LUMIA)
 ```
+
+> Sesión 2026-06-14: `PinnedFoodStory` reemplaza al `ScrollPhoneSequence`.
+> El usuario lee MEJOR fotos reales de comida + texto breve que un
+> wireframe de phone con copy técnico. El antiguo componente queda en
+> `components/landing/ScrollPhoneSequence.tsx` por si se rescata.
+> Todo el copy de Hero / Why / System / CTAOwner / ShareQR fue condensado
+> en la misma sesión (titulares de 6-9 palabras, descripciones de 1 línea).
 
 El layout de cada componente está documentado en
 [`landing-sections.md`](./landing-sections.md). Las animaciones siguen los

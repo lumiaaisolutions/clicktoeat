@@ -6,6 +6,46 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+### Changed — Mobile compacto del local + home más concisa con PinnedFoodStory (2026-06-14)
+
+Continuación de la sesión del rediseño editorial. Dos cambios visuales:
+
+**Landing del local — vista móvil más densa**
+- Cards de producto pasan a grid `grid-cols-2` en mobile (antes 1 col).
+  Imagen 1/1 en lugar de 16/11. Padding `px-2.5 py-2.5`, título 13.5px
+  line-clamp-2, precio 15px, botón "+" 36×36. Descripción oculta en
+  mobile (se ve al tap → `ProductDetailSheet`).
+- En `sm+` se mantiene exactamente el diseño anterior (auto-fill 260px,
+  16/11, padding 4, descripción visible).
+- Inspirado en apps de delivery (Rappi/DiDi Food) — grilla escaneable
+  donde el comensal compara productos de un vistazo.
+
+**Home `/` — copy condensado + PinnedFoodStory con fotos reales**
+- Hero: subtítulo de 14 → 7 palabras ("Pide directo por WhatsApp. Sin
+  app, sin comisiones.").
+- WhyClickToEatSection: titulares 12 → 5 palabras por feature. Headline
+  principal "Pensado para el local, construido para el cliente" → "Para
+  el local. Para el cliente." Intro pasa de 25 a 10 palabras.
+- SystemPreviewSection: "Un sistema completo, no solo un menú" → "Un
+  sistema, no solo un menú". 4 filas de features con descripciones de
+  4-5 palabras.
+- CTAOwnerSection: "Tu propia landing, tu propio menú, tus propias
+  reglas" → "Tu landing. Tus reglas." 3 bullets más cortos.
+- ShareQRSection: copy reducido a "Escanea, abre, guarda."
+- **Nuevo: `PinnedFoodStory`** (`apps/web/src/components/landing/`).
+  Reemplaza a `ScrollPhoneSequence`. Imagen sticky con cross-fade entre
+  3 frames (foto Unsplash + título 6-9 palabras + body 1 línea). Cada
+  frame mapea a 110vh de scroll. Barra de progreso inferior. Imágenes:
+  pizza (antojo) → mano con WhatsApp (pedido) → restaurante (cero
+  comisiones). Documentado en `docs/frontend/landing-sections.md`
+  "PinnedFoodStory — anatomía".
+- `ScrollPhoneSequence` queda en repo como legacy (no se monta).
+
+**Bundle**
+- `/` baja de 19.3 → 17.5 kB (reemplazo de ScrollPhoneSequence + copy
+  más corto).
+- `/[slug]` se mantiene en 16.9 kB.
+
 ### Changed — Landing del local: rediseño editorial cálido (2026-06-14)
 
 Reescritura completa de `apps/web/src/app/[slug]/LandingClient.tsx`

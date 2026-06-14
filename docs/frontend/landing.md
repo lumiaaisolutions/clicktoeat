@@ -121,22 +121,30 @@ Tras la sesión 2026-06-14 se sustituyó el accordion expansible por un
 volver a un patrón que el comensal lee de un vistazo sin tener que
 expandir paneles.
 
-- `grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr))`.
-- Gap `clamp(14px, 2.4vw, 22px)`.
-- Animación `ce-fade-swap` al cambiar de categoría (`key={activeCat}`).
+### Grid responsive
 
-Cada card:
+| Breakpoint | Layout | Aspect imagen | Padding card | Tipografía |
+|---|---|---|---|---|
+| `<sm` (mobile) | `grid-cols-2` | `1/1` (cuadrado) | `px-2.5 py-2.5` | título 13.5px (2 líneas), precio 15px, botón 36×36 |
+| `sm+` (tablet/desktop) | `auto-fill minmax(260px, 1fr)` | `16/11` | `px-4 py-4` | título 16.5px, descripción 2 líneas, precio 18px, botón 44×44 |
 
-- `border-radius:22px`, sombra `0 10px 30px -12px rgba(35,25,15,.18)`.
-- Imagen `aspect-ratio:16/11` con clase `.ce-pimg` (hover → `scale(1.07)`
-  en 600ms `cubic-bezier(.22,.61,.36,1)`).
+Gap `gap-3` en mobile, `clamp(14px, 2.4vw, 22px)` en sm+.
+Animación `ce-fade-swap` al cambiar de categoría (`key={activeCat}`).
+
+La descripción del producto **se oculta en mobile** (`hidden sm:block`) —
+el `ProductDetailSheet` la muestra al tap. Esto deja la grilla de 2 cols
+densa y escaneable estilo apps de delivery (referencia: Rappi/DiDi Food).
+
+### Card
+
+- `border-radius:16px` mobile / `24px` sm+, sombra suave.
+- Imagen con clase `.ce-pimg` (hover → `scale(1.07)` en 600ms
+  `cubic-bezier(.22,.61,.36,1)`).
 - Hover en card: `translateY(-6px)` + sombra más profunda (`.ce-card`).
-- Tag (`producto.tag`): pill superior izquierda con `var(--ce-accent)`.
-- Título Hanken bold 16.5px.
-- Descripción 2 líneas con `-webkit-line-clamp:2`.
-- Precio Hanken extrabold 18px en color del accent.
-- Botón `+` 44×44 con gradient + sombra del accent — click NO abre el
-  detail; agrega directo al carrito (1 unidad) y abre el cart drawer.
+- Tag (`producto.tag`): pill superior izquierda con `var(--ce-accent)`,
+  tamaño reducido en mobile (`text-[9px]` vs `[10px]`).
+- Botón `+` con gradient + sombra del accent — click NO abre el detail;
+  agrega directo al carrito (1 unidad) y abre el cart drawer.
 - Click en el cuerpo de la card abre el `ProductDetailSheet` (modal).
 
 ## ProductDetailSheet
