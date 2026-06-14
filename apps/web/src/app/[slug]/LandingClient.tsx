@@ -303,8 +303,7 @@ export function LandingClient({ menu }: Props) {
         ) : (
           <div
             key={activeCat ?? 'all'}
-            className="ce-fade-swap grid gap-[clamp(14px,2.4vw,22px)]"
-            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))' }}
+            className="ce-fade-swap grid grid-cols-2 sm:[grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))] gap-3 sm:gap-[clamp(14px,2.4vw,22px)]"
           >
             {productosFiltrados.map((p) => (
               <ProductCard
@@ -452,26 +451,26 @@ function ProductCard({
   return (
     <article
       onClick={onOpen}
-      className="ce-card relative bg-surface border border-line rounded-3xl overflow-hidden cursor-pointer"
-      style={{ boxShadow: '0 10px 30px -12px rgba(35,25,15,.18)' }}
+      className="ce-card relative bg-surface border border-line rounded-2xl sm:rounded-3xl overflow-hidden cursor-pointer"
+      style={{ boxShadow: '0 6px 18px -10px rgba(35,25,15,.18)' }}
     >
-      {/* Imagen */}
-      <div className="relative w-full overflow-hidden bg-[#FBF7F1]" style={{ aspectRatio: '16 / 11' }}>
+      {/* Imagen — más compacta en mobile (aspect 1/1 vs 16/11 en sm+) */}
+      <div className="relative w-full overflow-hidden bg-[#FBF7F1] aspect-square sm:aspect-[16/11]">
         <div className="ce-pimg absolute inset-0">
           {producto.imagen ? (
             <img src={producto.imagen} alt={producto.nombre} className="w-full h-full object-cover" loading="lazy" />
           ) : (
             <div className="w-full h-full grid place-items-center text-muted text-xs">
-              <Icon name="utensils" size={32} className="opacity-30" />
+              <Icon name="utensils" size={28} className="opacity-30" />
             </div>
           )}
         </div>
         {producto.tag && (
           <span
-            className="absolute top-3 left-3 z-10 text-[10px] uppercase px-2.5 py-1 rounded-full text-white font-bold shadow-sm"
+            className="absolute top-2 left-2 sm:top-3 sm:left-3 z-10 text-[9px] sm:text-[10px] uppercase px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-white font-bold shadow-sm"
             style={{
               background: 'var(--ce-accent)',
-              letterSpacing: '0.08em',
+              letterSpacing: '0.06em',
             }}
           >
             {producto.tag}
@@ -479,14 +478,15 @@ function ProductCard({
         )}
       </div>
 
-      {/* Cuerpo */}
-      <div className="px-4 py-4 pb-[17px]">
-        <h4 className="ce-body font-bold text-[16.5px] leading-snug m-0 mb-1.5">
+      {/* Cuerpo — paddings y tipografía reducidos en mobile */}
+      <div className="px-2.5 py-2.5 sm:px-4 sm:py-4 sm:pb-[17px]">
+        <h4 className="ce-body font-bold text-[13.5px] sm:text-[16.5px] leading-snug m-0 mb-1 sm:mb-1.5 line-clamp-2 sm:line-clamp-none">
           {producto.nombre}
         </h4>
+        {/* Descripción oculta en mobile (el detail sheet la muestra). En sm+ máx 2 líneas. */}
         {producto.descripcion && (
           <p
-            className="text-[13px] leading-[1.5] m-0 mb-3.5"
+            className="hidden sm:block text-[13px] leading-[1.5] m-0 mb-3.5"
             style={{
               color: 'var(--ce-muted)',
               display: '-webkit-box',
@@ -498,9 +498,9 @@ function ProductCard({
             {producto.descripcion}
           </p>
         )}
-        <div className="flex items-center justify-between gap-2.5">
+        <div className="flex items-center justify-between gap-1.5 sm:gap-2.5 mt-1 sm:mt-0">
           <span
-            className="ce-body font-extrabold text-lg tabular-nums"
+            className="ce-body font-extrabold text-[15px] sm:text-lg tabular-nums truncate"
             style={{ color: 'var(--ce-accent)', letterSpacing: '-0.01em' }}
           >
             {formatMXN(producto.precio)}
@@ -510,13 +510,14 @@ function ProductCard({
             onClick={(e) => { e.stopPropagation(); if (!cerrado) onAdd(); }}
             disabled={cerrado}
             aria-label="Añadir"
-            className="w-11 h-11 rounded-2xl border-0 text-white grid place-items-center transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed tap-target"
+            className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl border-0 text-white grid place-items-center transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
             style={{
               background: 'linear-gradient(135deg, var(--ce-accent) 0%, color-mix(in srgb, var(--ce-accent) 72%, black) 100%)',
-              boxShadow: '0 6px 16px -6px color-mix(in srgb, var(--ce-accent) 50%, transparent)',
+              boxShadow: '0 4px 12px -4px color-mix(in srgb, var(--ce-accent) 50%, transparent)',
             }}
           >
-            <Icon name="plus" size={16} />
+            <Icon name="plus" size={14} className="sm:hidden" />
+            <Icon name="plus" size={16} className="hidden sm:block" />
           </button>
         </div>
       </div>

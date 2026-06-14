@@ -35,20 +35,19 @@ export function SystemPreviewSection() {
             Tu panel de control
           </p>
           <h2 className="ce-display mt-5 text-4xl sm:text-5xl md:text-6xl font-bold leading-[1] tracking-tight">
-            Un sistema completo,<br />
+            Un sistema,<br />
             <span className="text-ink/40">no solo</span> un menú.
           </h2>
-          <p className="mt-6 text-base text-muted max-w-md leading-relaxed">
-            Pedidos en vivo, inventario que se descuenta solo con cada venta, métricas
-            del día y catálogo con extras. Todo desde un panel que no necesita manual.
+          <p className="mt-6 text-base text-muted max-w-sm leading-relaxed">
+            Todo en un panel sin manual.
           </p>
 
           <ul className="mt-8 space-y-4">
             {[
-              { icon: 'bell' as const,        title: 'Pedidos en tiempo real',  desc: 'Alerta y sonido cuando llega uno nuevo.' },
-              { icon: 'truck' as const,       title: 'Inventario auto-sync',     desc: 'Cada pedido descuenta vía recetas.' },
-              { icon: 'sparkles' as const,    title: 'Métricas del día',         desc: 'Ventas, ticket promedio, top productos.' },
-              { icon: 'storefront' as const,  title: 'Catálogo con extras',      desc: 'Variantes, opciones y modificadores.' },
+              { icon: 'bell' as const,        title: 'Pedidos en vivo',     desc: 'Alerta cuando llega uno nuevo.' },
+              { icon: 'truck' as const,       title: 'Inventario auto',     desc: 'Cada venta descuenta sola.' },
+              { icon: 'sparkles' as const,    title: 'Métricas del día',    desc: 'Ventas, ticket, top productos.' },
+              { icon: 'storefront' as const,  title: 'Catálogo con extras', desc: 'Variantes y modificadores.' },
             ].map((row, i) => (
               <motion.li
                 key={row.title}

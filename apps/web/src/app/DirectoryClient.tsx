@@ -15,7 +15,7 @@ import { cn, formatMXN } from '@/lib/utils';
 import { QRCode, downloadQR } from '@/components/ui/QRCode';
 import { Logo } from '@/components/ui/Logo';
 import { Icon } from '@/components/ui/Icon';
-import { ScrollPhoneSequence } from '@/components/landing/ScrollPhoneSequence';
+import { PinnedFoodStory } from '@/components/landing/PinnedFoodStory';
 import { WhyClickToEatSection } from '@/components/landing/WhyClickToEatSection';
 import { SystemPreviewSection } from '@/components/landing/SystemPreviewSection';
 import { BurgerSequence } from '@/components/landing/BurgerSequence';
@@ -278,7 +278,7 @@ export function DirectoryClient({ locales }: { locales: LocalDirectorio[] }) {
         )}
       </section>
 
-      <ScrollPhoneSequence />
+      <PinnedFoodStory />
       <WhyClickToEatSection />
       <SystemPreviewSection />
       <CTAOwnerSection />
@@ -351,9 +351,9 @@ function Hero({
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="mt-6 max-w-xl text-base sm:text-lg text-muted"
+            className="mt-5 max-w-md text-base sm:text-lg text-muted"
           >
-            Elige tu local favorito y pide directo por WhatsApp. Sin app, sin cuenta, sin comisiones.
+            Pide directo por WhatsApp. Sin app, sin comisiones.
           </motion.p>
 
           {/* CTAs */}
@@ -594,20 +594,18 @@ function CTAOwnerSection() {
               ¿Tienes un local?
             </p>
             <h2 className="ce-display mt-2 text-3xl sm:text-4xl md:text-5xl font-bold leading-tight">
-              Tu propia landing,<br />
-              tu propio menú,<br />
-              <span className="gradient-text">tus propias reglas.</span>
+              Tu landing.<br />
+              <span className="gradient-text">Tus reglas.</span>
             </h2>
-            <p className="mt-4 text-muted max-w-md">
-              Configura tu catálogo, recibe pedidos en tu WhatsApp y gestiona todo desde un panel diseñado
-              para no pelearse con él.
+            <p className="mt-4 text-muted max-w-sm">
+              Catálogo, pedidos y métricas en un panel sin manual.
             </p>
 
             <ul className="mt-6 space-y-3">
               {[
-                'Tu URL pública: tudominio.com/tu-local',
-                'Inventario, recetas y métricas en tiempo real',
-                'Sin tarifas mensuales escondidas',
+                'URL pública: tudominio.com/tu-local',
+                'Inventario, recetas y métricas',
+                'Sin tarifas escondidas',
               ].map((t) => (
                 <li key={t} className="flex items-start gap-3 text-sm">
                   <span className="w-5 h-5 rounded-full bg-emerald-100 grid place-items-center mt-0.5 shrink-0">
@@ -724,11 +722,10 @@ function ShareQRSection() {
             Llévatelo contigo
           </p>
           <h2 className="ce-display mt-2 text-3xl md:text-4xl font-bold leading-tight">
-            Escanea y abre ClickToEat en tu móvil.
+            Escanea, abre, guarda.
           </h2>
-          <p className="mt-3 text-muted max-w-lg">
-            Apunta la cámara de tu celular al QR. Se abrirá esta página y podrás guardarla
-            en tu pantalla de inicio para acceso rápido.
+          <p className="mt-3 text-muted max-w-sm">
+            Apunta tu cámara al QR. ClickToEat siempre a mano.
           </p>
           <div className="mt-5 flex gap-2 flex-wrap">
             <button

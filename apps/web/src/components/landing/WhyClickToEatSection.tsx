@@ -25,26 +25,26 @@ const FEATURES: Feature[] = [
   {
     number: '01',
     icon: 'message-circle',
-    title: 'Pedidos por WhatsApp',
-    desc: 'El cliente abre WhatsApp con el mensaje pre-armado. Tú confirmas y entregas. Cero fricción.',
+    title: 'Pide por WhatsApp',
+    desc: 'Mensaje pre-armado. Cero fricción.',
   },
   {
     number: '02',
     icon: 'zap',
     title: 'Sin app, sin cuenta',
-    desc: 'El cliente entra, elige, pide. No descarga nada, no se registra. Convierte más.',
+    desc: 'Entra, elige, pide. Convierte más.',
   },
   {
     number: '03',
     icon: 'shield',
-    title: '0% de comisiones',
-    desc: 'El dinero del pedido es tuyo, completo. Sin intermediarios entre tú y tu cliente.',
+    title: '0% comisiones',
+    desc: 'El pedido es tuyo. Completo.',
   },
   {
     number: '04',
     icon: 'qr-code',
     title: 'QR para tu local',
-    desc: 'Imprime tu QR único y ponlo en barra, mesa o vitrina. Cada pedido entra a tu panel.',
+    desc: 'Imprímelo y póngalo en barra o mesa.',
   },
 ];
 
@@ -69,13 +69,11 @@ export function WhyClickToEatSection() {
             Por qué ClickToEat
           </p>
           <h2 className="ce-display mt-5 text-4xl sm:text-5xl md:text-6xl font-bold leading-[1] tracking-tight">
-            Pensado para el local,<br />
-            <span className="text-ink/40">construido para</span><br />
-            <span className="text-ink/40">el</span> cliente.
+            Para el local.<br />
+            <span className="text-ink/40">Para el</span> cliente.
           </h2>
-          <p className="mt-6 text-base text-muted max-w-md leading-relaxed">
-            Cuatro decisiones de diseño que separan a ClickToEat de cualquier app de
-            delivery. Sin tarifas escondidas, sin secuestro de tu cliente.
+          <p className="mt-6 text-base text-muted max-w-sm leading-relaxed">
+            Cuatro decisiones que nos separan de las apps de delivery.
           </p>
         </motion.div>
 
