@@ -19,6 +19,7 @@ class StoreLocalRequest extends FormRequest
             // Local
             'nombre'           => ['required', 'string', 'min:2', 'max:120'],
             'slug'             => ['nullable', 'string', 'min:2', 'max:80', 'regex:/^[a-z0-9-]+$/', 'unique:locales,slug'],
+            'giro'             => ['nullable', 'string', 'in:mexicana,italiana,cafeteria,sushi,postres,bar,vegan,pasteleria'],
             'tagline'          => ['nullable', 'string', 'max:200'],
             'whatsapp'         => ['required', 'string', 'min:10', 'max:20', 'regex:/^[0-9+]+$/'],
             'telefono'         => ['nullable', 'string', 'max:20'],

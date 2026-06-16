@@ -29,6 +29,12 @@ if (typeof window !== 'undefined') {
       if (error.response?.status === 401) {
         window.localStorage.removeItem(TOKEN_KEY);
       }
+      if (error.response?.status === 402) {
+        const body = error.response.data as any;
+        if (body && (body.code === 'FEATURE_LOCKED' || body.code === 'PLAN_LIMIT' || body.code === 'PLAN_INACTIVE')) {
+          window.dispatchEvent(new CustomEvent('clicktoeat:plan-gate', { detail: body }));
+        }
+      }
       return Promise.reject(error);
     },
   );
@@ -39,6 +45,31 @@ export const tokenStore = {
   set:   (t: string) => window.localStorage.setItem(TOKEN_KEY, t),
   clear: () => window.localStorage.removeItem(TOKEN_KEY),
 };
+
+/**
+ * Descarga un endpoint autenticado como archivo (CSV, PDF…) y dispara el save.
+ * Útil para los exports — no se puede usar axios responseType: 'blob' por
+ * el interceptor que parsea JSON automáticamente.
+ */
+export async function downloadFile(path: string, params?: Record<string, string>): Promise<void> {
+  if (typeof window === 'undefined') return;
+  const qs  = params && Object.keys(params).length ? '?' + new URLSearchParams(params).toString() : '';
+  const url = `${baseURL}${path}${qs}`;
+  const tok = tokenStore.get();
+  const res = await fetch(url, { headers: tok ? { Authorization: `Bearer ${tok}` } : {} });
+  if (!res.ok) throw new Error(`Descarga falló (${res.status})`);
+  const blob = await res.blob();
+  const disposition = res.headers.get('Content-Disposition') ?? '';
+  const match = disposition.match(/filename="?([^"]+)"?/i);
+  const fname = match?.[1] ?? path.split('/').pop() ?? 'archivo.csv';
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = fname;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
 
 /**
  * Server-side fetcher (Next.js RSC).
@@ -97,13 +128,23 @@ export interface MenuResponse {
         radioKm: number;
         zona: unknown;
       };
+      lealtad: { enabled: boolean; meta: number; premio: string | null } | null;
     };
+    hot?: Array<{ producto_id: number; unidades: number }>;
     branding: {
       logo: string | null;
       banner: string | null;
       colorPrimario: string;
       colorSecundario: string;
       colorFondo: string;
+      colorOverrides: {
+        boton_primario?:   string | null;
+        boton_secundario?: string | null;
+        badge_oferta?:     string | null;
+        precio?:           string | null;
+        header_bg?:        string | null;
+        header_text?:      string | null;
+      } | null;
       tipografia: string;
       darkMode: boolean;
     };
@@ -137,4 +178,7 @@ export interface MenuProducto {
     items: Array<{ id: string; name: string; price: number }>;
   }>;
   categoria: { id: number | null; slug: string | null };
+  /** F37 — Rating de reseñas publicadas (null si aún no hay) */
+  avgRating?: number | null;
+  ratingCount?: number;
 }

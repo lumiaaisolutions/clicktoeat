@@ -52,8 +52,14 @@ class ProductoController extends Controller
             $query->where('disponible', $request->boolean('disponible'));
         }
         if ($request->filled('q')) {
+            // F29 — Búsqueda en nombre, descripción y tag (LIKE multi-columna).
+            // Para >1000 productos considerar FULLTEXT en mysql.
             $term = '%'.trim($request->string('q')).'%';
-            $query->where('nombre', 'like', $term);
+            $query->where(function ($qq) use ($term) {
+                $qq->where('nombre',      'like', $term)
+                   ->orWhere('descripcion', 'like', $term)
+                   ->orWhere('tag',         'like', $term);
+            });
         }
 
         $perPage = min((int) $request->input('per_page', 20), 100);
@@ -103,11 +109,23 @@ class ProductoController extends Controller
      */
     public function store(StoreProductoRequest $request): JsonResponse
     {
+        $this->enforcePlanLimit('productos');
         $producto = Producto::create($request->validated());
 
         return (new ProductoResource($producto->load('categoria')))
             ->response()
             ->setStatusCode(201);
+    }
+
+    private function enforcePlanLimit(string $feature): void
+    {
+        $local = app(\App\Support\TenantContext::class)->local();
+        $max   = $local?->plan?->max_productos;
+        if ($max === null) return;
+        $current = $local->productos()->count();
+        if ($current >= $max) {
+            throw new \App\Exceptions\PlanLimitException($feature, $max, $current);
+        }
     }
 
     /**

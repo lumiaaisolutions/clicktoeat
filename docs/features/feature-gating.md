@@ -12,31 +12,36 @@ Se definen en `App\Support\Features` como constantes y se persisten en
 
 ### Acceso a módulos
 
-| Key | Módulo / endpoint | Esencial | Profesional | Premium |
-|-----|-------------------|:-:|:-:|:-:|
-| `branding_basico` | Logo + 1 color primario | ✅ | ✅ | ✅ |
-| `branding_avanzado` | Banner + 3 colores + tipografía + redes | — | ✅ | ✅ |
-| `inventario` | `/admin/inventario`, ingredientes, movimientos | — | ✅ | ✅ |
-| `recetas` | `/admin/recetas`, asociación producto → ingrediente | — | ✅ | ✅ |
-| `compras` | `/admin/compras`, alta de compras con promedio ponderado | — | ✅ | ✅ |
-| `metricas_basicas` | `/admin/metricas` con ventas día/semana/top productos | — | ✅ | ✅ |
-| `metricas_avanzadas` | Margen, comparativas, forecast inventario | — | — | ✅ |
-| `pos` | `/admin/punto-venta` (POS interno) | — | — | ✅ |
-| `qr_personalizado` | QR con logo + colores del local descargable | — | ✅ | ✅ |
-| `notificaciones` | Bell de notificaciones in-app | — | ✅ | ✅ |
-| `staff_multi` | `/admin/staff` CRUD (hasta `max_staff`) | — | ✅ (3) | ✅ (∞) |
-| `audit_log` | `/admin/audit-log` con diff de cambios | — | — | ✅ |
-| `restore` | Botón restore en productos/pedidos/compras soft-deleted | — | — | ✅ |
+> **Actualizado Fase 19 (2026-06-15)**: el plan Premium fue retirado.
+> El sistema ahora tiene 2 planes (essential, professional). POS, audit_log,
+> metricas_avanzadas y restore se movieron a Professional. POS adicionalmente
+> está disponible desde Essential.
+
+| Key | Módulo / endpoint | Esencial $99 | Profesional $299 |
+|-----|-------------------|:-:|:-:|
+| `branding_basico` | Logo + 1 color primario | ✅ | ✅ |
+| `branding_avanzado` | Banner + 3 colores + tipografía + redes | ✅ | ✅ |
+| `qr_personalizado` | QR con logo + colores del local descargable | ✅ | ✅ |
+| `pos` | `/admin/punto-venta` (caja en sucursal) | ✅ | ✅ |
+| `notificaciones` | Bell de notificaciones in-app | ✅ | ✅ |
+| `inventario` | `/admin/inventario`, ingredientes, movimientos | — | ✅ |
+| `recetas` | Asociación producto → ingrediente | — | ✅ |
+| `compras` | `/admin/compras`, promedio ponderado | — | ✅ |
+| `metricas_basicas` | `/admin/metricas` ventas día/semana/top | — | ✅ |
+| `metricas_avanzadas` | Margen, comparativas, forecast | — | ✅ |
+| `staff_multi` | `/admin/staff` CRUD (hasta `max_staff`) | — | ✅ (∞) |
+| `audit_log` | `/admin/audit-log` con diff de cambios | — | ✅ |
+| `restore` | Botón restore en soft-deleted | — | ✅ |
 
 ### Límites cuantitativos
 
 Columnas en `plans`:
 
-| Columna | Esencial | Profesional | Premium |
-|---------|:-:|:-:|:-:|
-| `max_productos` | 30 | NULL (∞) | NULL (∞) |
-| `max_categorias` | 5 | NULL | NULL |
-| `max_staff` | 0 | 3 | NULL |
+| Columna | Esencial | Profesional |
+|---------|:-:|:-:|
+| `max_productos` | 30 | NULL (∞) |
+| `max_categorias` | 8 | NULL |
+| `max_staff` | 0 | NULL (∞) |
 
 `NULL` = ilimitado.
 

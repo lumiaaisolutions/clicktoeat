@@ -64,6 +64,7 @@ class LocalController extends Controller
             $local = Local::create(array_filter([
                 'nombre'             => $request->input('nombre'),
                 'slug'               => $request->input('slug'),
+                'giro'               => $request->input('giro'),
                 'tagline'            => $request->input('tagline'),
                 'whatsapp'           => $request->input('whatsapp'),
                 'telefono'           => $request->input('telefono'),
@@ -90,6 +91,9 @@ class LocalController extends Controller
                 ]);
                 $local->forceFill(['owner_id' => $owner->id])->save();
             }
+
+            // Plantillas de productos por giro (no-op si no hay giro)
+            app(\App\Services\ProductTemplates\ProductTemplatesService::class)->seedFor($local);
 
             return $local;
         });
@@ -158,6 +162,27 @@ class LocalController extends Controller
     public function reactivar(Local $local): LocalResource
     {
         $local->update(['suspendido' => false, 'activo' => true]);
+        return new LocalResource($local->fresh());
+    }
+
+    /**
+     * Override manual de billing por el super admin. Sirve para:
+     *  - Marcar un local como "paga externo" (efectivo/transferencia) — bypassea Stripe.
+     *  - Cambiar plan_status manualmente (active / trialing / past_due / canceled).
+     *  - Asignar plan sin pasar por checkout (ej. cliente VIP, demo, partner).
+     */
+    public function updateBilling(\Illuminate\Http\Request $req, Local $local): LocalResource
+    {
+        $data = $req->validate([
+            'pago_externo'        => ['sometimes', 'boolean'],
+            'pago_externo_notas'  => ['sometimes', 'nullable', 'string', 'max:250'],
+            'plan_status'         => ['sometimes', 'nullable', 'in:trialing,active,past_due,canceled,incomplete'],
+            'plan_id'             => ['sometimes', 'nullable', 'integer', 'exists:plans,id'],
+            'trial_ends_at'           => ['sometimes', 'nullable', 'date'],
+            'current_period_ends_at'  => ['sometimes', 'nullable', 'date'],
+        ]);
+
+        $local->update($data);
         return new LocalResource($local->fresh());
     }
 

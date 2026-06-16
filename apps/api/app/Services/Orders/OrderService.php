@@ -7,6 +7,7 @@ use App\Models\Local;
 use App\Models\Pedido;
 use App\Models\Producto;
 use App\Services\Inventory\InventoryService;
+use App\Services\Notifications\WebPushSender;
 use App\Services\WhatsApp\WhatsAppLinkBuilder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +24,7 @@ class OrderService
     public function __construct(
         protected InventoryService    $inventory,
         protected WhatsAppLinkBuilder $whatsapp,
+        protected WebPushSender       $push,
     ) {}
 
     /**
@@ -67,6 +69,7 @@ class OrderService
             $pedido = Pedido::create([
                 'local_id'         => $local->id,
                 'cliente_nombre'   => $input['cliente']['nombre'],
+                'cliente_email'    => $input['cliente']['email']       ?? null,
                 'cliente_telefono' => $input['cliente']['telefono'],
                 'direccion'        => $input['cliente']['direccion']   ?? null,
                 'notas'            => $input['cliente']['notas']       ?? null,
@@ -118,6 +121,69 @@ class OrderService
         // sigue con polling como fallback.
         // Ver: docs/runbook/integrar-reverb.md
         event(new \App\Events\PedidoCreado($pedido));
+
+        // Web Push a las suscripciones del local. No-op si VAPID no está
+        // configurado o si nadie del local subscribió desde el browser.
+        $this->push->sendToLocal($local->id, [
+            'title' => 'Nuevo pedido '.$pedido->codigo,
+            'body'  => trim(($pedido->cliente_nombre ?? 'Cliente').' · $'.number_format((float) $pedido->total, 2)),
+            'url'   => '/admin/pedidos',
+            'tag'   => 'pedido-'.$pedido->id,
+        ]);
+
+        // Email de confirmación al cliente final, si dejó email.
+        // Falla silenciosamente si el mailer no está configurado o si el
+        // proveedor rechaza — no debe romper la creación del pedido.
+        if (! empty($pedido->cliente_email)) {
+            try {
+                \Illuminate\Support\Facades\Mail::to($pedido->cliente_email)
+                    ->send(new \App\Mail\PedidoConfirmadoMail($pedido));
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        // Programa de lealtad — suma sello. Si premio listo, lo marcamos en el pedido
+        // para que el owner lo vea como badge en el panel.
+        try {
+            $premio = app(\App\Services\Loyalty\LoyaltyService::class)->registrarPedido($pedido);
+            if ($premio) {
+                $pedido->lealtad_premio_listo = true;
+                $pedido->save();
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        // Carrito abandonado — si había un registro de este email, márcalo como recuperado
+        if (! empty($pedido->cliente_email)) {
+            try {
+                DB::table('carritos_abandonados')
+                    ->where('local_id', $local->id)
+                    ->whereRaw('LOWER(email) = ?', [strtolower($pedido->cliente_email)])
+                    ->whereNull('recovered_at')
+                    ->update(['recovered_at' => now()]);
+            } catch (\Throwable $e) { report($e); }
+        }
+
+        // F90 — Webhooks outgoing al cliente técnico (sistema de cocina, ERP, etc.)
+        if (\App\Support\Features::has($local, \App\Support\Features::API_WEBHOOKS)) {
+            try {
+                \App\Services\Webhooks\OutgoingWebhookDispatcher::dispatch(
+                    $local->id,
+                    'pedido.creado',
+                    [
+                        'codigo'         => $pedido->codigo,
+                        'cliente'        => $pedido->cliente_nombre,
+                        'total'          => (float) $pedido->total,
+                        'metodo_entrega' => $pedido->metodo_entrega,
+                        'metodo_pago'    => $pedido->metodo_pago,
+                        'estado'         => $pedido->estado,
+                        'created_at'     => $pedido->created_at?->toIso8601String(),
+                    ],
+                );
+            } catch (\Throwable $e) { report($e); }
+        }
 
         return $pedido;
     }

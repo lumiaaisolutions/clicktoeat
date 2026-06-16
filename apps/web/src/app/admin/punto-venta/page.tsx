@@ -9,6 +9,8 @@ import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
 import { cn, formatMXN } from '@/lib/utils';
+import { OfflineBanner } from '@/components/admin/OfflineBanner';
+import { enqueue as enqueueOffline } from '@/lib/pos-offline';
 
 type MetodoPago = 'efectivo' | 'tarjeta_tpv' | 'transferencia';
 
@@ -70,14 +72,16 @@ export default function PuntoVentaPage() {
   const [mobileTab, setMobileTab] = useState<'catalogo' | 'carrito'>('catalogo');
 
   return (
-    <div className="-mx-3 sm:-mx-4 md:-mx-8 -my-4 md:-my-10 min-h-[calc(100vh-3.5rem)] md:h-screen flex flex-col md:flex-row">
+    <div className="-mx-3 sm:-mx-4 md:-mx-8 -my-4 md:-my-10 min-h-[calc(100vh-3.5rem)] md:h-screen flex flex-col">
+      <div className="px-3 sm:px-4 md:px-6 pt-3"><OfflineBanner /></div>
+      <div className="flex-1 flex flex-col md:flex-row min-h-0">
       {/* IZQUIERDA: catálogo — siempre visible en desktop, condicional en móvil */}
       <section className={cn(
         'flex-1 min-w-0 flex-col bg-bg',
         mobileTab === 'catalogo' ? 'flex' : 'hidden md:flex',
       )}>
         <header className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b border-line bg-white flex flex-wrap gap-2 sm:gap-3 items-center">
-          <h1 className="ce-display text-lg sm:text-xl md:text-2xl font-bold">Punto de venta</h1>
+          <h1 className="ce-display text-lg sm:text-xl md:text-2xl font-bold">Caja</h1>
           <input
             placeholder="Buscar…"
             value={q}
@@ -243,6 +247,7 @@ export default function PuntoVentaPage() {
           </button>
         </div>
       </div>
+      </div>
     </div>
   );
 }
@@ -274,16 +279,52 @@ function CheckoutModal({
 
   const cobrar = async () => {
     setSaving(true);
-    try {
-      const { data } = await api.post<Resource<Pedido>>('/pedidos', {
-        cliente:        cliente ? { nombre: cliente } : undefined,
+    const payload = {
+      cliente:        cliente ? { nombre: cliente } : undefined,
+      metodo_entrega: 'sucursal' as const,
+      metodo_pago:    pago,
+      items: cart.map((l) => ({ producto_id: l.producto.id, cantidad: l.cantidad })),
+    };
+
+    // Si no hay internet, encola localmente y simula respuesta para imprimir ticket
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      const pending = enqueueOffline(payload);
+      toast.success('Cobrado offline — se sincronizará al volver internet');
+      onSaved({
+        id: 0,
+        codigo: `OFFLINE-${pending.localId.slice(-6).toUpperCase()}`,
+        total: subtotal,
+        estado: 'nuevo',
+        local_id: 0,
+        cliente_nombre: cliente,
+        metodo_pago: pago,
         metodo_entrega: 'sucursal',
-        metodo_pago:    pago,
-        items: cart.map((l) => ({ producto_id: l.producto.id, cantidad: l.cantidad })),
-      });
+        created_at: new Date(pending.createdAt).toISOString(),
+      } as any);
+      setSaving(false);
+      return;
+    }
+
+    try {
+      const { data } = await api.post<Resource<Pedido>>('/pedidos', payload);
       onSaved(data.data);
     } catch (err: any) {
-      if (err?.response?.status === 409) {
+      // Si es error de red (axios sin response), también encola
+      if (!err?.response) {
+        const pending = enqueueOffline(payload);
+        toast.success('Sin conexión — pedido guardado, se sincronizará');
+        onSaved({
+          id: 0,
+          codigo: `OFFLINE-${pending.localId.slice(-6).toUpperCase()}`,
+          total: subtotal,
+          estado: 'nuevo',
+          local_id: 0,
+          cliente_nombre: cliente,
+          metodo_pago: pago,
+          metodo_entrega: 'sucursal',
+          created_at: new Date(pending.createdAt).toISOString(),
+        } as any);
+      } else if (err?.response?.status === 409) {
         const faltantes = err.response.data.faltantes ?? [];
         const lista = faltantes.map((f: any) =>
           `${f.ingrediente} (faltan ${(f.requerido - f.disponible).toFixed(2)}${f.unidad})`
@@ -324,7 +365,7 @@ function CheckoutModal({
               pago === m ? 'bg-ink text-white border-transparent' : 'border-line hover:bg-line/30',
             )}
           >
-            {m === 'efectivo' ? '💵 Efectivo' : m === 'tarjeta_tpv' ? '💳 Tarjeta' : '📲 Transfer.'}
+            {m === 'efectivo' ? 'Efectivo' : m === 'tarjeta_tpv' ? 'Tarjeta' : 'Transfer.'}
           </button>
         ))}
       </div>

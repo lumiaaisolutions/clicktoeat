@@ -77,4 +77,21 @@ class LocalFactory extends Factory
             'lng' => -99.1332,
         ]);
     }
+
+    public function withPlan(string $slug = 'professional', string $status = 'trialing'): static
+    {
+        return $this->state(function () use ($slug, $status) {
+            $plan = \App\Models\Plan::query()->where('slug', $slug)->first()
+                ?? \App\Models\Plan::factory()->$slug()->create();
+
+            return [
+                'plan_id'                => $plan->id,
+                'plan_status'            => $status,
+                'stripe_customer_id'     => 'cus_test_'.\Illuminate\Support\Str::random(10),
+                'stripe_subscription_id' => 'sub_test_'.\Illuminate\Support\Str::random(10),
+                'trial_ends_at'          => $status === 'trialing' ? now()->addDays(14) : null,
+                'current_period_ends_at' => now()->addMonth(),
+            ];
+        });
+    }
 }

@@ -10,6 +10,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
 import { ImageUpload } from '@/components/admin/ImageUpload';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { cn, formatMXN } from '@/lib/utils';
 
 export default function ProductosPage() {
@@ -74,17 +75,38 @@ export default function ProductosPage() {
     }
   };
 
+  // Agrupar productos por categoría cuando NO hay filtro de categoría
+  const grouped = useMemo(() => {
+    if (filterCategoria) return null;  // vista flat cuando hay filtro
+    if (!items) return null;
+    const byCat = new Map<number, { categoria: Categoria; productos: Producto[] }>();
+    const sinCat: Producto[] = [];
+    for (const p of items) {
+      const catId = p.categoria_id ?? p.categoria?.id;
+      if (!catId) { sinCat.push(p); continue; }
+      const cat = categorias.find((c) => c.id === catId);
+      if (!cat) { sinCat.push(p); continue; }
+      if (!byCat.has(cat.id)) byCat.set(cat.id, { categoria: cat, productos: [] });
+      byCat.get(cat.id)!.productos.push(p);
+    }
+    return { groups: [...byCat.values()].sort((a, b) => a.categoria.orden - b.categoria.orden), sinCat };
+  }, [items, categorias, filterCategoria]);
+
   return (
     <div>
-      <header className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <div>
-          <h1 className="ce-display text-2xl md:text-4xl font-bold">Productos</h1>
-          <p className="text-muted text-sm mt-1">Tu menú: lo que aparece en la landing pública.</p>
-        </div>
-        <Button onClick={() => setCreating(true)} disabled={categorias.length === 0}>
-          + Nuevo producto
-        </Button>
-      </header>
+      <AdminPageHeader
+        kicker="Productos"
+        kickerIcon="package"
+        title="Tu menú,"
+        titleAccent="lo que tus clientes ven."
+        description="Cada producto aparece automáticamente en tu landing pública. Agrupados por categoría para encontrarlos rápido."
+        tourSlug="productos"
+        actions={
+          <Button data-tour="productos-nuevo" onClick={() => setCreating(true)} disabled={categorias.length === 0}>
+            + Nuevo producto
+          </Button>
+        }
+      />
 
       {categorias.length === 0 && (
         <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm mb-4">
@@ -92,9 +114,9 @@ export default function ProductosPage() {
         </div>
       )}
 
-      <div className="flex gap-2 mb-4 flex-wrap">
+      <div data-tour="productos-buscar" className="flex gap-2 mb-4 flex-wrap">
         <input
-          placeholder="Buscar…"
+          placeholder="Buscar por nombre…"
           value={q}
           onChange={(e) => { setPage(1); setQ(e.target.value); }}
           className="flex-1 min-w-[200px] px-3 py-2 border border-line rounded-xl bg-white"
@@ -104,8 +126,8 @@ export default function ProductosPage() {
           onChange={(e) => { setPage(1); setFilterCategoria(e.target.value ? Number(e.target.value) : ''); }}
           className="px-3 py-2 border border-line rounded-xl bg-white"
         >
-          <option value="">Todas las categorías</option>
-          {categorias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+          <option value="">Agrupar por categoría</option>
+          {categorias.map((c) => <option key={c.id} value={c.id}>Solo: {c.nombre}</option>)}
         </select>
         <select
           value={trashed}
@@ -119,45 +141,58 @@ export default function ProductosPage() {
         </select>
       </div>
 
-      <div className="rounded-2xl border border-line bg-white overflow-hidden">
-        {items === null ? (
-          <div className="p-4 space-y-2">
-            {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14" />)}
-          </div>
-        ) : items.length === 0 ? (
-          <div className="p-10 text-center text-muted text-sm">Sin productos.</div>
-        ) : (
+      {items === null ? (
+        <div className="rounded-2xl border border-line bg-white p-4 space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14" />)}
+        </div>
+      ) : items.length === 0 ? (
+        <div className="rounded-2xl border border-line bg-white p-10 text-center text-muted text-sm">Sin productos.</div>
+      ) : grouped ? (
+        <div className="space-y-4">
+          {grouped.groups.map(({ categoria, productos: ps }) => (
+            <ProductosGroup
+              key={categoria.id}
+              categoria={categoria}
+              productos={ps}
+              trashed={trashed === 'only'}
+              onToggle={toggleDisponible}
+              onReceta={setReceta}
+              onEdit={setEditing}
+              onDelete={handleDelete}
+              onRestore={handleRestore}
+            />
+          ))}
+          {grouped.sinCat.length > 0 && (
+            <ProductosGroup
+              categoria={{ id: -1, nombre: 'Sin categoría', orden: 999, slug: '__sin__' } as Categoria}
+              productos={grouped.sinCat}
+              trashed={trashed === 'only'}
+              onToggle={toggleDisponible}
+              onReceta={setReceta}
+              onEdit={setEditing}
+              onDelete={handleDelete}
+              onRestore={handleRestore}
+            />
+          )}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-line bg-white overflow-hidden">
           <ul className="divide-y divide-line">
             {items.map((p) => (
-              <li key={p.id} className="flex items-center gap-4 p-3">
-                <div className="w-14 h-14 rounded-xl bg-line/40 overflow-hidden shrink-0">
-                  {p.imagen_url && <img src={p.imagen_url} alt="" className="w-full h-full object-cover" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">{p.nombre}</div>
-                  <div className="text-xs text-muted">
-                    {p.categoria?.nombre ?? '—'} · {formatMXN(p.precio)}
-                  </div>
-                </div>
-                <button onClick={() => toggleDisponible(p)} className="text-xs px-2 py-1 rounded-full border border-line">
-                  {p.disponible ? '● Disponible' : '○ Oculto'}
-                </button>
-                <div className="flex gap-1">
-                  {trashed === 'only' ? (
-                    <Button variant="ghost" size="sm" onClick={() => handleRestore(p)}>↺ Restaurar</Button>
-                  ) : (
-                    <>
-                      <Button variant="ghost" size="sm" onClick={() => setReceta(p)}>Receta</Button>
-                      <Button variant="ghost" size="sm" onClick={() => setEditing(p)}>Editar</Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(p)}>Borrar</Button>
-                    </>
-                  )}
-                </div>
-              </li>
+              <ProductRow
+                key={p.id}
+                p={p}
+                trashed={trashed === 'only'}
+                onToggle={toggleDisponible}
+                onReceta={setReceta}
+                onEdit={setEditing}
+                onDelete={handleDelete}
+                onRestore={handleRestore}
+              />
             ))}
           </ul>
-        )}
-      </div>
+        </div>
+      )}
 
       {meta && meta.last_page > 1 && (
         <div className="flex items-center justify-between mt-4 text-sm">
@@ -182,6 +217,103 @@ export default function ProductosPage() {
         producto={receta ?? undefined}
         onClose={() => setReceta(null)}
       />
+    </div>
+  );
+}
+
+/* ───── Row reusable de un producto ───── */
+function ProductRow({
+  p, trashed, onToggle, onReceta, onEdit, onDelete, onRestore,
+}: {
+  p: Producto;
+  trashed: boolean;
+  onToggle: (p: Producto) => void;
+  onReceta: (p: Producto) => void;
+  onEdit:   (p: Producto) => void;
+  onDelete: (p: Producto) => void;
+  onRestore:(p: Producto) => void;
+}) {
+  return (
+    <li className="flex items-center gap-3 sm:gap-4 p-3">
+      <div className="w-14 h-14 rounded-xl bg-line/40 overflow-hidden shrink-0">
+        {p.imagen_url && <img src={p.imagen_url} alt="" className="w-full h-full object-cover" />}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="font-medium truncate">{p.nombre}</div>
+        <div className="text-xs text-muted">
+          {p.categoria?.nombre ?? '—'} · {formatMXN(p.precio)}
+        </div>
+      </div>
+      <button onClick={() => onToggle(p)} className="text-xs px-2 py-1 rounded-full border border-line whitespace-nowrap hidden sm:inline-flex">
+        {p.disponible ? '● Disponible' : '○ Oculto'}
+      </button>
+      <div className="flex gap-1 shrink-0">
+        {trashed ? (
+          <Button variant="ghost" size="sm" onClick={() => onRestore(p)}>↺ Restaurar</Button>
+        ) : (
+          <>
+            <Button variant="ghost" size="sm" onClick={() => onReceta(p)}>Receta</Button>
+            <Button variant="ghost" size="sm" onClick={() => onEdit(p)}>Editar</Button>
+            <Button variant="ghost" size="sm" onClick={() => onDelete(p)}>Borrar</Button>
+          </>
+        )}
+      </div>
+    </li>
+  );
+}
+
+/* ───── Grupo expandible de productos por categoría ───── */
+function ProductosGroup({
+  categoria, productos, trashed, onToggle, onReceta, onEdit, onDelete, onRestore,
+}: {
+  categoria: Categoria;
+  productos: Producto[];
+  trashed: boolean;
+  onToggle: (p: Producto) => void;
+  onReceta: (p: Producto) => void;
+  onEdit:   (p: Producto) => void;
+  onDelete: (p: Producto) => void;
+  onRestore:(p: Producto) => void;
+}) {
+  const [open, setOpen] = useState(true);
+  return (
+    <div className="rounded-2xl border border-line bg-white overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 hover:bg-line/20 transition text-left"
+      >
+        <div className="w-8 h-8 rounded-xl bg-amber-50 grid place-items-center shrink-0">
+          <Icon name="utensils" size={14} className="text-amber-700" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="ce-display font-bold text-base sm:text-lg truncate">{categoria.nombre}</p>
+          <p className="text-xs text-muted">
+            {productos.length} {productos.length === 1 ? 'producto' : 'productos'}
+          </p>
+        </div>
+        <Icon
+          name="chevron-down"
+          size={18}
+          className={cn('text-muted transition-transform shrink-0', open && 'rotate-180')}
+        />
+      </button>
+      {open && (
+        <ul className="divide-y divide-line border-t border-line">
+          {productos.map((p) => (
+            <ProductRow
+              key={p.id}
+              p={p}
+              trashed={trashed}
+              onToggle={onToggle}
+              onReceta={onReceta}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onRestore={onRestore}
+            />
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

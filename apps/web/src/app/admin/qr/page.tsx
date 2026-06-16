@@ -5,13 +5,16 @@ import { api } from '@/lib/api';
 import type { LocalAdmin, Resource } from '@/lib/types';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { QRCode, downloadQR } from '@/components/ui/QRCode';
 import { Icon } from '@/components/ui/Icon';
 import { toast } from '@/store/toast';
 
 export default function QRPage() {
   const [local, setLocal] = useState<LocalAdmin | null>(null);
-  const [tema,  setTema]  = useState<'marca' | 'mono'>('marca');
+  const [tema,         setTema]         = useState<'marca' | 'mono' | 'custom'>('marca');
+  const [customFg,     setCustomFg]     = useState('#0B0B0F');
+  const [customBg,     setCustomBg]     = useState('#FFFFFF');
 
   useEffect(() => {
     api.get<Resource<LocalAdmin>>('/local').then(({ data }) => setLocal(data.data));
@@ -27,12 +30,17 @@ export default function QRPage() {
   }
 
   const url        = local.public_url;
-  const colorPlot  = tema === 'marca' ? local.color_primario : '#0B0B0F';
+  const colorPlot = tema === 'marca'  ? local.color_primario
+                  : tema === 'custom' ? customFg
+                  : '#0B0B0F';
+  const bgPlot    = tema === 'marca'  ? local.color_fondo
+                  : tema === 'custom' ? customBg
+                  : '#FFFFFF';
   const filename   = `qr-${local.slug}.png`;
 
   const handleDownload = async () => {
     try {
-      await downloadQR(url, filename, { size: 1200, color: colorPlot });
+      await downloadQR(url, filename, { size: 1200, color: colorPlot, background: bgPlot });
       toast.success(`QR descargado como ${filename}`);
     } catch {
       toast.error('No se pudo generar el archivo');
@@ -50,13 +58,14 @@ export default function QRPage() {
 
   return (
     <div>
-      <header className="mb-4 md:mb-6">
-        <h1 className="ce-display text-2xl md:text-4xl font-bold">QR para compartir</h1>
-        <p className="text-muted text-sm mt-1">
-          Imprime y pega este QR en tu mostrador. Tus clientes lo escanean
-          con la cámara del celular y van directo a tu menú para pedir.
-        </p>
-      </header>
+      <AdminPageHeader
+        kicker="Código QR"
+        kickerIcon="qr-code"
+        title="Tu QR para"
+        titleAccent="imprimir y pegar."
+        description="Tus clientes lo escanean con la cámara del celular y van directo a tu menú."
+        tourSlug="qr"
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Tarjeta imprimible — esta es la que se ve y descarga */}
@@ -67,15 +76,15 @@ export default function QRPage() {
             id="qr-printable"
             className="rounded-3xl shadow-soft overflow-hidden mx-auto print:shadow-none print:border-0"
             style={{
-              background: tema === 'marca' ? local.color_fondo : '#FFFFFF',
-              border: `1px solid ${tema === 'marca' ? local.color_primario + '33' : '#E8E8E2'}`,
+              background: bgPlot,
+              border: `1px solid ${colorPlot}33`,
               maxWidth: 420,
             }}
           >
             <div
               className="px-6 py-5 text-center"
               style={{
-                background: tema === 'marca' ? local.color_primario : '#0B0B0F',
+                background: colorPlot,
                 color: '#FFFFFF',
               }}
             >
@@ -88,7 +97,7 @@ export default function QRPage() {
                 value={url}
                 size={280}
                 color={colorPlot}
-                background={tema === 'marca' ? local.color_fondo : '#FFFFFF'}
+                background={bgPlot}
                 framed
               />
             </div>
@@ -96,11 +105,11 @@ export default function QRPage() {
             <div className="px-6 pb-6 text-center">
               <p
                 className="ce-display font-bold text-lg leading-tight"
-                style={{ color: tema === 'marca' ? local.color_secundario : '#0B0B0F' }}
+                style={{ color: colorPlot }}
               >
                 Escanea para pedir
               </p>
-              <p className="text-xs mt-1 break-all opacity-70">
+              <p className="text-xs mt-1 break-all opacity-70" style={{ color: colorPlot }}>
                 {url.replace(/^https?:\/\//, '')}
               </p>
             </div>
@@ -110,28 +119,83 @@ export default function QRPage() {
         {/* Controles */}
         <aside className="space-y-4 print:hidden">
           <div className="rounded-2xl border border-line bg-white p-4">
-            <p className="text-xs uppercase tracking-wider text-muted mb-2">Tema</p>
-            <div className="grid grid-cols-2 gap-2">
+            <p className="text-xs uppercase tracking-wider text-muted mb-3">Tema</p>
+            <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={() => setTema('marca')}
-                className={`px-3 py-2 rounded-xl text-sm font-medium border ${
-                  tema === 'marca' ? 'bg-ink text-white border-transparent' : 'bg-white border-line'
+                className={`px-2 py-2 rounded-xl text-xs font-medium border transition ${
+                  tema === 'marca' ? 'bg-ink text-white border-transparent' : 'bg-white border-line hover:border-ink/40'
                 }`}
               >
-                Con tu marca
+                Tu marca
               </button>
               <button
                 onClick={() => setTema('mono')}
-                className={`px-3 py-2 rounded-xl text-sm font-medium border ${
-                  tema === 'mono' ? 'bg-ink text-white border-transparent' : 'bg-white border-line'
+                className={`px-2 py-2 rounded-xl text-xs font-medium border transition ${
+                  tema === 'mono' ? 'bg-ink text-white border-transparent' : 'bg-white border-line hover:border-ink/40'
                 }`}
               >
                 Blanco y negro
               </button>
+              <button
+                onClick={() => setTema('custom')}
+                className={`px-2 py-2 rounded-xl text-xs font-medium border transition ${
+                  tema === 'custom' ? 'bg-ink text-white border-transparent' : 'bg-white border-line hover:border-ink/40'
+                }`}
+              >
+                Personalizado
+              </button>
             </div>
+
+            {tema === 'custom' && (
+              <div className="mt-4 space-y-3">
+                <div>
+                  <label className="text-xs font-semibold text-muted block mb-1.5">Color del QR</label>
+                  <div className="flex gap-2">
+                    <input type="color" value={customFg} onChange={(e) => setCustomFg(e.target.value)} className="h-10 w-12 rounded-xl border border-line cursor-pointer" />
+                    <input type="text" value={customFg} onChange={(e) => setCustomFg(e.target.value)} maxLength={7} className="flex-1 px-3 rounded-xl border border-line text-sm" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted block mb-1.5">Color de fondo</label>
+                  <div className="flex gap-2">
+                    <input type="color" value={customBg} onChange={(e) => setCustomBg(e.target.value)} className="h-10 w-12 rounded-xl border border-line cursor-pointer" />
+                    <input type="text" value={customBg} onChange={(e) => setCustomBg(e.target.value)} maxLength={7} className="flex-1 px-3 rounded-xl border border-line text-sm" />
+                  </div>
+                </div>
+
+                {/* Paletas sugeridas */}
+                <div>
+                  <label className="text-xs font-semibold text-muted block mb-1.5">Sugerencias</label>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[
+                      { fg: '#0B0B0F', bg: '#FFFFFF', name: 'Clásico' },
+                      { fg: '#FF2D2D', bg: '#FFF7F4', name: 'Cálido' },
+                      { fg: '#FFFFFF', bg: '#0B0B0F', name: 'Inverso' },
+                      { fg: '#1A5D3A', bg: '#F0FAF5', name: 'Verde' },
+                      { fg: '#1E3A8A', bg: '#EFF6FF', name: 'Azul' },
+                      { fg: '#9333EA', bg: '#FAF5FF', name: 'Morado' },
+                      { fg: '#D97706', bg: '#FFFBEB', name: 'Mostaza' },
+                      { fg: '#831843', bg: '#FDF2F8', name: 'Vino' },
+                    ].map((p) => (
+                      <button
+                        key={p.name}
+                        type="button"
+                        onClick={() => { setCustomFg(p.fg); setCustomBg(p.bg); }}
+                        title={p.name}
+                        className="aspect-square rounded-lg border border-line hover:border-ink/40 transition overflow-hidden grid grid-cols-2"
+                      >
+                        <span style={{ background: p.bg }} />
+                        <span style={{ background: p.fg }} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <p className="text-xs text-muted mt-3">
-              <strong>Tip:</strong> el blanco y negro escanea mejor con cámaras viejas.
-              El de marca se ve más bonito en tu local.
+              <strong>Tip:</strong> mantén buen contraste entre color y fondo. Los QR oscuros sobre claro escanean mejor.
             </p>
           </div>
 

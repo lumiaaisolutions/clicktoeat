@@ -24,8 +24,20 @@ class UpdateBrandingRequest extends FormRequest
             'color_primario'     => ['sometimes', 'required', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/'],
             'color_secundario'   => ['sometimes', 'required', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/'],
             'color_fondo'        => ['sometimes', 'required', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/'],
+            'color_overrides'    => ['sometimes', 'nullable', 'array'],
+            'color_overrides.boton_primario'   => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/'],
+            'color_overrides.boton_secundario' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/'],
+            'color_overrides.badge_oferta'     => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/'],
+            'color_overrides.precio'           => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/'],
+            'color_overrides.header_bg'        => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/'],
+            'color_overrides.header_text'      => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/'],
             'tipografia'         => ['sometimes', 'required', 'string', 'max:60'],
             'dark_mode'          => ['sometimes', 'boolean'],
+
+            // Programa de lealtad (F73)
+            'lealtad_activo'     => ['sometimes', 'boolean'],
+            'lealtad_meta'       => ['sometimes', 'integer', 'between:3,50'],
+            'lealtad_premio'     => ['sometimes', 'nullable', 'string', 'max:120'],
 
             // Contacto
             'whatsapp'           => ['sometimes', 'required', 'string', 'min:10', 'max:20', 'regex:/^[0-9+]+$/'],

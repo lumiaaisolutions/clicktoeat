@@ -193,6 +193,18 @@ class InventoryService
             $totalNeeded = (float) $r->cantidad * $multiplicador;
 
             if ($r->ingrediente_id) {
+                // F91 — si la receta declara `unidad_consumo` distinta a la
+                // unidad del ingrediente, convertimos antes de descontar.
+                if (! empty($r->unidad_consumo)) {
+                    $ing = \App\Models\Ingrediente::find($r->ingrediente_id);
+                    if ($ing && ! empty($ing->unidad)) {
+                        $totalNeeded = \App\Services\Inventory\UnitConverter::convertir(
+                            $totalNeeded,
+                            $r->unidad_consumo,
+                            $ing->unidad,
+                        );
+                    }
+                }
                 $consumo[$r->ingrediente_id] = ($consumo[$r->ingrediente_id] ?? 0) + $totalNeeded;
             } elseif ($r->componente_producto_id) {
                 $this->expandirProducto((int) $r->componente_producto_id, $totalNeeded, $consumo, $visitados);

@@ -152,6 +152,89 @@ class MetricasService
                 'ingresos'        => (float) $r->ingresos,
                 'pedidos'         => (int)   $r->pedidos,
             ]),
+            'low_productos' => $this->productosMenosVendidos($localId, $desde, $hasta),
+            'heatmap'       => $this->heatmapDiaHora($localId, $desde, $hasta),
+            'por_dia_semana'=> $this->porDiaSemana($localId, $desde, $hasta),
         ];
+    }
+
+    /**
+     * Productos activos que se vendieron MENOS (o nada) en el rango.
+     * Útil para decidir qué quitar del menú.
+     */
+    protected function productosMenosVendidos(int $localId, Carbon $desde, Carbon $hasta): array
+    {
+        $rows = DB::select(<<<'SQL'
+            SELECT p.id, p.nombre,
+                   COALESCE(SUM(d.cantidad), 0) AS cantidad,
+                   COALESCE(SUM(d.subtotal), 0) AS ingresos
+            FROM productos p
+            LEFT JOIN detalle_pedidos d ON d.producto_id = p.id
+            LEFT JOIN pedidos pe ON pe.id = d.pedido_id
+                AND pe.created_at BETWEEN ? AND ?
+                AND pe.estado != 'cancelado'
+            WHERE p.local_id = ? AND p.disponible = 1
+            GROUP BY p.id, p.nombre
+            ORDER BY cantidad ASC, p.nombre ASC
+            LIMIT 8
+        SQL, [$desde->copy()->startOfDay(), $hasta->copy()->endOfDay(), $localId]);
+
+        return array_map(fn ($r) => [
+            'producto_nombre' => $r->nombre,
+            'cantidad'        => (float) $r->cantidad,
+            'ingresos'        => (float) $r->ingresos,
+        ], $rows);
+    }
+
+    /**
+     * Matriz 7 días × 24 horas con el conteo de pedidos. Permite ver
+     * en qué horarios tu local recibe más volumen.
+     *   Index 0 = domingo, 6 = sábado. Horas 0-23.
+     */
+    protected function heatmapDiaHora(int $localId, Carbon $desde, Carbon $hasta): array
+    {
+        $driver = DB::connection()->getDriverName();
+        $dowExpr  = $driver === 'sqlite' ? "CAST(strftime('%w', created_at) AS INTEGER)"   : 'DAYOFWEEK(created_at) - 1';
+        $hourExpr = $driver === 'sqlite' ? "CAST(strftime('%H', created_at) AS INTEGER)"  : 'HOUR(created_at)';
+
+        $rows = DB::table('pedidos')
+            ->where('local_id', $localId)
+            ->where('estado', '!=', 'cancelado')
+            ->whereBetween('created_at', [$desde->copy()->startOfDay(), $hasta->copy()->endOfDay()])
+            ->selectRaw("$dowExpr as dow, $hourExpr as hour, COUNT(*) as count, COALESCE(SUM(total),0) as monto")
+            ->groupBy('dow', 'hour')
+            ->get();
+
+        // 7×24 matriz inicializada en 0
+        $matrix = array_fill(0, 7, array_fill(0, 24, ['count' => 0, 'monto' => 0.0]));
+        foreach ($rows as $r) {
+            $matrix[(int) $r->dow][(int) $r->hour] = [
+                'count' => (int) $r->count,
+                'monto' => (float) $r->monto,
+            ];
+        }
+        return $matrix;
+    }
+
+    /** Pedidos y ventas agrupados por día de la semana (lun-dom). */
+    protected function porDiaSemana(int $localId, Carbon $desde, Carbon $hasta): array
+    {
+        $driver = DB::connection()->getDriverName();
+        $dowExpr = $driver === 'sqlite' ? "CAST(strftime('%w', created_at) AS INTEGER)" : 'DAYOFWEEK(created_at) - 1';
+
+        $rows = DB::table('pedidos')
+            ->where('local_id', $localId)
+            ->where('estado', '!=', 'cancelado')
+            ->whereBetween('created_at', [$desde->copy()->startOfDay(), $hasta->copy()->endOfDay()])
+            ->selectRaw("$dowExpr as dow, COUNT(*) as count, COALESCE(SUM(total),0) as monto")
+            ->groupBy('dow')
+            ->orderBy('dow')
+            ->get();
+
+        $out = array_fill(0, 7, ['count' => 0, 'monto' => 0.0]);
+        foreach ($rows as $r) {
+            $out[(int) $r->dow] = ['count' => (int) $r->count, 'monto' => (float) $r->monto];
+        }
+        return $out;
     }
 }

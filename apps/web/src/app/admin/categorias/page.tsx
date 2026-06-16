@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import type { Categoria, Resource } from '@/lib/types';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Field, Switch } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -37,13 +38,17 @@ export default function CategoriasPage() {
 
   return (
     <div>
-      <header className="flex items-center justify-between mb-4 md:mb-6 gap-3 flex-wrap">
-        <div>
-          <h1 className="ce-display text-2xl md:text-4xl font-bold">Categorías</h1>
-          <p className="text-muted text-sm mt-1">Organiza el menú en secciones.</p>
-        </div>
-        <Button onClick={() => setCreating(true)}>+ Nueva</Button>
-      </header>
+      <AdminPageHeader
+        kicker="Categorías"
+        kickerIcon="list"
+        title="Organiza tu menú"
+        titleAccent="en secciones."
+        description="Agrupa platillos (Postres, Bebidas, Entradas…). Aparecen como tabs en tu landing pública."
+        tourSlug="categorias"
+        actions={
+          <Button data-tour="categorias-nuevo" onClick={() => setCreating(true)}>+ Nueva categoría</Button>
+        }
+      />
 
       {items === null ? (
         <div className="rounded-2xl border border-line bg-white p-4 space-y-2">

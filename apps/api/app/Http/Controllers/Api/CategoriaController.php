@@ -60,6 +60,14 @@ class CategoriaController extends Controller
      */
     public function store(StoreCategoriaRequest $request): JsonResponse
     {
+        $local = app(\App\Support\TenantContext::class)->local();
+        $max   = $local?->plan?->max_categorias;
+        if ($max !== null) {
+            $current = $local->categorias()->count();
+            if ($current >= $max) {
+                throw new \App\Exceptions\PlanLimitException('categorias', $max, $current);
+            }
+        }
         $categoria = Categoria::create($request->validated());
 
         return (new CategoriaResource($categoria))

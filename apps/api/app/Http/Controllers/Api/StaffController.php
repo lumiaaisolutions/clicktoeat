@@ -49,6 +49,16 @@ class StaffController extends Controller
      */
     public function store(StoreStaffRequest $request): JsonResponse
     {
+        // Límite cuantitativo del plan SaaS (max_staff).
+        $local = app(\App\Support\TenantContext::class)->local();
+        $max   = $local?->plan?->max_staff;
+        if ($max !== null) {
+            $current = User::where('local_id', $local->id)->where('rol', 'staff')->count();
+            if ($current >= $max) {
+                throw new \App\Exceptions\PlanLimitException('staff', $max, $current);
+            }
+        }
+
         $permisos = $request->input('permisos');
         // Si el frontend mandó array vacío, lo persistimos como default mínimo
         // (acceso a pedidos). null o ausente también → default.

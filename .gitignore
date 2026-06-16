@@ -1,5 +1,7 @@
 .env
 .env.local
+.env.backup-*
+.env.local.backup*
 node_modules/
 vendor/
 .next/

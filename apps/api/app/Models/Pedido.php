@@ -17,11 +17,15 @@ class Pedido extends Model
 
     protected $fillable = [
         'codigo', 'local_id',
-        'cliente_nombre', 'cliente_telefono', 'direccion', 'notas',
+        'cliente_nombre', 'cliente_email', 'cliente_telefono', 'lealtad_premio_listo', 'direccion', 'notas',
         'metodo_entrega', 'metodo_pago',
         'subtotal', 'delivery_fee', 'descuento', 'total',
         'estado', 'whatsapp_url',
         'confirmado_at', 'entregado_at',
+        // F25 — cupón aplicado
+        'cupon_codigo',
+        // F27 — pedido programado (recoger a las X)
+        'programado_para',
     ];
 
     protected function casts(): array
@@ -33,6 +37,7 @@ class Pedido extends Model
             'total'           => 'decimal:2',
             'confirmado_at'   => 'datetime',
             'entregado_at'    => 'datetime',
+            'programado_para' => 'datetime',
         ];
     }
 

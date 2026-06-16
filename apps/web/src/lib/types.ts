@@ -58,6 +58,15 @@ export interface Producto {
   updated_at?: string;
 }
 
+export interface ColorOverrides {
+  boton_primario?:   string | null;
+  boton_secundario?: string | null;
+  badge_oferta?:     string | null;
+  precio?:           string | null;
+  header_bg?:        string | null;
+  header_text?:      string | null;
+}
+
 export interface LocalAdmin {
   id: number;
   nombre: string;
@@ -68,6 +77,7 @@ export interface LocalAdmin {
   color_primario: string;
   color_secundario: string;
   color_fondo: string;
+  color_overrides: ColorOverrides | null;
   tipografia: string;
   dark_mode: boolean;
   whatsapp: string;
@@ -87,6 +97,16 @@ export interface LocalAdmin {
   suspendido: boolean;
   modulos: unknown;
   public_url: string;
+  plan_id?: number | null;
+  plan_status?: 'trialing' | 'active' | 'past_due' | 'canceled' | 'incomplete' | null;
+  trial_ends_at?: string | null;
+  current_period_ends_at?: string | null;
+  canceled_at?: string | null;
+  pago_externo?: boolean;
+  pago_externo_notas?: string | null;
+  lealtad_activo?: boolean;
+  lealtad_meta?: number;
+  lealtad_premio?: string | null;
 }
 
 export interface UploadResult {
@@ -117,7 +137,9 @@ export interface Pedido {
   codigo: string;
   local_id: number;
   cliente_nombre: string;
+  cliente_email?: string | null;
   cliente_telefono: string;
+  lealtad_premio_listo?: boolean;
   direccion: string | null;
   notas: string | null;
   metodo_entrega: 'pickup' | 'delivery' | 'sucursal';
@@ -220,6 +242,9 @@ export interface MetricasResponse {
   por_pago:    Record<string, { pedidos: number; monto: number }>;
   serie_diaria: Array<{ fecha: string; pedidos: number; ventas: number }>;
   top_productos: Array<{ producto_nombre: string; cantidad: number; ingresos: number; pedidos: number }>;
+  low_productos?: Array<{ producto_nombre: string; cantidad: number; ingresos: number }>;
+  heatmap?: Array<Array<{ count: number; monto: number }>>; // [dow][hour]
+  por_dia_semana?: Array<{ count: number; monto: number }>;
 }
 
 export interface DetalleCompra {

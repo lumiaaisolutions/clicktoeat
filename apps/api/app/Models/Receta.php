@@ -13,7 +13,7 @@ class Receta extends Model
     protected $table = 'recetas';
 
     protected $fillable = [
-        'producto_id', 'ingrediente_id', 'componente_producto_id', 'cantidad',
+        'producto_id', 'ingrediente_id', 'componente_producto_id', 'cantidad', 'unidad_consumo',
     ];
 
     protected function casts(): array

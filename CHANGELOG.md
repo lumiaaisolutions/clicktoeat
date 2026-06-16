@@ -6,6 +6,338 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+### Added — Fase 39-91: ola masiva de features (2026-06-15 → 2026-06-16)
+
+**Mejoras del cliente final (landing pública)**
+- **F86 — Banner "Lo más pedido hoy"** — top 3 productos vendidos en las últimas 24h (fallback 7 días).
+- **F69 — Pedidos programados con calendario visual** — selector tabs (hoy/mañana/pasado) + grid de slots cada 30min respetando horarios del local.
+- **F62 — Email de confirmación al cliente final** — campo email opcional en checkout. Plantilla HTML responsive.
+- **F61 — Reseñas con foto** — render en modal de producto + upload desde `<input capture="environment">`.
+- **F73 — Programa de lealtad por sellos** — toggle en branding + barra de progreso visual cuando cliente deja email.
+- **F75 — Recuperación de carrito abandonado** — tracking debounced + scheduler cada 15min envía email tras 60min.
+
+**Panel del owner**
+- **F39-F48** — refactor masivo de UI (Leaflet fix, tagline→eslogan, upload en onboarding, home con widgets reales, historial en cards, QR personalizado, 12 fuentes, 8 paletas, colores granulares, tour mejorado, 8 plantillas de landing).
+- **F50** — notificaciones en tiempo real (polling + sonido + badge).
+- **F51-F52** — PWA instalable + Web Push (VAPID + minishlink/web-push).
+- **F77** — sales analytics: heatmap día×hora + low sellers.
+- **F83** — badge "premio listo" en card de pedido.
+- **F84** — notif canales por rol (todos/cocina/caja/delivery/ninguno).
+- **F85** — búsqueda global Cmd+K (pedidos/productos/clientes).
+- **F67** — 2FA TOTP con recovery codes.
+- **F70** — POS modo offline (queue en localStorage + auto-sync).
+
+**Panel super_admin**
+- **F54** — control manual de suscripciones (`pago_externo` + `plan_status` override).
+- **F57-F58** — resumen con MRR/ARR + locales en cards con filtros.
+- **F59** — branding super con misma UI que owner.
+- **F63** — cohort de retención mensual con heatmap.
+- **F71 + F82** — multi-sucursal con pivot + switcher + UI asignación.
+- **F76** — cancellation feedback con motivo.
+- **F88** — Plan Premium con `multi_sucursal + white_label + api_webhooks + soporte_premium` ($599 MXN/mes).
+
+**Crecimiento / marketing**
+- **F60** — demo público `/demo` sin registro.
+- **F89** — self-service signup `/registro` → `/onboarding/elegir-plan` → Stripe.
+- **F74** — resumen semanal al owner los domingos 20:00.
+- **F64** — onboarding email sequence (días 3/7/14 + 1 día antes de fin de trial).
+
+**Operacional**
+- **F65** — plantillas de productos por giro (8 giros × 8 productos cada uno).
+- **F68** — rate limit fino en `/push/*`.
+- **F78** — `/health/deep` (DB + cache + storage + Stripe).
+- **F79** — logs JSON opcional con `LOG_JSON=true`.
+- **F80** — `scripts/backup-test.sh` restore-drill mensual.
+- **F81** — GDPR: páginas `/privacidad` + `/terminos` + endpoint borrar mis datos.
+- **F90** — webhooks outgoing (Premium) con HMAC-SHA256.
+- **F91** — receta granular con conversión g↔kg y ml↔l.
+- Sentry SDK instalado (opt-in via env).
+
+**Migraciones nuevas (todas aditivas, seguras en producción)**
+
+```
+2026_06_15_120000_add_color_overrides_to_locales
+2026_06_15_130000_create_push_subscriptions_table
+2026_06_15_140000_add_pago_externo_to_locales
+2026_06_15_150000_add_cliente_email_to_pedidos
+2026_06_15_160000_add_giro_to_locales
+2026_06_15_170000_create_local_email_log_table
+2026_06_15_180000_add_2fa_to_users
+2026_06_15_190000_add_image_url_to_resenas
+2026_06_15_200000_create_lealtad_sellos_table
+2026_06_15_210000_create_carritos_abandonados_table
+2026_06_15_220000_create_cancellation_feedback_table
+2026_06_15_230000_create_user_locales_pivot
+2026_06_16_000000_add_lealtad_premio_listo_to_pedidos
+2026_06_16_010000_add_notif_filtro_to_users
+2026_06_16_020000_add_unidad_consumo_to_recetas
+2026_06_16_030000_create_outgoing_webhooks_table
+```
+
+**Composer / npm packages añadidos**
+
+- `sentry/sentry-laravel` ^4
+- `pragmarx/google2fa` ^9
+- `minishlink/web-push` ^10
+- `@sentry/nextjs` ^10
+
+**Bug fixes**
+- `ShouldBroadcastAfterCommit` no existe en Laravel 11.52 → `ShouldBroadcast + ShouldDispatchAfterCommit`.
+- `productos.activo` no existe (es `disponible`) → corregido en `MetricasService` y `ProductTemplatesService`.
+- `user_locales.updated_at` → cambio a `->withPivot('created_at')`.
+- `stripe/stripe-php` se perdió durante composer require de sentry/web-push → reinstalado.
+
+### Added — Fase 24-36: features comerciales + IA/Realtime skeleton + referidos (2026-06-15)
+
+**F24 — MAIL Hostinger configurado en local**. Tomadas las credenciales del
+proyecto LUMIA portal (fernando@lumiaaisolutions.com). `apps/api/.env`
+local actualizado. Pendiente del usuario: replicar las 4 vars en el
+`.env` de producción VPS + `php artisan config:clear`.
+
+**F25 — Cupones / códigos de descuento**. Tabla `cupones` (idempotente,
+softDeletes, unique local+código). Modelo `Cupon` con `BelongsToTenant` +
+scope `vigente()` + `calcularDescuento(subtotal)`. CRUD admin completo
+(`/admin/cupones`) + endpoint público `/public/cupones/{slug}/validar`
+con rate limit 30/min. Aplicación post-creación en el pedido con
+`lockForUpdate` (anti race condition de `max_usos`). Frontend: input
+"Código de descuento" en checkout con preview + pill verde + total
+recalculado. Columnas `cupon_codigo` y `descuento` agregadas a `pedidos`.
+
+**F26 — CSV export pedidos / inventario**. Helper `App\Support\CsvResponse`
+con streaming + BOM UTF-8 (Excel abre acentos OK). Endpoints
+`GET /pedidos/export?from=&to=&estado=` y `GET /ingredientes/export`.
+Frontend: botón "Exportar CSV" en `/admin/pedidos` y `/admin/inventario`
+con helper `downloadFile(path)` que respeta Bearer token.
+
+**F27 — Pedido programado**. Columna `pedidos.programado_para` timestamp
+nullable. Validación: futuro y máx +72h. UI checkout con toggle "Para
+más tarde" + `<input type="datetime-local">`. PedidoResource expone el
+campo. Ver `docs/features/pedidos-programados.md` (TODOs: badge en
+admin, ordenar próximos, validar horario).
+
+**F28 — Reseñas/rating productos** (backend). Tabla `resenas`. Modelo
+`Resena` con scope `publicadas()`. Endpoints públicos:
+`POST /public/resenas/{pedidoCodigo}` (valida que el producto estaba en
+el pedido + 1 reseña por pedido+producto) y
+`GET /public/resenas/{slug}/{producto_id}` que devuelve `{avg, count, data}`.
+UI pendiente F37: cards en /admin/resenas + estrellas en landing del local.
+
+**F29 — Búsqueda extendida productos**. `ProductoController::index` ahora
+busca también en `descripcion` y `tag` (no solo nombre). Para >1000
+productos considerar FULLTEXT index.
+
+**F30 — Dashboard MRR/ARR/Churn super_admin**. Endpoint
+`GET /admin/saas-metrics` con: MRR (sum precios trialing+active), ARR,
+trial→paid conversion 30d, churn 30d, distribución por plan, últimos
+10 eventos Stripe. UI `/admin/saas-metrics` con KPIs + tabla
+distribución + lista eventos. Solo super_admin.
+
+**F31 — Pagos anticipados Stripe Payment Links** (backend). Migración
+agrega `acepta_pago_online` y `stripe_account_id` a locales. Pedidos
+ganan `estado_pago`, `stripe_payment_link_id`, `stripe_payment_intent_id`,
+`pagado_at`. Servicio `App\Services\Billing\PaymentLinkService::crearParaPedido()`
+crea producto+precio+link de pago en Stripe (soporta Connect para que el
+$ vaya al owner). Pendiente: hook en `PublicPedidoController` que llame al
+servicio cuando `local.acepta_pago_online`, UI checkout con opción "Pagar
+ahora", webhook handler para `checkout.session.completed` con metadata
+`tipo=pedido_anticipado`.
+
+**F32 — Real-time con Reverb** (docs + plan). NO instalado. Doc
+`docs/features/realtime-reverb.md` con setup completo + por qué no se
+hace hoy (CageFS no soporta supervisor, droplet $4/mes recomendado).
+
+**F33 — Multi-sucursal Business plan $799** (docs + plan). NO
+implementado. Doc `docs/features/multi-sucursal.md` con modelo de datos,
+TenantContext refactor needed, UI selector, plan de 7 días dev.
+
+**F34 — IA features** (skeleton). `App\Services\AI\LLMClient` con switch
+provider (mock|anthropic|openai). Mock mode devuelve respuestas plausibles
+sin gastar tokens. Doc `docs/features/ia-features.md` con costos (~$9 MXN/mes
+con 500 llamadas, Claude Haiku 4.5). Pendiente: 3 endpoints concretos
+(sugerencias precio, predicción demanda, mensaje WhatsApp) + feature key
+`ia_features`.
+
+**F36 — Programa de referidos 10% off** (BD lista). Columna
+`locales.codigo_referido` unique. Tabla `referrals` (referrer/referred,
+status, stripe_coupon_id). Doc `docs/features/programa-referidos.md` con
+mecánica completa: input opcional en onboarding, webhook `invoice.paid`
+crea Stripe Coupon `percent_off:10, duration:once` al referrer. UI
+admin pendiente.
+
+**Sidebar admin** agrega items: `Cupones` (owner+staff), `SaaS` (super_admin).
+**11 iconos nuevos** verificados existen (`sparkles`, `star`, `chart`, etc.).
+
+**Tests**: 18/18 SaaS pasan. Nuevos endpoints sin tests dedicados aún.
+
+### Changed — Fase 17-22: limpieza UX + 2 planes + soporte real + emojis fuera (2026-06-15)
+
+**F17 — Bug fixes visuales landing del local**
+- Banner del local YA NO se oscurece. Antes había un `radial-gradient` con
+  hasta 86% de opacidad que sepia-tonaba toda la imagen. Ahora son dos bandas
+  finas: 22% top (theme toggle legible) y 48% bottom (nombre legible). El
+  resto del banner se ve en su esplendor real.
+- Banner del directorio (cards de locales) usa `<img>` con `loading="eager"`
+  + `decoding="async"` y fallback a un gradient del `colorPrimario` mientras
+  carga. Adiós al bug de "card vacía hasta recargar".
+- Hero rebajado a `clamp(360px, 52vh, 520px)` (antes 76vh) y nombre del
+  local subido para que NO choque con el info card flotante (-mt-70).
+  Logo más compacto (32→52 → 44→52 → 52→60).
+- Swipe hint de los carruseles: ahora un pill con fondo accent + flecha
+  animada izq→der + texto "DESLIZA". Reemplaza al "👉 Desliza" mucho menos
+  visible.
+
+**F18 — Eliminar TODOS los emojis del sistema**
+- `tours.ts`: 13 emojis → `IconName` del componente `<Icon>`.
+- `TourOverlay`: renderiza `<Icon name={step.icon}>` en vez de string emoji.
+- `/admin/ayuda`: 13 cards con `<Icon name=...>` en lugar de emojis grandes.
+  Footer con `message-circle` icon en vez de 💬.
+- `WelcomeMail`: subject sin 🍽️, body sin 👋.
+- `/admin/horarios`: 🟢🔴⚪️ → dot div con `halo-pulse` y colores Tailwind.
+- `/admin/punto-venta`: 💵💳📲 → texto plano en select de método de pago.
+- `NotificacionesBell`: 🚚🏃🏠 → texto plano (Delivery/Pickup/Sucursal).
+- `LandingClient`: 🔒 del cart drawer → `<Icon name="lock">`.
+- `lib/support.ts`: mensaje pre-armado sin 👋.
+
+**F19 — 2 planes ($99 y $299), Premium retirado**
+- Esencial $99 MXN/mes: branding completo, qr personalizado, POS, notificaciones.
+  Limits: 30 productos, 8 categorías, 0 staff. Para "ya estoy vendiendo y
+  quiero ordenar mi catálogo".
+- Profesional $299 MXN/mes: TODOS los módulos. Limits: ilimitados.
+  Reemplaza al antiguo Premium (POS, audit log, métricas avanzadas se
+  movieron a Professional).
+- `PlansSeeder` actualizado a 2 planes + DESACTIVA (no borra) plan "premium"
+  legacy para no romper FK con locales que aún lo tengan.
+- `PlanFactory::premium()` ahora alias a `professional()` (kept @deprecated
+  para tests legacy).
+- `config/stripe.php`: removido `STRIPE_PRICE_PREMIUM`.
+- `StartCheckoutRequest`: solo acepta `essential|professional`.
+- Sidebar admin: items con `requiredPlan: 'premium'` ahora `'professional'`.
+  POS sigue gated pero ya disponible en Esencial.
+- `BillingPlansEndpointTest`, `FeatureGatingTest`, `PlanModelTest`
+  actualizados: **18/18 pass**.
+
+**F20 — GIFs/videos en Centro de Ayuda + tour**
+- `TourStep` gana 2 campos opcionales: `video?: string` (mp4/webm) e
+  `image?: string` (gif/png). El `TourOverlay` renderiza video con
+  autoplay+loop+muted si hay video, o imagen lazy si no.
+- Documentado en `docs/frontend/help-tour.md`.
+- Cuando se grabe contenido visual: agregar `video: '/help/branding-logo.mp4'`
+  al paso correspondiente en `tours.ts`.
+
+**F21 — WhatsApp soporte real con mensaje pre-armado**
+- `apps/web/src/lib/support.ts` — helper único `soporteWhatsappUrl({...})`.
+  Número: **+52 229 849 3423** (`5212298493423`). Mensaje pre-relleno con
+  motivo + opcionalmente local/plan/desde para que soporte sepa contexto.
+- Aplicado en: `/admin/ayuda` (motivo "Necesito ayuda con mi panel"),
+  `PlanInactiveScreen` ("Mi suscripción está en estado X"),
+  `PricingSection` ("Tengo dudas sobre los planes"). Cada CTA arma su
+  mensaje con su contexto.
+- Si el número cambia, solo se toca `lib/support.ts`.
+
+**F22 — Cleanup**
+- Borrado `apps/web/src/components/landing/ScrollPhoneSequence.tsx`
+  (463 líneas legacy que ya no se montaban desde F13).
+- Theme toggle del landing del local **persiste por slug** en
+  `localStorage['ce-theme:{slug}']`. Cada visitante mantiene su preferencia
+  al volver.
+- Banner del preview en `/admin/branding` con efecto **ken-burns** sutil
+  (scale 1→1.07 + pan 1.5% en 12s alternate) + hover scale extra. Le da
+  vida al preview sin ser invasivo. Keyframe `ce-kenburns` en `globals.css`.
+
+**Iconos nuevos** (3): `palette`, ya estaban `card`/`lock`/`users`/`history`/`play`/`chart`/`list`/`package`/`help`.
+
+### Added/Changed — Cierre Fase 11 + Fase 12-15: UX admin + Tour + Centro de Ayuda (2026-06-15)
+
+**F12 — Cierre del módulo SaaS al 100%**
+- `WelcomeMail` (`app/Mail/WelcomeMail.php` + Blade) — disparado tras
+  `OnboardingController::finalizar` con `rescue(...)` non-blocking. Body
+  con link al panel + URL pública + recordatorio del trial.
+- Comando `php artisan stripe:sync-prices` (`app/Console/Commands/
+  StripeSyncPricesCommand.php`) — crea/actualiza productos+precios en
+  Stripe vía API. Idempotente (busca por `metadata.plan_slug`). Flag
+  `--write-env` escribe los IDs al `.env` automáticamente.
+- `PlanInactiveScreen` (`components/billing/PlanInactiveScreen.tsx`) +
+  helper `isPlanBlocking()`. Bloquea TODO el admin (excepto `/admin/billing`
+  y `/admin/perfil`) cuando el plan está `incomplete`, `past_due` con
+  gracia vencida, o `canceled` con periodo vencido. Solo afecta a
+  owner+staff; super_admin se libra.
+
+**F13 — Landing del local: hero rediseñado + carruseles**
+- **Hero más compacto**: altura `clamp(360px, 52vh, 520px)` (antes 76vh).
+  Banner pasa de fondo dominante a fondo MUY sutil con
+  `filter: saturate(.85) brightness(.85)` + overlay radial oscuro semi-opaco.
+  Foco visual ahora va al **logo HUGE centrado** (160-240px) con ring
+  white y sombra dramática.
+- **Tabs categoría sticky** con `scroll-x` mantienen ≥3 visibles en mobile
+  y un fade-out a la derecha sugiere que hay más. Click en tab hace
+  `scrollTo` suave a la sección de esa categoría.
+- **Productos en CARRUSELES** (un carrusel por categoría, scroll-snap
+  horizontal). Mobile muestra ~3 cards por viewport, sm+ 4-5. Reemplaza
+  el grid 2-cols anterior. Cada sección lleva header `serif` con
+  count de productos. La primera categoría muestra un indicador "👉 Desliza"
+  que se desvanece tras 1er scroll o 5s.
+- Footer del local + DirectoryClient: `Desarrollado por LUMIA` ahora usa
+  `.ce-lumia` (gradient animado naranja-rojo en shimmer infinito + glow
+  + tipografía bold lockup con flecha `arrow-up-right`).
+
+**F14 — Homologación visual del admin**
+- `AdminPageHeader` (`components/admin/AdminPageHeader.tsx`) — componente
+  reusable inspirado en `/admin/branding`. Kicker uppercase + icono accent
+  + título Bricolage clamp(3xl-5xl) + segunda línea con `.gradient-text`
+  + descripción muted + slot `actions` derecha + botón "?" si hay
+  `tourSlug`. 3 radial gradients decorativos sutiles + animación motion
+  de entrada.
+- Aplicado a 13 módulos: `productos`, `categorias`, `pedidos`, `inventario`,
+  `compras`, `staff`, `audit-log`, `metricas`, `qr`, `horarios`, `perfil`,
+  `ayuda`, `billing` (preexistente queda compatible). `punto-venta`
+  mantiene su header propio (layout split).
+- **Iconos sidebar**: `Equipo` ahora usa `users` (gente real, no lista).
+  `Audit log` ahora usa `history` (reloj con flecha) y se renombra a
+  **"Historial"**. Nuevo item `Centro de ayuda` con icono `help`.
+- **Productos agrupados por categoría**: cuando no hay filtro de categoría
+  activo, `/admin/productos` muestra accordions colapsables por categoría
+  con count. Permite ver "Postres · 3 productos", "Bebidas · 5 productos"
+  expandibles en vez de una lista plana. Filtro select cambió de "Todas
+  las categorías" a "Agrupar por categoría" / "Solo: X" para reflejar el
+  comportamiento.
+- **Terminología no-técnica**: `Audit log` → `Historial`. `Punto de venta`
+  → `Caja`. `slug` → `URL pública` en placeholders del onboarding.
+  `Empleado` → `Miembro`. Eliminadas referencias a `tarjeta_entrega` /
+  `pos` en strings user-facing donde aparecían.
+
+**F15 — Tour interactivo + Centro de Ayuda**
+- `useHelpCenter` (`store/helpCenter.ts`) — Zustand store con
+  `openTour/openHelp/dismiss/shouldAutoTour/markSeen`. Persiste tours
+  vistos en `localStorage['clicktoeat:tour-seen']`.
+- `TourOverlay` (`components/help/TourOverlay.tsx`) — overlay global con
+  backdrop oscuro + highlight ring sobre el target (vía 4 box-shadows
+  alrededor) + tooltip posicionable (`top|bottom|left|right|center`).
+  Atajos teclado (Esc/←/→/space). Progress dots animados. Auto-scroll
+  al target si está fuera del viewport. Sin libreria externa.
+- `AutoTourTrigger` — hijo mudo del admin layout. Si el user nunca vio
+  `bienvenida` y entró a `/admin`, dispara el tour de onboarding con
+  600ms delay.
+- `tours.ts` — catálogo de 14 tours, 27 pasos en total. Cada paso:
+  title + body breve + icon opcional + placement + target CSS opcional.
+- `/admin/ayuda` — grilla de 13 cards. Cada card abre el tour
+  correspondiente con un click. Badge "Visto" en los ya completados.
+  Footer educativo con CTA a WhatsApp para soporte humano (placeholder).
+- `HelpButton` (`components/help/HelpButton.tsx`) — botón "?" inline
+  renderizado por `AdminPageHeader` cuando hay `tourSlug`.
+- `data-tour="…"` agregado a 8+ elementos clave del admin (sidebar items,
+  CTAs principales, filtros).
+
+**Iconos agregados al sistema** (8 nuevos en `components/ui/Icon.tsx`):
+`card`, `lock`, `help`, `users`, `history`, `play`, `chart`, `list`,
+`package`. Cobertura completa del sidebar admin sin SVG inline en cada
+página.
+
+**Documentación nueva**
+- `docs/frontend/admin-page-header.md` — uso, props, módulos aplicados,
+  anatomía visual.
+- `docs/frontend/help-tour.md` — sistema completo (store + overlay +
+  tours + centro de ayuda), cómo agregar tours, limitaciones.
+
 ### Changed — Mobile compacto del local + home más concisa con PinnedFoodStory (2026-06-14)
 
 Continuación de la sesión del rediseño editorial. Dos cambios visuales:

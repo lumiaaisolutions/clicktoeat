@@ -1,0 +1,34 @@
+{
+  "name": "ClickToEat — Panel del local",
+  "short_name": "ClickToEat",
+  "description": "Recibe pedidos por WhatsApp, gestiona tu menú y tu local desde un solo panel.",
+  "lang": "es-MX",
+  "dir": "ltr",
+  "start_url": "/admin",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#FAFAF7",
+  "theme_color": "#0B0B0F",
+  "categories": ["business", "food", "productivity"],
+  "icons": [
+    { "src": "/favicon.svg",    "sizes": "any",       "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "/apple-icon.svg", "sizes": "180x180",   "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Pedidos",
+      "short_name": "Pedidos",
+      "description": "Pedidos del día en vivo",
+      "url": "/admin/pedidos",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Punto de venta",
+      "short_name": "POS",
+      "description": "Cobrar en sucursal",
+      "url": "/admin/punto-venta",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
+  ]
+}

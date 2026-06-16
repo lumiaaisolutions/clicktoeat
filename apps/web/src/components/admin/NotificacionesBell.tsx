@@ -94,7 +94,7 @@ export function NotificacionesBell() {
                                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">NUEVO</span>
                               </div>
                               <p className="text-xs text-muted mt-0.5 truncate">{p.cliente_nombre}</p>
-                              <p className="text-xs text-muted">{p.metodo_entrega === 'delivery' ? '🚚 Delivery' : p.metodo_entrega === 'pickup' ? '🏃 Pickup' : '🏠 Sucursal'} · ${p.total.toFixed(2)}</p>
+                              <p className="text-xs text-muted">{p.metodo_entrega === 'delivery' ? 'Delivery' : p.metodo_entrega === 'pickup' ? 'Pickup' : 'Sucursal'} · ${p.total.toFixed(2)}</p>
                             </div>
                             <p className="text-[10px] text-muted shrink-0">
                               {new Date(p.created_at).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}

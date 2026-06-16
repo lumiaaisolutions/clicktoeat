@@ -34,20 +34,28 @@ class User extends Authenticatable implements CanResetPassword
     }
 
     protected $fillable = [
-        'nombre', 'email', 'password', 'rol', 'local_id', 'permisos',
+        'nombre', 'email', 'password', 'rol', 'local_id', 'permisos', 'notif_filtro',
+        'two_factor_secret', 'two_factor_confirmed_at', 'two_factor_recovery_codes',
     ];
 
     protected $hidden = [
         'password', 'remember_token',
+        'two_factor_secret', 'two_factor_recovery_codes',
     ];
 
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
-            'permisos'          => 'array',
+            'email_verified_at'       => 'datetime',
+            'password'                => 'hashed',
+            'permisos'                => 'array',
+            'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    public function hasTwoFactorEnabled(): bool
+    {
+        return ! empty($this->two_factor_secret) && ! is_null($this->two_factor_confirmed_at);
     }
 
     /**
@@ -68,6 +76,19 @@ class User extends Authenticatable implements CanResetPassword
     public function local(): BelongsTo
     {
         return $this->belongsTo(Local::class, 'local_id');
+    }
+
+    /** F71 — Lista completa de locales a los que tiene acceso. */
+    public function locales(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Local::class, 'user_locales', 'user_id', 'local_id')
+            ->withPivot('created_at');
+    }
+
+    public function canAccessLocal(int $localId): bool
+    {
+        if ($this->isSuperAdmin()) return true;
+        return $this->locales()->where('locales.id', $localId)->exists();
     }
 
     public function isSuperAdmin(): bool

@@ -18,6 +18,7 @@ import { Icon } from '@/components/ui/Icon';
 import { PinnedFoodStory } from '@/components/landing/PinnedFoodStory';
 import { WhyClickToEatSection } from '@/components/landing/WhyClickToEatSection';
 import { SystemPreviewSection } from '@/components/landing/SystemPreviewSection';
+import { PricingSection } from '@/components/landing/PricingSection';
 import { BurgerSequence } from '@/components/landing/BurgerSequence';
 import type { LocalDirectorio } from './page';
 
@@ -280,6 +281,7 @@ export function DirectoryClient({ locales }: { locales: LocalDirectorio[] }) {
 
       <PinnedFoodStory />
       <WhyClickToEatSection />
+      <PricingSection />
       <SystemPreviewSection />
       <CTAOwnerSection />
       <ShareQRSection />
@@ -793,10 +795,12 @@ function Footer() {
             href="https://lumiaaisolutions.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-sm font-medium hover:text-[color:var(--ce-accent)] transition group"
+            className="ce-lumia-link"
+            aria-label="LUMIA — Soluciones digitales para hostelería"
           >
-            Desarrollado por LUMIA
-            <Icon name="arrow-up-right" size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition" />
+            <span className="text-sm font-medium">Desarrollado por</span>
+            <span className="ce-lumia text-base">LUMIA</span>
+            <Icon name="arrow-up-right" size={14} />
           </a>
           <p className="text-xs text-muted mt-2">Soluciones digitales para la hostelería.</p>
         </div>
@@ -909,17 +913,28 @@ function LocalCard({
       </div>
 
       <Link href={`/${local.slug}`} className="block rounded-3xl overflow-hidden">
-        {/* Banner con zoom-in en hover y overlay para legibilidad del avatar */}
-        <div className="relative h-44 overflow-hidden">
-          <div
-            className="absolute inset-0 bg-cover bg-center transition-transform duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] group-hover:scale-[1.06]"
-            style={{
-              backgroundImage: local.banner ? `url(${local.banner})` : undefined,
-              background: !local.banner
-                ? `linear-gradient(135deg, ${local.colorPrimario}33, ${local.colorPrimario}11)`
-                : undefined,
-            }}
-          />
+        {/* Banner — siempre fondo color del local mientras carga la imagen,
+            así nunca se ve la card "vacía" como pasaba antes. */}
+        <div
+          className="relative h-44 overflow-hidden"
+          style={{
+            background: `linear-gradient(135deg, ${local.colorPrimario}33, ${local.colorPrimario}11)`,
+          }}
+        >
+          {local.banner && (
+            <img
+              src={local.banner}
+              alt=""
+              loading="eager"
+              decoding="async"
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] group-hover:scale-[1.06]"
+              onError={(e) => {
+                // Si la imagen falla (404 / CORS / red), ocultamos el <img>
+                // para que se vea el gradient color del local debajo
+                (e.currentTarget as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          )}
           {/* Gradient overlay bottom-to-top para asegurar contraste del avatar */}
           <div aria-hidden className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/35 to-transparent pointer-events-none" />
         </div>

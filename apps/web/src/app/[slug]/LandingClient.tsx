@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { useCart } from '@/store/cart';
@@ -44,11 +44,32 @@ export function LandingClient({ menu }: Props) {
   const [cartOpen,     setCartOpen]     = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [detail,       setDetail]       = useState<Producto | null>(null);
+  // Tema: arranca con el `darkMode` del branding; el visitante puede sobrescribir
+  // y su preferencia persiste por slug en localStorage.
+  const themeKey = `ce-theme:${local.slug}`;
   const [dark,         setDark]         = useState<boolean>(!!branding.darkMode);
 
   const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+    // Rehidratar preferencia del visitante (solo cliente)
+    try {
+      const saved = window.localStorage.getItem(themeKey);
+      if (saved === 'dark') setDark(true);
+      else if (saved === 'light') setDark(false);
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => { cart.setLocal(local.slug); }, [local.slug]);
+
+  // Persistir cada vez que el visitante toggle
+  const toggleDark = () => {
+    setDark((d) => {
+      const next = !d;
+      try { window.localStorage.setItem(themeKey, next ? 'dark' : 'light'); } catch {}
+      return next;
+    });
+  };
 
   const productosFiltrados = useMemo(
     () => (activeCat ? productos.filter((p) => p.categoria.slug === activeCat) : productos),
@@ -68,59 +89,71 @@ export function LandingClient({ menu }: Props) {
       className={cn('ce-warm min-h-screen', dark && 'ce-dark')}
       style={{
         ['--ce-accent' as any]: branding.colorPrimario,
+        ['--ce-display-font' as any]: branding.tipografia ? `"${branding.tipografia}"` : undefined,
+        ['--ce-btn-primary' as any]:   branding.colorOverrides?.boton_primario   ?? branding.colorPrimario,
+        ['--ce-btn-secondary' as any]: branding.colorOverrides?.boton_secundario ?? branding.colorSecundario,
+        ['--ce-badge-offer' as any]:   branding.colorOverrides?.badge_oferta     ?? '#DC2626',
+        ['--ce-price' as any]:         branding.colorOverrides?.precio           ?? branding.colorPrimario,
+        ['--ce-header-bg' as any]:     branding.colorOverrides?.header_bg        ?? 'transparent',
+        ['--ce-header-text' as any]:   branding.colorOverrides?.header_text      ?? '#FFFFFF',
         background: dark ? 'var(--ce-bg)' : (branding.colorFondo || '#FBF8F3'),
         color:      'var(--ce-ink)',
       }}
     >
       {/* ===================== HERO ===================== */}
+      {/* Banner reducido (sutil) + LOGO HUGE protagonista + tagline editorial.
+          Mobile: 40vh con logo 160px. Desktop: 52vh con logo 240px. */}
       <header
         className="relative w-full overflow-hidden bg-[#F3ECE1]"
-        style={{ height: 'clamp(440px, 76vh, 660px)' }}
+        style={{ height: 'clamp(360px, 52vh, 520px)' }}
       >
         {branding.banner && (
-          <motion.img
-            initial={{ scale: 1.08 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 1.6, ease: [0.2, 0.8, 0.2, 1] }}
-            src={branding.banner}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover"
+          <>
+            <motion.img
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, ease: [0.2, 0.8, 0.2, 1] }}
+              src={branding.banner}
+              alt=""
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
+              className="absolute inset-0 w-full h-full object-cover"
+              onLoad={(e) => { (e.currentTarget as HTMLImageElement).dataset.loaded = '1'; }}
+            />
+            {/* Overlay MÍNIMO: sólo dos bandas suaves (top y bottom) para legibilidad
+                del theme toggle y del nombre del local — sin oscurecer el centro
+                del banner. El cliente debe poder verlo en todo su esplendor. */}
+            <div
+              aria-hidden
+              className="absolute inset-x-0 top-0 h-32 pointer-events-none"
+              style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.22), transparent)' }}
+            />
+            <div
+              aria-hidden
+              className="absolute inset-x-0 bottom-0 h-52 pointer-events-none"
+              style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.48), transparent)' }}
+            />
+          </>
+        )}
+        {!branding.banner && (
+          <div
+            aria-hidden
+            className="absolute inset-0"
+            style={{
+              background:
+                'radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--ce-accent) 30%, transparent), transparent 60%),' +
+                'radial-gradient(circle at 70% 80%, color-mix(in srgb, var(--ce-accent) 25%, transparent), transparent 60%),' +
+                '#1a1410',
+            }}
           />
         )}
-        {/* Gradient overlay 4-stop para legibilidad en cualquier banner */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              'linear-gradient(180deg, rgba(20,12,6,.30) 0%, rgba(20,12,6,.05) 32%, rgba(20,12,6,.20) 62%, rgba(20,12,6,.74) 100%)',
-          }}
-        />
 
-        {/* TOP BAR — avatar inicial glass + theme toggle */}
-        <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 sm:px-6 md:px-10 py-4 sm:py-5">
-          <div className="flex items-center gap-3">
-            {branding.logo ? (
-              <img
-                src={branding.logo}
-                alt={local.nombre}
-                className="w-12 h-12 sm:w-[46px] sm:h-[46px] rounded-full object-cover border border-white/40 shadow-[0_6px_18px_rgba(0,0,0,0.25)] bg-white"
-              />
-            ) : (
-              <div
-                className="w-12 h-12 sm:w-[46px] sm:h-[46px] rounded-full grid place-items-center text-white ce-serif text-2xl border border-white/35 shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
-                style={{
-                  background: 'rgba(255,255,255,0.16)',
-                  backdropFilter: 'blur(14px) saturate(140%)',
-                  WebkitBackdropFilter: 'blur(14px) saturate(140%)',
-                }}
-              >
-                {initial}
-              </div>
-            )}
-          </div>
+        {/* TOP BAR — theme toggle (avatar superior eliminado, lo reemplaza el logo hero) */}
+        <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-end px-4 sm:px-6 md:px-10 py-4 sm:py-5">
           <button
             type="button"
-            onClick={() => setDark((d) => !d)}
+            onClick={toggleDark}
             aria-label="Cambiar tema"
             className="w-11 h-11 rounded-full grid place-items-center text-white border border-white/35 hover:-translate-y-0.5 hover:bg-white/30 transition tap-target"
             style={{
@@ -133,37 +166,62 @@ export function LandingClient({ menu }: Props) {
           </button>
         </div>
 
-        {/* HERO TEXT — tagline pequeño uppercase + nombre Instrument Serif gigante */}
-        <div className="absolute inset-x-0 bottom-[118px] z-[5] px-4 sm:px-6 md:px-10 text-center">
+        {/* HERO BODY — logo arriba-centro + nombre + tagline arriba de info card */}
+        <div className="absolute inset-0 z-[5] flex flex-col items-center text-center px-4 sm:px-6 md:px-10 pt-16 sm:pt-20 pb-28 sm:pb-32">
+          {/* LOGO HUGE — protagonista absoluto */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.82, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.65, ease: [0.2, 0.8, 0.2, 1] }}
+            className="relative"
+          >
+            {branding.logo ? (
+              <img
+                src={branding.logo}
+                alt={local.nombre}
+                loading="eager"
+                fetchPriority="high"
+                className="w-32 h-32 sm:w-44 sm:h-44 md:w-52 md:h-52 rounded-full object-cover bg-white shadow-[0_30px_70px_-25px_rgba(0,0,0,0.55)] ring-4 ring-white/95"
+              />
+            ) : (
+              <div
+                className="w-32 h-32 sm:w-44 sm:h-44 md:w-52 md:h-52 rounded-full grid place-items-center text-white ce-serif shadow-[0_30px_70px_-25px_rgba(0,0,0,0.55)] ring-4 ring-white/95"
+                style={{
+                  background: 'linear-gradient(135deg, var(--ce-accent) 0%, color-mix(in srgb, var(--ce-accent) 60%, black) 100%)',
+                  fontSize: 'clamp(60px, 10vw, 96px)',
+                  lineHeight: 1,
+                }}
+              >
+                {initial}
+              </div>
+            )}
+          </motion.div>
+
+          {/* Tagline + nombre — debajo del logo, pero arriba del info card flotante */}
           {local.tagline && (
             <motion.div
               initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 0.86, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-white text-[12px] font-semibold uppercase mb-2.5"
+              animate={{ opacity: 0.95, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.25 }}
+              className="text-white text-[11px] sm:text-[12px] font-semibold uppercase mt-5 sm:mt-6"
               style={{ letterSpacing: '0.32em', textShadow: '0 2px 12px rgba(0,0,0,.5)' }}
             >
               {local.tagline}
             </motion.div>
           )}
           <motion.h1
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
-            className="ce-serif text-white m-0"
+            transition={{ duration: 0.55, delay: 0.32 }}
+            className="ce-serif text-white m-0 mt-2"
             style={{
-              fontSize: 'clamp(46px, 9vw, 84px)',
-              lineHeight: 0.98,
-              textShadow: '0 4px 30px rgba(0,0,0,.45)',
+              fontSize: 'clamp(26px, 5vw, 46px)',
+              lineHeight: 1.05,
+              textShadow: '0 4px 24px rgba(0,0,0,.55)',
             }}
           >
             {local.nombre}
           </motion.h1>
-        </div>
-
-        {/* SCROLL HINT — chevron con bob */}
-        <div className="absolute left-1/2 -translate-x-1/2 bottom-5 z-[5] text-white/80 ce-bob">
-          <Icon name="chevron-down" size={20} />
         </div>
       </header>
 
@@ -244,74 +302,79 @@ export function LandingClient({ menu }: Props) {
         )}
       </main>
 
-      {/* STICKY CATEGORY BAR — chips horizontales scroll-x */}
+      {/* STICKY CATEGORY BAR — chips scroll-x (mobile: 3 visibles + swipe hint) */}
       <div
         className="sticky top-0 z-30 border-b border-line"
         style={{
-          background: dark ? 'rgba(22,17,13,.82)' : 'rgba(251,248,243,.82)',
+          background: dark ? 'rgba(22,17,13,.92)' : 'rgba(251,248,243,.92)',
           backdropFilter: 'blur(20px) saturate(140%)',
           WebkitBackdropFilter: 'blur(20px) saturate(140%)',
           marginTop: 26,
         }}
       >
-        <div className="max-w-[1140px] mx-auto px-[clamp(10px,3vw,28px)]">
-          <div className="ce-chips-scroll flex gap-2.5 overflow-x-auto py-3 px-0.5">
+        <div className="max-w-[1140px] mx-auto px-[clamp(10px,3vw,28px)] relative">
+          <div className="ce-chips-scroll flex gap-2 sm:gap-2.5 overflow-x-auto py-3 px-0.5">
             {categorias.map((c) => (
               <CategoryChip
                 key={c.slug}
                 categoria={c}
                 active={activeCat === c.slug}
-                onClick={() => setActiveCat(c.slug)}
+                onClick={() => {
+                  setActiveCat(c.slug);
+                  // Scroll suave a la sección
+                  const el = document.getElementById(`cat-${c.slug}`);
+                  if (el) {
+                    const top = el.getBoundingClientRect().top + window.scrollY - 80;
+                    window.scrollTo({ top, behavior: 'smooth' });
+                  }
+                }}
               />
             ))}
           </div>
+          {/* Sutil fade-out a la derecha para sugerir que hay más */}
+          {categorias.length > 3 && (
+            <span
+              aria-hidden
+              className="absolute right-0 top-0 bottom-0 w-10 pointer-events-none sm:hidden"
+              style={{
+                background: dark
+                  ? 'linear-gradient(to right, transparent, rgba(22,17,13,1) 70%)'
+                  : 'linear-gradient(to right, transparent, rgba(251,248,243,1) 70%)',
+              }}
+            />
+          )}
         </div>
       </div>
 
-      {/* PRODUCT SECTION — solo categoría activa, grid responsive */}
+      {/* PRODUCT SECTION — un carrusel por categoría, scroll-snap horizontal */}
       <main
         id="menu-top"
         className="max-w-[1140px] mx-auto px-[clamp(14px,3.5vw,28px)] pb-16"
         style={{ paddingTop: 14, scrollMarginTop: 74 }}
       >
-        <div className="flex items-baseline gap-3 my-7">
-          <h3
-            className="ce-serif m-0 shrink-0 whitespace-nowrap"
-            style={{ fontSize: 'clamp(26px, 4.6vw, 38px)' }}
-          >
-            {activeCategoria?.nombre || 'Menú'}
-          </h3>
-          <span
-            aria-hidden
-            className="flex-1 h-px"
-            style={{
-              background: 'linear-gradient(to right, color-mix(in srgb, var(--ce-ink) 14%, transparent), transparent)',
-            }}
-          />
-          <span
-            className="text-xs font-semibold whitespace-nowrap"
-            style={{ color: 'var(--ce-muted)' }}
-          >
-            {productosFiltrados.length} {productosFiltrados.length === 1 ? 'platillo' : 'platillos'}
-          </span>
-        </div>
+        {/* F86 — Banner "lo más pedido hoy" */}
+        {menu.hot && menu.hot.length > 0 && (
+          <HotProductosBanner hot={menu.hot} productos={productos} onTap={setDetail} />
+        )}
 
-        {productosFiltrados.length === 0 ? (
-          <div className="rounded-2xl border border-line bg-surface p-10 text-center text-muted text-sm">
-            No hay productos en esta categoría.
+        {categorias.length === 0 || productos.length === 0 ? (
+          <div className="rounded-2xl border border-line bg-surface p-10 text-center text-muted text-sm mt-8">
+            Aún no hay platillos en el menú.
           </div>
         ) : (
-          <div
-            key={activeCat ?? 'all'}
-            className="ce-fade-swap grid grid-cols-2 sm:[grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))] gap-3 sm:gap-[clamp(14px,2.4vw,22px)]"
-          >
-            {productosFiltrados.map((p) => (
-              <ProductCard
-                key={p.id}
-                producto={p}
+          categorias.map((cat, catIdx) => {
+            const items = productos.filter((p) => p.categoria.slug === cat.slug);
+            if (items.length === 0) return null;
+            const isFirst = catIdx === 0;
+            return (
+              <CategoryCarouselSection
+                key={cat.slug}
+                categoria={cat}
+                productos={items}
+                showSwipeHint={isFirst && items.length > 2}
                 cerrado={cerrado}
-                onOpen={() => setDetail(p)}
-                onAdd={() => {
+                onOpen={(p) => setDetail(p)}
+                onAdd={(p) => {
                   cart.add({
                     productoId: p.id,
                     nombre:     p.nombre,
@@ -324,8 +387,8 @@ export function LandingClient({ menu }: Props) {
                   setCartOpen(true);
                 }}
               />
-            ))}
-          </div>
+            );
+          })
         )}
       </main>
 
@@ -350,6 +413,7 @@ export function LandingClient({ menu }: Props) {
       <ProductDetailSheet
         producto={detail}
         cerrado={cerrado}
+        slug={local.slug}
         onClose={() => setDetail(null)}
         onAdd={(qty) => {
           if (!detail) return;
@@ -409,6 +473,118 @@ function ClosedBanner({ mensaje }: { mensaje?: string }) {
         </span>
       </div>
     </motion.div>
+  );
+}
+
+/* ───── Category Carousel Section — header + scroll-snap horizontal con cards ─────
+ *
+ * Cada categoría se renderiza como su propia sección con:
+ *  - Header serif + count + linea decorativa
+ *  - Carrusel horizontal con scroll-snap: mobile ≈3 cards visibles, sm+ ≈4-5
+ *  - Indicador swipe en la primera categoría (auto-fade tras primer scroll)
+ *
+ * Se usan div con scroll-snap-type: x mandatory + scroll-snap-align: start en
+ * cada hijo. Esto da una experiencia tipo Rappi/DiDi Food sin libraries.
+ */
+function CategoryCarouselSection({
+  categoria, productos, cerrado, showSwipeHint, onOpen, onAdd,
+}: {
+  categoria: Categoria;
+  productos: Producto[];
+  cerrado: boolean;
+  showSwipeHint: boolean;
+  onOpen: (p: Producto) => void;
+  onAdd: (p: Producto) => void;
+}) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [hintVisible, setHintVisible] = useState(showSwipeHint);
+
+  useEffect(() => {
+    if (!showSwipeHint) return;
+    const el = trackRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      if (el.scrollLeft > 12) setHintVisible(false);
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    // Auto-fade tras 5s si el user no scrollea
+    const t = setTimeout(() => setHintVisible(false), 5000);
+    return () => { el.removeEventListener('scroll', onScroll); clearTimeout(t); };
+  }, [showSwipeHint]);
+
+  return (
+    <section id={`cat-${categoria.slug}`} className="mt-8 sm:mt-10 first:mt-7 scroll-mt-20">
+      {/* Header */}
+      <div className="flex items-baseline gap-3 mb-4 sm:mb-5">
+        <h3
+          className="ce-serif m-0 shrink-0 whitespace-nowrap"
+          style={{ fontSize: 'clamp(24px, 4.2vw, 36px)' }}
+        >
+          {categoria.nombre}
+        </h3>
+        <span
+          aria-hidden
+          className="flex-1 h-px"
+          style={{
+            background: 'linear-gradient(to right, color-mix(in srgb, var(--ce-ink) 14%, transparent), transparent)',
+          }}
+        />
+        <span
+          className="text-[11px] sm:text-xs font-semibold whitespace-nowrap"
+          style={{ color: 'var(--ce-muted)' }}
+        >
+          {productos.length} {productos.length === 1 ? 'platillo' : 'platillos'}
+        </span>
+      </div>
+
+      {/* Carrusel */}
+      <div className="relative">
+        <div
+          ref={trackRef}
+          className="ce-chips-scroll flex gap-3 sm:gap-4 overflow-x-auto pb-2 -mx-1 px-1"
+          style={{
+            scrollSnapType: 'x mandatory',
+            WebkitOverflowScrolling: 'touch',
+          }}
+        >
+          {productos.map((p) => (
+            <div
+              key={p.id}
+              className="shrink-0 w-[31%] min-w-[140px] sm:w-[200px] md:w-[220px]"
+              style={{ scrollSnapAlign: 'start' }}
+            >
+              <ProductCard
+                producto={p}
+                cerrado={cerrado}
+                onOpen={() => onOpen(p)}
+                onAdd={() => onAdd(p)}
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Swipe hint — pill flotante con icono animado + texto. Más visible
+            que el anterior; se desvanece tras el primer scroll del usuario. */}
+        {hintVisible && productos.length > 2 && (
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className="absolute right-0 -top-4 pointer-events-none flex items-center gap-2 px-3.5 py-1.5 rounded-full text-white text-[11px] font-bold uppercase shadow-lg"
+            style={{
+              background: 'var(--ce-accent)',
+              letterSpacing: '0.14em',
+              boxShadow: '0 10px 24px -8px color-mix(in srgb, var(--ce-accent) 60%, transparent)',
+            }}
+          >
+            <span className="ce-swipe-arrow inline-flex">
+              <Icon name="chevron-right" size={14} strokeWidth={3} />
+            </span>
+            <span>Desliza</span>
+          </motion.div>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -483,6 +659,14 @@ function ProductCard({
         <h4 className="ce-body font-bold text-[13.5px] sm:text-[16.5px] leading-snug m-0 mb-1 sm:mb-1.5 line-clamp-2 sm:line-clamp-none">
           {producto.nombre}
         </h4>
+        {/* F37 — Rating de reseñas si hay */}
+        {producto.avgRating !== null && producto.avgRating !== undefined && (producto.ratingCount ?? 0) > 0 && (
+          <div className="flex items-center gap-1 mb-1" aria-label={`${producto.avgRating} de 5, ${producto.ratingCount} reseñas`}>
+            <Icon name="star-filled" size={11} className="text-amber-500 shrink-0" />
+            <span className="text-[11px] font-semibold tabular-nums">{producto.avgRating}</span>
+            <span className="text-[10px] text-muted tabular-nums">({producto.ratingCount})</span>
+          </div>
+        )}
         {/* Descripción oculta en mobile (el detail sheet la muestra). En sm+ máx 2 líneas. */}
         {producto.descripcion && (
           <p
@@ -528,10 +712,11 @@ function ProductCard({
 /* ───── Product Detail Sheet — bottom sheet con cantidad + Agregar ───── */
 
 function ProductDetailSheet({
-  producto, cerrado, onClose, onAdd,
+  producto, cerrado, slug, onClose, onAdd,
 }: {
   producto: Producto | null;
   cerrado:  boolean;
+  slug:     string;
   onClose:  () => void;
   onAdd:    (qty: number) => void;
 }) {
@@ -643,11 +828,80 @@ function ProductDetailSheet({
                   <><Icon name="plus" size={16} /> Añadir · {formatMXN(producto.precio * qty)}</>
                 )}
               </button>
+
+              {/* Reseñas del producto */}
+              <ResenasSection slug={slug} productoId={producto.id} />
             </div>
           </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+/* ───── Reseñas inline dentro del modal del producto ───── */
+function ResenasSection({ slug, productoId }: { slug: string; productoId: number }) {
+  const [data, setData] = useState<{ avg: number; count: number; data: Array<{ calificacion: number; comentario: string | null; image_url: string | null; nombre_cliente: string | null; created_at: string }> } | null>(null);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080/api/v1'}/public/resenas/${slug}/${productoId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (alive && j) setData(j); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [slug, productoId]);
+
+  if (!data || data.count === 0) return null;
+  const visible = expanded ? data.data : data.data.slice(0, 3);
+
+  return (
+    <div className="mt-6 pt-5 border-t border-line">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-0.5 text-amber-500">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <span key={i} className={i < Math.round(data.avg) ? '' : 'opacity-30'}>★</span>
+          ))}
+        </div>
+        <span className="text-sm font-bold tabular-nums">{data.avg.toFixed(1)}</span>
+        <span className="text-xs text-muted">· {data.count} reseña{data.count !== 1 ? 's' : ''}</span>
+      </div>
+
+      <ul className="space-y-3">
+        {visible.map((r, i) => (
+          <li key={i} className="rounded-2xl border border-line p-3 bg-white">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center text-amber-500 text-xs">
+                {Array.from({ length: 5 }).map((_, k) => (
+                  <span key={k} className={k < r.calificacion ? '' : 'opacity-30'}>★</span>
+                ))}
+              </div>
+              {r.nombre_cliente && <span className="text-[11px] font-semibold text-ink/80 truncate">{r.nombre_cliente}</span>}
+              <span className="text-[10px] text-muted ml-auto">
+                {new Date(r.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}
+              </span>
+            </div>
+            {r.comentario && <p className="text-[13px] text-ink/80 leading-snug m-0">{r.comentario}</p>}
+            {r.image_url && (
+              <a href={r.image_url} target="_blank" rel="noopener noreferrer" className="block mt-2 rounded-xl overflow-hidden border border-line">
+                <img src={r.image_url} alt="" className="w-full max-h-60 object-cover" loading="lazy" />
+              </a>
+            )}
+          </li>
+        ))}
+      </ul>
+
+      {data.data.length > 3 && (
+        <button
+          type="button"
+          onClick={() => setExpanded((e) => !e)}
+          className="mt-3 text-xs font-semibold text-ink/70 hover:text-ink underline-offset-2 hover:underline"
+        >
+          {expanded ? 'Ver menos' : `Ver las ${data.data.length} reseñas`}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -809,8 +1063,9 @@ function CartDrawer({
                 </span>
               </div>
               {cerrado && (
-                <div className="mb-3 px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700">
-                  🔒 El local está cerrado. No puedes finalizar el pedido en este momento.
+                <div className="mb-3 px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 inline-flex items-start gap-2">
+                  <Icon name="lock" size={13} className="mt-0.5 shrink-0" />
+                  <span>El local está cerrado. No puedes finalizar el pedido en este momento.</span>
                 </div>
               )}
               <button
@@ -848,8 +1103,17 @@ function CheckoutSheet({
 }) {
   const cart = useCart();
   const [nombre,         setNombre]         = useState('');
+  const [email,          setEmail]          = useState('');
   const [telefono,       setTelefono]       = useState('');
   const [direccion,      setDireccion]      = useState('');
+
+  // F75 — track carrito abandonado al tener email válido + items
+  useTrackAbandonedCart({
+    slug: local.slug,
+    email,
+    cliente_nombre: nombre,
+    items: cart.items,
+  });
   const [clienteLat,     setClienteLat]     = useState<number | null>(null);
   const [clienteLng,     setClienteLng]     = useState<number | null>(null);
   const [fueraDeRango,   setFueraDeRango]   = useState(false);
@@ -859,6 +1123,40 @@ function CheckoutSheet({
   );
   const [sending,        setSending]        = useState(false);
   const [error,          setError]          = useState<string | null>(null);
+  // F25 — Cupón
+  const [cuponCodigo,    setCuponCodigo]    = useState('');
+  const [cuponInfo,      setCuponInfo]      = useState<{ descuento: number; codigo: string; message: string } | null>(null);
+  const [cuponLoading,   setCuponLoading]   = useState(false);
+  const [cuponError,     setCuponError]     = useState<string | null>(null);
+  // F27 — Pedido programado
+  const [programarActivo, setProgramarActivo] = useState(false);
+  const [programadoPara,  setProgramadoPara]  = useState<string>('');
+
+  // Validar cupón contra el backend
+  const validarCupon = async () => {
+    if (!cuponCodigo.trim()) return;
+    setCuponLoading(true);
+    setCuponError(null);
+    setCuponInfo(null);
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080/api/v1';
+      const res = await fetch(`${apiBase}/public/cupones/${local.slug}/validar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ codigo: cuponCodigo.trim().toUpperCase(), subtotal: cart.subtotal() }),
+      });
+      const body = await res.json();
+      if (body.valid) {
+        setCuponInfo({ descuento: body.descuento, codigo: body.codigo, message: body.message });
+      } else {
+        setCuponError(body.message ?? 'Cupón inválido.');
+      }
+    } catch {
+      setCuponError('No pudimos validar el cupón.');
+    } finally {
+      setCuponLoading(false);
+    }
+  };
 
   const handleMapClick = (lat: number, lng: number) => {
     setClienteLat(lat);
@@ -880,6 +1178,7 @@ function CheckoutSheet({
       const payload = {
         cliente: {
           nombre,
+          email:     email || null,
           telefono,
           direccion: metodo === 'delivery' ? direccion : null,
           lat:       metodo === 'delivery' ? clienteLat : null,
@@ -893,6 +1192,10 @@ function CheckoutSheet({
           notas:       i.notas ?? null,
           extras:      i.extras,
         })),
+        // F25 — Cupón aplicado (server-side revalida)
+        cupon_codigo:    cuponInfo?.codigo ?? undefined,
+        // F27 — Pedido programado
+        programado_para: programarActivo && programadoPara ? new Date(programadoPara).toISOString() : undefined,
       };
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080/api/v1'}/public/pedidos/${local.slug}`,
@@ -1019,10 +1322,19 @@ function CheckoutSheet({
                     <span className="font-bold tabular-nums">{formatMXN(fee)}</span>
                   </div>
                 )}
+                {cuponInfo && (
+                  <div className="flex justify-between gap-3 py-1.5 text-sm text-emerald-700">
+                    <span className="inline-flex items-center gap-1">
+                      <Icon name="sparkles" size={12} />
+                      Descuento ({cuponInfo.codigo})
+                    </span>
+                    <span className="font-bold tabular-nums">−{formatMXN(cuponInfo.descuento)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center mt-3 pt-3.5 border-t border-line">
                   <span className="text-[15px] font-bold" style={{ color: 'var(--ce-muted)' }}>Total</span>
                   <span className="text-2xl font-extrabold tabular-nums" style={{ letterSpacing: '-0.02em' }}>
-                    {formatMXN(total)}
+                    {formatMXN(Math.max(0, total - (cuponInfo?.descuento ?? 0)))}
                   </span>
                 </div>
               </div>
@@ -1115,6 +1427,25 @@ function CheckoutSheet({
 
                 <div>
                   <label className="block text-[12.5px] font-bold mb-1.5" style={{ color: 'var(--ce-muted)' }}>
+                    Correo (opcional)
+                  </label>
+                  <input
+                    type="email"
+                    className={inputCls}
+                    style={{ borderColor: 'rgba(35,25,15,0.08)' }}
+                    placeholder="Te mandamos confirmación si lo dejas"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
+                    inputMode="email"
+                  />
+                  {local.lealtad && local.lealtad.enabled && (
+                    <LealtadBadge slug={local.slug} email={email} lealtad={local.lealtad} />
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-[12.5px] font-bold mb-1.5" style={{ color: 'var(--ce-muted)' }}>
                     Método de pago
                   </label>
                   <select
@@ -1129,6 +1460,77 @@ function CheckoutSheet({
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* F25 — Código de descuento */}
+                <div>
+                  <label className="block text-[12.5px] font-bold mb-1.5" style={{ color: 'var(--ce-muted)' }}>
+                    Código de descuento (opcional)
+                  </label>
+                  {cuponInfo ? (
+                    <div className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-2xl bg-emerald-50 border-2 border-emerald-200">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Icon name="check-circle" size={16} className="text-emerald-700 shrink-0" />
+                        <div className="min-w-0">
+                          <code className="font-bold text-sm text-emerald-900">{cuponInfo.codigo}</code>
+                          <p className="text-xs text-emerald-700">−{formatMXN(cuponInfo.descuento)} {cuponInfo.message}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setCuponInfo(null); setCuponCodigo(''); setCuponError(null); }}
+                        className="text-xs font-semibold text-emerald-800 hover:text-emerald-900 underline shrink-0"
+                      >
+                        Quitar
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        className={inputCls + ' flex-1 uppercase'}
+                        style={{ borderColor: cuponError ? '#fca5a5' : 'rgba(35,25,15,0.08)' }}
+                        placeholder="BIENVENIDO"
+                        value={cuponCodigo}
+                        onChange={(e) => { setCuponCodigo(e.target.value.toUpperCase()); setCuponError(null); }}
+                        maxLength={32}
+                      />
+                      <button
+                        type="button"
+                        onClick={validarCupon}
+                        disabled={cuponLoading || !cuponCodigo.trim()}
+                        className="px-4 rounded-2xl border-2 border-line text-sm font-semibold hover:border-ink/40 disabled:opacity-40"
+                      >
+                        {cuponLoading ? '…' : 'Aplicar'}
+                      </button>
+                    </div>
+                  )}
+                  {cuponError && <p className="text-xs text-red-600 mt-1.5">{cuponError}</p>}
+                </div>
+
+                {/* F27 — Programar para una hora específica */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-[12.5px] font-bold" style={{ color: 'var(--ce-muted)' }}>
+                      Programar mi pedido
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setProgramarActivo((v) => !v)}
+                      className={cn(
+                        'text-xs font-semibold underline',
+                        programarActivo ? 'text-[color:var(--ce-accent)]' : 'text-muted',
+                      )}
+                    >
+                      {programarActivo ? 'Quitar' : 'Para más tarde'}
+                    </button>
+                  </div>
+                  {programarActivo && (
+                    <SlotPicker
+                      horarios={local.horarios}
+                      value={programadoPara}
+                      onChange={setProgramadoPara}
+                    />
+                  )}
                 </div>
               </div>
 
@@ -1369,20 +1771,23 @@ function Footer({ local, branding }: { local: Local; branding: Branding }) {
 
         {/* Bottom bar */}
         <div className="h-px mt-8 mb-4" style={{ background: 'linear-gradient(to right, transparent, rgba(239,231,220,.16), transparent)' }} />
-        <div className="flex flex-wrap gap-2 justify-between items-center text-xs text-white/50">
+        <div className="flex flex-wrap gap-3 justify-between items-center text-xs text-white/55">
           <span>© {new Date().getFullYear()} {local.nombre}. Todos los derechos reservados.</span>
-          <span>
-            Desarrollado por{' '}
+          <div className="flex items-center gap-4">
+            <a href="/privacidad" className="hover:text-white transition underline-offset-2 hover:underline">Privacidad</a>
+            <a href="/terminos"   className="hover:text-white transition underline-offset-2 hover:underline">Términos</a>
             <a
               href="https://lumiaaisolutions.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-white font-bold tracking-wide pb-[1px]"
-              style={{ borderBottom: '1px solid var(--ce-accent)' }}
+              className="ce-lumia-link group"
+              aria-label="LUMIA — Soluciones digitales para hostelería"
             >
-              LUMIA
+              <span className="text-white/70 group-hover:text-white transition">Desarrollado por</span>
+              <span className="ce-lumia text-sm sm:text-base">LUMIA</span>
+              <Icon name="arrow-up-right" size={12} className="text-white/50 group-hover:text-white transition" />
             </a>
-          </span>
+          </div>
         </div>
       </div>
     </footer>
@@ -1471,4 +1876,275 @@ function iconForCategoria(nombre: string): IconName {
   if (/(promo|oferta|deal|descuento)/.test(n)) return 'sparkles';
   if (/(destacad|popular|recomendad|favorito|chef|signature|especial)/.test(n)) return 'star-filled';
   return 'utensils';
+}
+
+/* ─────────── Badge de lealtad en el checkout ─────────── */
+function LealtadBadge({ slug, email, lealtad }: {
+  slug: string;
+  email: string;
+  lealtad: { enabled: boolean; meta: number; premio: string | null };
+}) {
+  const [status, setStatus] = useState<{ count: number; current: number; meta: number; premio: string | null; premios_ganados: number } | null>(null);
+  const [debouncedEmail, setDebouncedEmail] = useState('');
+
+  useEffect(() => {
+    const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if (!isValid) { setStatus(null); return; }
+    const t = setTimeout(() => setDebouncedEmail(email), 700);
+    return () => clearTimeout(t);
+  }, [email]);
+
+  useEffect(() => {
+    if (!debouncedEmail) return;
+    let alive = true;
+    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080/api/v1'}/public/lealtad/${slug}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: debouncedEmail }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (alive && j?.enabled) setStatus(j); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [debouncedEmail, slug]);
+
+  if (!status) {
+    // Sin email todavía o cliente nuevo — promueve el programa
+    return (
+      <div className="mt-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
+        🎁 <strong>Programa de lealtad:</strong> con tu correo acumulas sellos. {lealtad.premio && `Al llegar a ${lealtad.meta}, recibes: ${lealtad.premio}.`}
+      </div>
+    );
+  }
+
+  const current = status.current;
+  const meta    = status.meta;
+  return (
+    <div className="mt-2 px-3 py-2.5 rounded-xl bg-gradient-to-r from-amber-50 to-amber-100 border border-amber-300">
+      <div className="flex items-center justify-between mb-1.5">
+        <p className="text-xs font-bold text-amber-900">
+          {status.premios_ganados > 0
+            ? `🏆 ¡Tienes ${status.premios_ganados} premio${status.premios_ganados > 1 ? 's' : ''} pendiente${status.premios_ganados > 1 ? 's' : ''}!`
+            : `Te faltan ${meta - current} sellos para tu premio`}
+        </p>
+        <span className="text-[10px] font-semibold text-amber-700 tabular-nums">{current}/{meta}</span>
+      </div>
+      <div className="flex gap-1">
+        {Array.from({ length: meta }).map((_, i) => (
+          <span
+            key={i}
+            className={cn(
+              'flex-1 h-2 rounded-full transition-all',
+              i < current ? 'bg-amber-500' : 'bg-amber-200',
+            )}
+          />
+        ))}
+      </div>
+      {status.premios_ganados > 0 && lealtad.premio && (
+        <p className="text-[11px] text-amber-800 mt-1.5">
+          🎁 Reclama en tu próxima visita: <strong>{lealtad.premio}</strong>
+        </p>
+      )}
+    </div>
+  );
+}
+
+/* ─────────── Hook: track carrito abandonado ─────────── */
+function useTrackAbandonedCart({
+  slug, email, cliente_nombre, items,
+}: {
+  slug: string;
+  email: string;
+  cliente_nombre: string;
+  items: Array<{ productoId: number; nombre: string; cantidad: number; precio: number }>;
+}) {
+  useEffect(() => {
+    const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if (!isValid || items.length === 0) return;
+
+    const handler = setTimeout(() => {
+      const total = items.reduce((s, i) => s + i.precio * i.cantidad, 0);
+      const body = {
+        email,
+        cliente_nombre: cliente_nombre || null,
+        items: items.map((i) => ({
+          producto_id: i.productoId,
+          nombre:      i.nombre,
+          cantidad:    i.cantidad,
+          precio:      i.precio,
+        })),
+        total_estimado: total,
+      };
+      fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080/api/v1'}/public/carrito-abandonado/${slug}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        keepalive: true,
+      }).catch(() => {});
+    }, 30_000);
+
+    return () => clearTimeout(handler);
+  }, [slug, email, cliente_nombre, items]);
+}
+
+/* ─────────── Selector visual de slots para pedido programado ─────────── */
+function SlotPicker({
+  horarios, value, onChange,
+}: {
+  horarios: Array<{ dia: string; open: string; close: string }> | null;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [day, setDay] = useState<0 | 1 | 2>(0); // hoy / mañana / pasado
+
+  // Genera slots cada 30min para el día elegido respetando horarios del local
+  const slots = useMemo(() => {
+    const date = new Date();
+    date.setDate(date.getDate() + day);
+    date.setSeconds(0, 0);
+
+    const diaCode = ['dom', 'lun', 'mar', 'mie', 'jue', 'vie', 'sab'][date.getDay()];
+    const h = (horarios ?? []).find((x) => x.dia === diaCode);
+    if (!h) return []; // local cerrado ese día
+
+    const [oh, om] = h.open.split(':').map(Number);
+    const [ch, cm] = h.close.split(':').map(Number);
+    const start = new Date(date); start.setHours(oh, om, 0, 0);
+    const end   = new Date(date); end.setHours(ch, cm, 0, 0);
+    const now   = Date.now();
+    const minStart = now + 30 * 60_000; // mínimo 30 min de anticipación
+
+    const out: { iso: string; label: string }[] = [];
+    let cur = start.getTime();
+    while (cur < end.getTime()) {
+      if (cur >= minStart) {
+        const d = new Date(cur);
+        // datetime-local format: YYYY-MM-DDTHH:mm (local time, sin TZ)
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const iso = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        out.push({ iso, label: d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true }) });
+      }
+      cur += 30 * 60_000;
+    }
+    return out;
+  }, [day, horarios]);
+
+  return (
+    <div className="rounded-2xl border border-line p-3" style={{ background: '#FBF7F1' }}>
+      {/* Selector día */}
+      <div className="grid grid-cols-3 gap-1.5 mb-3">
+        {[
+          { idx: 0 as const, label: 'Hoy' },
+          { idx: 1 as const, label: 'Mañana' },
+          { idx: 2 as const, label: 'Pasado' },
+        ].map((d) => (
+          <button
+            key={d.idx}
+            type="button"
+            onClick={() => setDay(d.idx)}
+            className={cn(
+              'px-3 py-2 rounded-xl text-sm font-bold transition',
+              day === d.idx ? 'text-white shadow-md' : 'bg-white border border-line text-ink/70',
+            )}
+            style={day === d.idx ? { background: 'var(--ce-accent)' } : undefined}
+          >
+            {d.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Grid de slots */}
+      {slots.length === 0 ? (
+        <p className="text-xs text-muted text-center py-4">
+          {horarios?.length
+            ? 'El local no abre este día o ya no quedan slots disponibles.'
+            : 'No tenemos horarios configurados — elige otro día.'}
+        </p>
+      ) : (
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 max-h-48 overflow-y-auto">
+          {slots.map((s) => (
+            <button
+              key={s.iso}
+              type="button"
+              onClick={() => onChange(s.iso)}
+              className={cn(
+                'px-2 py-2 rounded-lg text-xs font-semibold transition',
+                value === s.iso
+                  ? 'text-white shadow-sm'
+                  : 'bg-white border border-line text-ink/80 hover:border-ink/40',
+              )}
+              style={value === s.iso ? { background: 'var(--ce-accent)' } : undefined}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────── Banner "lo más pedido hoy" ─────────── */
+function HotProductosBanner({
+  hot, productos, onTap,
+}: {
+  hot: Array<{ producto_id: number; unidades: number }>;
+  productos: Producto[];
+  onTap: (p: Producto) => void;
+}) {
+  const items = hot
+    .map((h) => {
+      const p = productos.find((x) => x.id === h.producto_id);
+      return p ? { p, unidades: h.unidades } : null;
+    })
+    .filter((x): x is { p: Producto; unidades: number } => !!x);
+
+  if (items.length === 0) return null;
+
+  return (
+    <section className="rounded-3xl border border-line bg-white p-3 sm:p-4 mb-5 shadow-sm">
+      <div className="flex items-center gap-2 mb-3 px-1">
+        <span className="text-xl">🔥</span>
+        <p className="ce-display font-bold text-sm sm:text-base leading-none">
+          Lo más pedido <span style={{ color: 'var(--ce-accent)' }}>hoy</span>
+        </p>
+        <span className="ml-auto text-[10px] uppercase tracking-wider text-muted font-semibold">Tendencia</span>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {items.map(({ p, unidades }, i) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => onTap(p)}
+            className="group rounded-2xl border border-line overflow-hidden hover:border-ink/40 transition text-left bg-white"
+          >
+            <div className="relative aspect-square overflow-hidden bg-line/30">
+              {p.imagen ? (
+                <img
+                  src={p.imagen}
+                  alt={p.nombre}
+                  loading="lazy"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              ) : (
+                <div className="w-full h-full grid place-items-center">
+                  <Icon name="utensils" size={24} className="opacity-30" />
+                </div>
+              )}
+              <span
+                className="absolute top-1.5 left-1.5 inline-flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full text-white shadow"
+                style={{ background: 'var(--ce-accent)' }}
+              >
+                #{i + 1}
+              </span>
+            </div>
+            <div className="px-2 py-1.5">
+              <p className="text-[11px] sm:text-xs font-semibold truncate">{p.nombre}</p>
+              <p className="text-[10px] text-muted tabular-nums">{unidades} pedidos</p>
+            </div>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
 }

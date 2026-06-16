@@ -7,14 +7,26 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '@/store/auth';
+import { usePlan } from '@/store/plan';
+import { useLivePedidos } from '@/store/livePedidos';
 import { Toaster } from '@/components/ui/Toaster';
 import { NotificacionesBell } from '@/components/admin/NotificacionesBell';
+import { LivePedidosPoller } from '@/components/admin/LivePedidosPoller';
+import { LocalSwitcher } from '@/components/admin/LocalSwitcher';
+import { CmdKSearch } from '@/components/admin/CmdKSearch';
+import { InstallPrompt } from '@/components/pwa/InstallPrompt';
+import { PushSubscriber } from '@/components/pwa/PushSubscriber';
+import { TrialBanner } from '@/components/billing/TrialBanner';
+import { PlanInactiveScreen, isPlanBlocking } from '@/components/billing/PlanInactiveScreen';
+import { TourOverlay } from '@/components/help/TourOverlay';
+import { AutoTourTrigger } from '@/components/help/AutoTourTrigger';
 import { Logo } from '@/components/ui/Logo';
 import { cn } from '@/lib/utils';
 
 type IconName =
   | 'home' | 'chart' | 'cart' | 'bell' | 'package' | 'list'
-  | 'box' | 'receipt' | 'clock' | 'qr' | 'palette' | 'store';
+  | 'box' | 'receipt' | 'clock' | 'qr' | 'palette' | 'store' | 'lock' | 'card' | 'settings'
+  | 'users' | 'history' | 'help' | 'sparkles' | 'star';
 
 interface NavItem {
   href: string;
@@ -24,6 +36,10 @@ interface NavItem {
   permiso?: string;
   /** Si true, solo owner/super_admin pueden verlo. */
   ownerOnly?: boolean;
+  /** Si está, el plan del local debe incluir esta feature. Si no, candado. */
+  feature?: string;
+  /** Plan mínimo informativo. */
+  requiredPlan?: 'professional' | 'premium';
 }
 
 function Icon({ name, className }: { name: IconName; className?: string }) {
@@ -45,6 +61,13 @@ function Icon({ name, className }: { name: IconName; className?: string }) {
     case 'qr':      return <svg {...common} {...stroke}><rect x="3" y="3" width="7" height="7" rx="0.8"/><rect x="14" y="3" width="7" height="7" rx="0.8"/><rect x="3" y="14" width="7" height="7" rx="0.8"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 17v4"/></svg>;
     case 'palette': return <svg {...common} {...stroke}><path d="M12 21a9 9 0 1 1 9-9c0 2.5-2.4 3.5-4.5 3.5h-1.5a2 2 0 0 0-1.5 3.3A2 2 0 0 1 12 21z"/><circle cx="7" cy="11" r="1"/><circle cx="11" cy="6.5" r="1"/><circle cx="16" cy="8" r="1"/></svg>;
     case 'store':   return <svg {...common} {...stroke}><path d="M3.5 9 5 4h14l1.5 5"/><path d="M3.5 9c0 1.7 1.3 3 3 3s3-1.3 3-3 1.3 3 3 3 3-1.3 3-3 1.3 3 3 3 3-1.3 3-3"/><path d="M5 11.5V20h14v-8.5"/><path d="M10 20v-5h4v5"/></svg>;
+    case 'lock':    return <svg {...common} {...stroke}><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>;
+    case 'card':    return <svg {...common} {...stroke}><rect x="2" y="6" width="20" height="13" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="9" y2="15"/></svg>;
+    case 'users':   return <svg {...common} {...stroke}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+    case 'history': return <svg {...common} {...stroke}><path d="M3 12a9 9 0 1 0 9-9 9.74 9.74 0 0 0-6.74 2.74L3 8"/><polyline points="3 3 3 8 8 8"/><line x1="12" y1="7" x2="12" y2="12"/><line x1="12" y1="12" x2="15.5" y2="14"/></svg>;
+    case 'help':    return <svg {...common} {...stroke}><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
+    case 'sparkles': return <svg {...common} {...stroke}><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>;
+    case 'star':    return <svg {...common} {...stroke}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
   }
 }
 
@@ -113,58 +136,74 @@ function UserCard({ user, onLogout }: { user: UserCardData; onLogout: () => void
  */
 const NAV_OWNER: NavItem[] = [
   { href: '/admin',              label: 'Inicio',      icon: 'home' },
-  { href: '/admin/metricas',     label: 'Reportes',    icon: 'chart',   permiso: 'metricas' },
-  { href: '/admin/punto-venta',  label: 'Venta',       icon: 'cart',    permiso: 'pos' },
+  { href: '/admin/metricas',     label: 'Reportes',    icon: 'chart',   permiso: 'metricas',   feature: 'metricas_basicas', requiredPlan: 'professional' },
+  { href: '/admin/punto-venta',  label: 'Venta',       icon: 'cart',    permiso: 'pos',        feature: 'pos' },
   { href: '/admin/pedidos',      label: 'Pedidos',     icon: 'bell',    permiso: 'pedidos' },
   { href: '/admin/productos',    label: 'Productos',   icon: 'package', permiso: 'productos' },
   { href: '/admin/categorias',   label: 'Categorías',  icon: 'list',    permiso: 'categorias' },
-  { href: '/admin/inventario',   label: 'Inventario',  icon: 'box',     permiso: 'inventario' },
-  { href: '/admin/compras',      label: 'Compras',     icon: 'receipt', permiso: 'compras' },
+  { href: '/admin/inventario',   label: 'Inventario',  icon: 'box',     permiso: 'inventario', feature: 'inventario',       requiredPlan: 'professional' },
+  { href: '/admin/compras',      label: 'Compras',     icon: 'receipt', permiso: 'compras',    feature: 'compras',          requiredPlan: 'professional' },
   { href: '/admin/horarios',     label: 'Horarios',    icon: 'clock',   permiso: 'horarios' },
-  { href: '/admin/qr',           label: 'QR',          icon: 'qr',      permiso: 'qr' },
+  { href: '/admin/qr',           label: 'QR',          icon: 'qr',      permiso: 'qr',         feature: 'qr_personalizado' },
+  { href: '/admin/cupones',      label: 'Cupones',     icon: 'sparkles' },
+  { href: '/admin/referidos',    label: 'Referidos',   icon: 'users',   ownerOnly: true },
   { href: '/admin/branding',     label: 'Branding',    icon: 'palette', permiso: 'branding' },
-  { href: '/admin/staff',        label: 'Equipo',      icon: 'list',    ownerOnly: true },
-  { href: '/admin/audit-log',    label: 'Audit log',   icon: 'list',    permiso: 'audit_log' },
+  { href: '/admin/staff',        label: 'Equipo',      icon: 'users',   ownerOnly: true,       feature: 'staff_multi',      requiredPlan: 'professional' },
+  { href: '/admin/audit-log',    label: 'Historial',   icon: 'history', permiso: 'audit_log',  feature: 'audit_log',        requiredPlan: 'professional' },
+  { href: '/admin/integraciones', label: 'Integraciones', icon: 'settings', ownerOnly: true, feature: 'api_webhooks' },
+  { href: '/admin/billing',      label: 'Suscripción', icon: 'card',    ownerOnly: true },
+  { href: '/admin/ayuda',        label: 'Centro de ayuda', icon: 'help' },
 ];
 
 const NAV_SUPER: NavItem[] = [
-  { href: '/admin',          label: 'Resumen',  icon: 'home' },
-  { href: '/admin/locales',  label: 'Locales',  icon: 'store' },
+  { href: '/admin',              label: 'Resumen',  icon: 'home' },
+  { href: '/admin/locales',      label: 'Locales',  icon: 'store' },
+  { href: '/admin/saas-metrics', label: 'SaaS',     icon: 'chart' },
 ];
 
 function SidebarHeader({ rol, showBell }: { rol: string; showBell: boolean }) {
   return (
-    <div className="px-4 pt-5 pb-4 border-b border-line flex items-start justify-between gap-2">
-      <div className="min-w-0">
-        <Link href="/admin" className="block">
-          <Logo variant="lockup" size={28} />
-        </Link>
-        <span className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
-          <span className="w-1 h-1 rounded-full bg-ink/40" />
-          {rol === 'super_admin' ? 'Panel global' : 'Panel del local'}
-        </span>
+    <div className="border-b border-line">
+      <div className="px-4 pt-5 pb-4 flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <Link href="/admin" className="block">
+            <Logo variant="lockup" size={28} />
+          </Link>
+          <span className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
+            <span className="w-1 h-1 rounded-full bg-ink/40" />
+            {rol === 'super_admin' ? 'Panel global' : 'Panel del local'}
+          </span>
+        </div>
+        {showBell && <NotificacionesBell />}
       </div>
-      {showBell && <NotificacionesBell />}
+      <LocalSwitcher />
     </div>
   );
 }
 
 function NavLinks({ items, pathname, dense = false }: { items: NavItem[]; pathname: string; dense?: boolean }) {
+  const has    = usePlan((s) => s.has);
+  const unread = useLivePedidos((s) => s.unread);
   return (
     <nav className="flex-1 py-3 px-2 overflow-y-auto scroll-fine space-y-0.5">
       {items.map((item) => {
         const active = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
+        const locked = !!item.feature && !has(item.feature);
+        const showBadge = item.href === '/admin/pedidos' && unread > 0 && !active;
         return (
           <Link
             key={item.href}
             href={item.href}
+            data-tour={`sidebar-${item.href.replace('/admin', '').replace('/', '') || 'inicio'}`}
             className={cn(
               'group flex items-center gap-3 rounded-lg transition relative',
               dense ? 'px-3 py-2.5 text-base' : 'px-3 py-2 text-sm',
               active
                 ? 'bg-ink text-white font-semibold shadow-soft'
                 : 'text-ink/70 hover:bg-line/40 hover:text-ink font-medium',
+              locked && !active && 'opacity-60',
             )}
+            title={locked ? `Disponible en plan ${item.requiredPlan === 'premium' ? 'Premium' : 'Profesional'}` : undefined}
           >
             <Icon
               name={item.icon}
@@ -173,7 +212,21 @@ function NavLinks({ items, pathname, dense = false }: { items: NavItem[]; pathna
                 active ? 'opacity-100' : 'opacity-70 group-hover:opacity-100',
               )}
             />
-            <span className="truncate">{item.label}</span>
+            <span className="truncate flex-1">{item.label}</span>
+            {showBadge && (
+              <span
+                className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-[color:var(--ce-accent,#FF2D2D)] text-white text-[10px] font-bold grid place-items-center halo-pulse"
+                aria-label={`${unread} pedidos nuevos`}
+              >
+                {unread > 9 ? '9+' : unread}
+              </span>
+            )}
+            {locked && (
+              <Icon
+                name="lock"
+                className={cn('shrink-0 opacity-60', active ? 'text-white' : 'text-muted')}
+              />
+            )}
           </Link>
         );
       })}
@@ -229,6 +282,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
+  // Pantalla bloqueante si el plan SaaS no está activo (solo owner+staff).
+  // Excepción: dejamos pasar las páginas de Suscripción y Perfil para que el
+  // dueño pueda reactivar o cerrar sesión sin quedar atrapado.
+  const plan = usePlan.getState().plan;
+  const blocked = user.rol !== 'super_admin'
+    && isPlanBlocking(plan)
+    && pathname !== null
+    && !pathname.startsWith('/admin/billing')
+    && !pathname.startsWith('/admin/perfil');
+
+  if (blocked) {
+    return <PlanInactiveScreen />;
+  }
+
   return (
     <div className="min-h-screen bg-bg md:flex">
       {/* ─── SIDEBAR DESKTOP ─────────────────────────────────────── */}
@@ -240,6 +307,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* ─── MAIN AREA ───────────────────────────────────────────── */}
       <main className="flex-1 min-w-0 min-h-screen">
+        {/* Banner del plan (trial countdown / pago fallido / cancelado) — sólo owner+staff */}
+        {user.rol !== 'super_admin' && <TrialBanner />}
+
         {/* TOPBAR MÓVIL con hamburger */}
         <header className="md:hidden flex items-center justify-between gap-2 px-3 py-2.5 border-b border-line bg-white sticky top-0 z-30">
           <button
@@ -304,6 +374,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <Toaster />
       </main>
+
+      {/* F85 — búsqueda global Cmd+K, montada para todo el panel */}
+      <CmdKSearch />
+
+      {/* Tour interactivo + auto-trigger del onboarding en /admin */}
+      {user.rol !== 'super_admin' && (
+        <>
+          <TourOverlay />
+          <AutoTourTrigger pathname={pathname} />
+          <LivePedidosPoller />
+          <PedidosReadResetter pathname={pathname} />
+          <InstallPrompt />
+          <PushSubscriber />
+        </>
+      )}
     </div>
   );
+}
+
+/** Resetea el contador de "unread" cuando el owner entra a /admin/pedidos. */
+function PedidosReadResetter({ pathname }: { pathname: string }) {
+  const markAllRead = useLivePedidos((s) => s.markAllRead);
+  useEffect(() => {
+    if (pathname.startsWith('/admin/pedidos')) markAllRead();
+  }, [pathname, markAllRead]);
+  return null;
 }

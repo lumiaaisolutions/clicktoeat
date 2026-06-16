@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import type { MetricasResponse } from '@/lib/types';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Button } from '@/components/ui/Button';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { cn, formatMXN } from '@/lib/utils';
 
 type Preset = 'hoy' | 'ayer' | '7d' | '30d' | 'mes' | 'custom';
@@ -47,12 +48,14 @@ export default function MetricasPage() {
 
   return (
     <div>
-      <header className="mb-4 md:mb-6">
-        <h1 className="ce-display text-2xl md:text-4xl font-bold">Reportes</h1>
-        <p className="text-muted text-sm mt-1">
-          Indicadores de venta del periodo seleccionado.
-        </p>
-      </header>
+      <AdminPageHeader
+        kicker="Reportes"
+        kickerIcon="chart"
+        title="Tus números,"
+        titleAccent="del día y del mes."
+        description="Ventas, ticket promedio, productos más pedidos. Todo actualizado en tiempo real."
+        tourSlug="metricas"
+      />
 
       {/* Filtros de rango */}
       <div className="flex flex-wrap gap-2 mb-4">
@@ -114,6 +117,31 @@ export default function MetricasPage() {
           <section className="rounded-2xl border border-line bg-white p-4 mb-4">
             <h2 className="ce-display font-bold mb-3">Ventas por día</h2>
             <SerieChart serie={data.serie_diaria} />
+          </section>
+
+          {/* Heatmap día × hora */}
+          {data.heatmap && (
+            <section className="rounded-2xl border border-line bg-white p-4 mb-4">
+              <h2 className="ce-display font-bold mb-1">¿A qué hora te piden más?</h2>
+              <p className="text-xs text-muted mb-3">Filas = día de la semana. Columnas = hora del día. Color más oscuro = más pedidos.</p>
+              <Heatmap matrix={data.heatmap} />
+            </section>
+          )}
+
+          {/* Top + Low productos */}
+          <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+            <div className="rounded-2xl border border-line bg-white p-4">
+              <h2 className="ce-display font-bold mb-3">Tus productos estrella</h2>
+              <TopProductos items={data.top_productos} />
+            </div>
+
+            {data.low_productos && data.low_productos.length > 0 && (
+              <div className="rounded-2xl border border-line bg-white p-4">
+                <h2 className="ce-display font-bold mb-1">Tus productos que no se mueven</h2>
+                <p className="text-xs text-muted mb-3">Considera quitarlos del menú o repensar precio / foto.</p>
+                <LowProductos items={data.low_productos} />
+              </div>
+            )}
           </section>
 
           {/* Top productos + métodos */}
@@ -298,6 +326,77 @@ function DistribucionList({
           </li>
         );
       })}
+    </ul>
+  );
+}
+
+/* ─────────── Heatmap día × hora ─────────── */
+function Heatmap({ matrix }: { matrix: NonNullable<MetricasResponse['heatmap']> }) {
+  const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const max = Math.max(1, ...matrix.flat().map((c) => c.count));
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="text-[10px] border-separate" style={{ borderSpacing: 2 }}>
+        <thead>
+          <tr>
+            <th className="text-right pr-2 text-muted font-normal w-10"></th>
+            {Array.from({ length: 24 }).map((_, h) => (
+              <th key={h} className="text-center text-muted font-normal w-6">{h % 3 === 0 ? h : ''}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {matrix.map((row, dow) => (
+            <tr key={dow}>
+              <td className="text-right pr-2 text-muted text-[11px] font-semibold">{DIAS[dow]}</td>
+              {row.map((cell, h) => {
+                const intensity = cell.count / max;
+                const bg = intensity === 0
+                  ? '#F3F4F6'
+                  : `rgba(255, 45, 45, ${0.15 + intensity * 0.85})`;
+                return (
+                  <td
+                    key={h}
+                    className="w-6 h-6 rounded-sm text-center align-middle cursor-default"
+                    style={{ background: bg }}
+                    title={cell.count > 0 ? `${DIAS[dow]} ${h}h — ${cell.count} pedidos, $${cell.monto.toFixed(0)}` : `${DIAS[dow]} ${h}h — sin pedidos`}
+                  >
+                    {cell.count > 0 && intensity > 0.45 && (
+                      <span className={cn('font-bold', intensity > 0.7 ? 'text-white' : 'text-ink')}>{cell.count}</span>
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="flex items-center gap-2 mt-3 text-[10px] text-muted">
+        <span>menos</span>
+        <span className="w-3 h-3 rounded-sm" style={{ background: '#F3F4F6' }} />
+        <span className="w-3 h-3 rounded-sm" style={{ background: 'rgba(255,45,45,0.3)' }} />
+        <span className="w-3 h-3 rounded-sm" style={{ background: 'rgba(255,45,45,0.55)' }} />
+        <span className="w-3 h-3 rounded-sm" style={{ background: 'rgba(255,45,45,0.8)' }} />
+        <span className="w-3 h-3 rounded-sm" style={{ background: 'rgba(255,45,45,1)' }} />
+        <span>más</span>
+      </div>
+    </div>
+  );
+}
+
+function LowProductos({ items }: { items: NonNullable<MetricasResponse['low_productos']> }) {
+  if (items.length === 0) return <p className="text-sm text-muted">Aún no hay datos.</p>;
+  return (
+    <ul className="space-y-1.5">
+      {items.map((p, i) => (
+        <li key={i} className="flex items-center justify-between gap-2 py-1.5 border-b border-line last:border-0">
+          <span className="text-sm truncate">{p.producto_nombre}</span>
+          <span className="text-xs text-muted tabular-nums shrink-0">
+            {p.cantidad === 0 ? 'sin ventas' : `${p.cantidad} unidades`}
+          </span>
+        </li>
+      ))}
     </ul>
   );
 }

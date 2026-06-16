@@ -21,6 +21,9 @@ return [
             'path'   => storage_path('logs/laravel.log'),
             'level'  => env('LOG_LEVEL', 'debug'),
             'replace_placeholders' => true,
+            // Formatter JSON cuando LOG_JSON=true — útil para shipear a
+            // Sentry/Loki/Datadog. Si está vacío, usa el formato por defecto.
+            'formatter' => env('LOG_JSON') ? \Monolog\Formatter\JsonFormatter::class : null,
         ],
         'daily' => [
             'driver' => 'daily',
@@ -28,6 +31,16 @@ return [
             'level'  => env('LOG_LEVEL', 'debug'),
             'days'   => 14,
             'replace_placeholders' => true,
+            'formatter' => env('LOG_JSON') ? \Monolog\Formatter\JsonFormatter::class : null,
+        ],
+        // Canal dedicado JSON — útil cuando quieres mantener single en texto
+        // y enviar a un agente shipper aparte. Activar con LOG_STACK=single,jsonlog
+        'jsonlog' => [
+            'driver'    => 'daily',
+            'path'      => storage_path('logs/json.log'),
+            'level'     => env('LOG_LEVEL', 'info'),
+            'days'      => 14,
+            'formatter' => \Monolog\Formatter\JsonFormatter::class,
         ],
         'stderr' => [
             'driver'  => 'monolog',

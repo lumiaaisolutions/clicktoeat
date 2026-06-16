@@ -208,6 +208,102 @@ export default function LocalUsuariosPage() {
             </div>
           )}
         </section>
+
+        {owner && (
+          <section className="rounded-2xl border border-line bg-white p-5 lg:col-span-3">
+            <MultiSucursalEditor ownerId={owner.id} ownerNombre={owner.nombre} currentLocalId={Number(id)} />
+          </section>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─────────── F82: Multi-sucursal editor ─────────── */
+function MultiSucursalEditor({ ownerId, ownerNombre, currentLocalId }: {
+  ownerId: number; ownerNombre: string; currentLocalId: number;
+}) {
+  const [allLocales,  setAllLocales]  = useState<LocalAdmin[] | null>(null);
+  const [ownerLocales, setOwnerLocales] = useState<LocalAdmin[] | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const refresh = async () => {
+    const [{ data: all }, { data: mine }] = await Promise.all([
+      api.get<{ data: LocalAdmin[] }>('/admin/locales'),
+      api.get<{ data: LocalAdmin[] }>(`/admin/users/${ownerId}/locales`),
+    ]);
+    setAllLocales(all.data);
+    setOwnerLocales(mine.data);
+  };
+
+  useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [ownerId]);
+
+  const toggle = async (localId: number, attach: boolean) => {
+    setSaving(true);
+    try {
+      if (attach) {
+        await api.post(`/admin/users/${ownerId}/locales`, { local_ids: [localId] });
+        toast.success('Sucursal asignada');
+      } else {
+        await api.delete(`/admin/users/${ownerId}/locales/${localId}`);
+        toast.success('Sucursal desasignada');
+      }
+      refresh();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'No se pudo actualizar');
+    } finally { setSaving(false); }
+  };
+
+  if (!allLocales) {
+    return <div className="space-y-2"><Skeleton className="h-6 w-48" /><Skeleton className="h-10" /></div>;
+  }
+
+  const assignedIds = new Set((ownerLocales ?? []).map((l) => l.id));
+
+  return (
+    <div>
+      <h2 className="ce-display font-bold text-lg mb-1">Sucursales que ve {ownerNombre}</h2>
+      <p className="text-xs text-muted mb-4">
+        Si tu cliente tiene varios locales en la plataforma, marca los que quieres que pueda administrar.
+        Aparecerán en su selector arriba del sidebar y podrá cambiar entre ellos sin cerrar sesión.
+      </p>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+        {allLocales.map((l) => {
+          const checked = assignedIds.has(l.id);
+          const isCurrent = l.id === currentLocalId;
+          return (
+            <label
+              key={l.id}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer transition',
+                checked ? 'border-ink/60 bg-ink/5' : 'border-line hover:border-ink/30',
+              )}
+            >
+              <input
+                type="checkbox"
+                checked={checked}
+                disabled={saving || (isCurrent && checked)}
+                onChange={() => toggle(l.id, !checked)}
+                className="w-4 h-4 accent-ink"
+              />
+              {l.logo_url ? (
+                <img src={l.logo_url} alt="" className="w-8 h-8 rounded-lg object-cover border border-line shrink-0" />
+              ) : (
+                <span
+                  className="w-8 h-8 rounded-lg grid place-items-center text-white text-xs font-bold shrink-0"
+                  style={{ background: l.color_primario || '#0B0B0F' }}
+                >
+                  {l.nombre[0]?.toUpperCase()}
+                </span>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate">{l.nombre}</p>
+                <p className="text-[10px] text-muted truncate">/{l.slug}{isCurrent && ' · este local'}</p>
+              </div>
+            </label>
+          );
+        })}
       </div>
     </div>
   );

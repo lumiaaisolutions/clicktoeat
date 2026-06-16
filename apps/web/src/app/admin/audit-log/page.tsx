@@ -5,6 +5,8 @@ import { api } from '@/lib/api';
 import type { AuditLog, Paginated } from '@/lib/types';
 import { toast } from '@/store/toast';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { Icon } from '@/components/ui/Icon';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 
 const RESOURCE_TYPES = ['Producto', 'Categoria', 'Pedido', 'Ingrediente', 'Compra', 'Local', 'User'];
 const ACTIONS = ['created', 'updated', 'deleted', 'restored'] as const;
@@ -62,14 +64,14 @@ export default function AuditLogPage() {
 
   return (
     <div>
-      <header className="flex items-center justify-between mb-4 md:mb-6 gap-3 flex-wrap">
-        <div>
-          <h1 className="ce-display text-2xl md:text-4xl font-bold">Audit log</h1>
-          <p className="text-muted text-sm mt-1">
-            Historial de cambios en tu local (últimos 90 días).
-          </p>
-        </div>
-      </header>
+      <AdminPageHeader
+        kicker="Historial"
+        kickerIcon="history"
+        title="Quién hizo qué,"
+        titleAccent="y cuándo."
+        description="Historial completo de cambios en tu local. Útil cuando alguien modifica un precio o borra algo."
+        tourSlug="audit-log"
+      />
 
       {/* Filtros */}
       <div className="rounded-2xl border border-line bg-white p-4 mb-4 grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -108,91 +110,97 @@ export default function AuditLogPage() {
         />
       </div>
 
-      {/* Lista */}
+      {/* Timeline de cards */}
       {items === null ? (
-        <div className="rounded-2xl border border-line bg-white p-4 space-y-2">
-          <Skeleton className="h-12" /><Skeleton className="h-12" /><Skeleton className="h-12" />
+        <div className="space-y-2">
+          <Skeleton className="h-20" /><Skeleton className="h-20" /><Skeleton className="h-20" />
         </div>
       ) : items.length === 0 ? (
-        <div className="rounded-2xl border border-line bg-white p-10 text-center text-muted text-sm">
-          No hay actividad para los filtros seleccionados.
+        <div className="rounded-3xl border border-line bg-white p-12 text-center">
+          <Icon name="history" size={32} className="text-muted mx-auto mb-2" />
+          <p className="ce-display text-lg font-bold">Sin actividad</p>
+          <p className="text-sm text-muted mt-1">No hay cambios registrados con estos filtros.</p>
         </div>
       ) : (
-        <div className="rounded-2xl border border-line bg-white overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-bg/50 border-b border-line">
-              <tr>
-                <th className="text-left p-3 font-medium">Cuándo</th>
-                <th className="text-left p-3 font-medium">Quién</th>
-                <th className="text-left p-3 font-medium">Qué hizo</th>
-                <th className="text-left p-3 font-medium hidden md:table-cell">IP</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((log) => (
-                <Fragment key={log.id}>
-                  <tr
-                    className="border-b border-line last:border-0 hover:bg-bg/30 cursor-pointer"
-                    onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
-                  >
-                    <td className="p-3 text-xs text-muted">
-                      {new Date(log.created_at).toLocaleString('es-MX', {
-                        dateStyle: 'short',
-                        timeStyle: 'short',
-                      })}
-                    </td>
-                    <td className="p-3">
-                      {log.actor ? (
-                        <>
-                          <div className="font-medium">{log.actor.nombre}</div>
-                          <div className="text-xs text-muted">{log.actor.rol}</div>
-                        </>
-                      ) : (
-                        <span className="text-muted italic">Sistema</span>
-                      )}
-                    </td>
-                    <td className="p-3">
-                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs ${ACTION_COLOR[log.action]}`}>
-                        {ACTION_LABEL[log.action]}
-                      </span>
-                      <span className="ml-2 text-muted text-xs">
-                        {log.resource_type} #{log.resource_id}
-                      </span>
-                    </td>
-                    <td className="p-3 hidden md:table-cell text-xs text-muted">
-                      {log.ip ?? '—'}
-                    </td>
-                  </tr>
-                  {expandedId === log.id && log.changes && (
-                    <tr className="border-b border-line bg-bg/20">
-                      <td colSpan={4} className="p-4">
-                        <h4 className="text-xs uppercase tracking-wide text-muted mb-2">Cambios</h4>
-                        <table className="w-full text-xs">
-                          <thead>
-                            <tr className="text-muted">
-                              <th className="text-left pb-1 pr-3">Campo</th>
-                              <th className="text-left pb-1 pr-3">Antes</th>
-                              <th className="text-left pb-1">Después</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {Object.entries(log.changes).map(([field, [before, after]]) => (
-                              <tr key={field} className="border-t border-line/50">
-                                <td className="py-1 pr-3 font-mono">{field}</td>
-                                <td className="py-1 pr-3 text-red-700 line-through">{formatVal(before)}</td>
-                                <td className="py-1 text-green-700">{formatVal(after)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </td>
-                    </tr>
+        <ul className="space-y-2">
+          {items.map((log) => {
+            const isOpen = expandedId === log.id;
+            const actionIcon: 'plus' | 'check' | 'x' | 'history' =
+              log.action === 'created' ? 'plus'
+              : log.action === 'updated' ? 'check'
+              : log.action === 'deleted' ? 'x'
+              : 'history';
+            const actionTone =
+              log.action === 'created' ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              : log.action === 'updated' ? 'bg-blue-50 text-blue-700 border-blue-200'
+              : log.action === 'deleted' ? 'bg-red-50 text-red-700 border-red-200'
+              : 'bg-slate-50 text-slate-700 border-slate-200';
+            const cambiosCount = log.changes ? Object.keys(log.changes).length : 0;
+            return (
+              <li key={log.id}>
+                <button
+                  type="button"
+                  onClick={() => setExpandedId(isOpen ? null : log.id)}
+                  className="w-full text-left rounded-3xl border border-line bg-white p-4 sm:p-5 hover:border-ink/30 hover:shadow-soft transition group"
+                >
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    <span className={`w-11 h-11 rounded-2xl grid place-items-center shrink-0 border ${actionTone}`}>
+                      <Icon name={actionIcon} size={18} />
+                    </span>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-semibold ${ACTION_COLOR[log.action]}`}>
+                          {ACTION_LABEL[log.action]}
+                        </span>
+                        <code className="text-xs font-semibold text-ink/80">
+                          {log.resource_type} #{log.resource_id}
+                        </code>
+                        {cambiosCount > 0 && (
+                          <span className="text-[10px] text-muted">· {cambiosCount} campo{cambiosCount === 1 ? '' : 's'} modificado{cambiosCount === 1 ? '' : 's'}</span>
+                        )}
+                      </div>
+                      <p className="text-sm mt-1">
+                        {log.actor ? (
+                          <>Por <strong className="font-semibold">{log.actor.nombre}</strong> <span className="text-muted">({log.actor.rol})</span></>
+                        ) : (
+                          <span className="text-muted italic">Acción automática del sistema</span>
+                        )}
+                      </p>
+                      <p className="text-xs text-muted mt-0.5 inline-flex items-center gap-2 flex-wrap">
+                        <Icon name="clock" size={11} />
+                        {new Date(log.created_at).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}
+                        {log.ip && <><span>·</span><span>IP {log.ip}</span></>}
+                      </p>
+                    </div>
+
+                    <Icon
+                      name="chevron-down"
+                      size={16}
+                      className={`text-muted shrink-0 mt-1 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                    />
+                  </div>
+
+                  {isOpen && log.changes && Object.keys(log.changes).length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-line">
+                      <p className="text-[10px] uppercase tracking-wider text-muted font-semibold mb-2">Cambios</p>
+                      <ul className="space-y-2">
+                        {Object.entries(log.changes).map(([field, [before, after]]) => (
+                          <li key={field} className="grid grid-cols-1 sm:grid-cols-[120px_1fr_auto_1fr] gap-2 items-center text-xs">
+                            <code className="font-mono text-ink/80">{field}</code>
+                            <span className="px-2 py-1 rounded-lg bg-red-50 text-red-700 line-through truncate">{formatVal(before)}</span>
+                            <Icon name="arrow-right" size={12} className="text-muted hidden sm:inline" />
+                            <span className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 truncate">{formatVal(after)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       )}
 
       {/* Paginación */}

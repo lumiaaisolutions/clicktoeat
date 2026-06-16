@@ -106,11 +106,56 @@ class PedidoController extends Controller
             ], 409);
         }
 
-        return (new PedidoResource($pedido->load('detalles')))
+        // F25 — Aplicar cupón post-creación (revalida server-side; nunca confía
+        // en el descuento que el frontend pudiera mandar). Si el cupón ya no
+        // es válido, el pedido se conserva intacto sin descuento.
+        if (! empty($validated['cupon_codigo'])) {
+            $this->aplicarCupon($pedido, $local, $validated['cupon_codigo']);
+        }
+
+        // F27 — Programar pedido para más tarde
+        if (! empty($validated['programado_para'])) {
+            $pedido->update(['programado_para' => $validated['programado_para']]);
+        }
+
+        return (new PedidoResource($pedido->fresh()->load('detalles')))
             ->additional([
                 'whatsapp_url' => $pedido->whatsapp_url,
             ])
             ->response()
             ->setStatusCode(201);
+    }
+
+    /**
+     * Revalida el cupón contra el local y, si pasa, actualiza el pedido con
+     * descuento + nuevo total y marca el uso atómicamente (lock para evitar
+     * que dos pedidos simultáneos consuman el último cupo).
+     */
+    private function aplicarCupon(\App\Models\Pedido $pedido, $local, string $codigo): void
+    {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($pedido, $local, $codigo) {
+            $cupon = \App\Models\Cupon::withoutGlobalScopes()
+                ->where('local_id', $local->id)
+                ->where('codigo', strtoupper(trim($codigo)))
+                ->lockForUpdate()
+                ->first();
+
+            if (! $cupon || ! $cupon->activo) return;
+            $hoy = now()->startOfDay();
+            if ($cupon->fecha_desde && $cupon->fecha_desde->gt($hoy)) return;
+            if ($cupon->fecha_hasta && $cupon->fecha_hasta->lt($hoy)) return;
+            if (! $cupon->tieneCupoDisponible()) return;
+
+            $subtotal = (float) $pedido->total;
+            $desc     = $cupon->calcularDescuento($subtotal);
+            if ($desc <= 0) return;
+
+            $pedido->update([
+                'cupon_codigo' => $cupon->codigo,
+                'descuento'    => $desc,
+                'total'        => round($subtotal - $desc, 2),
+            ]);
+            $cupon->increment('usos_actuales');
+        });
     }
 }

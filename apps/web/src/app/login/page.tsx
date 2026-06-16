@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/store/auth';
 import { Logo } from '@/components/ui/Logo';
+import { Icon } from '@/components/ui/Icon';
 
 export default function LoginPage() {
   const login = useAuth((s) => s.login);
@@ -12,21 +14,42 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
+  const [needs2fa, setNeeds2fa] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     try {
-      await login(email, password);
+      const res = await login(email, password, needs2fa ? otp : undefined);
+      if (res.twoFactorRequired) {
+        setNeeds2fa(true);
+        return;
+      }
       router.push('/admin');
     } catch (err: any) {
-      setError(err?.response?.data?.errors?.email?.[0] ?? 'No pudimos iniciar sesión.');
+      const otpErr = err?.response?.data?.errors?.otp?.[0];
+      if (otpErr) {
+        setNeeds2fa(true);
+        setError(otpErr);
+      } else {
+        setError(err?.response?.data?.errors?.email?.[0] ?? 'No pudimos iniciar sesión.');
+      }
     }
   };
 
   return (
-    <main className="min-h-screen grid place-items-center px-6">
+    <main className="min-h-screen grid place-items-center px-6 py-10 relative">
+      {/* Volver al inicio */}
+      <Link
+        href="/"
+        className="absolute top-5 left-5 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink transition px-3 py-1.5 rounded-lg hover:bg-line/40"
+      >
+        <Icon name="arrow-right" size={14} className="rotate-180" />
+        Volver al inicio
+      </Link>
+
       <form onSubmit={onSubmit} className="w-full max-w-sm bg-white rounded-3xl border border-line shadow-soft p-6">
         <div className="mb-4 flex justify-center">
           <Logo variant="lockup" size={36} />
@@ -54,6 +77,27 @@ export default function LoginPage() {
           className="w-full mb-4 px-3 py-2 border border-line rounded-xl"
         />
 
+        {needs2fa && (
+          <div className="mb-4 p-3 rounded-xl border border-amber-200 bg-amber-50">
+            <label className="block text-sm font-semibold mb-1">Código de 2 pasos</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              autoFocus
+              required
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/[^0-9A-Za-z-]/g, '').toUpperCase())}
+              placeholder="Ingresa los 6 dígitos de tu app"
+              className="w-full px-3 py-2 border border-amber-300 rounded-xl bg-white tracking-widest text-center font-mono"
+              maxLength={11}
+            />
+            <p className="text-[11px] text-amber-700 mt-1.5">
+              Abre Google Authenticator / 1Password y escribe el código actual. También aceptamos códigos de recuperación.
+            </p>
+          </div>
+        )}
+
         {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
 
         <button
@@ -61,7 +105,7 @@ export default function LoginPage() {
           disabled={loading}
           className="w-full py-3 rounded-2xl bg-ink text-white font-medium disabled:opacity-40"
         >
-          {loading ? 'Entrando…' : 'Entrar'}
+          {loading ? 'Entrando…' : needs2fa ? 'Verificar y entrar' : 'Entrar'}
         </button>
 
         <a
@@ -71,6 +115,19 @@ export default function LoginPage() {
           ¿Olvidaste tu contraseña?
         </a>
       </form>
+
+      {/* Footer LUMIA */}
+      <p className="absolute bottom-5 inset-x-0 text-center text-xs text-muted">
+        Desarrollado por{' '}
+        <a
+          href="https://lumiaaisolutions.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold text-ink/70 hover:text-ink underline-offset-2 hover:underline"
+        >
+          LUMIA
+        </a>
+      </p>
     </main>
   );
 }

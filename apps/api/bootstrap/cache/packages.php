@@ -45,6 +45,18 @@
       0 => 'Termwind\\Laravel\\TermwindServiceProvider',
     ),
   ),
+  'sentry/sentry-laravel' => 
+  array (
+    'aliases' => 
+    array (
+      'Sentry' => 'Sentry\\Laravel\\Facade',
+    ),
+    'providers' => 
+    array (
+      0 => 'Sentry\\Laravel\\ServiceProvider',
+      1 => 'Sentry\\Laravel\\Tracing\\ServiceProvider',
+    ),
+  ),
   'spatie/laravel-ignition' => 
   array (
     'aliases' => 
@@ -54,13 +66,6 @@
     'providers' => 
     array (
       0 => 'Spatie\\LaravelIgnition\\IgnitionServiceProvider',
-    ),
-  ),
-  'spatie/laravel-permission' => 
-  array (
-    'providers' => 
-    array (
-      0 => 'Spatie\\Permission\\PermissionServiceProvider',
     ),
   ),
 );

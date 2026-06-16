@@ -94,6 +94,18 @@ class PedidoController extends Controller
             $query->where('estado', $request->string('estado'));
         }
 
+        // F84 — filtro por canal del staff (notif_filtro). El owner siempre ve todo.
+        $user = $request->user();
+        if ($user && ! $user->isOwner() && ! $user->isSuperAdmin()) {
+            switch ($user->notif_filtro ?? 'todos') {
+                case 'cocina':   $query->whereIn('metodo_entrega', ['pickup', 'delivery']); break;
+                case 'caja':     $query->where('metodo_entrega', 'sucursal'); break;
+                case 'delivery': $query->where('metodo_entrega', 'delivery'); break;
+                case 'ninguno':  $query->whereRaw('1 = 0'); break;
+                // 'todos' (default) → sin filtro
+            }
+        }
+
         $perPage = min((int) $request->input('per_page', 20), 100);
 
         return PedidoResource::collection(
@@ -197,5 +209,45 @@ class PedidoController extends Controller
         $this->authorize('delete', $pedido);
         $pedido->delete();
         return response()->json(null, 204);
+    }
+
+    /**
+     * Exporta pedidos del local a CSV. Acepta filtros:
+     *   ?from=2026-06-01&to=2026-06-30&estado=entregado
+     *
+     * Streaming con cursor() — no carga todo en memoria.
+     */
+    public function export(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $q = Pedido::query()->orderBy('created_at', 'desc');
+        if ($from = $request->input('from'))     $q->where('created_at', '>=', $from);
+        if ($to = $request->input('to'))         $q->where('created_at', '<=', $to.' 23:59:59');
+        if ($estado = $request->input('estado')) $q->where('estado', $estado);
+
+        $filename = 'pedidos-'.now()->format('Y-m-d').'.csv';
+
+        return \App\Support\CsvResponse::stream(
+            $filename,
+            ['Código', 'Fecha', 'Cliente', 'Teléfono', 'Entrega', 'Pago', 'Subtotal', 'Envío', 'Descuento', 'Total', 'Cupón', 'Estado', 'Programado para'],
+            function () use ($q) {
+                foreach ($q->cursor() as $p) {
+                    yield [
+                        $p->codigo,
+                        $p->created_at?->format('Y-m-d H:i') ?? '',
+                        $p->cliente_nombre,
+                        $p->cliente_telefono,
+                        $p->metodo_entrega,
+                        $p->metodo_pago,
+                        number_format((float) $p->subtotal,     2, '.', ''),
+                        number_format((float) $p->delivery_fee, 2, '.', ''),
+                        number_format((float) $p->descuento,    2, '.', ''),
+                        number_format((float) $p->total,        2, '.', ''),
+                        $p->cupon_codigo ?? '',
+                        $p->estado,
+                        $p->programado_para?->format('Y-m-d H:i') ?? '',
+                    ];
+                }
+            },
+        );
     }
 }

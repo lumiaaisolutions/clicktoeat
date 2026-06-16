@@ -29,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant'      => EnforceTenantScope::class,
             'super_admin' => EnsureSuperAdmin::class,
             'idempotent'  => \App\Http\Middleware\Idempotency::class,
+            'feature'     => \App\Http\Middleware\RequiresFeature::class,
         ]);
 
         $middleware->throttleApi();
@@ -78,8 +79,29 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->where('leida_at', '<', now()->subDays(90))
                 ->delete();
         })->weekly()->sundays()->at('03:10')->name('prune-notifications')->onOneServer();
+
+        // ─── Onboarding emails durante el trial (F64) ──────────────────
+        // Día 3 / 7 / 14 desde el alta del local + 1 día antes de fin de trial.
+        // Idempotente vía tabla local_email_log (unique local_id + tipo).
+        $schedule->call(function () {
+            \App\Services\Notifications\TrialNudgeDispatcher::dispatchPending();
+        })->daily()->at('10:00')->name('trial-nudge-emails')->onOneServer();
+
+        // ─── Carrito abandonado (F75) — cada 15 min ────────────────────
+        $schedule->call(function () {
+            \App\Services\Notifications\CarritoAbandonadoDispatcher::dispatchPending();
+        })->everyFifteenMinutes()->name('carrito-abandonado')->onOneServer();
+
+        // ─── Resumen semanal a owners (F74) — domingos 20:00 ───────────
+        $schedule->call(function () {
+            \App\Services\Notifications\ResumenSemanalDispatcher::dispatchAll();
+        })->weekly()->sundays()->at('20:00')->name('resumen-semanal')->onOneServer();
     })
     ->withExceptions(function (Exceptions $exceptions) {
+        // Reporta excepciones a Sentry si DSN está configurado.
+        // No bloquea si la lib no está cargada — fallback silencioso.
+        \Sentry\Laravel\Integration::handles($exceptions);
+
         $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {
             if ($request->is('api/*')) {
                 return response()->json(['message' => 'No autenticado'], 401);
@@ -92,6 +114,20 @@ return Application::configure(basePath: dirname(__DIR__))
                     'message' => $e->getMessage(),
                     'errors'  => $e->errors(),
                 ], 422);
+            }
+        });
+
+        // SaaS — límite cuantitativo de plan alcanzado (max_productos, etc.)
+        $exceptions->render(function (\App\Exceptions\PlanLimitException $e, $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'message'     => $e->getMessage(),
+                    'code'        => 'PLAN_LIMIT',
+                    'feature'     => $e->feature,
+                    'limit'       => $e->limit,
+                    'current'     => $e->current,
+                    'upgrade_url' => '/admin/billing',
+                ], 402);
             }
         });
     })->create();

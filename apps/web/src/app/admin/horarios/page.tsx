@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import type { HorarioSlot, HorariosResponse } from '@/lib/types';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Switch } from '@/components/ui/FormField';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { cn } from '@/lib/utils';
@@ -101,13 +102,14 @@ export default function HorariosPage() {
 
   return (
     <div>
-      <header className="mb-4 md:mb-6">
-        <h1 className="ce-display text-2xl md:text-4xl font-bold">Horarios</h1>
-        <p className="text-muted text-sm mt-1">
-          Define cuándo está abierto tu local. La landing pública muestra
-          el estado <strong>Abierto / Cerrado</strong> calculado en vivo.
-        </p>
-      </header>
+      <AdminPageHeader
+        kicker="Horarios"
+        kickerIcon="clock"
+        title="Cuándo abres,"
+        titleAccent="cuándo cierras."
+        description="Tu landing pública muestra Abierto/Cerrado en vivo según lo que definas aquí."
+        tourSlug="horarios"
+      />
 
       {loading ? (
         <div className="space-y-2">
@@ -123,9 +125,14 @@ export default function HorariosPage() {
               estado.abierto === false ? 'bg-red-50 border-red-200' :
               'bg-amber-50 border-amber-200',
             )}>
-              <span className="text-2xl">
-                {estado.abierto === true ? '🟢' : estado.abierto === false ? '🔴' : '⚪️'}
-              </span>
+              <span
+                className={cn(
+                  'w-3 h-3 rounded-full shrink-0',
+                  estado.abierto === true ? 'bg-emerald-500 halo-pulse' :
+                  estado.abierto === false ? 'bg-red-500' :
+                  'bg-amber-400',
+                )}
+              />
               <div className="flex-1 min-w-0">
                 <p className="font-medium">
                   {estado.abierto === true ? 'Abierto ahora' :

@@ -68,6 +68,13 @@ Documentación viva del proyecto. **Regla**: cada tema vive en su propio `.md` d
 - [**Permisos de staff** — qué módulo ve cada empleado](features/staff-permissions.md)
 - [**SaaS Billing** — Stripe Checkout + suscripciones](features/saas-billing.md) — 3 planes con trial 14 d
 - [**Feature gating** — qué módulo desbloquea cada plan](features/feature-gating.md)
+- [**Programa de lealtad** — sellos por cliente](features/lealtad.md)
+- [**Webhooks outgoing** — eventos a sistemas externos](features/webhooks-outgoing.md) — sólo Premium
+- [**2FA TOTP** — verificación en 2 pasos](features/two-factor.md)
+- [**PWA + Web Push** — panel instalable con notificaciones reales](features/web-push-pwa.md)
+- [**Carrito abandonado** — recuperación por email](features/carrito-abandonado.md)
+- [**Emails transaccionales** — pedido / trial / carrito / resumen semanal](features/emails-transaccionales.md)
+- [**Multi-sucursal** — detalle de implementación](features/multi-sucursal-detalle.md)
 
 ### Modelos
 - [Local](models/local.md)
@@ -96,6 +103,8 @@ Documentación viva del proyecto. **Regla**: cada tema vive en su propio `.md` d
 - [Sistema de loaders](frontend/loaders.md) — InitialLoader, RouteTransition, app/loading.tsx
 - [Sistema de iconos](frontend/icon-system.md) — Icon component inline (estilo Lucide, sin lucide-react)
 - [Tipografía](frontend/typography.md) — Instrument Serif / Hanken Grotesk / Bricolage / Geist y reglas de uso
+- [AdminPageHeader (homologación visual)](frontend/admin-page-header.md) — header reusable estilo branding aplicado a todos los módulos
+- [Tour + Centro de Ayuda](frontend/help-tour.md) — sistema de ayuda contextual con highlights y tooltips
 - [Geolocalización "Cerca de ti"](frontend/geolocation.md) — geolocation API + Haversine
 
 ### Infra / DevOps
@@ -143,6 +152,7 @@ Documentación viva del proyecto. **Regla**: cada tema vive en su propio `.md` d
 
 ### Runbooks
 - [Rotar `APP_KEY`](runbook/rotar-app-key.md)
+- [`/health/deep` — monitor con uptimerobot](runbook/health-deep.md)
 - [Renombrar BD `clickeat` → `clicktoeat`](runbook/rename-db-clickeat-a-clicktoeat.md)
 - [Sincronizar `composer.lock` tras quitar Spatie](runbook/sincronizar-composer-lock.md)
 - [BD MySQL con disco lleno](runbook/bd-llena.md)

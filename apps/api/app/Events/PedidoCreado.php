@@ -5,7 +5,8 @@ namespace App\Events;
 use App\Models\Pedido;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcastAfterCommit;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
@@ -19,7 +20,7 @@ use Illuminate\Queue\SerializesModels;
  * Sin BROADCAST_CONNECTION configurado, el evento se dispara pero no llega
  * a nadie — comportamiento seguro (frontend sigue con polling).
  */
-class PedidoCreado implements ShouldBroadcastAfterCommit
+class PedidoCreado implements ShouldBroadcast, ShouldDispatchAfterCommit
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 

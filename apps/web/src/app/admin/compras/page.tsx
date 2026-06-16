@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import type { Compra, Ingrediente, Paginated, Resource } from '@/lib/types';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Field, Textarea } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -68,16 +69,15 @@ export default function ComprasPage() {
 
   return (
     <div>
-      <header className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <div>
-          <h1 className="ce-display text-3xl md:text-4xl font-bold">Compras</h1>
-          <p className="text-muted text-sm mt-1">
-            Registra la mercancía que recibes del proveedor.
-            Aumenta stock + actualiza costo promedio automáticamente.
-          </p>
-        </div>
-        <Button onClick={() => setCreating(true)}>+ Nueva compra</Button>
-      </header>
+      <AdminPageHeader
+        kicker="Compras"
+        kickerIcon="truck"
+        title="Lo que compras"
+        titleAccent="a tu proveedor."
+        description="Registra lo que recibes. Tu inventario y tu costo unitario se actualizan solos."
+        tourSlug="compras"
+        actions={<Button onClick={() => setCreating(true)}>+ Nueva compra</Button>}
+      />
 
       <div className="flex gap-2 mb-4 flex-wrap">
         <select

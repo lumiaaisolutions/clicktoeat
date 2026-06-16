@@ -6,15 +6,21 @@
 > Sistema de gating (qué módulos desbloquea cada plan):
 > [`feature-gating.md`](./feature-gating.md).
 
-## Planes
+## Planes (2 desde Fase 19 — 2026-06-15)
 
-| Plan | Slug | Precio | Trial | Features incluidas (keys) |
-|------|------|--------|-------|---------------------------|
-| Esencial | `essential` | $99 MXN/mes | 14 días | `branding_basico`, hasta 30 productos, 5 categorías, sin staff extra |
-| Profesional | `professional` | $299 MXN/mes | 14 días | + `inventario`, `recetas`, `compras`, `metricas_basicas`, `notificaciones`, `qr_personalizado`, `branding_avanzado`, `staff_multi` (3 máx) |
-| Premium | `premium` | $499 MXN/mes | 14 días | + `pos`, `metricas_avanzadas`, `audit_log`, `restore`, `staff_ilimitado` |
+| Plan | Slug | Precio | Trial | Features incluidas (keys) | Límites |
+|------|------|--------|-------|---------------------------|---------|
+| Esencial | `essential` | $99 MXN/mes | 14 días | `branding_basico`, `branding_avanzado`, `qr_personalizado`, `pos`, `notificaciones` | 30 productos, 8 categorías, 0 staff |
+| Profesional | `professional` | $299 MXN/mes | 14 días | TODAS (essential + `inventario`, `recetas`, `compras`, `metricas_basicas`, `metricas_avanzadas`, `staff_multi`, `audit_log`, `restore`) | sin límites |
 
 Cada plan **incluye todo lo del anterior**. La lista exhaustiva de feature keys vive en [`feature-gating.md`](./feature-gating.md).
+
+> **Historial**: Antes había 3 planes (Essential $99 / Professional $299 /
+> Premium $499). El Premium quedó retirado en Fase 19: los locales con
+> `slug = 'premium'` en BD quedan `activo=false` (no se borran por FK con
+> locales que aún lo tengan asignado), pero `PricingSection` solo muestra
+> los 2 activos. Si un local quedó en Premium, recibe TODAS las features
+> (equivalente a Professional para fines prácticos).
 
 ## Esquema de BD
 

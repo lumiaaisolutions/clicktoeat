@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import type { Paginated, Pedido, PedidoEstado, Resource } from '@/lib/types';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
@@ -92,31 +93,47 @@ export default function PedidosPage() {
 
   return (
     <div>
-      <header className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <div>
-          <h1 className="ce-display text-2xl md:text-4xl font-bold">Pedidos</h1>
-          <p className="text-muted text-sm mt-1">Auto-refresca cada 30s. Cambia el estado para que aparezca en cocina.</p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <select
-            value={estado}
-            onChange={(e) => setEstado(e.target.value as PedidoEstado | '')}
-            className="px-3 py-2 border border-line rounded-xl bg-white"
-          >
-            {ESTADOS.map((e) => <option key={e.value} value={e.value}>{e.label}</option>)}
-          </select>
-          <select
-            value={trashed}
-            onChange={(e) => setTrashed(e.target.value as '' | 'only' | 'with')}
-            className="px-3 py-2 border border-line rounded-xl bg-white"
-            title="Filtro de pedidos eliminados"
-          >
-            <option value="">Activos</option>
-            <option value="with">Activos + eliminados</option>
-            <option value="only">Sólo eliminados</option>
-          </select>
-        </div>
-      </header>
+      <AdminPageHeader
+        kicker="Pedidos"
+        kickerIcon="bell"
+        title="Lo que tus clientes"
+        titleAccent="están pidiendo."
+        description="Se actualizan solos cada 30 segundos. Cambia el estado conforme avanza la preparación."
+        tourSlug="pedidos"
+        actions={
+          <div data-tour="pedidos-filtros" className="flex gap-2 flex-wrap">
+            <select
+              value={estado}
+              onChange={(e) => setEstado(e.target.value as PedidoEstado | '')}
+              className="px-3 py-2 border border-line rounded-xl bg-white text-sm"
+            >
+              {ESTADOS.map((e) => <option key={e.value} value={e.value}>{e.label}</option>)}
+            </select>
+            <select
+              value={trashed}
+              onChange={(e) => setTrashed(e.target.value as '' | 'only' | 'with')}
+              className="px-3 py-2 border border-line rounded-xl bg-white text-sm"
+              title="Filtro de pedidos eliminados"
+            >
+              <option value="">Activos</option>
+              <option value="with">Activos + eliminados</option>
+              <option value="only">Sólo eliminados</option>
+            </select>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={async () => {
+                try {
+                  const { downloadFile } = await import('@/lib/api');
+                  await downloadFile('/pedidos/export', estado ? { estado } : undefined);
+                } catch { toast.error('No se pudo exportar'); }
+              }}
+            >
+              Exportar CSV
+            </Button>
+          </div>
+        }
+      />
 
       <div className="rounded-2xl border border-line bg-white overflow-hidden">
         {items === null ? (
@@ -140,6 +157,11 @@ export default function PedidosPage() {
                   <span className="font-mono text-xs text-muted">{p.codigo}</span>
                   <span className="font-medium">{p.cliente_nombre}</span>
                   <span className="text-sm text-muted">· {p.cliente_telefono}</span>
+                  {p.lealtad_premio_listo && (
+                    <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-300 inline-flex items-center gap-1">
+                      🎁 Premio listo — regálale algo
+                    </span>
+                  )}
                   <span className="ml-auto font-bold">{formatMXN(p.total)}</span>
                   {trashed === 'only' && (
                     <button

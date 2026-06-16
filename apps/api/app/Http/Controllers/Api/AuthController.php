@@ -83,6 +83,39 @@ class AuthController extends Controller
             ]);
         }
 
+        // 2FA: si el user tiene 2FA confirmado, exigir el código TOTP.
+        if ($user->hasTwoFactorEnabled()) {
+            $otp = (string) $request->input('otp', '');
+            if ($otp === '') {
+                // Respuesta especial: el frontend muestra el input de 2FA y reintenta.
+                return response()->json([
+                    'two_factor_required' => true,
+                    'message' => 'Tu cuenta tiene 2FA activado. Ingresa tu código.',
+                ], 200);
+            }
+            // Permitir recovery codes
+            $recoveryOk = false;
+            if ($user->two_factor_recovery_codes) {
+                $codes = json_decode(\Illuminate\Support\Facades\Crypt::decryptString($user->two_factor_recovery_codes), true) ?? [];
+                if (in_array(strtoupper($otp), array_map('strtoupper', $codes), true)) {
+                    $codes = array_values(array_filter($codes, fn ($c) => strtoupper($c) !== strtoupper($otp)));
+                    $user->two_factor_recovery_codes = \Illuminate\Support\Facades\Crypt::encryptString(json_encode($codes));
+                    $user->save();
+                    $recoveryOk = true;
+                }
+            }
+            if (! $recoveryOk) {
+                $secret = \Illuminate\Support\Facades\Crypt::decryptString($user->two_factor_secret);
+                $valid  = (new \PragmaRX\Google2FA\Google2FA())->verifyKey($secret, $otp);
+                if (! $valid) {
+                    RateLimiter::hit($key, 60);
+                    throw ValidationException::withMessages([
+                        'otp' => ['Código 2FA incorrecto.'],
+                    ]);
+                }
+            }
+        }
+
         RateLimiter::clear($key);
 
         $device = $request->input('device') ?: 'web';
@@ -105,13 +138,33 @@ class AuthController extends Controller
      */
     public function me(Request $request): JsonResponse
     {
-        $user = $request->user()->load('local');
+        $user = $request->user()->load('local.plan');
 
         // Exponer permisos efectivos (owner/super_admin = todos; staff = listados o default)
         $payload = $user->toArray();
         $payload['permisos'] = $user->permisosEfectivos();
 
-        return response()->json(['user' => $payload]);
+        $local = $user->local;
+        $plan  = $local?->plan;
+
+        return response()->json([
+            'user' => $payload,
+            // Plan + status del SaaS para que el frontend pueda hacer gating
+            'plan' => $plan ? [
+                'slug'                   => $plan->slug,
+                'nombre'                 => $plan->nombre,
+                'features'               => $plan->features ?? [],
+                'limits' => [
+                    'productos'  => $plan->max_productos,
+                    'categorias' => $plan->max_categorias,
+                    'staff'      => $plan->max_staff,
+                ],
+                'status'                 => $local->plan_status,
+                'trial_ends_at'          => $local->trial_ends_at?->toIso8601String(),
+                'current_period_ends_at' => $local->current_period_ends_at?->toIso8601String(),
+                'is_active'              => $local->hasActivePlan(),
+            ] : null,
+        ]);
     }
 
     /**

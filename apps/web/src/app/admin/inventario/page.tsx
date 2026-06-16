@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import type { Ingrediente, Resource } from '@/lib/types';
 import { toast } from '@/store/toast';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Button } from '@/components/ui/Button';
 import { Field, Select, Switch } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
@@ -44,29 +45,43 @@ export default function InventarioPage() {
 
   return (
     <div>
-      <header className="flex items-start justify-between mb-4 md:mb-6 flex-wrap gap-3">
-        <div>
-          <h1 className="ce-display text-2xl md:text-4xl font-bold">Inventario</h1>
-          <p className="text-muted text-sm mt-1">Stock por ingrediente. Los pedidos descuentan automáticamente vía recetas.</p>
-        </div>
-        <div className="flex gap-2 flex-wrap w-full sm:w-auto">
-          <Button
-            variant={filterBajo ? 'primary' : 'secondary'}
-            onClick={() => setFilterBajo(!filterBajo)}
-            className="flex-1 sm:flex-none"
-          >
-            Bajo stock
-          </Button>
-          <Link
-            href="/admin/compras"
-            className="inline-flex items-center justify-center gap-1.5 px-4 h-10 text-sm font-medium rounded-xl bg-white border border-line hover:bg-line/30 flex-1 sm:flex-none"
-          >
-            <Icon name="truck" size={15} />
-            Compras
-          </Link>
-          <Button onClick={() => setCreating(true)} className="flex-1 sm:flex-none">+ Ingrediente</Button>
-        </div>
-      </header>
+      <AdminPageHeader
+        kicker="Inventario"
+        kickerIcon="truck"
+        title="Tu stock,"
+        titleAccent="siempre al día."
+        description="Cada vez que vendas un producto, sus ingredientes se descuentan automáticamente."
+        tourSlug="inventario"
+        actions={
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              variant={filterBajo ? 'primary' : 'secondary'}
+              onClick={() => setFilterBajo(!filterBajo)}
+            >
+              Bajo stock
+            </Button>
+            <Link
+              href="/admin/compras"
+              className="inline-flex items-center justify-center gap-1.5 px-4 h-10 text-sm font-medium rounded-xl bg-white border border-line hover:bg-line/30"
+            >
+              <Icon name="truck" size={15} />
+              Compras
+            </Link>
+            <Button
+              variant="secondary"
+              onClick={async () => {
+                try {
+                  const { downloadFile } = await import('@/lib/api');
+                  await downloadFile('/ingredientes/export');
+                } catch { toast.error('No se pudo exportar'); }
+              }}
+            >
+              Exportar CSV
+            </Button>
+            <Button onClick={() => setCreating(true)}>+ Ingrediente</Button>
+          </div>
+        }
+      />
 
       {items === null ? (
         <div className="rounded-2xl border border-line bg-white p-4 space-y-2">

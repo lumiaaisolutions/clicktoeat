@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import type { Staff } from '@/lib/types';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Field } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -45,13 +46,15 @@ export default function StaffPage() {
 
   return (
     <div>
-      <header className="flex items-center justify-between mb-4 md:mb-6 gap-3 flex-wrap">
-        <div>
-          <h1 className="ce-display text-2xl md:text-4xl font-bold">Equipo</h1>
-          <p className="text-muted text-sm mt-1">Owner + staff con acceso a este local.</p>
-        </div>
-        <Button onClick={() => setCreating(true)}>+ Nuevo empleado</Button>
-      </header>
+      <AdminPageHeader
+        kicker="Equipo"
+        kickerIcon="users"
+        title="Tu equipo,"
+        titleAccent="tus permisos."
+        description="Invita personas para ayudarte. Tú decides qué módulos puede ver cada uno."
+        tourSlug="staff"
+        actions={<Button data-tour="staff-nuevo" onClick={() => setCreating(true)}>+ Agregar miembro</Button>}
+      />
 
       {items === null ? (
         <div className="rounded-2xl border border-line bg-white p-4 space-y-2">

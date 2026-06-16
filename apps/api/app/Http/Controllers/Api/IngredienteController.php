@@ -173,4 +173,26 @@ class IngredienteController extends Controller
             $query->orderByDesc('created_at')->orderByDesc('id')->paginate($perPage)
         );
     }
+
+    /** Exporta inventario completo del local a CSV. */
+    public function export(): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $filename = 'inventario-'.now()->format('Y-m-d').'.csv';
+        return \App\Support\CsvResponse::stream(
+            $filename,
+            ['Nombre', 'Unidad', 'Stock', 'Stock mínimo', 'Costo unitario', 'Bajo stock'],
+            function () {
+                foreach (Ingrediente::query()->orderBy('nombre')->cursor() as $i) {
+                    yield [
+                        $i->nombre,
+                        $i->unidad,
+                        number_format((float) $i->stock,          3, '.', ''),
+                        number_format((float) ($i->stock_minimo ?? 0), 3, '.', ''),
+                        number_format((float) ($i->costo_unitario ?? 0), 2, '.', ''),
+                        $i->bajo_stock ? 'sí' : 'no',
+                    ];
+                }
+            },
+        );
+    }
 }

@@ -16,9 +16,19 @@ export default function LeafletMap({ lat, lng, onMapClick, initialCenter }: Prop
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
+    let cancelled = false;
 
     // Importar leaflet solo en browser
     import('leaflet').then((L) => {
+      if (cancelled || !containerRef.current) return;
+
+      // React StrictMode en dev monta dos veces → si el container ya tiene
+      // `_leaflet_id` de un mount previo, limpiamos esa marca para evitar
+      // "Map container is already initialized."
+      const el = containerRef.current as any;
+      if (el._leaflet_id) {
+        try { delete el._leaflet_id; } catch { el._leaflet_id = undefined; }
+      }
 
       const icon = L.icon({
         iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -66,9 +76,20 @@ export default function LeafletMap({ lat, lng, onMapClick, initialCenter }: Prop
     });
 
     return () => {
-      mapRef.current?.remove();
+      cancelled = true;
+      try {
+        mapRef.current?.off();
+        mapRef.current?.remove();
+      } catch { /* ignore */ }
       mapRef.current = null;
       markerRef.current = null;
+      // Limpiamos la marca _leaflet_id que deja Leaflet en el div
+      if (containerRef.current) {
+        const el = containerRef.current as any;
+        if (el._leaflet_id) {
+          try { delete el._leaflet_id; } catch { el._leaflet_id = undefined; }
+        }
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

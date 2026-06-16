@@ -46,4 +46,9 @@ class Producto extends Model
     {
         return $this->hasMany(Receta::class);
     }
+
+    public function resenas(): HasMany
+    {
+        return $this->hasMany(Resena::class);
+    }
 }

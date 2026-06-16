@@ -51,7 +51,14 @@ class MenuController extends Controller
             ->bySlug($slug)
             ->with([
                 'categorias' => fn ($q) => $q->where('activo', true)->orderBy('orden'),
-                'productos'  => fn ($q) => $q->where('disponible', true)->orderBy('orden'),
+                'productos'  => function ($q) {
+                    $q->where('disponible', true)->orderBy('orden');
+                    // F37 — promedio y conteo de reseñas publicadas por producto
+                    if (\Illuminate\Support\Facades\Schema::hasTable('resenas')) {
+                        $q->withAvg(['resenas as avg_rating' => fn ($rq) => $rq->where('publicada', true)], 'calificacion')
+                          ->withCount(['resenas as rating_count' => fn ($rq) => $rq->where('publicada', true)]);
+                    }
+                },
                 'productos.categoria:id,slug,nombre',
             ])
             ->first();
@@ -82,6 +89,11 @@ class MenuController extends Controller
                         'radioKm'    => (int) ($local->delivery_radio_km ?? 5),
                         'zona'       => $local->zona_entrega,
                     ],
+                    'lealtad'     => $local->lealtad_activo ? [
+                        'enabled' => true,
+                        'meta'    => (int) $local->lealtad_meta,
+                        'premio'  => $local->lealtad_premio,
+                    ] : null,
                 ],
                 'branding'   => [
                     'logo'             => $local->logo_url,
@@ -89,6 +101,7 @@ class MenuController extends Controller
                     'colorPrimario'    => $local->color_primario,
                     'colorSecundario'  => $local->color_secundario,
                     'colorFondo'       => $local->color_fondo,
+                    'colorOverrides'   => $local->color_overrides ?? null,
                     'tipografia'       => $local->tipografia,
                     'darkMode'         => $local->dark_mode,
                 ],
@@ -99,6 +112,8 @@ class MenuController extends Controller
                     'icono' => $c->icono,
                     'orden' => $c->orden,
                 ]),
+                // F86 — Top 3 productos más pedidos hoy
+                'hot'         => $this->hotProductos($local->id),
                 'productos'  => $local->productos->map(fn ($p) => [
                     'id'              => $p->id,
                     'slug'            => $p->slug,
@@ -117,8 +132,49 @@ class MenuController extends Controller
                         'id'   => $p->categoria?->id,
                         'slug' => $p->categoria?->slug,
                     ],
+                    // F37 — Rating expuesto para que landing muestre estrellas
+                    'avgRating'   => $p->avg_rating !== null ? round((float) $p->avg_rating, 1) : null,
+                    'ratingCount' => (int) ($p->rating_count ?? 0),
                 ]),
             ],
         ]);
+    }
+
+    /**
+     * Top 3 productos más pedidos en las últimas 24h. Si no hay suficiente
+     * volumen hoy, expande a 7 días. Devuelve sólo IDs + unidades para que
+     * el frontend resaltó tarjetas con "🔥 N pedidos hoy".
+     */
+    private function hotProductos(int $localId): array
+    {
+        $top = \Illuminate\Support\Facades\DB::table('detalle_pedidos as d')
+            ->join('pedidos as p', 'p.id', '=', 'd.pedido_id')
+            ->where('p.local_id', $localId)
+            ->where('p.estado', '!=', 'cancelado')
+            ->where('p.created_at', '>=', now()->subHours(24))
+            ->select('d.producto_id', \Illuminate\Support\Facades\DB::raw('SUM(d.cantidad) as unidades'))
+            ->groupBy('d.producto_id')
+            ->orderByDesc('unidades')
+            ->limit(3)
+            ->get();
+
+        if ($top->count() < 2) {
+            // Expandir ventana a 7 días si hay poco volumen hoy
+            $top = \Illuminate\Support\Facades\DB::table('detalle_pedidos as d')
+                ->join('pedidos as p', 'p.id', '=', 'd.pedido_id')
+                ->where('p.local_id', $localId)
+                ->where('p.estado', '!=', 'cancelado')
+                ->where('p.created_at', '>=', now()->subDays(7))
+                ->select('d.producto_id', \Illuminate\Support\Facades\DB::raw('SUM(d.cantidad) as unidades'))
+                ->groupBy('d.producto_id')
+                ->orderByDesc('unidades')
+                ->limit(3)
+                ->get();
+        }
+
+        return $top->map(fn ($r) => [
+            'producto_id' => (int) $r->producto_id,
+            'unidades'    => (int) $r->unidades,
+        ])->all();
     }
 }

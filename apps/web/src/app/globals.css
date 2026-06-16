@@ -38,7 +38,7 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-.ce-display { font-family: "Bricolage Grotesque", system-ui, sans-serif; letter-spacing: -0.02em; }
+.ce-display { font-family: var(--ce-display-font, "Bricolage Grotesque"), system-ui, sans-serif; letter-spacing: -0.02em; }
 .ce-serif   { font-family: "Instrument Serif", "Georgia", serif; letter-spacing: -0.01em; font-weight: 400; }
 .ce-body    { font-family: "Hanken Grotesk", system-ui, sans-serif; }
 
@@ -343,3 +343,49 @@ html { scroll-behavior: smooth; }
 /* Scrollbar discreto para chips de categorías */
 .ce-chips-scroll::-webkit-scrollbar { display: none; }
 .ce-chips-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+
+/* Ken-burns: scale + ligero pan, infinito alternate. Para preview hero. */
+@keyframes ce-kenburns {
+  0%   { transform: scale(1)    translate(0, 0); }
+  100% { transform: scale(1.07) translate(-1.5%, -1.5%); }
+}
+
+/* Swipe hint — flecha animada que se mueve de izq a der mostrando dirección */
+@keyframes ce-swipe-arrow {
+  0%        { transform: translateX(-4px); opacity: 0.6; }
+  50%       { transform: translateX(2px);  opacity: 1;   }
+  100%      { transform: translateX(-4px); opacity: 0.6; }
+}
+.ce-swipe-arrow { animation: ce-swipe-arrow 1.2s ease-in-out infinite; display: inline-flex; }
+
+/* ─────────── "LUMIA" credit — gradient animado más llamativo ─────────── */
+@keyframes ce-lumia-shimmer {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+.ce-lumia {
+  background: linear-gradient(90deg,
+    var(--ce-accent, #FF2D2D) 0%,
+    #FFA62D 25%,
+    #FF6B35 50%,
+    #FFA62D 75%,
+    var(--ce-accent, #FF2D2D) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  animation: ce-lumia-shimmer 4s linear infinite;
+  text-shadow: 0 0 22px color-mix(in srgb, var(--ce-accent, #FF2D2D) 28%, transparent);
+}
+.ce-lumia-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  text-decoration: none;
+  transition: transform 0.25s ease;
+}
+.ce-lumia-link:hover { transform: translateY(-1px) scale(1.03); }
+.ce-lumia-link:hover .ce-lumia { animation-duration: 1.5s; }
