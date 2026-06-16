@@ -52,15 +52,16 @@ export default function ElegirPlanPage() {
   const elegir = async (plan: Plan) => {
     setBusy(plan.slug);
     try {
-      const { data } = await api.post<{ url: string }>('/billing/checkout', {
+      const { data } = await api.post<{ session_url?: string; url?: string }>('/billing/checkout', {
         plan_slug: plan.slug,
       });
-      if (!data?.url) {
+      const url = data?.session_url ?? data?.url;
+      if (!url) {
         alert('No recibimos URL de pago. Intenta de nuevo en un momento.');
         setBusy(null);
         return;
       }
-      window.location.href = data.url;
+      window.location.href = url;
     } catch (err: any) {
       const status = err?.response?.status;
       const msg = err?.response?.data?.message

@@ -207,8 +207,14 @@ function UpgradeSection({ currentPlanSlug }: { currentPlanSlug: string }) {
   const cambiar = async (slug: string) => {
     setBusy(slug);
     try {
-      const { data } = await api.post<{ url: string }>('/billing/checkout', { plan_slug: slug });
-      window.location.href = data.url;
+      const { data } = await api.post<{ session_url?: string; url?: string }>('/billing/checkout', { plan_slug: slug });
+      const url = data?.session_url ?? data?.url;
+      if (!url) {
+        alert('No recibimos URL de pago. Intenta de nuevo en un momento.');
+        setBusy(null);
+        return;
+      }
+      window.location.href = url;
     } catch (err: any) {
       alert(err?.response?.data?.message ?? 'No pudimos abrir el cambio de plan.');
       setBusy(null);
