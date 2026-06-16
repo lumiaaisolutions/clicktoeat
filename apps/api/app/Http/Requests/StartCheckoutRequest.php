@@ -14,7 +14,7 @@ class StartCheckoutRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'plan_slug' => ['required', 'string', 'in:essential,professional'],
+            'plan_slug' => ['required', 'string', 'in:essential,professional,premium'],
             'email'     => ['nullable', 'email'],   // pre-llena el campo email del checkout si viene
         ];
     }

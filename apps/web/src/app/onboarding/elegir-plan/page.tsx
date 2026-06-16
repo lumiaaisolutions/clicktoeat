@@ -55,9 +55,19 @@ export default function ElegirPlanPage() {
       const { data } = await api.post<{ url: string }>('/billing/checkout', {
         plan_slug: plan.slug,
       });
+      if (!data?.url) {
+        alert('No recibimos URL de pago. Intenta de nuevo en un momento.');
+        setBusy(null);
+        return;
+      }
       window.location.href = data.url;
     } catch (err: any) {
-      alert(err?.response?.data?.message ?? 'No pudimos abrir el checkout.');
+      const status = err?.response?.status;
+      const msg = err?.response?.data?.message
+        ?? (status === 429 ? 'Demasiados intentos. Espera 1 minuto y vuelve a intentar.'
+        :   status === 422 ? 'El plan seleccionado no está disponible. Refresca la página.'
+        :   'No pudimos abrir el checkout. Intenta de nuevo.');
+      alert(msg);
       setBusy(null);
     }
   };
