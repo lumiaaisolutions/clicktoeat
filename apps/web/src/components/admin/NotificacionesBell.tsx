@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNotificaciones } from '@/store/notificaciones';
@@ -26,37 +27,22 @@ export function NotificacionesBell() {
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="relative w-9 h-9 rounded-xl hover:bg-line/50 grid place-items-center"
-        aria-label="Notificaciones"
-      >
-        <Icon name="bell" size={18} className="text-ink/80" />
-        {(noLeidas + pedidosNuevos.length) > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold grid place-items-center">
-            {(noLeidas + pedidosNuevos.length) > 99 ? '99+' : noLeidas + pedidosNuevos.length}
-          </span>
-        )}
-      </button>
-
-      <AnimatePresence>
-        {open && (
-          <div className="fixed inset-0 z-[150] flex">
-            <button
-              aria-label="Cerrar"
-              onClick={() => setOpen(false)}
-              className="flex-1 bg-black/55 backdrop-blur-sm"
-            />
-            <motion.aside
-              initial={{ x: 400 }}
-              animate={{ x: 0 }}
-              exit={{ x: 400 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 250 }}
-              className="w-full max-w-md bg-white h-full flex flex-col shadow-glass"
-            >
+  const drawer = (
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-[200] flex">
+          <button
+            aria-label="Cerrar"
+            onClick={() => setOpen(false)}
+            className="flex-1 bg-black/55 backdrop-blur-sm"
+          />
+          <motion.aside
+            initial={{ x: 400 }}
+            animate={{ x: 0 }}
+            exit={{ x: 400 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+            className="w-full max-w-md bg-white h-full flex flex-col shadow-glass"
+          >
               <header className="px-5 py-4 border-b border-line flex items-center justify-between">
                 <h3 className="ce-display font-bold text-xl">Notificaciones</h3>
                 <div className="flex items-center gap-2">
@@ -124,12 +110,12 @@ export function NotificacionesBell() {
                           <span className="mt-0.5 text-ink/70"><Icon name={iconFor(n.tipo)} size={16} /></span>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <p className="font-medium text-sm">{n.titulo}</p>
+                              <p className="font-medium text-sm">{n.titulo || 'Notificación'}</p>
                               {!n.leida && (
                                 <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
                               )}
                             </div>
-                            <p className="text-xs text-muted mt-0.5">{n.mensaje}</p>
+                            <p className="text-xs text-muted mt-0.5">{n.mensaje || '(Sin detalles)'}</p>
                             <p className="text-[10px] text-muted mt-1">
                               {new Date(n.created_at).toLocaleString('es-MX')}
                             </p>
@@ -144,6 +130,25 @@ export function NotificacionesBell() {
           </div>
         )}
       </AnimatePresence>
+  );
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="relative w-9 h-9 rounded-xl hover:bg-line/50 grid place-items-center"
+        aria-label="Notificaciones"
+      >
+        <Icon name="bell" size={18} className="text-ink/80" />
+        {(noLeidas + pedidosNuevos.length) > 0 && (
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold grid place-items-center">
+            {(noLeidas + pedidosNuevos.length) > 99 ? '99+' : noLeidas + pedidosNuevos.length}
+          </span>
+        )}
+      </button>
+
+      {typeof window !== 'undefined' ? createPortal(drawer, document.body) : null}
     </>
   );
 }

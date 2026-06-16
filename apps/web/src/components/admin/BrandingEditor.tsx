@@ -585,29 +585,29 @@ function ColorField({
   return (
     <div className="block">
       <span className="block text-sm font-medium mb-1">{label}</span>
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          className="shrink-0 w-10 h-10 rounded-lg border border-line cursor-pointer"
-          style={{ backgroundColor: value || '#000000' }}
-          aria-label={`Seleccionar color ${label}`}
-        />
-        <input
-          ref={inputRef}
-          type="color"
-          value={value || '#000000'}
-          onChange={(e) => onChange(e.target.value.toUpperCase())}
-          className="sr-only"
-        />
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="flex-1 min-w-0 px-2 py-2 border border-line rounded-lg font-mono text-sm bg-white"
-          maxLength={9}
-        />
-      </div>
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        className="w-full h-14 rounded-xl border-2 border-line hover:border-ink/40 transition cursor-pointer relative overflow-hidden group"
+        style={{ backgroundColor: value || '#000000' }}
+        aria-label={`Elegir color ${label}`}
+      >
+        <span className="absolute inset-0 grid place-items-center bg-black/0 group-hover:bg-black/20 transition">
+          <span className="opacity-0 group-hover:opacity-100 transition text-white text-xs font-semibold drop-shadow flex items-center gap-1.5">
+            <Icon name="palette" size={14} />
+            Cambiar color
+          </span>
+        </span>
+      </button>
+      <input
+        ref={inputRef}
+        type="color"
+        value={value || '#000000'}
+        onChange={(e) => onChange(e.target.value.toUpperCase())}
+        className="sr-only"
+        aria-hidden
+        tabIndex={-1}
+      />
       {error && <span className="block text-xs text-red-600 mt-1">{error}</span>}
     </div>
   );

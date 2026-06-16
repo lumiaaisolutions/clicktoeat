@@ -45,7 +45,7 @@ export default function AnunciosPage() {
         kickerIcon="bell"
         title="Comunica a"
         titleAccent="todos tus locales."
-        description="Aparecen como banner en el panel de cada owner/staff. Útil para mantenimientos, lanzamientos, cambios."
+        description="Crea un aviso y aparecerá como banner arriba del panel de todos los locales. Úsalo para anunciar mantenimientos, novedades o cambios."
         actions={<Button onClick={() => setCreating(true)}><Icon name="plus" size={14} className="mr-1.5" />Nuevo anuncio</Button>}
       />
 

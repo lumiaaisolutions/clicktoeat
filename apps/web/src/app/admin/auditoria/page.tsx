@@ -34,18 +34,18 @@ export default function AuditoriaPage() {
   return (
     <div>
       <AdminPageHeader
-        kicker="Auditoría global"
+        kicker="Historial"
         kickerIcon="history"
         title="Quién hizo qué,"
         titleAccent="cuándo y dónde."
-        description="Registro inalterable de todas las acciones en la plataforma. Útil para diagnóstico, soporte y seguridad."
+        description="Historial completo de la actividad en la plataforma. Útil para resolver dudas, dar soporte y revisar seguridad."
       />
 
       <input
         type="search"
         value={q}
         onChange={(e) => { setQ(e.target.value); setPage(1); }}
-        placeholder="Buscar por acción o tipo (ej. local.updated, producto.deleted)…"
+        placeholder="Buscar por nombre, acción o local…"
         className="w-full px-3 py-2 border border-line rounded-xl bg-white mb-4"
       />
 
@@ -75,9 +75,9 @@ export default function AuditoriaPage() {
                       </div>
                     ) : <span className="text-muted">—</span>}
                   </td>
-                  <td className="px-3 py-2 font-mono text-xs">{r.action}</td>
+                  <td className="px-3 py-2 text-xs">{humanizeAction(r.action)}</td>
                   <td className="px-3 py-2 text-xs">
-                    {r.subject_type ? `${r.subject_type.split('\\').pop()}#${r.subject_id}` : '—'}
+                    {r.subject_type ? `${humanizeSubject(r.subject_type)} #${r.subject_id}` : '—'}
                   </td>
                   <td className="px-3 py-2 text-xs">{r.local_id ?? '—'}</td>
                 </tr>
@@ -88,4 +88,32 @@ export default function AuditoriaPage() {
       )}
     </div>
   );
+}
+
+function humanizeAction(action: string): string {
+  const map: Record<string, string> = {
+    'created':  'Creó',
+    'updated':  'Editó',
+    'deleted':  'Borró',
+    'restored': 'Restauró',
+  };
+  // Si viene como "producto.updated" o solo "updated", buscamos la última parte
+  const parts = action.split('.');
+  const verb  = parts[parts.length - 1];
+  return map[verb] ?? action;
+}
+
+function humanizeSubject(type: string): string {
+  const last = (type.split('\\').pop() ?? type).toLowerCase();
+  const map: Record<string, string> = {
+    'producto':  'Producto',
+    'categoria': 'Categoría',
+    'pedido':    'Pedido',
+    'local':     'Local',
+    'user':      'Usuario',
+    'cupon':     'Cupón',
+    'compra':    'Compra',
+    'ingrediente': 'Ingrediente',
+  };
+  return map[last] ?? last.charAt(0).toUpperCase() + last.slice(1);
 }

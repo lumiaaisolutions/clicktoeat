@@ -52,18 +52,18 @@ export default function NewsletterPage() {
         kicker="Newsletter"
         kickerIcon="bell"
         title="Avisa a"
-        titleAccent="todos los owners."
-        description="Mensaje masivo por correo. Útil para anunciar nuevas features, cambios de precio o políticas."
+        titleAccent="todos tus dueños."
+        description="Envía un correo a todos los dueños de local de un solo golpe. Úsalo para anunciar novedades, cambios de precio o políticas."
       />
 
       <form onSubmit={send} className="rounded-3xl border border-line bg-white p-5 mb-6 space-y-3">
-        <Field label="Asunto" value={asunto} onChange={(e) => setAsunto(e.target.value)} required maxLength={200} />
-        <Textarea label="Mensaje (texto plano)" value={body} onChange={(e) => setBody(e.target.value)} required maxLength={10000} rows={10} />
+        <Field label="Asunto del correo" value={asunto} onChange={(e) => setAsunto(e.target.value)} required maxLength={200} hint="Lo que verán como título en su bandeja" />
+        <Textarea label="Mensaje" value={body} onChange={(e) => setBody(e.target.value)} required maxLength={10000} rows={10} hint="Texto plano. Se envía tal cual aparece aquí." />
         <div>
-          <label className="text-sm font-medium block mb-1">Enviar a</label>
+          <label className="text-sm font-medium block mb-1">¿A quién se lo mandas?</label>
           <div className="grid grid-cols-3 gap-2">
-            <button type="button" onClick={() => setRol('owner')}       className={`px-3 py-2 rounded-lg text-xs font-semibold border ${rol === 'owner' ? 'bg-ink text-white' : 'bg-white border-line'}`}>Solo owners</button>
-            <button type="button" onClick={() => setRol('super_admin')} className={`px-3 py-2 rounded-lg text-xs font-semibold border ${rol === 'super_admin' ? 'bg-ink text-white' : 'bg-white border-line'}`}>Solo super admin</button>
+            <button type="button" onClick={() => setRol('owner')}       className={`px-3 py-2 rounded-lg text-xs font-semibold border ${rol === 'owner' ? 'bg-ink text-white' : 'bg-white border-line'}`}>Solo dueños de local</button>
+            <button type="button" onClick={() => setRol('super_admin')} className={`px-3 py-2 rounded-lg text-xs font-semibold border ${rol === 'super_admin' ? 'bg-ink text-white' : 'bg-white border-line'}`}>Solo administradores</button>
             <button type="button" onClick={() => setRol('todos')}       className={`px-3 py-2 rounded-lg text-xs font-semibold border ${rol === 'todos' ? 'bg-ink text-white' : 'bg-white border-line'}`}>Todos</button>
           </div>
         </div>

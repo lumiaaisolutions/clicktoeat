@@ -112,3 +112,18 @@ otro inconsistentemente.
 
 Fix: ahora usa `<img>` puro con `object-cover` y animación `kenburns` (zoom
 sutil al hover). El banner refleja exactamente lo que el cliente verá.
+
+## Color picker sin código hex (junio 2026, segunda iteración)
+
+Bug del usuario: "no debe tener código de colores, solo pulsar y elegir".
+
+Antes: `ColorField` mostraba el botón color + un input de texto `#FF2D2D`
+al lado. El input editable invitaba al usuario a teclear hex codes, que era
+intimidante y propenso a errores ("¿qué pongo?").
+
+Ahora: solo un botón grande full-width con el color de fondo. Al hover muestra
+"Cambiar color" + icono palette. Click abre el color picker nativo del browser.
+Sin texto técnico. Sin opción de teclear hex (el browser ya lo abstrae).
+
+El valor sigue guardándose como hex en BD para compatibilidad con el resto del
+sistema — el cambio es 100% UX.

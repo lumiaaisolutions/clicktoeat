@@ -57,8 +57,8 @@ export default function CuponesGlobalesPage() {
         kickerIcon="sparkles"
         title="Promociones para"
         titleAccent="toda la plataforma."
-        description="Crea un cupón aquí y replícalo a todos tus locales con un click. Útil para Black Friday, Buen Fin, etc."
-        actions={<Button onClick={() => setCreating(true)}><Icon name="plus" size={14} className="mr-1.5" />Nueva plantilla</Button>}
+        description="Crea un cupón aquí y se aplica a todos tus locales con un click. Útil para promociones de temporada como Buen Fin o Black Friday."
+        actions={<Button onClick={() => setCreating(true)}><Icon name="plus" size={14} className="mr-1.5" />Nuevo cupón</Button>}
       />
 
       {!items ? (

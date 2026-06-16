@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import 'leaflet/dist/leaflet.css';
 
 interface Pin {
   id: number;
@@ -36,20 +37,37 @@ export default function ZonasMap({ pins }: Props) {
       if (el._leaflet_id) { try { delete el._leaflet_id; } catch { el._leaflet_id = undefined; } }
 
       const map = L.map(containerRef.current!, { scrollWheelZoom: true })
-        .setView([19.4326, -99.1332], 5);
+        .setView([23.6345, -102.5528], 5); // Centro de México
       mapRef.current = map;
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap',
+        maxZoom: 18,
       }).addTo(map);
 
       drawPins(L, map, pins);
       layerRef.current = (map as any)._layerGroup ?? null;
+
+      // Fix Leaflet inside flex/grid containers: el tamaño real del div se mide
+      // después del primer paint. Sin esto la grilla de tiles queda cortada.
+      const fixSize = () => map.invalidateSize();
+      setTimeout(fixSize, 0);
+      setTimeout(fixSize, 200);
+      setTimeout(fixSize, 600);
+
+      // También al cambiar el viewport
+      const ro = new ResizeObserver(() => map.invalidateSize());
+      ro.observe(containerRef.current!);
+      (map as any)._roClickToEat = ro;
     });
 
     return () => {
       cancelled = true;
-      try { mapRef.current?.off(); mapRef.current?.remove(); } catch {}
+      try {
+        (mapRef.current as any)?._roClickToEat?.disconnect?.();
+        mapRef.current?.off();
+        mapRef.current?.remove();
+      } catch {}
       mapRef.current = null;
       layerRef.current = null;
       if (containerRef.current) {

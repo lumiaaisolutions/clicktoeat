@@ -63,7 +63,7 @@ export default function ZonasPage() {
         kickerIcon="map-pin"
         title="Tus locales,"
         titleAccent="en un mapa."
-        description="Volumen de ventas del mes por ubicación. Útil para identificar zonas calientes y locales que necesitan apoyo."
+        description="Mira en qué ciudades vendes más este mes. Cada círculo es un local — mientras más grande, más ventas."
       />
 
       {!pins ? <Skeleton className="h-96" /> : pins.length === 0 ? (
@@ -73,14 +73,14 @@ export default function ZonasPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 mb-6">
-            <div className="h-[480px] rounded-3xl border border-line bg-white overflow-hidden">
+            <div className="relative h-[480px] w-full rounded-3xl border border-line bg-white overflow-hidden isolate">
               <ZonasMap pins={filtered} />
             </div>
 
             <aside className="rounded-3xl border border-line bg-white p-4 overflow-y-auto max-h-[480px]">
-              <h3 className="ce-display font-bold mb-3">Top ciudades</h3>
+              <h3 className="ce-display font-bold mb-3">Ciudades con más ventas</h3>
               {ranking.length === 0 ? (
-                <p className="text-sm text-muted">Sin datos.</p>
+                <p className="text-sm text-muted">Sin datos todavía.</p>
               ) : (
                 <ul className="space-y-2">
                   {ranking.slice(0, 12).map((r) => (

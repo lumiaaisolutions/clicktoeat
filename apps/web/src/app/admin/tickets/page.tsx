@@ -44,9 +44,9 @@ export default function TicketsPage() {
       <AdminPageHeader
         kicker="Soporte"
         kickerIcon="help"
-        title="Tickets de"
-        titleAccent="los locales."
-        description="Cada local puede abrir un ticket desde su panel. Respondes acá y se le notifica por correo."
+        title="Mensajes de"
+        titleAccent="tus locales."
+        description="Cada local puede pedir ayuda desde su panel. Aquí lees, respondes y resuelves. Le llega por correo y notificación."
       />
 
       <div className="flex gap-2 mb-4 flex-wrap">
