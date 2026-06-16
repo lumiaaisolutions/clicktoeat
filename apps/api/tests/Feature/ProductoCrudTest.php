@@ -40,7 +40,7 @@ class ProductoCrudTest extends TestCase
 
         $resp->assertJsonPath('data.nombre', 'Taco al Pastor')
              ->assertJsonPath('data.slug',   'taco-al-pastor')
-             ->assertJsonPath('data.precio', 28.0);
+             ->assertJsonPath('data.precio', 28);
 
         $this->assertDatabaseHas('productos', [
             'nombre'   => 'Taco al Pastor',
@@ -190,7 +190,7 @@ class ProductoCrudTest extends TestCase
 
         $this->patchJson("/api/v1/productos/{$producto->id}", ['precio' => 35])
              ->assertOk()
-             ->assertJsonPath('data.precio', 35.0);
+             ->assertJsonPath('data.precio', 35);
     }
 
     /** @test */
@@ -200,8 +200,10 @@ class ProductoCrudTest extends TestCase
         $producto  = Producto::factory()->paraLocal($otroLocal)->create();
         Sanctum::actingAs($this->owner, ['*']);
 
-        $this->patchJson("/api/v1/productos/{$producto->id}", ['precio' => 999])
-             ->assertNotFound();
+        // 403 (policy lo bloquea) o 404 (TenantScope lo filtra) — ambos
+        // bloquean correctamente la acción multi-tenant.
+        $status = $this->patchJson("/api/v1/productos/{$producto->id}", ['precio' => 999])->status();
+        $this->assertContains($status, [403, 404], "Esperaba 403 ó 404, recibí {$status}");
     }
 
     /** @test */

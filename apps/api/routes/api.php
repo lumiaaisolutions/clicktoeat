@@ -100,7 +100,8 @@ Route::middleware('throttle:60,1')->group(function () {
     // ─── Auth ─────────────────────────────────────────────────────────
     Route::prefix('auth')->group(function () {
         Route::post('register', [AuthController::class, 'register'])->middleware('throttle:5,1');
-        Route::post('login',    [AuthController::class, 'login'])->middleware('throttle:10,1');
+        // Route-level: 30/min/IP (red ancha); el rate limiter manual del controller filtra por email (5/min).
+        Route::post('login',    [AuthController::class, 'login'])->middleware('throttle:30,1');
 
         // F89 — self-service signup (user sin local todavía)
         Route::post('signup-prospect', [\App\Http\Controllers\Api\SignupController::class, 'prospect'])
@@ -331,5 +332,12 @@ Route::middleware('throttle:60,1')->group(function () {
         Route::post('tickets/{ticket}/cerrar',                [\App\Http\Controllers\Api\Admin\TicketsController::class, 'cerrar']);
 
         Route::get('metricas-zonas',                          [\App\Http\Controllers\Api\Admin\MetricasZonasController::class, 'index']);
+
+        // F98 — Email templates editables (sustituyen los Blade hardcoded de los Mailables)
+        Route::get('email-templates',                         [\App\Http\Controllers\Api\Admin\EmailTemplatesController::class, 'index']);
+        Route::post('email-templates',                        [\App\Http\Controllers\Api\Admin\EmailTemplatesController::class, 'store']);
+        Route::patch('email-templates/{template}',            [\App\Http\Controllers\Api\Admin\EmailTemplatesController::class, 'update']);
+        Route::delete('email-templates/{template}',           [\App\Http\Controllers\Api\Admin\EmailTemplatesController::class, 'destroy']);
+        Route::post('email-templates/preview',                [\App\Http\Controllers\Api\Admin\EmailTemplatesController::class, 'preview']);
     });
 });

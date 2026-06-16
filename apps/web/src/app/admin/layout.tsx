@@ -171,6 +171,7 @@ const NAV_SUPER: NavItem[] = [
   { href: '/admin/newsletter',       label: 'Newsletter',       icon: 'bell' },
   { href: '/admin/tickets',          label: 'Soporte',          icon: 'message-circle' },
   { href: '/admin/zonas',            label: 'Zonas',            icon: 'map-pin' },
+  { href: '/admin/email-templates',  label: 'Emails',           icon: 'receipt' },
   { href: '/admin/auditoria',        label: 'Auditoría',        icon: 'history' },
 ];
 

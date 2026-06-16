@@ -69,9 +69,12 @@ class AuthController extends Controller
 
         if (RateLimiter::tooManyAttempts($key, 5)) {
             $seconds = RateLimiter::availableIn($key);
-            throw ValidationException::withMessages([
-                'email' => ["Demasiados intentos. Intenta de nuevo en {$seconds}s."],
-            ])->status(429);
+            // Devolvemos JSON 429 directo — `ValidationException::status(429)`
+            // es ignorado por Laravel (siempre fuerza 422 para ValidationException).
+            return response()->json([
+                'message' => "Demasiados intentos. Intenta de nuevo en {$seconds}s.",
+                'errors'  => ['email' => ["Demasiados intentos. Intenta de nuevo en {$seconds}s."]],
+            ], 429);
         }
 
         $user = User::where('email', $request->string('email'))->first();

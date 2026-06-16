@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\TicketReplyMail;
 use App\Models\SupportMessage;
 use App\Models\SupportTicket;
+use App\Services\Notifications\WebPushSender;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 
 class TicketsController extends Controller
 {
@@ -31,6 +34,22 @@ class TicketsController extends Controller
             'created_at' => now(),
         ]);
         $ticket->update(['estado' => 'respondido']);
+
+        // Notifica al owner: email + push (best-effort, no rompe si falla)
+        $ticket->load('user');
+        if ($ticket->user?->email) {
+            try { Mail::to($ticket->user->email)->send(new TicketReplyMail($ticket, $data['mensaje'])); }
+            catch (\Throwable $e) { report($e); }
+        }
+        if ($ticket->user_id) {
+            app(WebPushSender::class)->sendToUser($ticket->user_id, [
+                'title' => "Respuesta a tu ticket #{$ticket->id}",
+                'body'  => mb_strimwidth($data['mensaje'], 0, 120, '…'),
+                'url'   => '/admin/ayuda/contactar',
+                'tag'   => "ticket-{$ticket->id}",
+            ]);
+        }
+
         return response()->json(['data' => $ticket->fresh('messages')]);
     }
 
@@ -74,6 +93,14 @@ class TicketsController extends Controller
             'user_id'    => $req->user()->id,
             'mensaje'    => $data['mensaje'],
             'from_super' => false,
+        ]);
+
+        // Notifica a super admins por push (no email — el super entra al panel)
+        app(WebPushSender::class)->sendToSuperAdmins([
+            'title' => "Nuevo ticket: {$ticket->asunto}",
+            'body'  => ($req->user()->nombre ?? 'Owner').' · '.($data['categoria'] ?? 'soporte'),
+            'url'   => '/admin/tickets',
+            'tag'   => "ticket-new-{$ticket->id}",
         ]);
 
         return response()->json(['data' => $ticket->fresh('messages')], 201);

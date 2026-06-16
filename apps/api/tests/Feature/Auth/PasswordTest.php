@@ -71,11 +71,14 @@ class PasswordTest extends TestCase
              ->getJson('/api/v1/auth/me')
              ->assertOk();
 
-        // tokenA y tokenC NO sirven
+        // tokenA y tokenC NO sirven — `auth()->forgetGuards()` limpia el cache
+        // del guard sanctum para forzar re-validación con la nueva auth header.
+        auth()->forgetGuards();
         $this->withHeader('Authorization', "Bearer {$tokenA}")
              ->getJson('/api/v1/auth/me')
              ->assertStatus(401);
 
+        auth()->forgetGuards();
         $this->withHeader('Authorization', "Bearer {$tokenC}")
              ->getJson('/api/v1/auth/me')
              ->assertStatus(401);

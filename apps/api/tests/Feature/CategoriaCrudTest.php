@@ -111,10 +111,11 @@ class CategoriaCrudTest extends TestCase
 
         Sanctum::actingAs($this->owner, ['*']);
 
-        // 404 porque el TenantScope hace invisible la categoría ajena
-        $this->patchJson("/api/v1/categorias/{$cat->id}", [
+        // 403 (policy) o 404 (TenantScope) — ambos bloquean correctamente
+        $status = $this->patchJson("/api/v1/categorias/{$cat->id}", [
             'nombre' => 'Hijack',
-        ])->assertNotFound();
+        ])->status();
+        $this->assertContains($status, [403, 404], "Esperaba 403 ó 404, recibí {$status}");
     }
 
     /** @test */

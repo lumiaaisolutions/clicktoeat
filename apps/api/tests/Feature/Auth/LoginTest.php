@@ -5,6 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Models\Local;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
@@ -16,6 +17,10 @@ class LoginTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // En testing el CACHE_STORE=array persiste entre tests del mismo proceso.
+        // Limpio ambos: el throttle middleware del router (clave 'throttle|...')
+        // y el RateLimiter manual del controller (clave 'login:ip:email').
+        Cache::flush();
         RateLimiter::clear('login:127.0.0.1:owner@example.com');
     }
 
@@ -76,14 +81,14 @@ class LoginTest extends TestCase
         for ($i = 0; $i < 5; $i++) {
             $this->postJson('/api/v1/auth/login', [
                 'email'    => 'owner@example.com',
-                'password' => 'mal',
+                'password' => 'wrongpass',
             ])->assertStatus(422);
         }
 
         // El 6to intenta — debe ser 429 (throttle del controller)
         $resp = $this->postJson('/api/v1/auth/login', [
             'email'    => 'owner@example.com',
-            'password' => 'mal',
+            'password' => 'wrongpass',
         ]);
 
         $resp->assertStatus(429);
@@ -102,7 +107,7 @@ class LoginTest extends TestCase
         for ($i = 0; $i < 4; $i++) {
             $this->postJson('/api/v1/auth/login', [
                 'email'    => 'owner@example.com',
-                'password' => 'mal',
+                'password' => 'wrongpass',
             ]);
         }
 
@@ -115,7 +120,7 @@ class LoginTest extends TestCase
         // Tras login exitoso, contador reseteado — otro fallo no debería disparar 429
         $this->postJson('/api/v1/auth/login', [
             'email'    => 'owner@example.com',
-            'password' => 'mal',
+            'password' => 'wrongpass',
         ])->assertStatus(422);
     }
 

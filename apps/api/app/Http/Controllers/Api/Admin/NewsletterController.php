@@ -3,12 +3,11 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendNewsletterBlast;
 use App\Models\NewsletterBlast;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Log;
 
 class NewsletterController extends Controller
 {
@@ -28,36 +27,21 @@ class NewsletterController extends Controller
         ]);
 
         $rol = $data['rol'] ?? 'owner';
-        $query = User::query()->whereNotNull('email');
-        if ($rol !== 'todos') $query->where('rol', $rol);
-        $recipients = $query->select('id', 'nombre', 'email')->get();
+        $count = User::query()->whereNotNull('email')
+            ->when($rol !== 'todos', fn ($q) => $q->where('rol', $rol))
+            ->count();
 
         $blast = NewsletterBlast::create([
             'user_id'          => $req->user()->id,
             'asunto'           => $data['asunto'],
             'body'             => $data['body'],
-            'recipients_count' => $recipients->count(),
+            'recipients_count' => $count,
             'started_at'       => now(),
         ]);
 
-        $sent = 0; $failed = 0;
-        foreach ($recipients as $u) {
-            try {
-                Mail::raw($data['body'], function ($m) use ($u, $data) {
-                    $m->to($u->email)->subject($data['asunto']);
-                });
-                $sent++;
-            } catch (\Throwable $e) {
-                Log::warning('newsletter send failed', ['user' => $u->id, 'error' => $e->getMessage()]);
-                $failed++;
-            }
-        }
-
-        $blast->update([
-            'sent_count'   => $sent,
-            'failed_count' => $failed,
-            'finished_at'  => now(),
-        ]);
+        // Dispatch al Job: corre sync con QUEUE_CONNECTION=sync (default actual),
+        // o se encola si después activan queue:database + cron `queue:work --once`.
+        SendNewsletterBlast::dispatch($blast->id, $rol);
 
         return response()->json(['data' => $blast->fresh()], 201);
     }

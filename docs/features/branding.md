@@ -84,3 +84,31 @@ Página: `apps/web/src/app/admin/branding/page.tsx`. Side-by-side form ↔ previ
 - Galería de fonts predefinidas (no escribir libre).
 - Generar **favicon** dinámico desde el logo.
 - Generar **OG image** automática con nombre del local.
+
+## Feedback visual de selección (junio 2026)
+
+Bug histórico: al elegir una plantilla / paleta / fuente, la vista previa se
+actualizaba pero el botón seleccionado no tenía indicador visible — el owner
+no sabía cuál estaba activo.
+
+Fix: las 3 secciones ahora usan el mismo patrón visual:
+
+- **Borde verde** (`border-emerald-500`) cuando activo
+- **Anillo emerald** (`ring-emerald-200`) por afuera
+- **Check circle** absoluto arriba a la derecha con icono `check`
+- **Fondo emerald-50/60** en el área de label
+- `aria-pressed={active}` para lectores de pantalla
+
+Aplicado en `apps/web/src/components/admin/BrandingEditor.tsx`:
+- Plantillas (línea ~184)
+- Paletas sugeridas (línea ~236 — antes ni siquiera detectaba active)
+- Tipografía (línea ~278)
+
+## Vista previa: banner del local
+
+Hasta junio 2026 la vista previa no mostraba el banner del local porque mezclaba
+`backgroundImage` (CSS) con `<img>` y el navegador renderizaba uno encima del
+otro inconsistentemente.
+
+Fix: ahora usa `<img>` puro con `object-cover` y animación `kenburns` (zoom
+sutil al hover). El banner refleja exactamente lo que el cliente verá.

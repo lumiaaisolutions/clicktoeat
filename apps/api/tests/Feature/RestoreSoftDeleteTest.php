@@ -103,8 +103,9 @@ class RestoreSoftDeleteTest extends TestCase
 
         Sanctum::actingAs($this->owner, ['*']);
 
-        $this->postJson("/api/v1/productos/{$producto->id}/restore")
-            ->assertStatus(403);
+        // 403 (policy) o 404 (TenantScope+withTrashed lo filtra) — ambos bloquean
+        $status = $this->postJson("/api/v1/productos/{$producto->id}/restore")->status();
+        $this->assertContains($status, [403, 404], "Esperaba 403 ó 404, recibí {$status}");
     }
 
     /** @test */

@@ -17,10 +17,27 @@ class WebPushSender
 {
     public function sendToLocal(int $localId, array $payload): void
     {
+        $this->sendToSubs(PushSubscription::query()->where('local_id', $localId)->get(), $payload);
+    }
+
+    /** Envía a TODOS los super_admin suscritos. Útil para tickets, signups, etc. */
+    public function sendToSuperAdmins(array $payload): void
+    {
+        $userIds = \App\Models\User::query()->where('rol', 'super_admin')->pluck('id');
+        if ($userIds->isEmpty()) return;
+        $this->sendToSubs(PushSubscription::query()->whereIn('user_id', $userIds)->get(), $payload);
+    }
+
+    /** Envía a un usuario específico (cualquier rol). */
+    public function sendToUser(int $userId, array $payload): void
+    {
+        $this->sendToSubs(PushSubscription::query()->where('user_id', $userId)->get(), $payload);
+    }
+
+    private function sendToSubs($subs, array $payload): void
+    {
         $webPush = $this->build();
         if (! $webPush) return;
-
-        $subs = PushSubscription::query()->where('local_id', $localId)->get();
         if ($subs->isEmpty()) return;
 
         $json = json_encode($payload, JSON_UNESCAPED_UNICODE);

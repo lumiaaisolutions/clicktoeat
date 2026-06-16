@@ -187,6 +187,7 @@ export function BrandingEditor({ localId }: { localId?: number } = {}) {
                   <button
                     key={t.id}
                     type="button"
+                    aria-pressed={active}
                     onClick={() => setDraft((d) => ({
                       ...d,
                       color_primario:   t.primario,
@@ -196,10 +197,17 @@ export function BrandingEditor({ localId }: { localId?: number } = {}) {
                       color_overrides:  t.overrides ?? null,
                     }))}
                     className={cn(
-                      'rounded-2xl border overflow-hidden text-left transition group',
-                      active ? 'border-ink/60 shadow-soft' : 'border-line hover:border-ink/30',
+                      'relative rounded-2xl border-2 overflow-hidden text-left transition group',
+                      active
+                        ? 'border-emerald-500 ring-2 ring-emerald-200 shadow-soft'
+                        : 'border-line hover:border-ink/30',
                     )}
                   >
+                    {active && (
+                      <span className="absolute top-1.5 right-1.5 z-10 w-5 h-5 rounded-full bg-emerald-500 grid place-items-center text-white shadow">
+                        <Icon name="check" size={11} />
+                      </span>
+                    )}
                     {/* Mini-preview de la landing */}
                     <div className="h-20 relative" style={{ background: t.fondo }}>
                       <div className="absolute inset-0 grid place-items-center">
@@ -212,7 +220,7 @@ export function BrandingEditor({ localId }: { localId?: number } = {}) {
                         <span className="flex-1" style={{ background: t.secundario }} />
                       </div>
                     </div>
-                    <div className="p-2">
+                    <div className={cn('p-2', active && 'bg-emerald-50/60')}>
                       <p className="text-[11px] font-bold leading-tight">{t.name}</p>
                       <p className="text-[10px] text-muted truncate">{t.tipografia}</p>
                     </div>
@@ -233,21 +241,38 @@ export function BrandingEditor({ localId }: { localId?: number } = {}) {
             <div className="mt-4">
               <p className="text-xs font-semibold text-muted mb-2">Paletas sugeridas</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {COLOR_PALETTES.map((p) => (
-                  <button
-                    key={p.name}
-                    type="button"
-                    onClick={() => setDraft((d) => ({ ...d, color_primario: p.primario, color_secundario: p.secundario, color_fondo: p.fondo }))}
-                    className="rounded-xl border border-line hover:border-ink/40 transition overflow-hidden text-left"
-                  >
-                    <div className="flex h-8">
-                      <span className="flex-1" style={{ background: p.primario }} />
-                      <span className="flex-1" style={{ background: p.secundario }} />
-                      <span className="flex-1" style={{ background: p.fondo }} />
-                    </div>
-                    <p className="text-[11px] font-semibold p-2 text-center">{p.name}</p>
-                  </button>
-                ))}
+                {COLOR_PALETTES.map((p) => {
+                  const active =
+                    (draft.color_primario   ?? '').toLowerCase() === p.primario.toLowerCase()
+                    && (draft.color_secundario ?? '').toLowerCase() === p.secundario.toLowerCase()
+                    && (draft.color_fondo      ?? '').toLowerCase() === p.fondo.toLowerCase();
+                  return (
+                    <button
+                      key={p.name}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setDraft((d) => ({ ...d, color_primario: p.primario, color_secundario: p.secundario, color_fondo: p.fondo }))}
+                      className={cn(
+                        'relative rounded-xl border-2 overflow-hidden text-left transition',
+                        active
+                          ? 'border-emerald-500 ring-2 ring-emerald-200 shadow-soft'
+                          : 'border-line hover:border-ink/40',
+                      )}
+                    >
+                      {active && (
+                        <span className="absolute top-1 right-1 z-10 w-5 h-5 rounded-full bg-emerald-500 grid place-items-center text-white shadow">
+                          <Icon name="check" size={11} />
+                        </span>
+                      )}
+                      <div className="flex h-8">
+                        <span className="flex-1" style={{ background: p.primario }} />
+                        <span className="flex-1" style={{ background: p.secundario }} />
+                        <span className="flex-1" style={{ background: p.fondo }} />
+                      </div>
+                      <p className={cn('text-[11px] font-semibold p-2 text-center', active && 'bg-emerald-50/60 text-emerald-900')}>{p.name}</p>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -275,28 +300,37 @@ export function BrandingEditor({ localId }: { localId?: number } = {}) {
 
           <Section title="Tipografía" icon="sparkles" hint="La fuente del nombre de tu local y los títulos. Elige una que vaya con tu marca.">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {FONT_OPTIONS.map((f) => (
-                <button
-                  key={f.value}
-                  type="button"
-                  onClick={() => set('tipografia', f.value)}
-                  className={cn(
-                    'rounded-xl border p-3 text-left transition',
-                    draft.tipografia === f.value
-                      ? 'border-ink/60 bg-ink/5 shadow-soft'
-                      : 'border-line bg-white hover:border-ink/30',
-                  )}
-                >
-                  <span
-                    className="block text-xl leading-none mb-1"
-                    style={{ fontFamily: f.css }}
+              {FONT_OPTIONS.map((f) => {
+                const active = draft.tipografia === f.value;
+                return (
+                  <button
+                    key={f.value}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => set('tipografia', f.value)}
+                    className={cn(
+                      'relative rounded-xl border-2 p-3 text-left transition',
+                      active
+                        ? 'border-emerald-500 bg-emerald-50/60 ring-2 ring-emerald-200 shadow-soft'
+                        : 'border-line bg-white hover:border-ink/30',
+                    )}
                   >
-                    Aa
-                  </span>
-                  <span className="text-[11px] font-semibold text-ink/80">{f.label}</span>
-                  <span className="block text-[10px] text-muted">{f.category}</span>
-                </button>
-              ))}
+                    {active && (
+                      <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-emerald-500 grid place-items-center text-white shadow">
+                        <Icon name="check" size={11} />
+                      </span>
+                    )}
+                    <span
+                      className="block text-xl leading-none mb-1"
+                      style={{ fontFamily: f.css }}
+                    >
+                      Aa
+                    </span>
+                    <span className={cn('text-[11px] font-semibold', active ? 'text-emerald-900' : 'text-ink/80')}>{f.label}</span>
+                    <span className="block text-[10px] text-muted">{f.category}</span>
+                  </button>
+                );
+              })}
             </div>
           </Section>
 

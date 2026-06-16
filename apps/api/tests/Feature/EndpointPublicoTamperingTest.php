@@ -44,7 +44,7 @@ class EndpointPublicoTamperingTest extends TestCase
     public function pedido_con_extras_validos_usa_precios_del_catalogo(): void
     {
         $resp = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente'        => ['nombre' => 'X', 'telefono' => '5215512345678'],
+            'cliente'        => ['nombre' => 'Xy', 'telefono' => '5215512345678'],
             'metodo_entrega' => 'pickup',
             'metodo_pago'    => 'efectivo',
             'items' => [[
@@ -60,15 +60,15 @@ class EndpointPublicoTamperingTest extends TestCase
         $resp->assertCreated();
 
         // precio = 30 (producto) + 5 (Harina) + 0 (Habanero) = 35
-        $resp->assertJsonPath('data.subtotal', 35.0);
-        $resp->assertJsonPath('data.total',    35.0);
+        $resp->assertJsonPath('data.subtotal', 35);
+        $resp->assertJsonPath('data.total',    35);
     }
 
     /** @test */
     public function rechaza_extra_con_grupo_inexistente(): void
     {
         $resp = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente'        => ['nombre' => 'X', 'telefono' => '5215512345678'],
+            'cliente'        => ['nombre' => 'Xy', 'telefono' => '5215512345678'],
             'metodo_entrega' => 'pickup',
             'metodo_pago'    => 'efectivo',
             'items' => [[
@@ -90,7 +90,7 @@ class EndpointPublicoTamperingTest extends TestCase
     public function rechaza_extra_con_item_inexistente_en_el_grupo(): void
     {
         $resp = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente'        => ['nombre' => 'X', 'telefono' => '5215512345678'],
+            'cliente'        => ['nombre' => 'Xy', 'telefono' => '5215512345678'],
             'metodo_entrega' => 'pickup',
             'metodo_pago'    => 'efectivo',
             'items' => [[
@@ -112,7 +112,7 @@ class EndpointPublicoTamperingTest extends TestCase
         // El cliente manda Harina con price=999 (intento de inflar).
         // Backend debe ignorarlo y usar el catálogo (Harina = $5).
         $resp = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente'        => ['nombre' => 'X', 'telefono' => '5215512345678'],
+            'cliente'        => ['nombre' => 'Xy', 'telefono' => '5215512345678'],
             'metodo_entrega' => 'pickup',
             'metodo_pago'    => 'efectivo',
             'items' => [[
@@ -127,16 +127,18 @@ class EndpointPublicoTamperingTest extends TestCase
         $resp->assertCreated();
 
         // (30 + 5) × 2 = 70  (NO 30 + 999 × 2)
-        $resp->assertJsonPath('data.subtotal', 70.0);
+        $resp->assertJsonPath('data.subtotal', 70);
     }
 
     /** @test */
     public function rechaza_precio_negativo_para_bajar_total(): void
     {
         // Cliente intenta `price: -100` para que el extra reste.
-        // Backend debe reemplazar con catálogo Harina = $5.
+        // El FormRequest valida min:0 → 422 antes de llegar al service.
+        // (Defensa en profundidad: si la validación se rompe, el service
+        // también reemplaza por catálogo — ver `ignora_precio_del_cliente`.)
         $resp = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente'        => ['nombre' => 'X', 'telefono' => '5215512345678'],
+            'cliente'        => ['nombre' => 'Xy', 'telefono' => '5215512345678'],
             'metodo_entrega' => 'pickup',
             'metodo_pago'    => 'efectivo',
             'items' => [[
@@ -148,18 +150,14 @@ class EndpointPublicoTamperingTest extends TestCase
             ]],
         ]);
 
-        $resp->assertCreated();
-
-        // 30 + 5 (Harina del catálogo) = 35. NO 30 + (-100) = -70.
-        $resp->assertJsonPath('data.subtotal', 35.0);
-        $resp->assertJsonPath('data.total',    35.0);
+        $resp->assertStatus(422)->assertJsonValidationErrors('items.0.extras.0.price');
     }
 
     /** @test */
     public function los_extras_persisten_normalizados_en_detalle_pedidos(): void
     {
         $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente'        => ['nombre' => 'X', 'telefono' => '5215512345678'],
+            'cliente'        => ['nombre' => 'Xy', 'telefono' => '5215512345678'],
             'metodo_entrega' => 'pickup',
             'metodo_pago'    => 'efectivo',
             'items' => [[
@@ -188,7 +186,7 @@ class EndpointPublicoTamperingTest extends TestCase
 
         // Intento: pedir un producto de OTRO local desde la landing de éste
         $resp = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente'        => ['nombre' => 'X', 'telefono' => '5215512345678'],
+            'cliente'        => ['nombre' => 'Xy', 'telefono' => '5215512345678'],
             'metodo_entrega' => 'pickup',
             'metodo_pago'    => 'efectivo',
             'items' => [[

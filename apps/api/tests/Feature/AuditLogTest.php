@@ -160,7 +160,10 @@ class AuditLogTest extends TestCase
 
         Sanctum::actingAs($superAdmin, ['*']);
 
-        $resp = $this->getJson('/api/v1/audit-logs')->assertOk();
+        // Super admin tiene su propia ruta sin gate de plan ni tenant scope.
+        // La ruta de owner (/audit-logs) está bloqueada por `feature:audit_log`
+        // (premium) y por `tenant` (que el super no tiene).
+        $resp = $this->getJson('/api/v1/admin/audit-logs')->assertOk();
         $total = AuditLog::count();
         $this->assertCount($total, $resp->json('data'));
     }

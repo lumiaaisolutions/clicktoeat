@@ -168,5 +168,18 @@ if [[ "${HTTP_CODE}" != "200" ]]; then
     fail "Health check FAIL — devolvió HTTP ${HTTP_CODE}. ROLLBACK manual recomendado."
 fi
 
-log "✅ Deploy API completado y health check OK"
+# ─── Sentry release tracking (opcional) ───────────────────────
+# Si SENTRY_AUTH_TOKEN y SENTRY_ORG/SENTRY_PROJECT están seteados, etiqueta el
+# release con el commit hash. Permite correlacionar errores con commit en Sentry.
+COMMIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+if [[ -n "${SENTRY_AUTH_TOKEN:-}" && -n "${SENTRY_ORG:-}" && -n "${SENTRY_PROJECT:-}" ]]; then
+    if command -v sentry-cli >/dev/null 2>&1; then
+        log "Sentry: creando release ${COMMIT_SHA}..."
+        sentry-cli releases new -o "${SENTRY_ORG}" -p "${SENTRY_PROJECT}" "${COMMIT_SHA}" 2>&1 | tail -5 || true
+        sentry-cli releases set-commits "${COMMIT_SHA}" --auto -o "${SENTRY_ORG}" 2>&1 | tail -5 || true
+        sentry-cli releases deploys "${COMMIT_SHA}" new -e production -o "${SENTRY_ORG}" 2>&1 | tail -5 || true
+    fi
+fi
+
+log "✅ Deploy API completado y health check OK (commit ${COMMIT_SHA})"
 exit 0
