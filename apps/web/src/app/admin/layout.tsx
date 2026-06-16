@@ -19,6 +19,7 @@ import { useUpgradeModal } from '@/store/upgradeModal';
 import { InstallPrompt } from '@/components/pwa/InstallPrompt';
 import { PushSubscriber } from '@/components/pwa/PushSubscriber';
 import { TrialBanner } from '@/components/billing/TrialBanner';
+import { AnuncioBanner } from '@/components/admin/AnuncioBanner';
 import { PlanInactiveScreen, isPlanBlocking } from '@/components/billing/PlanInactiveScreen';
 import { TourOverlay } from '@/components/help/TourOverlay';
 import { AutoTourTrigger } from '@/components/help/AutoTourTrigger';
@@ -28,7 +29,8 @@ import { cn } from '@/lib/utils';
 type IconName =
   | 'home' | 'chart' | 'cart' | 'bell' | 'package' | 'list'
   | 'box' | 'receipt' | 'clock' | 'qr' | 'palette' | 'store' | 'lock' | 'card' | 'settings' | 'plug'
-  | 'users' | 'history' | 'help' | 'sparkles' | 'star';
+  | 'users' | 'history' | 'help' | 'sparkles' | 'star'
+  | 'gift' | 'message-circle' | 'map-pin';
 
 interface NavItem {
   href: string;
@@ -70,6 +72,9 @@ function Icon({ name, className }: { name: IconName; className?: string }) {
     case 'help':    return <svg {...common} {...stroke}><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
     case 'sparkles': return <svg {...common} {...stroke}><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>;
     case 'star':    return <svg {...common} {...stroke}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
+    case 'gift':    return <svg {...common} {...stroke}><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>;
+    case 'message-circle': return <svg {...common} {...stroke}><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>;
+    case 'map-pin': return <svg {...common} {...stroke}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>;
   }
 }
 
@@ -158,9 +163,15 @@ const NAV_OWNER: NavItem[] = [
 ];
 
 const NAV_SUPER: NavItem[] = [
-  { href: '/admin',              label: 'Resumen',  icon: 'home' },
-  { href: '/admin/locales',      label: 'Locales',  icon: 'store' },
-  { href: '/admin/saas-metrics', label: 'SaaS',     icon: 'chart' },
+  { href: '/admin',                  label: 'Resumen',          icon: 'home' },
+  { href: '/admin/locales',          label: 'Locales',          icon: 'store' },
+  { href: '/admin/saas-metrics',     label: 'SaaS',             icon: 'chart' },
+  { href: '/admin/anuncios',         label: 'Anuncios',         icon: 'bell' },
+  { href: '/admin/cupones-globales', label: 'Cupones globales', icon: 'gift' },
+  { href: '/admin/newsletter',       label: 'Newsletter',       icon: 'bell' },
+  { href: '/admin/tickets',          label: 'Soporte',          icon: 'message-circle' },
+  { href: '/admin/zonas',            label: 'Zonas',            icon: 'map-pin' },
+  { href: '/admin/auditoria',        label: 'Auditoría',        icon: 'history' },
 ];
 
 function SidebarHeader({ rol, showBell }: { rol: string; showBell: boolean }) {
@@ -323,6 +334,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* ─── MAIN AREA ───────────────────────────────────────────── */}
       <main className="flex-1 min-w-0 min-h-screen">
+        {/* Banner global del super_admin para anuncios cross-platform */}
+        <AnuncioBanner />
+
         {/* Banner del plan (trial countdown / pago fallido / cancelado) — sólo owner+staff */}
         {user.rol !== 'super_admin' && <TrialBanner />}
 

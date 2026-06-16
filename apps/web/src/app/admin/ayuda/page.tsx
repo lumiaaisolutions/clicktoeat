@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useHelpCenter } from '@/store/helpCenter';
 import { TOURS } from '@/components/help/tours';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
@@ -103,17 +104,26 @@ export default function AyudaPage() {
               Escríbenos por WhatsApp y te respondemos. Sin bots.
             </p>
           </div>
-          <a
-            href={soporteWhatsappUrl({
-              motivo: 'Necesito ayuda con mi panel de ClickToEat',
-            })}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 text-white text-sm font-semibold hover:opacity-90 transition tap-target"
-          >
-            <Icon name="whatsapp" size={16} />
-            Hablar con soporte
-          </a>
+          <div className="flex gap-2 flex-wrap shrink-0">
+            <Link
+              href="/admin/ayuda/contactar"
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-ink text-white text-sm font-semibold hover:opacity-90 transition tap-target"
+            >
+              <Icon name="message-circle" size={16} />
+              Abrir ticket
+            </Link>
+            <a
+              href={soporteWhatsappUrl({
+                motivo: 'Necesito ayuda con mi panel de ClickToEat',
+              })}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 text-white text-sm font-semibold hover:opacity-90 transition tap-target"
+            >
+              <Icon name="whatsapp" size={16} />
+              WhatsApp
+            </a>
+          </div>
         </div>
       </div>
     </div>

@@ -141,11 +141,36 @@ Route::middleware('throttle:60,1')->group(function () {
         Route::post('me/switch-local/{localId}',[\App\Http\Controllers\Api\UserLocalesController::class, 'switchLocal']);
 
         // F84 — filtro de notificación del propio user (movido aquí del grupo auth/ porque el frontend lo llama sin prefijo)
+        Route::get('me/notif-filtro', function (\Illuminate\Http\Request $r) {
+            return response()->json(['data' => ['notif_filtro' => $r->user()->notif_filtro ?? 'todos']]);
+        });
         Route::patch('me/notif-filtro', function (\Illuminate\Http\Request $r) {
             $r->validate(['notif_filtro' => ['required', 'in:todos,cocina,caja,delivery,ninguno']]);
             $u = $r->user(); $u->notif_filtro = $r->input('notif_filtro'); $u->save();
             return response()->json(['data' => ['notif_filtro' => $u->notif_filtro]]);
         });
+
+        // Banner global de anuncios del super (visible para todos)
+        Route::get('anuncios/activos', function (\Illuminate\Http\Request $r) {
+            $u = $r->user();
+            $items = \App\Models\AnuncioGlobal::query()
+                ->where('active', true)
+                ->where(function ($q) {
+                    $q->whereNull('starts_at')->orWhere('starts_at', '<=', now());
+                })
+                ->where(function ($q) {
+                    $q->whereNull('ends_at')->orWhere('ends_at', '>=', now());
+                })
+                ->when($u->rol === 'super_admin', fn ($q) => $q->where('show_to_super', true))
+                ->orderByDesc('id')
+                ->get(['id', 'titulo', 'body', 'severity']);
+            return response()->json(['data' => $items]);
+        });
+
+        // F92 — Tickets de soporte (owner-side)
+        Route::get('soporte/tickets',  [\App\Http\Controllers\Api\Admin\TicketsController::class, 'listForOwner']);
+        Route::post('soporte/tickets', [\App\Http\Controllers\Api\Admin\TicketsController::class, 'storeForOwner']);
+        Route::post('soporte/tickets/{ticket}/reply', [\App\Http\Controllers\Api\Admin\TicketsController::class, 'replyAsOwner']);
 
         // F85 — búsqueda global Cmd+K
         Route::get('search', [\App\Http\Controllers\Api\SearchController::class, 'search'])
@@ -283,5 +308,28 @@ Route::middleware('throttle:60,1')->group(function () {
         Route::get('locales/{local:id}/usuarios',           [PasswordController::class, 'localUsers']);
         Route::patch('locales/{local:id}/owner-password',   [PasswordController::class, 'resetLocalOwner'])
             ->middleware('throttle:10,1');
+
+        // F92 — Módulos super_admin globales (anuncios, cupones plantilla, newsletter, tickets, zonas, auditoría)
+        Route::get('audit-logs',                              [\App\Http\Controllers\Api\Admin\AuditLogGlobalController::class, 'index']);
+
+        Route::get('anuncios',                                [\App\Http\Controllers\Api\Admin\AnunciosController::class, 'index']);
+        Route::post('anuncios',                               [\App\Http\Controllers\Api\Admin\AnunciosController::class, 'store']);
+        Route::patch('anuncios/{anuncio}',                    [\App\Http\Controllers\Api\Admin\AnunciosController::class, 'update']);
+        Route::delete('anuncios/{anuncio}',                   [\App\Http\Controllers\Api\Admin\AnunciosController::class, 'destroy']);
+
+        Route::get('cupones-globales',                        [\App\Http\Controllers\Api\Admin\CuponesGlobalesController::class, 'index']);
+        Route::post('cupones-globales',                       [\App\Http\Controllers\Api\Admin\CuponesGlobalesController::class, 'store']);
+        Route::post('cupones-globales/{cupon}/sync',          [\App\Http\Controllers\Api\Admin\CuponesGlobalesController::class, 'sync']);
+        Route::delete('cupones-globales/{cupon}',             [\App\Http\Controllers\Api\Admin\CuponesGlobalesController::class, 'destroy']);
+
+        Route::get('newsletter',                              [\App\Http\Controllers\Api\Admin\NewsletterController::class, 'index']);
+        Route::post('newsletter/send',                        [\App\Http\Controllers\Api\Admin\NewsletterController::class, 'send'])
+            ->middleware('throttle:5,1');
+
+        Route::get('tickets',                                 [\App\Http\Controllers\Api\Admin\TicketsController::class, 'index']);
+        Route::post('tickets/{ticket}/responder',             [\App\Http\Controllers\Api\Admin\TicketsController::class, 'responder']);
+        Route::post('tickets/{ticket}/cerrar',                [\App\Http\Controllers\Api\Admin\TicketsController::class, 'cerrar']);
+
+        Route::get('metricas-zonas',                          [\App\Http\Controllers\Api\Admin\MetricasZonasController::class, 'index']);
     });
 });

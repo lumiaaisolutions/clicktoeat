@@ -23,9 +23,10 @@ class UpdateStaffRequest extends FormRequest
             'email'                 => ['sometimes', 'required', 'email:rfc',
                 Rule::unique('users', 'email')->ignore($staff?->id),
             ],
-            // Password opcional al editar — sólo si owner quiere resetear
-            'password'              => ['sometimes', 'required', Password::min(8)->letters()->numbers()],
-            'password_confirmation' => ['sometimes'],
+            // Password opcional al editar — sólo si owner quiere resetear.
+            // `confirmed` mira password_confirmation pero no lo agrega al
+            // `validated()` (evita escribirlo como columna de users).
+            'password'              => ['sometimes', 'required', 'confirmed', Password::min(8)->letters()->numbers()],
             'permisos'              => ['sometimes', 'array'],
             'permisos.*'            => ['string', 'in:'.implode(',', User::MODULOS_VALIDOS)],
         ];
