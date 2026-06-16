@@ -13,7 +13,7 @@ import { Icon } from '@/components/ui/Icon';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { cn } from '@/lib/utils';
 
-type EstadoFilter = 'todos' | 'al_corriente' | 'prueba' | 'pendiente' | 'pago_externo' | 'suspendidos';
+type EstadoFilter = 'todos' | 'al_corriente' | 'prueba' | 'pendiente' | 'pago_externo' | 'suspendidos' | 'borrados';
 
 const FILTROS: { value: EstadoFilter; label: string; tone: string }[] = [
   { value: 'todos',         label: 'Todos',          tone: 'bg-line/40 text-ink' },
@@ -22,6 +22,7 @@ const FILTROS: { value: EstadoFilter; label: string; tone: string }[] = [
   { value: 'pendiente',     label: 'Con pago atrasado', tone: 'bg-red-50 text-red-700' },
   { value: 'pago_externo',  label: 'Pago externo',   tone: 'bg-violet-50 text-violet-700' },
   { value: 'suspendidos',   label: 'Suspendidos',    tone: 'bg-zinc-100 text-zinc-700' },
+  { value: 'borrados',      label: 'Borrados',       tone: 'bg-orange-50 text-orange-700' },
 ];
 
 export default function LocalesAdminPage() {
@@ -35,6 +36,7 @@ export default function LocalesAdminPage() {
     setItems(null);
     const params: Record<string, string | undefined> = { q: q || undefined };
     if (estado === 'suspendidos') params.estado = 'suspendidos';
+    else if (estado === 'borrados') params.estado = 'borrados';
     else if (estado !== 'todos') params.estado = 'activos';
     const { data } = await api.get<{ data: LocalAdmin[] }>('/admin/locales', { params });
     setItems(data.data);
@@ -65,13 +67,24 @@ export default function LocalesAdminPage() {
   };
 
   const handleDelete = async (l: LocalAdmin) => {
-    if (!confirm(`¿ELIMINAR el local "${l.nombre}"?\n\nQuedará oculto en todos lados, pero los datos se conservan.`)) return;
+    if (!confirm(`¿ELIMINAR el local "${l.nombre}"?\n\nQuedará desactivado por 15 días — puedes recuperarlo en ese tiempo desde el filtro "Borrados". Después de 15 días se elimina definitivamente.`)) return;
     try {
       await api.delete(`/admin/locales/${l.id}`);
-      toast.success('Local eliminado');
+      toast.success('Local eliminado — recuperable durante 15 días');
       refresh();
     } catch {
       toast.error('No se pudo eliminar');
+    }
+  };
+
+  const handleRestore = async (l: LocalAdmin) => {
+    if (!confirm(`¿Reactivar el local "${l.nombre}"? Volverá a estar disponible.`)) return;
+    try {
+      await api.post(`/admin/locales/${l.id}/restore`);
+      toast.success('Local reactivado');
+      refresh();
+    } catch {
+      toast.error('No se pudo reactivar');
     }
   };
 
@@ -160,6 +173,7 @@ export default function LocalesAdminPage() {
               local={l}
               onSuspend={() => toggleSuspendido(l)}
               onDelete={() => handleDelete(l)}
+              onRestore={() => handleRestore(l)}
               onEditBilling={() => setEditingBilling(l)}
             />
           ))}
@@ -183,17 +197,37 @@ export default function LocalesAdminPage() {
 
 /* ─────────────────── Card por local ─────────────────── */
 function LocalCard({
-  local, onSuspend, onDelete, onEditBilling,
+  local, onSuspend, onDelete, onRestore, onEditBilling,
 }: {
   local: LocalAdmin;
   onSuspend: () => void;
   onDelete: () => void;
+  onRestore: () => void;
   onEditBilling: () => void;
 }) {
   const badge = computeBillingBadge(local);
+  const isDeleted = !!local.deleted_at;
+  const daysLeft = local.will_purge_at ? Math.max(0, Math.ceil((new Date(local.will_purge_at).getTime() - Date.now()) / 86400000)) : null;
 
   return (
-    <div className="rounded-3xl border border-line bg-white overflow-hidden hover:shadow-soft hover:border-ink/30 transition-all group">
+    <div className={cn(
+      'rounded-3xl border bg-white overflow-hidden transition-all group',
+      isDeleted ? 'border-orange-300 opacity-80' : 'border-line hover:shadow-soft hover:border-ink/30',
+    )}>
+      {isDeleted && daysLeft !== null && (
+        <div className="bg-orange-50 border-b border-orange-200 px-4 py-2 flex items-center justify-between gap-2 text-xs">
+          <span className="text-orange-800 font-semibold inline-flex items-center gap-1.5">
+            <Icon name="alert-triangle" size={12} />
+            Borrado · se elimina en {daysLeft} {daysLeft === 1 ? 'día' : 'días'}
+          </span>
+          <button
+            onClick={onRestore}
+            className="px-3 py-1 rounded-full bg-orange-600 text-white text-[11px] font-semibold hover:bg-orange-700 transition"
+          >
+            Reactivar
+          </button>
+        </div>
+      )}
       {/* Header: logo + nombre + slug */}
       <div className="p-4 flex items-start gap-3">
         <LocalAvatar local={local} />
@@ -332,6 +366,13 @@ function computeBillingBadge(l: LocalAdmin): { label: string; tone: string; icon
 }
 
 /* ─────────── Modal: cambiar facturación manualmente ─────────── */
+interface PlanOption {
+  id: number;
+  slug: string;
+  nombre: string;
+  precio_mxn: number;
+}
+
 function BillingModal({
   local, onClose, onSaved,
 }: {
@@ -342,6 +383,8 @@ function BillingModal({
   const [pagoExterno, setPagoExterno] = useState(false);
   const [notas,       setNotas]       = useState('');
   const [planStatus,  setPlanStatus]  = useState<string>('');
+  const [planId,      setPlanId]      = useState<number | null>(null);
+  const [planes,      setPlanes]      = useState<PlanOption[]>([]);
   const [saving,      setSaving]      = useState(false);
 
   useEffect(() => {
@@ -349,9 +392,20 @@ function BillingModal({
     setPagoExterno(!!local.pago_externo);
     setNotas(local.pago_externo_notas ?? '');
     setPlanStatus(local.plan_status ?? '');
+    setPlanId(local.plan_id ?? null);
   }, [local]);
 
+  // Carga catálogo de planes una sola vez al abrir el modal
+  useEffect(() => {
+    if (!local || planes.length > 0) return;
+    api.get<{ data: PlanOption[] }>('/billing/plans')
+      .then(({ data }) => setPlanes(data.data))
+      .catch(() => setPlanes([]));
+  }, [local, planes.length]);
+
   if (!local) return null;
+
+  const planActual = planes.find((p) => p.id === planId);
 
   const save = async () => {
     setSaving(true);
@@ -360,6 +414,7 @@ function BillingModal({
         pago_externo:        pagoExterno,
         pago_externo_notas:  pagoExterno ? (notas || null) : null,
         plan_status:         planStatus || null,
+        plan_id:             planId,
       });
       toast.success('Facturación actualizada');
       onSaved();
@@ -373,6 +428,51 @@ function BillingModal({
   return (
     <Modal open={!!local} onClose={onClose} title={`Facturación · ${local.nombre}`} size="md">
       <div className="space-y-5">
+        {/* Plan activo + selector */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-semibold">Plan</p>
+            {planActual && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800">
+                Activo: {planActual.nombre} · ${planActual.precio_mxn}/mes
+              </span>
+            )}
+          </div>
+          {planes.length === 0 ? (
+            <p className="text-xs text-muted">Cargando planes…</p>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              {planes.map((p) => {
+                const active = planId === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setPlanId(p.id)}
+                    className={cn(
+                      'relative px-3 py-3 rounded-xl border-2 text-left transition',
+                      active
+                        ? 'border-emerald-500 bg-emerald-50/60 ring-2 ring-emerald-200'
+                        : 'border-line bg-white hover:border-ink/40',
+                    )}
+                  >
+                    {active && (
+                      <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-emerald-500 grid place-items-center text-white">
+                        <Icon name="check" size={11} />
+                      </span>
+                    )}
+                    <p className="text-sm font-bold">{p.nombre}</p>
+                    <p className="text-xs text-muted">${p.precio_mxn}/mes</p>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <p className="text-xs text-muted mt-2">
+            Cambia el plan sin pasar por Stripe — útil cuando cobras en efectivo o transferencia.
+          </p>
+        </div>
+
         {/* Toggle pago externo */}
         <div className="rounded-2xl border border-violet-200 bg-violet-50/50 p-4">
           <Switch

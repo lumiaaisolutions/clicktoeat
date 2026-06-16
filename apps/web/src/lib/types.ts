@@ -107,6 +107,9 @@ export interface LocalAdmin {
   lealtad_activo?: boolean;
   lealtad_meta?: number;
   lealtad_premio?: string | null;
+  deleted_at?: string | null;
+  will_purge_at?: string | null;
+  plan?: { id: number; slug: string; nombre: string; precio_mxn: number } | null;
 }
 
 export interface UploadResult {

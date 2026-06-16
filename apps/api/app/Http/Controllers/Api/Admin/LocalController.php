@@ -33,16 +33,23 @@ class LocalController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $query = Local::query()->withCount(['productos', 'categorias', 'pedidos'])
-            ->with('owner:id,nombre,email');
+            ->with('owner:id,nombre,email', 'plan:id,slug,nombre,precio_mxn_centavos');
+
+        // Soft-deleted: incluirlos al filtrar por 'borrados' o 'todos'.
+        $estado = $request->input('estado', 'todos');
+        if (in_array($estado, ['borrados', 'todos'], true)) {
+            $query->withTrashed();
+        }
 
         if ($request->filled('q')) {
             $term = '%'.trim($request->string('q')).'%';
             $query->where(fn ($q) => $q->where('nombre', 'like', $term)->orWhere('slug', 'like', $term));
         }
 
-        match ($request->input('estado', 'todos')) {
-            'activos'      => $query->where('activo', true)->where('suspendido', false),
-            'suspendidos'  => $query->where('suspendido', true),
+        match ($estado) {
+            'activos'      => $query->where('activo', true)->where('suspendido', false)->whereNull('deleted_at'),
+            'suspendidos'  => $query->where('suspendido', true)->whereNull('deleted_at'),
+            'borrados'     => $query->whereNotNull('deleted_at'),
             default        => null,
         };
 

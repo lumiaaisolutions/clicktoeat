@@ -52,6 +52,16 @@ class LocalResource extends JsonResource
             'lealtad_premio'       => $this->lealtad_premio,
             'created_at'           => $this->created_at?->toIso8601String(),
             'updated_at'           => $this->updated_at?->toIso8601String(),
+            // Soft-delete + counter de borrado definitivo (15 días desde delete)
+            'deleted_at'           => $this->deleted_at?->toIso8601String(),
+            'will_purge_at'        => $this->deleted_at?->copy()->addDays(15)->toIso8601String(),
+            // Plan info expandido — solo si se carga la relación
+            'plan'                 => $this->whenLoaded('plan', fn () => [
+                'id'      => $this->plan->id,
+                'slug'    => $this->plan->slug,
+                'nombre'  => $this->plan->nombre,
+                'precio_mxn' => (int) round($this->plan->precio_mxn_centavos / 100),
+            ]),
         ];
     }
 }
