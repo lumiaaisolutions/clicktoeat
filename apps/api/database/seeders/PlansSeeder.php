@@ -76,7 +76,7 @@ class PlansSeeder extends Seeder
             [
                 'slug'                 => 'premium',
                 'nombre'               => 'Premium',
-                'precio_mxn_centavos'  => 59900,
+                'precio_mxn_centavos'  => 49900,
                 'stripe_price_id'      => config('stripe.prices.premium'),
                 'orden'                => 30,
                 'max_productos'        => null,
