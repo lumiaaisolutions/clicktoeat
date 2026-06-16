@@ -174,8 +174,9 @@ export function DirectoryClient({ locales }: { locales: LocalDirectorio[] }) {
         </div>
       )}
 
-      {/* Controles + listado */}
-      <section id="locales" className="px-4 sm:px-6 max-w-6xl mx-auto sticky top-0 z-30 glass border-y border-line py-3">
+      {/* Controles + listado — barra sólida para evitar que el hero se vea detrás */}
+      <section id="locales" className="sticky top-0 z-30 bg-[color:var(--ce-bg)]/95 backdrop-blur-md border-y border-line shadow-sm">
+        <div className="px-4 sm:px-6 max-w-6xl mx-auto py-3">
         <div className="flex gap-2 items-center flex-wrap">
           {/* Mobile: search ocupa fila completa */}
           <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:w-auto">
@@ -215,6 +216,7 @@ export function DirectoryClient({ locales }: { locales: LocalDirectorio[] }) {
             {filtered.length} {filtered.length === 1 ? 'resultado' : 'resultados'}
           </p>
         )}
+        </div>
       </section>
 
       {/* Favoritos */}

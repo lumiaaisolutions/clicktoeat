@@ -496,6 +496,15 @@ export function BrandingEditor({ localId }: { localId?: number } = {}) {
               Ver landing real
               <Icon name="arrow-up-right" size={13} />
             </a>
+            <a
+              href={(process.env.NEXT_PUBLIC_APP_URL ?? 'https://clicktoeat.lumiaaisolutions.com') + '/'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1.5 inline-flex items-center justify-center gap-1.5 w-full text-center text-xs text-muted hover:text-ink transition"
+            >
+              Ver directorio de todos los locales
+              <Icon name="arrow-up-right" size={11} />
+            </a>
           </div>
         </aside>
       </div>

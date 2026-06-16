@@ -105,7 +105,7 @@ export function LandingClient({ menu }: Props) {
           Mobile: 40vh con logo 160px. Desktop: 52vh con logo 240px. */}
       <header
         className="relative w-full overflow-hidden bg-[#F3ECE1]"
-        style={{ height: 'clamp(360px, 52vh, 520px)' }}
+        style={{ height: 'clamp(220px, 34vh, 360px)' }}
       >
         {branding.banner && (
           <>
@@ -167,8 +167,8 @@ export function LandingClient({ menu }: Props) {
         </div>
 
         {/* HERO BODY — logo arriba-centro + nombre + tagline arriba de info card */}
-        <div className="absolute inset-0 z-[5] flex flex-col items-center text-center px-4 sm:px-6 md:px-10 pt-16 sm:pt-20 pb-28 sm:pb-32">
-          {/* LOGO HUGE — protagonista absoluto */}
+        <div className="absolute inset-0 z-[5] flex flex-col items-center text-center px-4 sm:px-6 md:px-10 pt-10 sm:pt-12 pb-20 sm:pb-24">
+          {/* LOGO — reducido para banner más delgado */}
           <motion.div
             initial={{ opacity: 0, scale: 0.82, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -181,14 +181,14 @@ export function LandingClient({ menu }: Props) {
                 alt={local.nombre}
                 loading="eager"
                 fetchPriority="high"
-                className="w-32 h-32 sm:w-44 sm:h-44 md:w-52 md:h-52 rounded-full object-cover bg-white shadow-[0_30px_70px_-25px_rgba(0,0,0,0.55)] ring-4 ring-white/95"
+                className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full object-cover bg-white shadow-[0_20px_50px_-20px_rgba(0,0,0,0.5)] ring-4 ring-white/95"
               />
             ) : (
               <div
-                className="w-32 h-32 sm:w-44 sm:h-44 md:w-52 md:h-52 rounded-full grid place-items-center text-white ce-serif shadow-[0_30px_70px_-25px_rgba(0,0,0,0.55)] ring-4 ring-white/95"
+                className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full grid place-items-center text-white ce-serif shadow-[0_20px_50px_-20px_rgba(0,0,0,0.5)] ring-4 ring-white/95"
                 style={{
                   background: 'linear-gradient(135deg, var(--ce-accent) 0%, color-mix(in srgb, var(--ce-accent) 60%, black) 100%)',
-                  fontSize: 'clamp(60px, 10vw, 96px)',
+                  fontSize: 'clamp(36px, 7vw, 60px)',
                   lineHeight: 1,
                 }}
               >

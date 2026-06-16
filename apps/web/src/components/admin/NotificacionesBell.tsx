@@ -44,11 +44,11 @@ export function NotificacionesBell() {
 
       <AnimatePresence>
         {open && (
-          <div className="fixed inset-0 z-[80] flex">
+          <div className="fixed inset-0 z-[150] flex">
             <button
               aria-label="Cerrar"
               onClick={() => setOpen(false)}
-              className="flex-1 bg-black/30"
+              className="flex-1 bg-black/55 backdrop-blur-sm"
             />
             <motion.aside
               initial={{ x: 400 }}

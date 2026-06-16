@@ -231,10 +231,10 @@ const ICON_PATHS: Record<IconName, JSX.Element> = {
   ),
   plug: (
     <>
-      <path d="M12 22v-5" />
-      <path d="M9 8V2" />
-      <path d="M15 8V2" />
-      <path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8h12Z" />
+      <path d="M9 2v6" />
+      <path d="M15 2v6" />
+      <path d="M6 8h12v3a6 6 0 0 1-12 0V8z" />
+      <path d="M12 17v5" />
     </>
   ),
   settings: (

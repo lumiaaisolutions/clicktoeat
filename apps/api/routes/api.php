@@ -116,13 +116,6 @@ Route::middleware('throttle:60,1')->group(function () {
             Route::patch('me/password',     [PasswordController::class, 'updateOwn'])
                 ->middleware('throttle:5,1');
 
-            // F84 — actualizar filtro de notificación del propio user
-            Route::patch('me/notif-filtro', function (\Illuminate\Http\Request $r) {
-                $r->validate(['notif_filtro' => ['required', 'in:todos,cocina,caja,delivery,ninguno']]);
-                $u = $r->user(); $u->notif_filtro = $r->input('notif_filtro'); $u->save();
-                return response()->json(['data' => ['notif_filtro' => $u->notif_filtro]]);
-            });
-
             // 2FA TOTP (F67)
             Route::get('2fa/status',  [\App\Http\Controllers\Api\TwoFactorController::class, 'status']);
             Route::post('2fa/setup',   [\App\Http\Controllers\Api\TwoFactorController::class, 'setup'])->middleware('throttle:10,1');
@@ -146,6 +139,13 @@ Route::middleware('throttle:60,1')->group(function () {
         // F71 — Multi-sucursal
         Route::get('me/locales',                [\App\Http\Controllers\Api\UserLocalesController::class, 'myLocales']);
         Route::post('me/switch-local/{localId}',[\App\Http\Controllers\Api\UserLocalesController::class, 'switchLocal']);
+
+        // F84 — filtro de notificación del propio user (movido aquí del grupo auth/ porque el frontend lo llama sin prefijo)
+        Route::patch('me/notif-filtro', function (\Illuminate\Http\Request $r) {
+            $r->validate(['notif_filtro' => ['required', 'in:todos,cocina,caja,delivery,ninguno']]);
+            $u = $r->user(); $u->notif_filtro = $r->input('notif_filtro'); $u->save();
+            return response()->json(['data' => ['notif_filtro' => $u->notif_filtro]]);
+        });
 
         // F85 — búsqueda global Cmd+K
         Route::get('search', [\App\Http\Controllers\Api\SearchController::class, 'search'])

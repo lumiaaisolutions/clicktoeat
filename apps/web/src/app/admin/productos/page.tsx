@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
-import type { Categoria, Ingrediente, Paginated, Producto, Receta, Resource } from '@/lib/types';
+import type { Categoria, ExtraGroup, Ingrediente, Paginated, Producto, Receta, Resource } from '@/lib/types';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
 import { Field, Textarea, Select, Switch } from '@/components/ui/FormField';
@@ -334,6 +334,7 @@ function ProductoModal({
   const [tag, setTag] = useState('');
   const [disponible, setDisponible] = useState(true);
   const [imagen, setImagen] = useState<{ url: string | null; public_id: string | null }>({ url: null, public_id: null });
+  const [extras, setExtras] = useState<ExtraGroup[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
@@ -349,6 +350,7 @@ function ProductoModal({
       url: producto?.imagen_url ?? null,
       public_id: producto?.imagen_public_id ?? null,
     });
+    setExtras(producto?.extras ?? []);
     setErrors({});
   }, [open, producto, categorias]);
 
@@ -366,6 +368,7 @@ function ProductoModal({
         disponible,
         imagen_url:       imagen.url,
         imagen_public_id: imagen.public_id,
+        extras:           extras.length ? extras : null,
       };
       if (producto) {
         await api.patch(`/productos/${producto.id}`, payload);
@@ -410,6 +413,10 @@ function ProductoModal({
           </div>
           <Field label="Tag (opcional)" value={tag} onChange={(e) => setTag(e.target.value)} hint="p.ej. Más pedido, Nuevo, Picante" error={errors.tag} />
           <Switch label="Disponible" hint="Si se oculta, sigue existiendo pero no se muestra en la landing" checked={disponible} onChange={setDisponible} />
+        </div>
+
+        <div className="md:col-span-3 border-t border-line pt-4">
+          <ExtrasEditor value={extras} onChange={setExtras} />
         </div>
 
         <div className="md:col-span-3 flex justify-end gap-2 pt-2 border-t border-line">
@@ -674,5 +681,139 @@ function RecetaModal({
         </>
       )}
     </Modal>
+  );
+}
+
+/* ─────────── Editor de extras / toppings ─────────── */
+function ExtrasEditor({ value, onChange }: { value: ExtraGroup[]; onChange: (v: ExtraGroup[]) => void }) {
+  const addGroup = () => onChange([...value, { group: '', kind: 'many', required: false, items: [] }]);
+  const removeGroup = (i: number) => onChange(value.filter((_, j) => j !== i));
+  const updateGroup = (i: number, patch: Partial<ExtraGroup>) => {
+    onChange(value.map((g, j) => (j === i ? { ...g, ...patch } : g)));
+  };
+  const addItem = (gi: number) => {
+    updateGroup(gi, {
+      items: [...value[gi].items, { id: 'item-' + Date.now(), name: '', price: 0 }],
+    });
+  };
+  const updateItem = (gi: number, ii: number, patch: Partial<ExtraGroup['items'][number]>) => {
+    updateGroup(gi, {
+      items: value[gi].items.map((it, j) => (j === ii ? { ...it, ...patch } : it)),
+    });
+  };
+  const removeItem = (gi: number, ii: number) => {
+    updateGroup(gi, { items: value[gi].items.filter((_, j) => j !== ii) });
+  };
+
+  return (
+    <section>
+      <header className="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div>
+          <p className="ce-display font-bold text-base">Extras / Toppings</p>
+          <p className="text-xs text-muted">
+            Permite que el cliente personalice el pedido (ej. extra queso $15, sin cebolla, doble carne $25).
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={addGroup}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-line text-xs font-semibold hover:bg-line/40"
+        >
+          <Icon name="plus" size={12} />
+          Agregar grupo
+        </button>
+      </header>
+
+      {value.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-line p-6 text-center text-sm text-muted">
+          Sin extras configurados. Agrega un grupo para empezar.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {value.map((g, gi) => (
+            <div key={gi} className="rounded-2xl border border-line p-3 bg-line/10">
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-center mb-3">
+                <input
+                  type="text"
+                  value={g.group}
+                  onChange={(e) => updateGroup(gi, { group: e.target.value })}
+                  placeholder="Nombre del grupo (ej. Toppings, Tamaño, Salsas)"
+                  className="px-3 py-2 rounded-xl border border-line bg-white text-sm font-semibold"
+                  maxLength={40}
+                />
+                <select
+                  value={g.kind}
+                  onChange={(e) => updateGroup(gi, { kind: e.target.value as 'one' | 'many' })}
+                  className="px-2 py-2 rounded-xl border border-line bg-white text-xs"
+                  title="Cuántas opciones puede elegir el cliente"
+                >
+                  <option value="many">Varios (toppings)</option>
+                  <option value="one">Sólo uno (tamaño)</option>
+                </select>
+                <label className="text-xs text-muted inline-flex items-center gap-1.5 px-2">
+                  <input
+                    type="checkbox"
+                    checked={!!g.required}
+                    onChange={(e) => updateGroup(gi, { required: e.target.checked })}
+                  />
+                  Obligatorio
+                </label>
+                <button
+                  type="button"
+                  onClick={() => removeGroup(gi)}
+                  className="text-red-600 hover:bg-red-50 rounded-lg w-8 h-8 grid place-items-center"
+                  title="Eliminar grupo"
+                >
+                  <Icon name="x" size={14} />
+                </button>
+              </div>
+
+              <div className="space-y-1.5">
+                {g.items.map((it, ii) => (
+                  <div key={ii} className="grid grid-cols-[1fr_110px_auto] gap-2 items-center">
+                    <input
+                      type="text"
+                      value={it.name}
+                      onChange={(e) => updateItem(gi, ii, { name: e.target.value })}
+                      placeholder="Nombre (ej. Queso extra)"
+                      className="px-3 py-2 rounded-lg border border-line bg-white text-sm"
+                      maxLength={60}
+                    />
+                    <div className="relative">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted">$</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={it.price}
+                        onChange={(e) => updateItem(gi, ii, { price: Number(e.target.value) })}
+                        placeholder="Precio extra"
+                        className="w-full pl-6 pr-2 py-2 rounded-lg border border-line bg-white text-sm tabular-nums"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeItem(gi, ii)}
+                      className="text-red-500 hover:bg-red-50 rounded-lg w-8 h-8 grid place-items-center"
+                      title="Eliminar"
+                    >
+                      <Icon name="x" size={12} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => addItem(gi)}
+                  className="inline-flex items-center gap-1.5 text-xs text-ink/70 hover:text-ink mt-1"
+                >
+                  <Icon name="plus" size={11} />
+                  Agregar opción
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }

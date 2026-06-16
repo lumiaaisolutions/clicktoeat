@@ -250,9 +250,17 @@ function LocalCard({
       </div>
 
       {/* Acciones */}
-      <div className="px-2 py-2 grid grid-cols-4 gap-1">
-        <CardAction href={`/admin/locales/${local.id}/branding`} icon="palette"  label="Branding" />
-        <CardAction href={`/admin/locales/${local.id}/usuarios`} icon="users"    label="Usuarios" />
+      <div className="px-2 py-2 grid grid-cols-5 gap-1">
+        <CardAction href={`/admin/locales/${local.id}/branding`} icon="palette" label="Editar" />
+        <CardAction href={`/admin/locales/${local.id}/usuarios`} icon="users"   label="Usuarios" />
+        <button
+          onClick={onEditBilling}
+          className="inline-flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl hover:bg-line/40 text-xs font-medium transition"
+          title="Cambiar plan / facturación"
+        >
+          <Icon name="card" size={14} className="text-muted" />
+          <span className="text-[10px]">Plan</span>
+        </button>
         <button
           onClick={onSuspend}
           className="inline-flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl hover:bg-line/40 text-xs font-medium transition"
@@ -296,7 +304,7 @@ function LocalAvatar({ local }: { local: LocalAdmin }) {
   );
 }
 
-function CardAction({ href, icon, label }: { href: string; icon: 'palette' | 'users'; label: string }) {
+function CardAction({ href, icon, label }: { href: string; icon: 'palette' | 'users' | 'card'; label: string }) {
   return (
     <Link
       href={href}
