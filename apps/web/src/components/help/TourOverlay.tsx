@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useHelpCenter } from '@/store/helpCenter';
 import { getTour, type TourStep } from './tours';
@@ -35,8 +36,12 @@ export function TourOverlay() {
   }, [activeTour, steps.length, dismiss]);
 
   if (!activeTour || !step) return null;
+  if (typeof document === 'undefined') return null;
 
-  return (
+  // Portal a <body> para evitar containing blocks creados por ancestors con
+  // transform/will-change/filter — clave para que position: fixed se respete
+  // contra el viewport real (sino el tooltip queda descentrado).
+  return createPortal(
     <AnimatePresence mode="wait">
       <TourStepView
         key={`${activeTour}-${stepIdx}`}
@@ -49,7 +54,8 @@ export function TourOverlay() {
         onSkip={dismiss}
         onClose={dismiss}
       />
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 
@@ -89,19 +95,48 @@ function TourStepView({
 
   const placement = step.placement ?? (rect ? 'bottom' : 'center');
 
-  const tooltipStyle = useMemo<React.CSSProperties>(() => {
+  /**
+   * Calcula la posición del tooltip. IMPORTANTE: NO usamos `transform` para
+   * centrar porque framer-motion lo sobreescribe con su transform de
+   * animación (scale, y) — el bug que causaba descentrado.
+   *
+   * En su lugar, usamos un wrapper exterior con `display:grid; place-items`
+   * para el caso "center", y para los demás placements pre-calculamos
+   * `top/left` finales aplicando el offset (negativo) del ancho/alto del
+   * tooltip manualmente (sin transform).
+   */
+  const positionerStyle = useMemo<React.CSSProperties>(() => {
+    // Caso "center" o sin target: el wrapper hace el centrado con CSS
     if (!rect || placement === 'center') {
-      return { top: '50%', left: '50%', transform: 'translate(-50%,-50%)', maxWidth: 'min(420px, calc(100vw - 32px))' };
+      return {
+        position: 'fixed',
+        inset: 0,
+        display: 'grid',
+        placeItems: 'center',
+        padding: 16,
+        pointerEvents: 'none', // el tooltip propio reactiva pointer-events
+      };
     }
+    // Casos con target: posicionamos un wrapper-punto y usamos place-items
+    // para offset según placement con margin.
     const margin = 18;
-    const tipW = 360;
+    const padding = 8;
+    let style: React.CSSProperties = { position: 'fixed', display: 'grid', padding, pointerEvents: 'none' };
     switch (placement) {
-      case 'top':    return { top: rect.top - margin, left: rect.left + rect.width / 2, transform: 'translate(-50%, -100%)', maxWidth: tipW };
-      case 'bottom': return { top: rect.top + rect.height + margin, left: rect.left + rect.width / 2, transform: 'translateX(-50%)', maxWidth: tipW };
-      case 'left':   return { top: rect.top + rect.height / 2, left: rect.left - margin, transform: 'translate(-100%, -50%)', maxWidth: tipW };
-      case 'right':  return { top: rect.top + rect.height / 2, left: rect.left + rect.width + margin, transform: 'translateY(-50%)', maxWidth: tipW };
+      case 'top':
+        style = { ...style, top: 0, left: 0, width: '100vw', height: rect.top - margin, alignItems: 'end', justifyItems: 'center' };
+        break;
+      case 'bottom':
+        style = { ...style, top: rect.top + rect.height + margin, left: 0, width: '100vw', alignItems: 'start', justifyItems: 'center' };
+        break;
+      case 'left':
+        style = { ...style, top: 0, left: 0, width: rect.left - margin, height: '100vh', alignItems: 'center', justifyItems: 'end' };
+        break;
+      case 'right':
+        style = { ...style, top: 0, left: rect.left + rect.width + margin, right: 0, height: '100vh', alignItems: 'center', justifyItems: 'start' };
+        break;
     }
-    return {};
+    return style;
   }, [rect, placement]);
 
   const progress = ((index + 1) / total) * 100;
@@ -159,15 +194,17 @@ function TourStepView({
         </>
       )}
 
-      {/* Tooltip */}
+      {/* Tooltip — wrapper exterior posiciona, motion.div anima.
+          Separados para que el transform de la animación no sobreescriba
+          el transform de centrado. */}
+      <div className="z-[92]" style={positionerStyle}>
       <motion.div
         key={`tooltip-${index}`}
         initial={{ opacity: 0, y: 12, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: -6, scale: 0.97 }}
         transition={{ duration: 0.32, ease: [0.2, 0.8, 0.2, 1] }}
-        className="fixed z-[92] bg-white rounded-2xl shadow-glass border border-line overflow-hidden w-[min(380px,calc(100vw-32px))]"
-        style={tooltipStyle}
+        className="bg-white rounded-2xl shadow-glass border border-line overflow-hidden w-full max-w-[min(380px,calc(100vw-32px))] pointer-events-auto"
       >
         {/* Progress bar arriba */}
         <div className="h-1 bg-line/50 relative">
@@ -275,6 +312,7 @@ function TourStepView({
           </div>
         </div>
       </motion.div>
+      </div>
     </>
   );
 }

@@ -114,3 +114,36 @@ real cuando se configure.
 - [`admin-page-header.md`](admin-page-header.md) — el header reusable que
   expone `tourSlug`
 - [`stores.md`](stores.md) — store `useHelpCenter`
+
+## Bug fix 2026-06-16 — tour descentrado
+
+**Síntoma**: el tooltip del tour aparecía descentrado en desktop (se cargaba hacia la derecha del centro) y en móvil quedaba cortado por el borde derecho del viewport.
+
+**Causa raíz (doble)**:
+
+1. **framer-motion sobreescribe `transform` del style inline**. El componente
+   usaba `style={{ left: '50%', transform: 'translate(-50%,-50%)' }}` en el
+   mismo `<motion.div>` que animaba `scale` y `y`. Framer escribe a
+   `transform` propio para la animación, eliminando el `translate(-50%)`.
+2. **Containing block roto por ancestors**. Aunque el TourOverlay se
+   monta al nivel del root de AdminLayout, los wrappers con animaciones
+   de Framer (`<RouteTransition>`, drawer móvil, etc.) crean
+   `will-change: transform` que rompe `position: fixed` contra el viewport.
+
+**Fix aplicado** (commit posterior a 0161298):
+
+- **Portal a `document.body`** con `createPortal(...)` para evitar
+  todos los ancestors con potencial transform.
+- **Wrapper exterior** con `position: fixed; display: grid; place-items: center`
+  que se encarga del centrado **sin transform**. El `<motion.div>` interno
+  sólo controla la animación (`opacity`, `y`, `scale`).
+- Cada placement (top/bottom/left/right) ahora computa un wrapper
+  rectangular en un lado del target y usa `place-items` para alinear,
+  evitando otra vez el problema del transform sobre-escrito.
+- `pointer-events: none` en el wrapper + `pointer-events-auto` en el
+  `<motion.div>` interno para que el backdrop siga siendo clickeable
+  fuera del tooltip.
+
+**Lección**: cuando uses framer-motion con `position: fixed` centrado,
+**nunca** mezcles `transform: translate(-50%)` con la animación —
+separa el centrado a un wrapper exterior.
