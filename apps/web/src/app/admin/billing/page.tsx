@@ -156,6 +156,9 @@ export default function BillingPage() {
             </div>
           </div>
 
+          {/* F88 — sección de upgrade visible (auto-scroll si viene ?upgrade=...) */}
+          <UpgradeSection currentPlanSlug={plan?.slug ?? ''} />
+
           {/* Footer info + cancelar */}
           <div className="flex items-center justify-between flex-wrap gap-2">
             <p className="text-xs text-muted">
@@ -165,6 +168,104 @@ export default function BillingPage() {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+/* ─────────── Sección "Cambiar de plan" inline ─────────── */
+interface AvailablePlan {
+  slug: string;
+  nombre: string;
+  precio_mxn: number;
+  features: string[];
+  available_for_purchase: boolean;
+}
+
+function UpgradeSection({ currentPlanSlug }: { currentPlanSlug: string }) {
+  const [plans, setPlans] = useState<AvailablePlan[] | null>(null);
+  const [busy,  setBusy]  = useState<string | null>(null);
+
+  useEffect(() => {
+    api.get<{ data: AvailablePlan[] }>('/billing/plans')
+      .then(({ data }) => setPlans(data.data))
+      .catch(() => setPlans([]));
+  }, []);
+
+  // Auto-scroll si la URL trae ?upgrade=...
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('upgrade')) {
+      setTimeout(() => {
+        document.getElementById('upgrade-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    }
+  }, [plans]);
+
+  if (!plans || plans.length === 0) return null;
+
+  const cambiar = async (slug: string) => {
+    setBusy(slug);
+    try {
+      const { data } = await api.post<{ url: string }>('/billing/checkout', { plan_slug: slug });
+      window.location.href = data.url;
+    } catch (err: any) {
+      alert(err?.response?.data?.message ?? 'No pudimos abrir el cambio de plan.');
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div id="upgrade-section" className="rounded-3xl border border-line bg-white p-5 sm:p-6 scroll-mt-6">
+      <div className="flex items-start justify-between gap-2 flex-wrap mb-4">
+        <div>
+          <p className="text-xs uppercase tracking-wider text-muted font-semibold">Cambiar de plan</p>
+          <h2 className="ce-display font-bold text-lg mt-1">Mejora cuando lo necesites</h2>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {plans.map((p) => {
+          const isCurrent = p.slug === currentPlanSlug;
+          return (
+            <div
+              key={p.slug}
+              className={cn(
+                'rounded-2xl border p-4',
+                isCurrent ? 'border-emerald-300 bg-emerald-50/30' : 'border-line',
+              )}
+            >
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="ce-display font-bold text-base">{p.nombre}</p>
+                {isCurrent && <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-700">Actual</span>}
+              </div>
+              <p className="ce-display text-2xl font-bold tabular-nums mt-1">
+                ${p.precio_mxn.toLocaleString('es-MX')} <span className="text-xs text-muted font-normal">/mes</span>
+              </p>
+              {isCurrent ? (
+                <p className="mt-3 text-xs text-muted">Tu plan actual.</p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => cambiar(p.slug)}
+                  disabled={!p.available_for_purchase || busy !== null}
+                  className={cn(
+                    'mt-3 w-full py-2.5 rounded-xl text-sm font-semibold transition',
+                    p.available_for_purchase
+                      ? 'bg-ink text-white hover:opacity-90 disabled:opacity-40'
+                      : 'bg-line/40 text-muted cursor-not-allowed',
+                  )}
+                  title={!p.available_for_purchase ? 'Configuración de Stripe pendiente' : ''}
+                >
+                  {busy === p.slug ? 'Abriendo…' : 'Cambiar a este plan'}
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <p className="text-xs text-muted mt-3">
+        Cambios entre planes se aplican al instante. La diferencia se prorrateará en tu próxima factura.
+      </p>
     </div>
   );
 }
@@ -301,7 +402,7 @@ function EmptyPlanCard() {
         con 14 días de prueba sin tarjeta.
       </p>
       <Link
-        href="/#pricing"
+        href="/onboarding/elegir-plan"
         className="mt-6 inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-ink text-white text-sm font-medium hover:opacity-90"
       >
         Ver planes
@@ -312,19 +413,23 @@ function EmptyPlanCard() {
 }
 
 const HUMAN: Record<string, string> = {
-  branding_basico:    'Branding básico',
-  branding_avanzado:  'Branding avanzado',
-  inventario:         'Inventario',
-  recetas:            'Recetas',
-  compras:            'Compras a proveedor',
-  metricas_basicas:   'Métricas',
-  metricas_avanzadas: 'Métricas avanzadas',
-  pos:                'POS interno',
-  qr_personalizado:   'QR personalizado',
-  notificaciones:     'Notificaciones in-app',
-  staff_multi:        'Múltiples cuentas de staff',
-  audit_log:          'Audit log',
-  restore:            'Restaurar elementos borrados',
+  branding_basico:    'Pon tu logo y color',
+  branding_avanzado:  'Personaliza colores, tipografías y banner',
+  inventario:         'Control de ingredientes y stock',
+  recetas:            'Descuento automático de ingredientes',
+  compras:            'Registro de compras a proveedor',
+  metricas_basicas:   'Métricas del día',
+  metricas_avanzadas: 'Reportes avanzados',
+  pos:                'Caja para cobrar en mostrador',
+  qr_personalizado:   'Código QR con tu logo',
+  notificaciones:     'Avisos en vivo cuando llega un pedido',
+  staff_multi:        'Cuentas para tu equipo',
+  audit_log:          'Historial de cambios',
+  restore:            'Recuperar elementos borrados',
+  multi_sucursal:     'Varias sucursales en una sola cuenta',
+  white_label:        'Tu marca sin el logo de ClickToEat',
+  api_webhooks:       'Conexión a tu sistema de cocina o ERP',
+  soporte_premium:    'Soporte prioritario por WhatsApp',
 };
 
 function humanFeature(key: string): string {

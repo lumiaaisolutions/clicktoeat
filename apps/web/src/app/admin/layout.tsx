@@ -14,6 +14,8 @@ import { NotificacionesBell } from '@/components/admin/NotificacionesBell';
 import { LivePedidosPoller } from '@/components/admin/LivePedidosPoller';
 import { LocalSwitcher } from '@/components/admin/LocalSwitcher';
 import { CmdKSearch } from '@/components/admin/CmdKSearch';
+import { UpgradeModal } from '@/components/admin/UpgradeModal';
+import { useUpgradeModal } from '@/store/upgradeModal';
 import { InstallPrompt } from '@/components/pwa/InstallPrompt';
 import { PushSubscriber } from '@/components/pwa/PushSubscriber';
 import { TrialBanner } from '@/components/billing/TrialBanner';
@@ -25,7 +27,7 @@ import { cn } from '@/lib/utils';
 
 type IconName =
   | 'home' | 'chart' | 'cart' | 'bell' | 'package' | 'list'
-  | 'box' | 'receipt' | 'clock' | 'qr' | 'palette' | 'store' | 'lock' | 'card' | 'settings'
+  | 'box' | 'receipt' | 'clock' | 'qr' | 'palette' | 'store' | 'lock' | 'card' | 'settings' | 'plug'
   | 'users' | 'history' | 'help' | 'sparkles' | 'star';
 
 interface NavItem {
@@ -150,7 +152,7 @@ const NAV_OWNER: NavItem[] = [
   { href: '/admin/branding',     label: 'Branding',    icon: 'palette', permiso: 'branding' },
   { href: '/admin/staff',        label: 'Equipo',      icon: 'users',   ownerOnly: true,       feature: 'staff_multi',      requiredPlan: 'professional' },
   { href: '/admin/audit-log',    label: 'Historial',   icon: 'history', permiso: 'audit_log',  feature: 'audit_log',        requiredPlan: 'professional' },
-  { href: '/admin/integraciones', label: 'Integraciones', icon: 'settings', ownerOnly: true, feature: 'api_webhooks' },
+  { href: '/admin/integraciones', label: 'Integraciones', icon: 'plug', ownerOnly: true, feature: 'api_webhooks', requiredPlan: 'premium' },
   { href: '/admin/billing',      label: 'Suscripción', icon: 'card',    ownerOnly: true },
   { href: '/admin/ayuda',        label: 'Centro de ayuda', icon: 'help' },
 ];
@@ -184,16 +186,30 @@ function SidebarHeader({ rol, showBell }: { rol: string; showBell: boolean }) {
 function NavLinks({ items, pathname, dense = false }: { items: NavItem[]; pathname: string; dense?: boolean }) {
   const has    = usePlan((s) => s.has);
   const unread = useLivePedidos((s) => s.unread);
+  const showUpgrade = useUpgradeModal((s) => s.show);
   return (
     <nav className="flex-1 py-3 px-2 overflow-y-auto scroll-fine space-y-0.5">
       {items.map((item) => {
         const active = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
         const locked = !!item.feature && !has(item.feature);
         const showBadge = item.href === '/admin/pedidos' && unread > 0 && !active;
+
+        const handleLockedClick = (e: React.MouseEvent) => {
+          if (!locked) return;
+          e.preventDefault();
+          e.stopPropagation();
+          showUpgrade({
+            feature: item.feature!,
+            requiredPlan: (item.requiredPlan as 'professional' | 'premium') ?? 'professional',
+            moduleLabel: item.label,
+          });
+        };
+
         return (
           <Link
             key={item.href}
-            href={item.href}
+            href={locked ? '#' : item.href}
+            onClick={handleLockedClick}
             data-tour={`sidebar-${item.href.replace('/admin', '').replace('/', '') || 'inicio'}`}
             className={cn(
               'group flex items-center gap-3 rounded-lg transition relative',
@@ -201,9 +217,9 @@ function NavLinks({ items, pathname, dense = false }: { items: NavItem[]; pathna
               active
                 ? 'bg-ink text-white font-semibold shadow-soft'
                 : 'text-ink/70 hover:bg-line/40 hover:text-ink font-medium',
-              locked && !active && 'opacity-60',
+              locked && !active && 'opacity-60 cursor-pointer',
             )}
-            title={locked ? `Disponible en plan ${item.requiredPlan === 'premium' ? 'Premium' : 'Profesional'}` : undefined}
+            title={locked ? `Mejora a plan ${item.requiredPlan === 'premium' ? 'Premium' : 'Profesional'} para desbloquear` : undefined}
           >
             <Icon
               name={item.icon}
@@ -377,6 +393,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* F85 — búsqueda global Cmd+K, montada para todo el panel */}
       <CmdKSearch />
+
+      {/* Modal de upgrade que aparece al hacer click en módulos con candado */}
+      <UpgradeModal />
 
       {/* Tour interactivo + auto-trigger del onboarding en /admin */}
       {user.rol !== 'super_admin' && (

@@ -8,7 +8,7 @@ import { soporteWhatsappUrl } from '@/lib/support';
 import { cn } from '@/lib/utils';
 
 interface ApiPlan {
-  slug: 'essential' | 'professional';
+  slug: 'essential' | 'professional' | 'premium';
   nombre: string;
   precio_mxn: number;
   features: string[];
@@ -18,26 +18,46 @@ interface ApiPlan {
 
 interface PlansResponse { data: ApiPlan[]; trial_days: number }
 
+/**
+ * Labels en español para el cliente final. SIN palabras técnicas tipo
+ * "white_label", "api_webhooks", "POS", "audit_log" — todo en lenguaje
+ * de dueño de restaurante.
+ */
 const FEATURE_LABELS: Record<string, string> = {
-  branding_basico:    'Branding básico (logo + 1 color)',
-  branding_avanzado:  'Branding avanzado (banner + colores + tipografía)',
-  inventario:         'Inventario con ingredientes',
-  recetas:            'Recetas (descuento automático)',
-  compras:            'Compras a proveedor',
-  metricas_basicas:   'Métricas del día',
-  metricas_avanzadas: 'Métricas avanzadas + margen',
-  pos:                'POS interno',
-  qr_personalizado:   'QR con tu logo',
-  notificaciones:     'Notificaciones in-app',
-  staff_multi:        'Múltiples cuentas de staff',
-  audit_log:          'Audit log',
-  restore:            'Restaurar elementos borrados',
+  branding_basico:    'Pon tu logo y color',
+  branding_avanzado:  'Personaliza colores, tipografías y banner',
+  inventario:         'Control de ingredientes y stock',
+  recetas:            'Descuento automático de ingredientes',
+  compras:            'Registro de compras a proveedor',
+  metricas_basicas:   'Métricas del día (ventas, pedidos)',
+  metricas_avanzadas: 'Reportes avanzados (margen, top productos, horarios pico)',
+  pos:                'Caja para cobrar en mostrador',
+  qr_personalizado:   'Código QR con tu logo',
+  notificaciones:     'Avisos en vivo cuando llega un pedido',
+  staff_multi:        'Cuentas para tu equipo',
+  audit_log:          'Historial de quién cambió qué',
+  restore:            'Recuperar elementos borrados',
+  // Premium
+  multi_sucursal:     'Administra varias sucursales desde una sola cuenta',
+  white_label:        'Tu marca sin el logo de ClickToEat',
+  api_webhooks:       'Conecta con tu sistema de cocina o ERP',
+  soporte_premium:    'Soporte prioritario por WhatsApp',
 };
 
 const PLAN_HIGHLIGHT: Record<string, string> = {
   essential:    'Para arrancar a vender por WhatsApp.',
   professional: 'Para operar y escalar tu local.',
+  premium:      'Para cadenas y locales que necesitan más control.',
 };
+
+/**
+ * Calcula las features "extra" de un plan respecto al anterior. Si un
+ * plan superior incluye todo lo del inferior, sólo mostramos las nuevas.
+ */
+function featuresExtra(planFeatures: string[], previousFeatures: string[]): string[] {
+  const prevSet = new Set(previousFeatures);
+  return planFeatures.filter((f) => !prevSet.has(f));
+}
 
 export function PricingSection() {
   const [plans,   setPlans]   = useState<ApiPlan[] | null>(null);
@@ -91,16 +111,20 @@ export function PricingSection() {
           <div className="mt-12 text-center text-muted text-sm">No hay planes disponibles ahora.</div>
         ) : (
           <div className="mt-14 grid md:grid-cols-3 gap-5 max-w-5xl mx-auto">
-            {plans.map((p) => (
-              <PlanCard
-                key={p.slug}
-                plan={p}
-                trialDays={trial}
-                isPopular={p.slug === 'professional'}
-                loading={loading === p.slug}
-                onStart={() => startCheckout(p.slug)}
-              />
-            ))}
+            {plans.map((p, idx) => {
+              const previous = idx > 0 ? plans[idx - 1] : null;
+              return (
+                <PlanCard
+                  key={p.slug}
+                  plan={p}
+                  previousPlan={previous}
+                  trialDays={trial}
+                  isPopular={p.slug === 'professional'}
+                  loading={loading === p.slug}
+                  onStart={() => startCheckout(p.slug)}
+                />
+              );
+            })}
           </div>
         )}
 
@@ -127,14 +151,19 @@ export function PricingSection() {
 }
 
 function PlanCard({
-  plan, trialDays, isPopular, loading, onStart,
+  plan, previousPlan, trialDays, isPopular, loading, onStart,
 }: {
   plan: ApiPlan;
+  previousPlan: ApiPlan | null;
   trialDays: number;
   isPopular: boolean;
   loading: boolean;
   onStart: () => void;
 }) {
+  // Si hay plan anterior: mostramos sólo las features extra + un "Todo lo de X"
+  const featuresToShow = previousPlan
+    ? featuresExtra(plan.features, previousPlan.features)
+    : plan.features;
   return (
     <motion.article
       initial={{ opacity: 0, y: 16 }}
@@ -163,7 +192,13 @@ function PlanCard({
       </div>
 
       <ul className="mt-7 space-y-2.5 text-sm flex-1">
-        {plan.features.map((f) => (
+        {previousPlan && (
+          <li className="flex items-start gap-2.5 font-semibold">
+            <Icon name="check-circle" size={15} className="text-emerald-600 mt-0.5 shrink-0" />
+            <span>Todo lo del plan {previousPlan.nombre}, más:</span>
+          </li>
+        )}
+        {featuresToShow.map((f) => (
           <li key={f} className="flex items-start gap-2.5">
             <Icon name="check-circle" size={15} className="text-emerald-600 mt-0.5 shrink-0" />
             <span>{FEATURE_LABELS[f] ?? f}</span>

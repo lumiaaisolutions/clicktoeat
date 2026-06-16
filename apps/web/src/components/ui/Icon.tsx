@@ -85,6 +85,9 @@ export type IconName =
   | 'package'
   | 'palette'
   | 'settings'
+  | 'camera'
+  | 'trophy'
+  | 'plug'
   | 'home'
   | 'cart'
   | 'store';
@@ -210,6 +213,30 @@ const ICON_PATHS: Record<IconName, JSX.Element> = {
   'chevron-right': <polyline points="9 18 15 12 9 6" />,
   'chevron-down': <polyline points="6 9 12 15 18 9" />,
   'chevron-up':   <polyline points="18 15 12 9 6 15" />,
+  camera: (
+    <>
+      <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+      <circle cx="12" cy="13" r="3" />
+    </>
+  ),
+  trophy: (
+    <>
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+      <path d="M4 22h16" />
+      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+    </>
+  ),
+  plug: (
+    <>
+      <path d="M12 22v-5" />
+      <path d="M9 8V2" />
+      <path d="M15 8V2" />
+      <path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8h12Z" />
+    </>
+  ),
   settings: (
     <>
       <circle cx="12" cy="12" r="3" />

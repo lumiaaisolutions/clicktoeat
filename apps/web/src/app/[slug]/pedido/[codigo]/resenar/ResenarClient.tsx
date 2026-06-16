@@ -148,7 +148,10 @@ export function ResenarClient({ slug, codigo, productos, local }: Props) {
 
                     {/* Foto del platillo recibido */}
                     <div className="mt-3">
-                      <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5">📸 Foto (opcional)</label>
+                      <label className="text-xs font-semibold text-muted uppercase tracking-wider mb-1.5 inline-flex items-center gap-1.5">
+                        <Icon name="camera" size={12} />
+                        Foto (opcional)
+                      </label>
                       {st.image ? (
                         <div className="relative inline-block">
                           <img

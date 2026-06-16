@@ -17,23 +17,23 @@ interface Plan {
 }
 
 const FEATURE_LABELS: Record<string, string> = {
-  branding_basico:    'Branding básico',
-  branding_avanzado:  'Branding avanzado',
-  inventario:         'Inventario',
-  recetas:            'Recetas',
-  compras:            'Compras a proveedor',
-  metricas_basicas:   'Métricas',
-  metricas_avanzadas: 'Heatmap + cohort',
-  pos:                'Punto de venta',
-  qr_personalizado:   'QR personalizado',
-  notificaciones:     'Notificaciones in-app',
-  staff_multi:        'Múltiples cuentas de staff',
-  audit_log:          'Historial de cambios',
-  restore:            'Restaurar borrados',
-  multi_sucursal:     'Multi-sucursal',
-  white_label:        'White-label',
-  api_webhooks:       'API webhooks',
-  soporte_premium:    'Soporte prioritario',
+  branding_basico:    'Pon tu logo y color',
+  branding_avanzado:  'Personaliza colores, tipografías y banner',
+  inventario:         'Control de ingredientes y stock',
+  recetas:            'Descuento automático de ingredientes',
+  compras:            'Registro de compras a proveedor',
+  metricas_basicas:   'Métricas del día',
+  metricas_avanzadas: 'Reportes avanzados (margen, top productos, horarios pico)',
+  pos:                'Caja para cobrar en mostrador',
+  qr_personalizado:   'Código QR con tu logo',
+  notificaciones:     'Avisos en vivo cuando llega un pedido',
+  staff_multi:        'Cuentas para tu equipo',
+  audit_log:          'Historial de quién cambió qué',
+  restore:            'Recuperar elementos borrados',
+  multi_sucursal:     'Varias sucursales en una sola cuenta',
+  white_label:        'Tu marca sin el logo de ClickToEat',
+  api_webhooks:       'Conexión a tu sistema de cocina o ERP',
+  soporte_premium:    'Soporte prioritario por WhatsApp',
 };
 
 export default function ElegirPlanPage() {
@@ -89,7 +89,10 @@ export default function ElegirPlanPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {plans.map((p, idx) => {
-              const isMid = idx === 1; // Profesional típicamente recomendado
+              const isMid = idx === 1;
+              const previousPlan = idx > 0 ? plans[idx - 1] : null;
+              const prevSet = new Set(previousPlan?.features ?? []);
+              const extras = previousPlan ? p.features.filter((f) => !prevSet.has(f)) : p.features;
               return (
                 <div
                   key={p.slug}
@@ -111,15 +114,18 @@ export default function ElegirPlanPage() {
                   <p className="text-xs text-muted mt-1">+ IVA · MXN</p>
 
                   <ul className="mt-5 space-y-2 flex-1">
-                    {p.features.slice(0, 8).map((f) => (
+                    {previousPlan && (
+                      <li className="text-sm font-semibold flex items-center gap-2">
+                        <Icon name="check" size={14} className="text-emerald-600 shrink-0" />
+                        Todo lo del plan {previousPlan.nombre}, más:
+                      </li>
+                    )}
+                    {extras.map((f) => (
                       <li key={f} className="text-sm flex items-center gap-2">
                         <Icon name="check" size={14} className="text-emerald-600 shrink-0" />
                         {FEATURE_LABELS[f] ?? f}
                       </li>
                     ))}
-                    {p.features.length > 8 && (
-                      <li className="text-xs text-muted ml-6">+{p.features.length - 8} más…</li>
-                    )}
                   </ul>
 
                   <button

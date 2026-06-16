@@ -159,7 +159,7 @@ export default function PedidosPage() {
                   <span className="text-sm text-muted">· {p.cliente_telefono}</span>
                   {p.lealtad_premio_listo && (
                     <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-300 inline-flex items-center gap-1">
-                      🎁 Premio listo — regálale algo
+                      <Icon name="gift" size={10} /> Premio listo — regálale algo
                     </span>
                   )}
                   <span className="ml-auto font-bold">{formatMXN(p.total)}</span>

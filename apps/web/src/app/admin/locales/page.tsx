@@ -311,11 +311,11 @@ function CardAction({ href, icon, label }: { href: string; icon: 'palette' | 'us
 /* ─────────── Badge de facturación ─────────── */
 function computeBillingBadge(l: LocalAdmin): { label: string; tone: string; icon: string } {
   if (l.pago_externo) {
-    return { label: 'Pago externo', tone: 'bg-violet-50 text-violet-700 border-violet-200', icon: '💵' };
+    return { label: 'Pago externo', tone: 'bg-violet-50 text-violet-700 border-violet-200', icon: '$' };
   }
   switch (l.plan_status) {
     case 'active':   return { label: 'Al corriente',   tone: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: '✓' };
-    case 'trialing': return { label: 'En prueba',      tone: 'bg-amber-50 text-amber-700 border-amber-200',       icon: '⏱' };
+    case 'trialing': return { label: 'En prueba',      tone: 'bg-amber-50 text-amber-700 border-amber-200',       icon: '·' };
     case 'past_due': return { label: 'Pago atrasado',  tone: 'bg-red-50 text-red-700 border-red-200',             icon: '!' };
     case 'canceled': return { label: 'Cancelado',      tone: 'bg-zinc-100 text-zinc-600 border-zinc-200',         icon: '×' };
     case 'incomplete': return { label: 'Alta incompleta', tone: 'bg-amber-50 text-amber-700 border-amber-200',    icon: '…' };
@@ -430,14 +430,14 @@ function BillingModal({
 
 /* ─────────── Modal de alta (sin cambios funcionales) ─────────── */
 const GIROS = [
-  { value: 'mexicana',   label: '🌮  Cocina mexicana' },
-  { value: 'italiana',   label: '🍕  Pizzería / italiana' },
-  { value: 'cafeteria',  label: '☕  Cafetería' },
-  { value: 'sushi',      label: '🍣  Sushi / japonesa' },
-  { value: 'postres',    label: '🎂  Postres / repostería' },
-  { value: 'bar',        label: '🍸  Bar / coctelería' },
-  { value: 'vegan',      label: '🥗  Healthy / vegana' },
-  { value: 'pasteleria', label: '🥖  Pastelería' },
+  { value: 'mexicana',   label: 'Cocina mexicana' },
+  { value: 'italiana',   label: 'Pizzería / italiana' },
+  { value: 'cafeteria',  label: 'Cafetería' },
+  { value: 'sushi',      label: 'Sushi / japonesa' },
+  { value: 'postres',    label: 'Postres / repostería' },
+  { value: 'bar',        label: 'Bar / coctelería' },
+  { value: 'vegan',      label: 'Healthy / vegana' },
+  { value: 'pasteleria', label: 'Pastelería' },
 ] as const;
 
 function CreateLocalModal({

@@ -147,3 +147,20 @@ real cuando se configure.
 **Lección**: cuando uses framer-motion con `position: fixed` centrado,
 **nunca** mezcles `transform: translate(-50%)` con la animación —
 separa el centrado a un wrapper exterior.
+
+## Bug fix 2026-06-16 (v2) — mobile siempre center, sin highlight
+
+**Cambio**: en viewports `< 768px` el tour ahora ignora el `target` de los pasos
+y muestra siempre el tooltip centrado **sin spotlight ni halo** detrás. En
+desktop sigue funcionando como antes con highlight del elemento.
+
+**Por qué**: en mobile el elemento target suele estar dentro del drawer
+cerrado (el sidebar no es visible) o requeriría scroll incómodo. Mostrar
+un highlight a un elemento que no se ve confunde más de lo que ayuda.
+
+Detección: `window.matchMedia('(max-width: 767px)')` + listener a `change`.
+Cuando es mobile → `placement = 'center'` forzado y `rect = null`.
+
+Implicación para los autores de tours: en mobile, los pasos funcionan
+como un wizard guiado que sólo describe, no señala. Asegúrate de que el
+`body` del paso sea autosuficiente sin depender visualmente del target.

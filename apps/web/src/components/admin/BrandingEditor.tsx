@@ -376,8 +376,9 @@ export function BrandingEditor({ localId }: { localId?: number } = {}) {
                     hint="Ej. Café gratis · Postre del mes · 20% descuento"
                   />
                 </div>
-                <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
-                  <strong>💡 Cómo funciona:</strong> Cada pedido con email suma 1 sello automáticamente. Cuando el cliente complete los {draft.lealtad_meta ?? 10} sellos, tu sistema le avisa y tú le das {draft.lealtad_premio || 'el premio'} en su próxima visita.
+                <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 flex items-start gap-2">
+                  <Icon name="sparkles" size={14} className="shrink-0 mt-0.5" />
+                  <span><strong>Cómo funciona:</strong> Cada pedido con email suma 1 sello automáticamente. Cuando el cliente complete los {draft.lealtad_meta ?? 10} sellos, tu sistema le avisa y tú le das {draft.lealtad_premio || 'el premio'} en su próxima visita.</span>
                 </div>
               </div>
             )}

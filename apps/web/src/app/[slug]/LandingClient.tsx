@@ -1911,8 +1911,9 @@ function LealtadBadge({ slug, email, lealtad }: {
   if (!status) {
     // Sin email todavía o cliente nuevo — promueve el programa
     return (
-      <div className="mt-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
-        🎁 <strong>Programa de lealtad:</strong> con tu correo acumulas sellos. {lealtad.premio && `Al llegar a ${lealtad.meta}, recibes: ${lealtad.premio}.`}
+      <div className="mt-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
+        <Icon name="gift" size={14} className="shrink-0 mt-0.5" />
+        <span><strong>Programa de lealtad:</strong> con tu correo acumulas sellos. {lealtad.premio && `Al llegar a ${lealtad.meta}, recibes: ${lealtad.premio}.`}</span>
       </div>
     );
   }
@@ -1922,10 +1923,15 @@ function LealtadBadge({ slug, email, lealtad }: {
   return (
     <div className="mt-2 px-3 py-2.5 rounded-xl bg-gradient-to-r from-amber-50 to-amber-100 border border-amber-300">
       <div className="flex items-center justify-between mb-1.5">
-        <p className="text-xs font-bold text-amber-900">
-          {status.premios_ganados > 0
-            ? `🏆 ¡Tienes ${status.premios_ganados} premio${status.premios_ganados > 1 ? 's' : ''} pendiente${status.premios_ganados > 1 ? 's' : ''}!`
-            : `Te faltan ${meta - current} sellos para tu premio`}
+        <p className="text-xs font-bold text-amber-900 inline-flex items-center gap-1.5">
+          {status.premios_ganados > 0 ? (
+            <>
+              <Icon name="trophy" size={12} />
+              ¡Tienes {status.premios_ganados} premio{status.premios_ganados > 1 ? 's' : ''} pendiente{status.premios_ganados > 1 ? 's' : ''}!
+            </>
+          ) : (
+            <>Te faltan {meta - current} sellos para tu premio</>
+          )}
         </p>
         <span className="text-[10px] font-semibold text-amber-700 tabular-nums">{current}/{meta}</span>
       </div>
@@ -1941,8 +1947,9 @@ function LealtadBadge({ slug, email, lealtad }: {
         ))}
       </div>
       {status.premios_ganados > 0 && lealtad.premio && (
-        <p className="text-[11px] text-amber-800 mt-1.5">
-          🎁 Reclama en tu próxima visita: <strong>{lealtad.premio}</strong>
+        <p className="text-[11px] text-amber-800 mt-1.5 inline-flex items-center gap-1">
+          <Icon name="gift" size={12} />
+          Reclama en tu próxima visita: <strong>{lealtad.premio}</strong>
         </p>
       )}
     </div>
@@ -2104,7 +2111,7 @@ function HotProductosBanner({
   return (
     <section className="rounded-3xl border border-line bg-white p-3 sm:p-4 mb-5 shadow-sm">
       <div className="flex items-center gap-2 mb-3 px-1">
-        <span className="text-xl">🔥</span>
+        <Icon name="flame" size={18} style={{ color: 'var(--ce-accent)' }} />
         <p className="ce-display font-bold text-sm sm:text-base leading-none">
           Lo más pedido <span style={{ color: 'var(--ce-accent)' }}>hoy</span>
         </p>

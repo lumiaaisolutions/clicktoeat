@@ -72,8 +72,22 @@ function TourStepView({
   onClose: () => void;
 }) {
   const [rect, setRect] = useState<Rect | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detecta mobile (< 768px). En mobile NUNCA mostramos highlight del target
+  // ni placement direccional — el tour vive siempre centrado y los pasos
+  // funcionan como una guía visual sin referenciar elementos detrás.
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
 
   useLayoutEffect(() => {
+    // En mobile no necesitamos el rect del target (tour siempre center)
+    if (isMobile) { setRect(null); return; }
     if (!step.target) { setRect(null); return; }
     const measure = () => {
       const el = document.querySelector(step.target!) as HTMLElement | null;
@@ -91,9 +105,10 @@ function TourStepView({
       window.removeEventListener('resize', measure);
       window.removeEventListener('scroll', measure, true);
     };
-  }, [step.target]);
+  }, [step.target, isMobile]);
 
-  const placement = step.placement ?? (rect ? 'bottom' : 'center');
+  // En mobile fuerza center. En desktop respeta el placement del step.
+  const placement = isMobile ? 'center' : (step.placement ?? (rect ? 'bottom' : 'center'));
 
   /**
    * Calcula la posición del tooltip. IMPORTANTE: NO usamos `transform` para
@@ -157,7 +172,7 @@ function TourStepView({
       />
 
       {/* Spotlight + halo pulsante sobre el target */}
-      {rect && (
+      {rect && !isMobile && (
         <>
           <motion.div
             key={`spot-${index}`}
