@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\UsesEditableTemplate;
 use App\Models\Local;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
@@ -12,7 +13,7 @@ use Illuminate\Queue\SerializesModels;
 
 class WelcomeMail extends Mailable
 {
-    use Queueable, SerializesModels;
+    use Queueable, SerializesModels, UsesEditableTemplate;
 
     public function __construct(
         public Local $local,
@@ -21,7 +22,7 @@ class WelcomeMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: '¡Bienvenido a ClickToEat!');
+        return new Envelope(subject: $this->editableSubject('welcome', '¡Bienvenido a ClickToEat!'));
     }
 
     public function content(): Content
@@ -29,15 +30,24 @@ class WelcomeMail extends Mailable
         $base = rtrim((string) (config('stripe.portal_return_url') ?: config('app.url')), '/');
         $base = preg_replace('#/admin/?.*$#', '', $base) ?: $base;
 
-        return new Content(
-            view: 'emails.welcome',
-            with: [
-                'local'    => $this->local,
-                'owner'    => $this->owner,
-                'panelUrl' => "{$base}/admin",
-                'publicUrl' => "{$base}/{$this->local->slug}",
-                'trialEnds' => $this->local->trial_ends_at,
-            ],
-        );
+        return $this->editableContent('welcome', 'emails.welcome', [
+            'local'    => $this->local,
+            'owner'    => $this->owner,
+            'panelUrl' => "{$base}/admin",
+            'publicUrl' => "{$base}/{$this->local->slug}",
+            'trialEnds' => $this->local->trial_ends_at,
+        ]);
+    }
+
+    protected function templateVars(): array
+    {
+        $base = rtrim((string) (config('stripe.portal_return_url') ?: config('app.url')), '/');
+        $base = preg_replace('#/admin/?.*$#', '', $base) ?: $base;
+        return [
+            'nombre_local'   => $this->local->nombre,
+            'nombre_cliente' => $this->owner->nombre,
+            'link'           => "{$base}/admin",
+            'fecha'          => now()->format('d/m/Y H:i'),
+        ];
     }
 }

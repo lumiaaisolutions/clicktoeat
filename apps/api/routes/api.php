@@ -333,6 +333,9 @@ Route::middleware('throttle:60,1')->group(function () {
 
         Route::get('metricas-zonas',                          [\App\Http\Controllers\Api\Admin\MetricasZonasController::class, 'index']);
 
+        // F99 — Feed unificado de notificaciones para super_admin
+        Route::get('notificaciones',                          [\App\Http\Controllers\Api\Admin\NotificacionesController::class, 'index']);
+
         // F98 — Email templates editables (sustituyen los Blade hardcoded de los Mailables)
         Route::get('email-templates',                         [\App\Http\Controllers\Api\Admin\EmailTemplatesController::class, 'index']);
         Route::post('email-templates',                        [\App\Http\Controllers\Api\Admin\EmailTemplatesController::class, 'store']);

@@ -11,6 +11,7 @@ import { usePlan } from '@/store/plan';
 import { useLivePedidos } from '@/store/livePedidos';
 import { Toaster } from '@/components/ui/Toaster';
 import { NotificacionesBell } from '@/components/admin/NotificacionesBell';
+import { SuperAdminBell } from '@/components/admin/SuperAdminBell';
 import { LivePedidosPoller } from '@/components/admin/LivePedidosPoller';
 import { LocalSwitcher } from '@/components/admin/LocalSwitcher';
 import { CmdKSearch } from '@/components/admin/CmdKSearch';
@@ -175,7 +176,7 @@ const NAV_SUPER: NavItem[] = [
   { href: '/admin/auditoria',        label: 'Auditoría',        icon: 'history' },
 ];
 
-function SidebarHeader({ rol, showBell }: { rol: string; showBell: boolean }) {
+function SidebarHeader({ rol, showBell, isSuper }: { rol: string; showBell: boolean; isSuper?: boolean }) {
   return (
     <div className="border-b border-line">
       <div className="px-4 pt-5 pb-4 flex items-start justify-between gap-2">
@@ -188,7 +189,7 @@ function SidebarHeader({ rol, showBell }: { rol: string; showBell: boolean }) {
             {rol === 'super_admin' ? 'Panel global' : 'Panel del local'}
           </span>
         </div>
-        {showBell && <NotificacionesBell />}
+        {showBell && (isSuper ? <SuperAdminBell /> : <NotificacionesBell />)}
       </div>
       <LocalSwitcher />
     </div>
@@ -328,7 +329,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-bg md:flex">
       {/* ─── SIDEBAR DESKTOP ─────────────────────────────────────── */}
       <aside className="hidden md:flex w-60 shrink-0 border-r border-line bg-white flex-col h-screen sticky top-0">
-        <SidebarHeader rol={user.rol} showBell={user.rol !== 'super_admin'} />
+        <SidebarHeader rol={user.rol} showBell={true} isSuper={user.rol === 'super_admin'} />
         <NavLinks items={nav} pathname={pathname ?? ''} />
         <UserCard user={user} onLogout={() => logout().then(() => router.push('/'))} />
       </aside>
@@ -354,7 +355,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Logo variant="lockup" size={24} />
           </Link>
           <div className="flex items-center gap-1">
-            {user.rol !== 'super_admin' && <NotificacionesBell />}
+            {user.rol === 'super_admin' ? <SuperAdminBell /> : <NotificacionesBell />}
           </div>
         </header>
 

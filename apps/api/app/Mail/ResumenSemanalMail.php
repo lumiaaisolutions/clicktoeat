@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\UsesEditableTemplate;
 use App\Models\Local;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -11,7 +12,7 @@ use Illuminate\Queue\SerializesModels;
 
 class ResumenSemanalMail extends Mailable
 {
-    use Queueable, SerializesModels;
+    use Queueable, SerializesModels, UsesEditableTemplate;
 
     public function __construct(
         public Local $local,
@@ -20,18 +21,26 @@ class ResumenSemanalMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: "📊 Tu semana en {$this->local->nombre}");
+        return new Envelope(subject: $this->editableSubject('resumen_semanal', "📊 Tu semana en {$this->local->nombre}"));
     }
 
     public function content(): Content
     {
-        return new Content(
-            view: 'mail.resumen_semanal',
-            with: [
-                'local' => $this->local,
-                'stats' => $this->stats,
-                'panelUrl' => rtrim((string) config('app.frontend_url', 'http://localhost:3000'), '/').'/admin/metricas',
-            ],
-        );
+        return $this->editableContent('resumen_semanal', 'mail.resumen_semanal', [
+            'local' => $this->local,
+            'stats' => $this->stats,
+            'panelUrl' => rtrim((string) config('app.frontend_url', 'http://localhost:3000'), '/').'/admin/metricas',
+        ]);
+    }
+
+    protected function templateVars(): array
+    {
+        $base = rtrim((string) config('app.frontend_url', 'http://localhost:3000'), '/');
+        return [
+            'nombre_local' => $this->local->nombre,
+            'total'        => '$'.number_format((float) ($this->stats['ventas'] ?? 0), 2),
+            'link'         => "{$base}/admin/metricas",
+            'fecha'        => now()->format('d/m/Y'),
+        ];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\UsesEditableTemplate;
 use App\Models\Local;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -16,7 +17,7 @@ use Illuminate\Queue\SerializesModels;
  */
 class TrialNudgeMail extends Mailable
 {
-    use Queueable, SerializesModels;
+    use Queueable, SerializesModels, UsesEditableTemplate;
 
     public function __construct(
         public Local $local,
@@ -25,20 +26,30 @@ class TrialNudgeMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: self::SUBJECTS[$this->tipo] ?? 'ClickToEat — tu local');
+        // El slug del template es `trial_nudge` para d3/d7 y `trial_will_end` para d14/ending
+        $slug = in_array($this->tipo, ['trial_d14', 'trial_ending'], true) ? 'trial_will_end' : 'trial_nudge';
+        return new Envelope(subject: $this->editableSubject($slug, self::SUBJECTS[$this->tipo] ?? 'ClickToEat — tu local'));
     }
 
     public function content(): Content
     {
-        return new Content(
-            view: 'mail.trial_nudge',
-            with: [
-                'local' => $this->local,
-                'tipo'  => $this->tipo,
-                'cuerpo' => self::CONTENT[$this->tipo] ?? null,
-                'ctaUrl' => rtrim((string) config('app.frontend_url', 'http://localhost:3000'), '/').'/admin',
-            ],
-        );
+        $slug = in_array($this->tipo, ['trial_d14', 'trial_ending'], true) ? 'trial_will_end' : 'trial_nudge';
+        return $this->editableContent($slug, 'mail.trial_nudge', [
+            'local' => $this->local,
+            'tipo'  => $this->tipo,
+            'cuerpo' => self::CONTENT[$this->tipo] ?? null,
+            'ctaUrl' => rtrim((string) config('app.frontend_url', 'http://localhost:3000'), '/').'/admin',
+        ]);
+    }
+
+    protected function templateVars(): array
+    {
+        $base = rtrim((string) config('app.frontend_url', 'http://localhost:3000'), '/');
+        return [
+            'nombre_local' => $this->local->nombre,
+            'link'         => "{$base}/admin",
+            'fecha'        => now()->format('d/m/Y'),
+        ];
     }
 
     public const SUBJECTS = [

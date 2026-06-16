@@ -258,6 +258,28 @@ export const TOURS: Record<string, TourStep[]> = {
       icon: 'cup-soda',
     },
   ],
+  /* ── Multi-sucursal — explica el LocalSwitcher cuando el user tiene más de un local ── */
+  'multi-sucursal': [
+    {
+      title: 'Tienes varias sucursales',
+      body: 'Cuando un mismo dueño administra más de un local, puedes saltar entre ellas sin cerrar sesión.',
+      placement: 'center',
+      icon: 'store',
+    },
+    {
+      target: '[data-tour="local-switcher"]',
+      title: 'Cambia de sucursal',
+      body: 'Toca esta tarjeta y elige otra sucursal. Todo el panel se recarga con los datos de la sucursal nueva: productos, pedidos, métricas.',
+      placement: 'right',
+      icon: 'store',
+    },
+    {
+      title: 'Datos separados',
+      body: 'Cada sucursal tiene su propio menú, sus pedidos y su contabilidad. Los cambios que hagas en una NO afectan a las otras.',
+      placement: 'center',
+      icon: 'shield',
+    },
+  ],
 };
 
 export function getTour(slug: string): TourStep[] | null {

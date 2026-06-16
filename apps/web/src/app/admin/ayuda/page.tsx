@@ -27,6 +27,7 @@ const CARDS: HelpCard[] = [
   { slug: 'qr',          icon: 'qr-code',   title: 'Código QR',         body: 'Descarga e imprime tu QR único.', steps: TOURS.qr?.length ?? 0 },
   { slug: 'horarios',    icon: 'clock',     title: 'Horarios',          body: 'Cuándo aceptas pedidos.', steps: TOURS.horarios?.length ?? 0 },
   { slug: 'staff',       icon: 'users',     title: 'Equipo',            body: 'Invita personas a ayudarte.', steps: TOURS.staff?.length ?? 0 },
+  { slug: 'multi-sucursal', icon: 'store',  title: 'Multi-sucursal',     body: 'Cambia entre tus locales con un click.', steps: TOURS['multi-sucursal']?.length ?? 0 },
   { slug: 'metricas',    icon: 'chart',     title: 'Reportes',          body: 'Tus números del día.', steps: TOURS.metricas?.length ?? 0 },
   { slug: 'audit-log',   icon: 'history',   title: 'Historial',         body: 'Quién hizo qué y cuándo.', steps: TOURS['audit-log']?.length ?? 0 },
   { slug: 'billing',     icon: 'card',      title: 'Suscripción',       body: 'Plan, método de pago, facturas.', steps: TOURS.billing?.length ?? 0 },

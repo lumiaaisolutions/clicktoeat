@@ -97,3 +97,29 @@ class WelcomeMail extends Mailable {
     }
 }
 ```
+
+## Mailables conectados (junio 2026, segunda iteración)
+
+Tras la primera entrega, conectamos 6 Mailables más al sistema editable. Ahora
+están conectados:
+
+| Mailable                  | Slug                | Estado |
+|---------------------------|---------------------|--------|
+| `PedidoConfirmadoMail`    | `pedido_confirmado` | ✅     |
+| `TicketReplyMail`         | `ticket_reply`      | ✅     |
+| `WelcomeMail`             | `welcome`           | ✅     |
+| `TrialNudgeMail` (d3, d7) | `trial_nudge`       | ✅     |
+| `TrialNudgeMail` (d14, ending) + `TrialWillEndMail` | `trial_will_end` | ✅ |
+| `PaymentFailedMail`       | `payment_failed`    | ✅     |
+| `PlanCanceledMail`        | `plan_canceled`     | ✅     |
+| `CarritoAbandonadoMail`   | `carrito_abandonado`| ✅     |
+| `ResumenSemanalMail`      | `resumen_semanal`   | ✅     |
+
+**Todos los Mailables del sistema están conectados**. Cada uno cae al Blade
+hardcoded si no hay registro activo en `email_templates`.
+
+Si se agrega un Mailable nuevo, hay que (1) agregar `use UsesEditableTemplate`,
+(2) cambiar `Envelope(subject: ...)` por `$this->editableSubject(slug, fallback)`,
+(3) cambiar `new Content(view: ...)` por `$this->editableContent(slug, blade, with)`,
+y (4) implementar `protected function templateVars(): array` con las
+variables que quieras exponer al editor.

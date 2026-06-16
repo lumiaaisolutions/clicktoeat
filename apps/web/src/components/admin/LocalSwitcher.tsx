@@ -54,7 +54,7 @@ export function LocalSwitcher() {
   };
 
   return (
-    <div className="px-3 pb-2 relative">
+    <div className="px-3 pb-2 relative" data-tour="local-switcher">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
