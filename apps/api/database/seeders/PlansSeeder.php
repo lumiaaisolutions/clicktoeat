@@ -105,6 +105,15 @@ class PlansSeeder extends Seeder
         ];
 
         foreach ($plans as $data) {
+            $existing = Plan::where('slug', $data['slug'])->first();
+
+            // Preserva stripe_price_id existente si la env var está vacía.
+            // Sin esto, re-correr el seeder sin las vars en .env borra el
+            // price ID de planes que YA estaban cobrando en producción.
+            if ($existing && empty($data['stripe_price_id']) && ! empty($existing->stripe_price_id)) {
+                $data['stripe_price_id'] = $existing->stripe_price_id;
+            }
+
             Plan::updateOrCreate(
                 ['slug' => $data['slug']],
                 $data + ['activo' => true],
