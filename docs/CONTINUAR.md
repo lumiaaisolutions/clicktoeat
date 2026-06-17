@@ -1,18 +1,21 @@
 # Cómo continuar el proyecto en otra sesión
 
-> Snapshot al **2026-06-14**. Si abres el proyecto en una sesión nueva
-> (otro día, otra máquina, otro dev), lee este archivo primero.
+> **Snapshot al 2026-06-17.** Si abres el proyecto en una sesión nueva,
+> lee este archivo primero.
 
-## Estado actual del sistema
+## Estado del sistema
 
-**Sistema en producción y funcionando:**
+**100% operativo en LIVE.** Cualquier cliente puede registrarse y pagar
+con tarjeta real desde ya.
 
 | Capa | URL | Estado |
 |------|-----|--------|
-| Frontend público | https://clicktoeat.lumiaaisolutions.com | ✅ Up |
+| Frontend | https://clicktoeat.lumiaaisolutions.com | ✅ Up |
 | API | https://clicktoeat-api.lumiaaisolutions.com | ✅ Up |
-| BD | MySQL managed en VPS | ✅ Up |
-| Hosting | Hostinger VPS con CageFS | ✅ Up |
+| BD | MySQL managed en VPS Hostinger | ✅ Up |
+| Stripe | LIVE mode, `acct_1TPnLARxHYFQWlid` | ✅ Charges enabled |
+| Mail | SMTP Hostinger `contacto@lumiaaisolutions.com` | ✅ Funcional |
+| Sentry | `lumia-yd.sentry.io` (Laravel + Next.js) | ✅ Recibiendo errores |
 
 **Health checks:**
 ```bash
@@ -20,234 +23,149 @@ curl -I https://clicktoeat.lumiaaisolutions.com/        # 200
 curl -I https://clicktoeat-api.lumiaaisolutions.com/up  # 200
 ```
 
-## ¿Por dónde voy?
+## Stripe LIVE — configurado
 
-### ✅ Cerrado en sesión 2026-06-14 (hoy)
+- **3 planes activos**:
+  - Esencial $99 MXN/mes — `price_1Tj2wURxHYFQWlidyJApyhhu`
+  - Profesional $299 MXN/mes — `price_1Tj2xjRxHYFQWlidu2NlkPnp`
+  - Premium $499 MXN/mes — `price_1Tj2yuRxHYFQWlidv1w1u75c`
+- **Webhook** `we_1Tj31sRxHYFQWlidqboydSrH` → `/api/v1/billing/webhook` (10 eventos enabled)
+- **Trial 14 días** en cualquier plan
+- **Premium**: SIN integración con ERP/cocina externa (removido por decisión del producto)
 
-- **Rediseño editorial cálido de la landing del local** (`/[slug]`):
-  hero 76vh con Instrument Serif, info card flotante con status pulse,
-  chips horizontales de categorías, grid de cards de productos (volvió
-  el grid, dejó el accordion), cart FAB con sheen+ring, checkout sheet
-  con form completo. Bundle bajó de 31 kB a 16.8 kB. Tipografía nueva:
-  `.ce-serif` (Instrument Serif) + `.ce-body` (Hanken Grotesk) cargadas
-  en `layout.tsx`. 11 keyframes nuevos en `globals.css`. Ver
-  [`frontend/landing.md`](frontend/landing.md) y
-  [`frontend/typography.md`](frontend/typography.md).
-- Eliminado input "Notas (opcional)" del checkout (no se enviaba al
-  backend, era engañoso).
-- **Vista móvil del local más densa**: cards `grid-cols-2`, imagen 1/1,
-  paddings/tipografía reducidos, descripción oculta en mobile (visible
-  en el detail sheet). En `sm+` se mantiene el diseño anterior intacto.
-- **Home `/` con copy condensado**: Hero, Why, System, CTAOwner y QR
-  con titulares y descripciones más breves (6-9 palabras por título,
-  1 línea por body).
-- **Nuevo `PinnedFoodStory`** (`components/landing/PinnedFoodStory.tsx`):
-  3 frames con foto real (Unsplash) + texto cycling controlado por
-  `scrollYProgress`. Imagen sticky con cross-fade entre frames + progress
-  bar inferior. Reemplaza a `ScrollPhoneSequence` (legacy, queda en
-  repo). Bundle `/` baja de 19.3 → 17.5 kB.
+## Crons activos en hPanel
 
-### ✅ Cerrado en sesión 2026-06-12 al 2026-06-13
+| Cron | Schedule | Comando |
+|------|----------|---------|
+| Purga audit logs | Domingos 3:00 AM | `php artisan audit-logs:purge --days=365` |
+| Purga locales borrados | Domingos 3:30 AM | `php artisan locales:purge --days=15` |
 
-- Sistema multi-tenant funcionando con dos locales reales
-  (`postres-stitch`, `pizza-bambino`).
-- Rediseño completo de la landing pública (BurgerSequence con 168 frames,
-  ScrollPhone, WhyClickToEat, SystemPreview, footer con LUMIA, accordion
-  de productos, banner premium cerrado).
-- Rediseño del directorio público con tilt 3D + spotlight + cards modernas.
-- Permisos granulares de staff (12 módulos, 4 presets, IconPicker visual).
-- IconSystem con ~50 iconos food-focused.
-- Sistema de loaders branded (InitialLoader + RouteTransition + RSC).
-- Plan SaaS completo documentado (ADR-011 + features + runbooks).
-- Deploy automatizado fixed (BSD tar, rutas correctas, excludes para uploads).
-- Hosting auditado y documentado correctamente (VPS+CageFS, no Shared).
+## Módulos implementados (lista completa)
 
-### 🟡 Pendiente operativo — TÚ haces antes de Fase 11 SaaS
+### Panel super_admin
+- Resumen + Locales (con filtro "Borrados" + grace period 15 días)
+- SaaS metrics (MRR, churn, ARPU)
+- Anuncios globales (banner en todos los locales)
+- Cupones globales (replicar a todos)
+- Newsletter (mass mail)
+- Soporte (tickets)
+- Zonas (mapa Leaflet con ventas por ciudad)
+- Auditoría global
+- Email templates editables (9 Mailables conectados)
+- Centro de actividad (campanita con tickets/locales/pagos fallidos)
 
-Necesario para que arranquemos la implementación del cobro mensual:
+### Panel owner
+- Inicio, Reportes, Punto de venta (POS con modo offline), Pedidos
+- Productos, Categorías, Inventario, Compras (Profesional+)
+- Branding (selección visual + sin código hex)
+- Horarios, Equipo, QR, Cupones (con horarios), Calificaciones, Referidos
+- Suscripción (Customer Portal Stripe + cambio de plan manual)
+- **Aprende a usar** (centro de aprendizaje con 6 animaciones SVG)
+- Centro de ayuda (tours interactivos)
 
-| # | Tarea | Tiempo | Runbook |
-|---|-------|--------|---------|
-| 1 | Configurar Stripe Dashboard (3 productos + webhook + portal) | 45 min | [`runbook/configurar-stripe.md`](runbook/configurar-stripe.md) |
-| 2 | Configurar MAIL en Hostinger Email | 30 min | [`runbook/setup-mail-hostinger.md`](runbook/setup-mail-hostinger.md) |
-| 3 | Cron del scheduler en hPanel (1 línea) | 5 min | [`runbook/setup-cron-scheduler.md`](runbook/setup-cron-scheduler.md) |
+### Landing pública (`/{slug}`)
+- Hero con branding del local
+- Banner de cupón destacado activo AHORA (sticky top con horario)
+- Catálogo con categorías + productos
+- Carrito con cupón aplicado
+- Checkout → WhatsApp deep link
+- Sección de calificaciones (1-5 estrellas + comentarios)
+- Footer con datos del local
 
-**Cuando termines los 3 anteriores, mándame estas 9 variables del `.env`:**
+### Onboarding del owner
+- 6 pasos: cuenta → local → identidad → contacto → **resumen** → finalizar
+- URL auto-generada del nombre (sin "slug" técnico)
+- Color picker sin código hex (8 paletas + custom)
+- Mapa con geolocalización en step contacto
+- Botón "Atrás" en cada paso, estado preservado
 
-```
-STRIPE_PUBLIC_KEY=
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
-STRIPE_PRICE_ESSENTIAL=
-STRIPE_PRICE_PROFESSIONAL=
-STRIPE_PRICE_PREMIUM=
-MAIL_USERNAME=
-MAIL_PASSWORD=
-MAIL_FROM_ADDRESS=
-```
+## ⏸️ Pendiente solo de TI (no requiere código)
 
-Con esas variables arranco Fase 11.1 (modelo + Stripe SDK) inmediatamente.
+| # | Item | Tiempo | Cómo |
+|---|---|---|---|
+| 1 | Activar backup diario $6/mes | 2 min | hPanel → VPS → Backups → Add-on |
+| 2 | Probar flow E2E con tu tarjeta | 15 min | Registro real + Stripe trial → cancelar antes de 14 días |
+| 3 | Revocar MCP key Stripe `rk_live_51TPnLAR...` | 1 min | Dashboard Stripe → Developers → API keys → Revoke |
 
-### 🟢 Fase 11 — SaaS (no iniciada, plan completo documentado)
+## 🟨 Features documentadas pero NO implementadas
 
-**13 días dev en 10 fases independientes** — ver
-[`features/saas-billing.md`](features/saas-billing.md) y
-[`decisions/ADR-011-saas-pricing-and-feature-gating.md`](decisions/ADR-011-saas-pricing-and-feature-gating.md).
+Estos son planes en `docs/features/` listos para cuando sean necesarios:
 
-3 planes (decididos):
-- **Esencial $99 MXN/mes** — catálogo + WhatsApp + branding básico.
-- **Profesional $299 MXN/mes** — + inventario, recetas, métricas, staff (3 máx).
-- **Premium $499 MXN/mes** — + POS, métricas avanzadas, audit log, staff ilimitado.
+| Item | Doc | Cuándo conviene |
+|---|---|---|
+| App móvil React Native | `app-movil-clicktoeat.md` | 50+ locales pagando |
+| API pública para terceros | `api-publica-y-ab-testing.md` | Cliente la pide |
+| A/B testing de menú | `api-publica-y-ab-testing.md` | Local con >50 pedidos/día |
+| Pre-pago Stripe Connect cliente final | (sin doc específico) | Requiere onboarding técnico del owner |
+| Tracking de repartidor en mapa | (sin doc específico) | Premium feature futura |
+| Multi-idioma de landing | (sin doc específico) | Zonas turísticas |
 
-Trial: 14 días sin tarjeta (decidido).
+## 📚 Documentación clave para futuras sesiones
 
-### 🔴 Pendientes técnicos menores (post-SaaS)
+- **`docs/runbook/estado-final-junio-2026.md`** — snapshot detallado del estado actual
+- **`docs/runbook/checkout-stripe-live.md`** — bugs del checkout y cómo se resolvieron
+- **`docs/runbook/configurar-mail-stripe-vapid-prod.md`** — variables `.env` críticas
+- **`docs/runbook/activar-queue-database.md`** — cómo activar queue worker si crece volumen
+- **`docs/features/feature-gating.md`** — qué módulo está en qué plan
+- **`docs/architecture/multi-tenancy.md`** — TenantScope (NO desactivar nunca sin where local_id)
+- **`docs/testing/fixes-junio-2026.md`** — los 9 bugs de tests que se arreglaron
 
-1. **Backup off-site de uploads** — `scripts/backup-mysql.sh` extender para
-   subir `storage/app/public/uploads/` a B2 vía rclone. Ver
-   [`runbook/recuperar-uploads-perdidos.md`](runbook/recuperar-uploads-perdidos.md)
-   sección "Backup de uploads off-site (TODO)".
-2. **35 failures de PHPUnit** del API — son de tests legacy, no afectan
-   runtime productivo. Revisar cuando hagamos pasada de calidad técnica.
-3. **Tests del sistema de permisos** — `StaffPermisosTest` no se escribió.
-4. **Middleware `EnsurePermiso`** — hoy depende de policies y revisión manual.
-   Cerrar gap antes de Fase 11.
-5. **UptimeRobot** apuntando a `/up` (API) y `/` (Web). Antes del primer
-   cliente pagado.
-6. **Theme toggle del landing del local** no persiste — alterna sol/luna
-   solo durante la visita. Agregar `localStorage.setItem('ce-theme', …)`
-   en `LandingClient` si decidimos que vale la pena (decision pendiente).
-7. **Variantes/extras de productos en `ProductDetailSheet`** — hoy se
-   ignora `producto.extras` y siempre se agrega sin extras seleccionados.
-   Bloqueante cuando un local active recetas con grupos opcionales.
-8. **Notas globales del pedido** — el campo se removió del checkout
-   porque el backend solo acepta `notas` por item. Si se quiere
-   reintroducir, agregar columna `pedidos.notas` + payload + UI.
-9. **Partir `LandingClient.tsx` (~30 KB)** en sub-componentes
-   (Hero, InfoCard, Categorias, ProductGrid, etc.) cuando toque tocarlo
-   de nuevo. Hoy es legible pero el archivo está grandote.
-
-## Cómo retomar — checklist al abrir el repo
+## 🛠️ Cómo deployar después de cambios
 
 ```bash
-# 1. Verificar que estás en main al día con remote
-cd ~/Desktop/LUMIA/clicktoeat
-git fetch && git status                # should be: "On branch main, up-to-date with origin/main"
-git log --oneline -10                   # ver últimos commits
+# 1. Verificar local primero
+cd apps/api && php vendor/bin/phpunit            # debe dar 185/185 verde
+cd apps/web && npm run typecheck && npm run build
 
-# 2. Health check de producción
-curl -s -o /dev/null -w "%{http_code}\n" https://clicktoeat.lumiaaisolutions.com/        # 200
-curl -s -o /dev/null -w "%{http_code}\n" https://clicktoeat-api.lumiaaisolutions.com/up  # 200
+# 2. Commit + push
+git add . && git commit -m "..." && git push origin main
 
-# 3. Verificar SSH al servidor
-ssh -i ~/.ssh/id_ed25519 -p 65002 u221820910@86.38.202.72 'echo OK'
+# 3. Deploy API
+export SSH_KEY=$HOME/.ssh/id_ed25519
+./scripts/deploy-api.sh --skip-tests             # (tests ya pasaron local)
 
-# 4. (Opcional) Levantar dev local
-cd apps/web && npm run dev               # http://localhost:3000
-# El .env.local apunta a https://clicktoeat-api.lumiaaisolutions.com (datos reales)
+# 4. Deploy Web (si NEXT_PUBLIC_* cambió, exporta la env)
+export NEXT_PUBLIC_SENTRY_DSN=https://7dba9e4b717e93196533787340c0fc1d@o4511283539738624.ingest.us.sentry.io/4511582389010432
+./scripts/deploy-web.sh
 ```
 
-## Convenciones críticas (no romper)
+## 🔐 Credenciales en producción
 
-- **Multi-tenancy**: nunca `DB::table('productos')`, siempre `Producto::query()`.
-  El `TenantScope` global filtra por `local_id` del `TenantContext` singleton.
-- **Docs**: cada tema vive en su propio `.md` dentro de la carpeta temática
-  (`docs/<carpeta>/`). NO consolidar temas distintos.
-- **Iconos**: NO usar emojis. Siempre `<Icon name="..." />` del sistema en
-  `components/ui/Icon.tsx`.
-- **Hosting es VPS+CageFS** (no Shared como decía la doc original).
-  Limitaciones: sin sudo, sin crontab, sin apt. Crons via hPanel.
-- **`.htaccess` críticos** (no borrar, no `touch` simple):
-  - `apps/api/.htaccess` — redirige a `public/$1`
-  - `apps/api/public/.htaccess` — rewrite a `index.php`
-- **Uploads** viven en `storage/app/public/uploads/` con symlink
-  `public/storage` → `../storage/app/public`. Excluidos del rsync.
+Variables ya configuradas en `/home/u221820910/domains/clicktoeat-api.lumiaaisolutions.com/public_html/.env`:
 
-## Quick reference de docs
+- `MAIL_*` (USERNAME=fernando@lumiaaisolutions.com, alias contacto@)
+- `STRIPE_PUBLIC_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_PRICE_*` (3), `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_SUCCESS_URL`, `STRIPE_CANCEL_URL`, `STRIPE_PORTAL_RETURN_URL`
+- `APP_URL_FRONTEND=https://clicktoeat.lumiaaisolutions.com`
+- `SENTRY_LARAVEL_DSN`
+- `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`
+- `QUEUE_CONNECTION=sync` (cambiar a database + agregar cron worker si se hace newsletter > 200)
 
-| Necesito... | Lee... |
-|-------------|--------|
-| Setup local | [`infra/local-setup.md`](infra/local-setup.md) |
-| Cómo deployar | [`infra/deploy-hostinger.md`](infra/deploy-hostinger.md) |
-| Estructura del repo | [`architecture/overview.md`](architecture/overview.md) |
-| Cómo agregar un feature | [`contributing/how-to-add-feature.md`](contributing/how-to-add-feature.md) |
-| Sistema de iconos | [`frontend/icon-system.md`](frontend/icon-system.md) |
-| Permisos de staff | [`features/staff-permissions.md`](features/staff-permissions.md) |
-| Plan SaaS | [`features/saas-billing.md`](features/saas-billing.md) |
-| Configurar Stripe (paso a paso) | [`runbook/configurar-stripe.md`](runbook/configurar-stripe.md) |
-| Recuperar uploads borrados | [`runbook/recuperar-uploads-perdidos.md`](runbook/recuperar-uploads-perdidos.md) |
-| Cambio histórico | [`../CHANGELOG.md`](../CHANGELOG.md) |
-
-## Deploy rápido
-
+**Si necesitas verificarlas**:
 ```bash
-cd ~/Desktop/LUMIA/clicktoeat
-
-# Solo frontend
-SSH_KEY=~/.ssh/id_ed25519 ./scripts/deploy-web.sh
-
-# Solo API
-SSH_KEY=~/.ssh/id_ed25519 ./scripts/deploy-api.sh --skip-tests
-
-# Verificar después
-curl -I https://clicktoeat.lumiaaisolutions.com/
-curl -I https://clicktoeat-api.lumiaaisolutions.com/up
+ssh -i ~/.ssh/id_ed25519 -p 65002 u221820910@86.38.202.72 \
+  "grep -E '^(MAIL_|STRIPE_|SENTRY_|VAPID_|QUEUE_)' /home/u221820910/domains/clicktoeat-api.lumiaaisolutions.com/public_html/.env | sed 's/=.*/=SET/'"
 ```
 
-## Si algo se rompe en prod
+## ⚠️ Reglas críticas que NO se deben romper
 
-0. **Frontend con HTTP 503 tras deploy** (Passenger arranca con
-   `pthread_create: Resource temporarily unavailable`): hay procesos
-   `next-server` huérfanos acumulados. Solución:
-   ```bash
-   ssh -i ~/.ssh/id_ed25519 -p 65002 u221820910@86.38.202.72 '
-   pkill -9 -f "next-server"
-   sleep 3
-   cd /home/u221820910/domains/clicktoeat.lumiaaisolutions.com/nodejs
-   touch tmp/restart.txt
-   '
-   sleep 10
-   curl -s -o /dev/null -w "%{http_code}\n" https://clicktoeat.lumiaaisolutions.com/  # 200
-   ```
-   Esto pasa cuando hay >5 deploys en un día. CageFS tiene límite bajo de
-   procesos por usuario. Pasa fácil en sesiones intensas — el código no
-   tiene nada que ver.
+1. **Nunca** `DB::table('productos')` — salta TenantScope, usa `Producto::query()`.
+2. **Nunca** rotar `APP_KEY` sin coordinar — cierra todas las sesiones.
+3. **Nunca** commitear `apps/api/.env`.
+4. Migraciones siempre **aditivas** (`ADD COLUMN`, `CREATE TABLE`). Si tocan enum / change column / SQL específico de MySQL, **guard** con
+   `if (DB::connection()->getDriverName() !== 'mysql') return;`
+5. **Toda** validación pasa por FormRequest (Model::unguard activo).
+6. **Toda** respuesta JSON pasa por Resource.
+7. Documentación NUEVA va a `docs/<carpeta-temática>/` — nunca consolidar en uno.
 
-1. **Frontend caído**: rollback rápido
-   ```bash
-   ssh -i ~/.ssh/id_ed25519 -p 65002 u221820910@86.38.202.72 '
-   cd /home/u221820910/domains/clicktoeat.lumiaaisolutions.com/nodejs
-   rm -rf .next public
-   mv .next.previous .next && mv public.previous public
-   touch tmp/restart.txt
-   '
-   ```
-2. **API caído con 404 en TODO**: probablemente `.htaccess` raíz se borró.
-   Restaurar con:
-   ```bash
-   ssh ... "cat > /home/u221820910/domains/clicktoeat-api.lumiaaisolutions.com/public_html/.htaccess << 'EOF'
-   <IfModule mod_rewrite.c>
-       RewriteEngine On
-       RewriteRule ^(.*)\$ public/\$1 [L]
-   </IfModule>
-   EOF"
-   ```
-3. **Imágenes desaparecidas**: ver [`runbook/recuperar-uploads-perdidos.md`](runbook/recuperar-uploads-perdidos.md).
-4. **BD corrupta o llena**: ver [`runbook/bd-llena.md`](runbook/bd-llena.md) y
-   [`runbook/restaurar-backup-mysql.md`](runbook/restaurar-backup-mysql.md).
+## Demo data (locales)
 
-## Credenciales productivas (para emergencia)
+Tras `php artisan db:seed`:
+- `admin@ClickToEat.app` / `password123` — super_admin
+- `owner+tacos-el-gordo@ClickToEat.app` / `password123` — owner
+- `owner+pizza-bambino@ClickToEat.app` / `password123` — owner
 
-- SSH key: `~/.ssh/id_ed25519` (autorizada). Alternativa: `~/.ssh/hostinger_clicktoeat`.
-- Panel: https://hpanel.hostinger.com → VPS 1698236.
-- BD: en `.env` del servidor productivo. NO en repo.
-- Demo accounts (en BD seedeada):
-  - `admin@ClickToEat.app` / `password123` (super_admin)
-  - `owner+postres-stitch@ClickToEat.app` / `password123` (owner del local real)
-
----
-
-**Última actualización**: 2026-06-14 — sesión Rediseño editorial cálido del
-landing del local + mobile compacto (grid 2 cols con cards densas) + home
-con copy condensado y nueva sección `PinnedFoodStory` (imagen sticky con
-cross-fade entre 3 frames de foto real).
+URLs:
+- Directorio: https://clicktoeat.lumiaaisolutions.com
+- Login: https://clicktoeat.lumiaaisolutions.com/login
+- API docs: https://clicktoeat-api.lumiaaisolutions.com/api/documentation

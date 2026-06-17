@@ -2,11 +2,12 @@
 
 Documentación viva del proyecto. **Regla**: cada tema vive en su propio `.md` dentro de la carpeta temática correspondiente — no se consolidan temas distintos en un solo archivo.
 
-> Última verificación contra código: 2026-06-13.
+> Última verificación contra código: **2026-06-17**.
 
-> 🚦 **¿Retomas el proyecto después de un descanso?** Empieza por
-> [`CONTINUAR.md`](CONTINUAR.md) — snapshot del estado, pendientes y
-> cómo proceder.
+> 🚦 **¿Retomas el proyecto después de un descanso?** Lee en este orden:
+> 1. [`PENDIENTES.md`](PENDIENTES.md) — qué falta y qué NO se debe construir
+> 2. [`CONTINUAR.md`](CONTINUAR.md) — snapshot del estado actual + cómo deployar
+> 3. [`runbook/estado-final-junio-2026.md`](runbook/estado-final-junio-2026.md) — credenciales y configuración detallada
 
 ---
 
