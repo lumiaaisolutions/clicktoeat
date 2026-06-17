@@ -240,6 +240,9 @@ Route::middleware('throttle:60,1')->group(function () {
         Route::get('admin/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'indexAdmin']);
         Route::patch('admin/reviews/{review}/toggle', [\App\Http\Controllers\Api\ReviewController::class, 'toggleAprobado']);
         Route::delete('admin/reviews/{review}', [\App\Http\Controllers\Api\ReviewController::class, 'destroyAdmin']);
+        // Genera (o recupera) el token de review de un pedido. Permite que el
+        // owner copie el link aunque el pedido entregado sea legacy (sin review).
+        Route::post('admin/pedidos/{pedido}/review-link', [\App\Http\Controllers\Api\ReviewController::class, 'ensureForPedido']);
 
         // Programa de referidos
         Route::get('referidos', [\App\Http\Controllers\Api\ReferidoController::class, 'index']);

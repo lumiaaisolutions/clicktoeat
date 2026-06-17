@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
-import type { Categoria, Paginated, Pedido, Producto, Resource } from '@/lib/types';
+import type { Categoria, LocalAdmin, Paginated, Pedido, Producto, Resource } from '@/lib/types';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -27,15 +27,20 @@ export default function PuntoVentaPage() {
   const [cart,       setCart]       = useState<CartLine[]>([]);
   const [checkout,   setCheckout]   = useState(false);
   const [ultimo,     setUltimo]     = useState<Pedido | null>(null);
+  // F100b — cargamos info del local para que el ticket muestre logo + nombre
+  // del negocio (antes mostraba "ClickToEat" hardcoded).
+  const [local, setLocal] = useState<LocalAdmin | null>(null);
 
   useEffect(() => {
     (async () => {
-      const [cats, prods] = await Promise.all([
+      const [cats, prods, loc] = await Promise.all([
         api.get<{ data: Categoria[] }>('/categorias', { params: { activo: true } }),
         api.get<Paginated<Producto>>('/productos', { params: { disponible: true, per_page: 100 } }),
+        api.get<Resource<LocalAdmin>>('/local'),
       ]);
       setCategorias(cats.data.data);
       setProductos(prods.data.data);
+      setLocal(loc.data.data);
     })();
   }, []);
 
@@ -214,7 +219,7 @@ export default function PuntoVentaPage() {
         }}
       />
 
-      <TicketModal open={!!ultimo} pedido={ultimo} onClose={() => setUltimo(null)} />
+      <TicketModal open={!!ultimo} pedido={ultimo} local={local} onClose={() => setUltimo(null)} />
 
       {/* Tab switcher móvil — flotante abajo */}
       <div className="md:hidden fixed bottom-3 inset-x-3 z-30 pb-safe">
@@ -411,35 +416,94 @@ function CheckoutModal({
 }
 
 // ─── Ticket post-cobro ──────────────────────────────────────────
+// Muestra logo + nombre del negocio (no "ClickToEat") y permite descargar
+// como PNG (vía html2canvas dinámico) o imprimir en formato 80mm térmica.
 function TicketModal({
-  open, pedido, onClose,
-}: { open: boolean; pedido: Pedido | null; onClose: () => void }) {
+  open, pedido, local, onClose,
+}: { open: boolean; pedido: Pedido | null; local: LocalAdmin | null; onClose: () => void }) {
+  const [descargando, setDescargando] = useState(false);
   if (!pedido) return null;
+
+  const nombreNegocio = local?.nombre ?? 'Mi negocio';
+  const logoUrl = local?.logo_url ?? null;
+  const direccion = local?.direccion ?? null;
+  const telefono = local?.telefono ?? local?.whatsapp ?? null;
+
+  const descargarImagen = async () => {
+    setDescargando(true);
+    try {
+      const node = document.getElementById('ticket-print');
+      if (!node) throw new Error('Ticket no disponible');
+      // html2canvas se carga dinámicamente para no inflar el bundle principal.
+      const { default: html2canvas } = await import('html2canvas');
+      const canvas = await html2canvas(node, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      canvas.toBlob((blob) => {
+        if (!blob) { toast.error('No se pudo generar la imagen'); return; }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ticket-${pedido.codigo}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success('Ticket descargado');
+      }, 'image/png');
+    } catch (e) {
+      toast.error('No se pudo descargar el ticket');
+    } finally {
+      setDescargando(false);
+    }
+  };
+
   return (
     <Modal open={open} onClose={onClose} title={`Ticket · ${pedido.codigo}`}>
-      <div id="ticket-print" className="font-mono text-xs">
-        <p className="text-center font-bold">ClickToEat</p>
-        <p className="text-center">{new Date(pedido.created_at).toLocaleString('es-MX')}</p>
-        <p className="text-center mb-3">Folio: {pedido.codigo}</p>
-        <hr className="border-dashed my-2" />
+      <div
+        id="ticket-print"
+        className="font-mono text-[11px] mx-auto bg-white"
+        style={{ width: 280, padding: 12, color: '#0B0B0F' }}
+      >
+        {logoUrl && (
+          <div className="flex justify-center mb-2">
+            <img src={logoUrl} alt={nombreNegocio} crossOrigin="anonymous" style={{ maxHeight: 56, maxWidth: '70%', objectFit: 'contain' }} />
+          </div>
+        )}
+        <p className="text-center font-bold text-[13px] leading-tight">{nombreNegocio}</p>
+        {direccion && <p className="text-center text-[10px] mt-0.5 leading-snug">{direccion}</p>}
+        {telefono && <p className="text-center text-[10px] mt-0.5">Tel: {telefono}</p>}
+        <p className="text-center mt-2">{new Date(pedido.created_at).toLocaleString('es-MX')}</p>
+        <p className="text-center mb-2">Folio: {pedido.codigo}</p>
+        <hr className="border-dashed my-2" style={{ borderColor: '#888' }} />
         {(pedido.detalles ?? []).map((d) => (
-          <div key={d.id} className="flex justify-between">
-            <span>{d.cantidad}× {d.producto_nombre}</span>
-            <span>{formatMXN(d.subtotal)}</span>
+          <div key={d.id} className="flex justify-between gap-2 py-0.5">
+            <span className="truncate">{d.cantidad}× {d.producto_nombre}</span>
+            <span className="tabular-nums">{formatMXN(d.subtotal)}</span>
           </div>
         ))}
-        <hr className="border-dashed my-2" />
-        <div className="flex justify-between font-bold">
+        <hr className="border-dashed my-2" style={{ borderColor: '#888' }} />
+        <div className="flex justify-between font-bold text-[12px]">
           <span>Total</span>
-          <span>{formatMXN(pedido.total)}</span>
+          <span className="tabular-nums">{formatMXN(pedido.total)}</span>
         </div>
-        <p className="text-center mt-3">Pago: {labelPago(pedido.metodo_pago)}</p>
-        <p className="text-center">{pedido.cliente_nombre}</p>
-        <p className="text-center mt-3">¡Gracias por su compra!</p>
+        <p className="text-center mt-2">Pago: {labelPago(pedido.metodo_pago)}</p>
+        {pedido.cliente_nombre && pedido.cliente_nombre !== 'Mostrador' && (
+          <p className="text-center">Cliente: {pedido.cliente_nombre}</p>
+        )}
+        <p className="text-center mt-2">¡Gracias por su compra!</p>
+        <p className="text-center text-[9px] mt-1 opacity-60">via ClickToEat</p>
       </div>
 
-      <div className="flex gap-2 justify-end mt-4 pt-3 border-t border-line print:hidden">
+      <div className="flex flex-wrap gap-2 justify-end mt-4 pt-3 border-t border-line print:hidden">
         <Button variant="secondary" onClick={onClose}>Cerrar</Button>
+        <Button variant="secondary" onClick={descargarImagen} loading={descargando} className="inline-flex items-center gap-2">
+          <Icon name="download" size={16} />
+          Descargar imagen
+        </Button>
         <Button onClick={() => window.print()} className="inline-flex items-center gap-2">
           <Icon name="qr-code" size={16} />
           Imprimir

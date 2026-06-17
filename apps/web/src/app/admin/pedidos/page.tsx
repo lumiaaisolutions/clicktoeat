@@ -106,16 +106,29 @@ export default function PedidosPage() {
 
   /**
    * F100 — Abre el modal de "Link de calificación" del pedido entregado.
-   * El token viene en `pedido.review_token` (PedidoResource lo expone),
-   * sin llamadas extra al backend para evitar 429.
+   * Si el token ya viene en `pedido.review_token`, se usa directo (caso normal).
+   * Si NO viene (pedidos legacy o entregados saltando estados), llamamos a
+   * POST /admin/pedidos/{id}/review-link que lo crea on-demand y devuelve el
+   * token. Así nunca se queda el owner sin poder mandar la calificación.
    */
   const [linkCalifPedido, setLinkCalifPedido] = useState<Pedido | null>(null);
-  const abrirLinkCalificacion = (p: Pedido) => {
-    if (!p.review_token) {
-      toast.error('Este pedido aún no tiene link de calificación. Vuelve a marcarlo como entregado.');
+  const [generandoLink, setGenerandoLink] = useState<number | null>(null);
+  const abrirLinkCalificacion = async (p: Pedido) => {
+    if (p.review_token) {
+      setLinkCalifPedido(p);
       return;
     }
-    setLinkCalifPedido(p);
+    setGenerandoLink(p.id);
+    try {
+      const { data } = await api.post<{ token: string }>(`/admin/pedidos/${p.id}/review-link`);
+      const enriched: Pedido = { ...p, review_token: data.token };
+      setItems((prev) => prev?.map((it) => it.id === p.id ? enriched : it) ?? prev);
+      setLinkCalifPedido(enriched);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'No se pudo generar el link de calificación');
+    } finally {
+      setGenerandoLink(null);
+    }
   };
 
   return (
@@ -204,11 +217,12 @@ export default function PedidosPage() {
                   {p.estado === 'entregado' && (
                     <button
                       onClick={(e) => { e.stopPropagation(); abrirLinkCalificacion(p); }}
-                      className="text-xs px-2 py-1 rounded-full border border-line hover:bg-amber-50 hover:border-amber-300 inline-flex items-center gap-1"
+                      disabled={generandoLink === p.id}
+                      className="text-xs px-2 py-1 rounded-full border border-line hover:bg-amber-50 hover:border-amber-300 inline-flex items-center gap-1 disabled:opacity-60"
                       title="Manda este link al cliente por WhatsApp para que califique"
                     >
-                      <Icon name="star" size={10} />
-                      Link de calificación
+                      <Icon name="star" size={10} className={generandoLink === p.id ? 'animate-pulse' : ''} />
+                      {generandoLink === p.id ? 'Generando…' : 'Link de calificación'}
                     </button>
                   )}
                   {trashed === 'only' && (

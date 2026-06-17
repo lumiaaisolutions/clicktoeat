@@ -94,6 +94,16 @@ body {
 .pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 1rem); }
 .bottom-safe { bottom: env(safe-area-inset-bottom); }
 
+/* Impresión del ticket — formato 80mm térmica.
+ * Sin @page size la impresora del navegador usa Letter/A4 y deja un margen
+ * blanco enorme alrededor del ticket de 280px. Con `size: 80mm auto`
+ * cualquier impresora térmica de 80mm (lo estándar en POS) saca un ticket
+ * proporcionado, sin desperdicio de papel. */
+@page ticket {
+  size: 80mm auto;
+  margin: 4mm;
+}
+
 @media print {
   body * { visibility: hidden; }
   #ticket-print, #ticket-print *,
@@ -101,8 +111,13 @@ body {
     visibility: visible;
   }
   #ticket-print {
-    position: absolute; left: 0; top: 0; width: 280px;
-    padding: 8px; font-family: ui-monospace, monospace; font-size: 11px;
+    position: absolute; left: 0; top: 0; width: 72mm !important;
+    padding: 4mm !important; font-family: ui-monospace, monospace; font-size: 11px;
+    page: ticket;
+    color: #000 !important;
+  }
+  #ticket-print img {
+    max-height: 18mm !important;
   }
   #qr-printable {
     position: absolute; left: 50%; top: 1cm; transform: translateX(-50%);

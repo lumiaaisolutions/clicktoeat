@@ -1798,7 +1798,7 @@ function Footer({ local, branding }: { local: Local; branding: Branding }) {
           </div>
         </div>
 
-        {/* F100 — Botón "Ver más restaurantes en ClickToEat" para regresar al directorio */}
+        {/* F100 — Botón "Ir a ClickToEat" para regresar al directorio */}
         <div className="mt-10 pt-6 border-t border-white/10 text-center">
           <a
             href="https://clicktoeat.lumiaaisolutions.com/"
@@ -1807,7 +1807,7 @@ function Footer({ local, branding }: { local: Local; branding: Branding }) {
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-white/20 text-white/80 text-sm font-semibold hover:bg-white/5 hover:border-white/40 transition"
           >
             <Icon name="storefront" size={14} />
-            Ver más restaurantes en ClickToEat
+            Ir a ClickToEat
             <Icon name="arrow-up-right" size={12} />
           </a>
         </div>
@@ -2139,31 +2139,35 @@ function HotProductosBanner({
         </p>
         <span className="ml-auto text-[10px] uppercase tracking-wider text-muted font-semibold">Tendencia</span>
       </div>
-      {/* Grid de 3 cards con thumb cuadrado pero compacto. Visible y legible
-          en mobile sin acaparar toda la pantalla. */}
-      <div className="grid grid-cols-3 gap-2">
+      {/* Grid mismo formato que ProductCard de abajo: aspect-square en mobile,
+          16/11 en sm+. Asegura que la imagen NO sea más grande que las cards
+          del catálogo regular. */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         {items.slice(0, 3).map(({ p, unidades }, i) => (
           <button
             key={p.id}
             type="button"
             onClick={() => onTap(p)}
-            className="group rounded-xl border border-line overflow-hidden hover:border-ink/40 transition text-left bg-white"
+            className="ce-card group rounded-2xl sm:rounded-3xl border border-line overflow-hidden hover:border-ink/40 transition text-left bg-surface"
+            style={{ boxShadow: '0 6px 18px -10px rgba(35,25,15,.18)' }}
           >
-            <div className="relative aspect-square overflow-hidden bg-line/30">
-              {p.imagen ? (
-                <img src={p.imagen} alt={p.nombre} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-              ) : (
-                <div className="w-full h-full grid place-items-center">
-                  <Icon name="utensils" size={22} className="opacity-30" />
-                </div>
-              )}
+            <div className="relative w-full overflow-hidden bg-[#FBF7F1] aspect-square sm:aspect-[16/11]">
+              <div className="ce-pimg absolute inset-0">
+                {p.imagen ? (
+                  <img src={p.imagen} alt={p.nombre} loading="lazy" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full grid place-items-center">
+                    <Icon name="utensils" size={22} className="opacity-30" />
+                  </div>
+                )}
+              </div>
               <span
-                className="absolute top-1.5 left-1.5 inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full text-white shadow"
+                className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 inline-flex items-center gap-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-full text-white shadow"
                 style={{ background: 'var(--ce-accent)' }}
               >#{i + 1}</span>
             </div>
-            <div className="px-2 py-2">
-              <p className="text-xs sm:text-[13px] font-semibold truncate leading-tight">{p.nombre}</p>
+            <div className="px-2 py-2 sm:px-2.5 sm:py-2.5">
+              <p className="ce-body text-xs sm:text-[13px] font-bold truncate leading-tight">{p.nombre}</p>
               <p className="text-[10px] text-muted tabular-nums mt-0.5">{unidades} {unidades === 1 ? 'pedido' : 'pedidos'}</p>
             </div>
           </button>

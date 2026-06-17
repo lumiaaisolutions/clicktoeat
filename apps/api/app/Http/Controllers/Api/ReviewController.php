@@ -117,4 +117,41 @@ class ReviewController extends Controller
         $review->delete();
         return response()->json(null, 204);
     }
+
+    /**
+     * F100b — Garantiza que exista review para el pedido y devuelve el token.
+     *
+     * Casos cubiertos:
+     *  - Pedidos legacy entregados antes del rollout de F100 (sin review).
+     *  - Pedidos donde el owner saltó estados (p.ej. POS de mostrador) y la
+     *    transición a entregado no disparó la creación del review.
+     *  - Crea on-demand sin bloquear el flujo del owner.
+     */
+    public function ensureForPedido(Pedido $pedido): JsonResponse
+    {
+        if ($pedido->estado !== 'entregado') {
+            return response()->json([
+                'message' => 'Solo se puede generar link de calificación para pedidos entregados.',
+            ], 422);
+        }
+
+        $review = Review::query()->withoutGlobalScopes()
+            ->where('pedido_id', $pedido->id)
+            ->first();
+
+        if (! $review) {
+            $review = Review::query()->withoutGlobalScopes()->create([
+                'local_id'         => $pedido->local_id,
+                'pedido_id'        => $pedido->id,
+                'cliente_nombre'   => $pedido->cliente_nombre ?? 'Cliente',
+                'cliente_telefono' => $pedido->cliente_telefono,
+                'rating'           => 0,
+                'aprobado'         => false,
+            ]);
+        }
+
+        return response()->json([
+            'token' => $review->token,
+        ]);
+    }
 }
