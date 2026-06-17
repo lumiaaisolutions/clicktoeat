@@ -21,7 +21,22 @@ class ReferidoController extends Controller
         $local = $ctx->local();
         if (! $local) return response()->json(['message' => 'Sin tenant'], 403);
 
-        $codigo = $local->codigo_referido ?? null;
+        // F100 auto-heal: locales legacy creados antes del booted callback de
+        // F36 podían quedarse sin código. Lo generamos ahora si falta.
+        if (empty($local->codigo_referido)) {
+            for ($i = 0; $i < 20; $i++) {
+                $candidate = strtoupper(\Illuminate\Support\Str::random(8));
+                if (! \App\Models\Local::query()->withoutGlobalScopes()->where('codigo_referido', $candidate)->exists()) {
+                    $local->forceFill(['codigo_referido' => $candidate])->save();
+                    break;
+                }
+            }
+            if (empty($local->codigo_referido)) {
+                $local->forceFill(['codigo_referido' => 'REF-'.strtoupper(\Illuminate\Support\Str::random(8))])->save();
+            }
+        }
+
+        $codigo = $local->codigo_referido;
         $frontend = rtrim((string) (env('APP_URL_FRONTEND', 'http://localhost:3000')), '/');
         $shareUrl = $codigo ? "{$frontend}/?ref={$codigo}" : null;
 

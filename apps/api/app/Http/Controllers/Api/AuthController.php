@@ -156,6 +156,8 @@ class AuthController extends Controller
             'plan' => $plan ? [
                 'slug'                   => $plan->slug,
                 'nombre'                 => $plan->nombre,
+                // F100 — precio real del plan (no hardcoded en frontend)
+                'precio_mxn'             => (int) round($plan->precio_mxn_centavos / 100),
                 'features'               => $plan->features ?? [],
                 'limits' => [
                     'productos'  => $plan->max_productos,

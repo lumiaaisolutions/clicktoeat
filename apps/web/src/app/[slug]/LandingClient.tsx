@@ -2117,35 +2117,38 @@ function HotProductosBanner({
   if (items.length === 0) return null;
 
   return (
-    <section className="rounded-2xl border border-line bg-white px-3 py-2 mb-4 shadow-sm">
-      <div className="flex items-center gap-1.5 mb-2">
-        <Icon name="flame" size={14} style={{ color: 'var(--ce-accent)' }} />
-        <p className="ce-display font-bold text-xs leading-none">
+    <section className="rounded-2xl border border-line bg-white px-3 py-3 mb-4 shadow-sm">
+      <div className="flex items-center gap-2 mb-2.5">
+        <Icon name="flame" size={16} style={{ color: 'var(--ce-accent)' }} />
+        <p className="ce-display font-bold text-sm leading-none">
           Lo más pedido <span style={{ color: 'var(--ce-accent)' }}>hoy</span>
         </p>
+        <span className="ml-auto text-[10px] uppercase tracking-wider text-muted font-semibold">Tendencia</span>
       </div>
-      {/* Lista compacta horizontal — más delgada que el grid de cards */}
-      <ul className="flex flex-col gap-1">
+      {/* Lista vertical más ancha — ligeramente más pequeña que las cards de producto de abajo */}
+      <ul className="flex flex-col gap-1.5">
         {items.slice(0, 3).map(({ p, unidades }, i) => (
           <li key={p.id}>
             <button
               type="button"
               onClick={() => onTap(p)}
-              className="group w-full flex items-center gap-2 py-1 px-1 rounded-lg hover:bg-line/30 transition text-left"
+              className="group w-full flex items-center gap-2.5 py-1.5 px-1.5 rounded-lg hover:bg-line/30 transition text-left"
             >
               <span
-                className="shrink-0 w-5 h-5 rounded-full text-white text-[10px] font-bold grid place-items-center"
+                className="shrink-0 w-6 h-6 rounded-full text-white text-[11px] font-bold grid place-items-center"
                 style={{ background: 'var(--ce-accent)' }}
               >{i + 1}</span>
               {p.imagen ? (
-                <img src={p.imagen} alt="" loading="lazy" className="w-8 h-8 rounded-md object-cover shrink-0" />
+                <img src={p.imagen} alt="" loading="lazy" className="w-11 h-11 rounded-lg object-cover shrink-0" />
               ) : (
-                <span className="w-8 h-8 rounded-md bg-line/30 grid place-items-center shrink-0">
-                  <Icon name="utensils" size={12} className="opacity-40" />
+                <span className="w-11 h-11 rounded-lg bg-line/30 grid place-items-center shrink-0">
+                  <Icon name="utensils" size={14} className="opacity-40" />
                 </span>
               )}
-              <span className="flex-1 min-w-0 text-sm font-medium truncate">{p.nombre}</span>
-              <span className="text-[10px] text-muted tabular-nums shrink-0">{unidades} ped.</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate leading-tight">{p.nombre}</p>
+                <p className="text-[11px] text-muted tabular-nums leading-tight">{unidades} {unidades === 1 ? 'pedido' : 'pedidos'}</p>
+              </div>
             </button>
           </li>
         ))}

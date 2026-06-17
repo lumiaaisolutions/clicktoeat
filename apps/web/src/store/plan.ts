@@ -8,6 +8,7 @@ export type PlanStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'inco
 export interface PlanInfo {
   slug:    PlanSlug;
   nombre:  string;
+  precio_mxn?: number;  // F100 — precio mensual del plan
   features: string[];
   limits: {
     productos:  number | null;

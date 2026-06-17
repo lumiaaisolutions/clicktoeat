@@ -54,14 +54,25 @@ export default function BillingPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <p className="text-xs text-muted font-medium uppercase tracking-[0.18em] inline-flex items-center gap-2">
-          <Icon name="card" size={14} className="text-[color:var(--ce-accent)]" />
-          Tu suscripción
-        </p>
-        <h1 className="ce-display mt-2 text-3xl md:text-4xl font-bold tracking-tight">
-          Plan y facturación
-        </h1>
+      <header className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <p className="text-xs text-muted font-medium uppercase tracking-[0.18em] inline-flex items-center gap-2">
+            <Icon name="card" size={14} className="text-[color:var(--ce-accent)]" />
+            Tu suscripción
+          </p>
+          <h1 className="ce-display mt-2 text-3xl md:text-4xl font-bold tracking-tight">
+            Plan y facturación
+          </h1>
+        </div>
+        <a
+          href={(process.env.NEXT_PUBLIC_APP_URL ?? 'https://clicktoeat.lumiaaisolutions.com') + '/'}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl border border-line bg-white text-sm font-semibold text-ink hover:border-ink/30 transition shrink-0"
+        >
+          <Icon name="home" size={14} />
+          Volver al landing principal
+        </a>
       </header>
 
       {!plan ? (
@@ -79,7 +90,7 @@ export default function BillingPage() {
                   </span>
                 </div>
                 <p className="text-sm text-muted mt-1">
-                  ${plan.slug === 'essential' ? '99' : '299'} MXN/mes ·{' '}
+                  ${plan.precio_mxn ?? '—'} MXN/mes ·{' '}
                   {plan.features.length} módulos incluidos
                 </p>
               </div>

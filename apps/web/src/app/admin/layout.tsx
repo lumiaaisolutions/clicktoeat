@@ -159,7 +159,9 @@ const NAV_OWNER: NavItem[] = [
   { href: '/admin/branding',     label: 'Branding',    icon: 'palette', permiso: 'branding' },
   { href: '/admin/staff',        label: 'Equipo',      icon: 'users',   ownerOnly: true,       feature: 'staff_multi',      requiredPlan: 'professional' },
   { href: '/admin/audit-log',    label: 'Historial',   icon: 'history', permiso: 'audit_log',  feature: 'audit_log',        requiredPlan: 'professional' },
-  { href: '/admin/integraciones', label: 'Integraciones', icon: 'plug', ownerOnly: true, feature: 'api_webhooks', requiredPlan: 'premium' },
+  // F100 — Integraciones removidas por decisión del producto (ERP/cocina externa no se ofrece).
+  // Si en el futuro vuelve, restaurar esta línea y agregar 'api_webhooks' al Premium en PlansSeeder.
+  // { href: '/admin/integraciones', label: 'Integraciones', icon: 'plug', ownerOnly: true, feature: 'api_webhooks', requiredPlan: 'premium' },
   { href: '/admin/billing',      label: 'Suscripción', icon: 'card',    ownerOnly: true },
   { href: '/admin/centro-aprendizaje', label: 'Aprende a usar', icon: 'sparkles' },
   { href: '/admin/ayuda',        label: 'Centro de ayuda', icon: 'help' },

@@ -91,8 +91,12 @@ export function BrandingEditor({ localId }: { localId?: number } = {}) {
     );
   }
 
+  // Si el user cambió la tipografía, inyectamos `--ce-display-font` aquí — el
+  // CSS global (.ce-display) lo lee y la preview se actualiza al instante.
+  const tipografiaActiva = draft.tipografia ?? local.tipografia ?? 'Bricolage Grotesque';
   const previewVars = {
     ['--ce-accent' as any]: draft.color_primario ?? local.color_primario,
+    ['--ce-display-font' as any]: `"${tipografiaActiva}"`,
     background: draft.color_fondo ?? local.color_fondo,
     color: draft.color_secundario ?? local.color_secundario,
   };
@@ -614,19 +618,21 @@ function ColorField({
 }
 
 /* ─────────── Catálogo de fuentes (loaded en layout.tsx) ─────────── */
+// F100: catálogo curado para que sean VISIBLEMENTE distintas entre sí.
+// Cada una tiene una personalidad clara (script, slab, display, etc).
 const FONT_OPTIONS = [
-  { value: 'Bricolage Grotesque', label: 'Bricolage',     category: 'Moderna',    css: '"Bricolage Grotesque", system-ui, sans-serif' },
-  { value: 'Instrument Serif',    label: 'Instrument',    category: 'Editorial',  css: '"Instrument Serif", Georgia, serif' },
-  { value: 'Hanken Grotesk',      label: 'Hanken',        category: 'Sans neutra', css: '"Hanken Grotesk", system-ui, sans-serif' },
-  { value: 'Playfair Display',    label: 'Playfair',      category: 'Clásica',    css: '"Playfair Display", Georgia, serif' },
-  { value: 'Fraunces',            label: 'Fraunces',      category: 'Editorial',  css: 'Fraunces, Georgia, serif' },
-  { value: 'DM Serif Display',    label: 'DM Serif',      category: 'Display',    css: '"DM Serif Display", Georgia, serif' },
-  { value: 'Lora',                label: 'Lora',          category: 'Cálida',     css: 'Lora, Georgia, serif' },
-  { value: 'Cormorant Garamond',  label: 'Cormorant',     category: 'Elegante',   css: '"Cormorant Garamond", Georgia, serif' },
-  { value: 'Manrope',             label: 'Manrope',       category: 'Geométrica', css: 'Manrope, system-ui, sans-serif' },
-  { value: 'Inter',               label: 'Inter',         category: 'Minimal',    css: 'Inter, system-ui, sans-serif' },
-  { value: 'Space Grotesk',       label: 'Space',         category: 'Tech',       css: '"Space Grotesk", system-ui, sans-serif' },
-  { value: 'Plus Jakarta Sans',   label: 'Jakarta',       category: 'Friendly',   css: '"Plus Jakarta Sans", system-ui, sans-serif' },
+  { value: 'Bricolage Grotesque', label: 'Bricolage',     category: 'Moderna',         css: '"Bricolage Grotesque", system-ui, sans-serif' },
+  { value: 'Playfair Display',    label: 'Playfair',      category: 'Editorial clásica', css: '"Playfair Display", Georgia, serif' },
+  { value: 'Pacifico',            label: 'Pacifico',      category: 'Script casual',   css: '"Pacifico", cursive' },
+  { value: 'Abril Fatface',       label: 'Abril Fatface', category: 'Display retro',   css: '"Abril Fatface", Georgia, serif' },
+  { value: 'Anton',               label: 'Anton',         category: 'Impact alto',     css: 'Anton, "Arial Narrow", sans-serif' },
+  { value: 'Lora',                label: 'Lora',          category: 'Cálida humanista', css: 'Lora, Georgia, serif' },
+  { value: 'Space Mono',          label: 'Space Mono',    category: 'Monospace tech',  css: '"Space Mono", "Courier New", monospace' },
+  { value: 'Lobster',             label: 'Lobster',       category: 'Script bold',     css: 'Lobster, cursive' },
+  { value: 'Bebas Neue',          label: 'Bebas Neue',    category: 'Condensed mayús', css: '"Bebas Neue", Impact, sans-serif' },
+  { value: 'Caveat',              label: 'Caveat',        category: 'Handwriting',     css: 'Caveat, cursive' },
+  { value: 'DM Serif Display',    label: 'DM Serif',      category: 'Display lujoso',  css: '"DM Serif Display", Georgia, serif' },
+  { value: 'Roboto Slab',         label: 'Roboto Slab',   category: 'Slab moderno',    css: '"Roboto Slab", Georgia, serif' },
 ] as const;
 
 /* ─────────── Paletas de color sugeridas ─────────── */
