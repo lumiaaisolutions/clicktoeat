@@ -62,13 +62,22 @@ Route::middleware('throttle:60,1')->group(function () {
         Route::post('cupones/{slug}/validar',
             [\App\Http\Controllers\Api\Public\CuponController::class, 'validar'])
             ->middleware('throttle:30,1');
+        // F100 — Cupones destacados activos AHORA para banner en landing
+        Route::get('cupones/{slug}/destacados',
+            [\App\Http\Controllers\Api\Public\CuponController::class, 'destacados']);
 
-        // Reseñas públicas — el cliente reseña tras recibir el pedido
+        // Reseñas públicas POR PRODUCTO — el cliente reseña un producto específico
         Route::post('resenas/{pedidoCodigo}',
             [\App\Http\Controllers\Api\Public\ResenaController::class, 'store'])
             ->middleware('throttle:10,1');
         Route::get('resenas/{slug}/{producto_id}',
             [\App\Http\Controllers\Api\Public\ResenaController::class, 'porProducto']);
+
+        // F100 — Calificación GENERAL del local (rating + comentario por token)
+        Route::get('reviews/local/{slug}',          [\App\Http\Controllers\Api\ReviewController::class, 'indexForLocal']);
+        Route::get('reviews/token/{token}',         [\App\Http\Controllers\Api\ReviewController::class, 'showByToken']);
+        Route::post('reviews/token/{token}',        [\App\Http\Controllers\Api\ReviewController::class, 'submitByToken'])
+            ->middleware('throttle:5,1');
     });
 
     // ─── Billing (SaaS) ───────────────────────────────────────────────

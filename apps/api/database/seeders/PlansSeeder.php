@@ -44,6 +44,8 @@ class PlansSeeder extends Seeder
                     F::QR_PERSONALIZADO,
                     F::POS,
                     F::NOTIFICACIONES,
+                    F::REVIEWS,            // reviews públicas — desde Essential
+                    F::CENTRO_APRENDIZAJE, // ayuda con animaciones — desde Essential
                 ],
             ],
             // Profesional — todo incluido.
@@ -70,9 +72,13 @@ class PlansSeeder extends Seeder
                     F::STAFF_MULTI,
                     F::AUDIT_LOG,
                     F::RESTORE,
+                    F::REVIEWS,
+                    F::CENTRO_APRENDIZAJE,
+                    F::CUPONES_PROGRAMADOS,  // happy hour, 2x1 por horario
+                    F::AUTO_PAUSE_STOCK,     // pausa producto si se agota ingrediente
                 ],
             ],
-            // F88 — Premium: para cadenas / clientes técnicos
+            // F88 — Premium: para cadenas y locales que necesitan más control
             [
                 'slug'                 => 'premium',
                 'nombre'               => 'Premium',
@@ -96,9 +102,13 @@ class PlansSeeder extends Seeder
                     F::STAFF_MULTI,
                     F::AUDIT_LOG,
                     F::RESTORE,
+                    F::REVIEWS,
+                    F::CENTRO_APRENDIZAJE,
+                    F::CUPONES_PROGRAMADOS,
+                    F::AUTO_PAUSE_STOCK,
                     F::MULTI_SUCURSAL,
                     F::WHITE_LABEL,
-                    F::API_WEBHOOKS,
+                    F::POS_OFFLINE,         // POS sigue cobrando sin internet
                     F::SOPORTE_PREMIUM,
                 ],
             ],

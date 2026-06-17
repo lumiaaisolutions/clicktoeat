@@ -34,6 +34,9 @@ class Cupon extends Model
         'min_subtotal', 'max_descuento',
         'fecha_desde', 'fecha_hasta',
         'max_usos', 'usos_actuales', 'activo',
+        // F100 — cupones programados por horario
+        'hora_inicio', 'hora_fin', 'dias_semana',
+        'destacado_en_landing', 'productos_sugeridos',
     ];
 
     protected function casts(): array
@@ -45,7 +48,27 @@ class Cupon extends Model
             'fecha_desde'   => 'date',
             'fecha_hasta'   => 'date',
             'activo'        => 'boolean',
+            'dias_semana'   => 'array',
+            'productos_sugeridos' => 'array',
+            'destacado_en_landing' => 'boolean',
         ];
+    }
+
+    /** True si el cupón aplica AHORA según horario configurado. */
+    public function aplicaEnEsteMomento(): bool
+    {
+        $now = now();
+        // Días de semana
+        if (! empty($this->dias_semana)) {
+            $diaActual = strtolower($now->shortEnglishDayOfWeek); // 'mon', 'tue', ...
+            if (! in_array($diaActual, $this->dias_semana, true)) return false;
+        }
+        // Horas
+        if ($this->hora_inicio && $this->hora_fin) {
+            $current = $now->format('H:i:s');
+            if ($current < $this->hora_inicio || $current > $this->hora_fin) return false;
+        }
+        return true;
     }
 
     public function local(): BelongsTo
@@ -60,6 +83,12 @@ class Cupon extends Model
         $q->where('activo', true)
           ->where(fn ($qq) => $qq->whereNull('fecha_desde')->orWhere('fecha_desde', '<=', $hoy))
           ->where(fn ($qq) => $qq->whereNull('fecha_hasta')->orWhere('fecha_hasta', '>=', $hoy));
+    }
+
+    /** Scope: solo los destacados para mostrar en landing pública. */
+    public function scopeDestacadosLanding(Builder $q): void
+    {
+        $q->vigente()->where('destacado_en_landing', true);
     }
 
     public function tieneCupoDisponible(): bool

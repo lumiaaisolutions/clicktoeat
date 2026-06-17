@@ -180,6 +180,25 @@ class PedidoController extends Controller
 
             $pedido->save();
 
+            // F100 — Al marcar entregado, crear Review pendiente con token
+            // único para que el cliente califique al local. El owner copia el
+            // link y lo manda al cliente por WhatsApp.
+            if ($nuevoEstado === 'entregado' && $estadoAnterior !== 'entregado') {
+                $exists = \App\Models\Review::query()->withoutGlobalScopes()
+                    ->where('pedido_id', $pedido->id)
+                    ->exists();
+                if (! $exists) {
+                    \App\Models\Review::query()->withoutGlobalScopes()->create([
+                        'local_id'         => $pedido->local_id,
+                        'pedido_id'        => $pedido->id,
+                        'cliente_nombre'   => $pedido->cliente_nombre ?? 'Cliente',
+                        'cliente_telefono' => $pedido->cliente_telefono,
+                        'rating'           => 0,    // 0 = aún no calificó
+                        'aprobado'         => false,
+                    ]);
+                }
+            }
+
             // Re-stock: pedido se cancela tras haber consumido inventario → reintegrar.
             //  - No reintegra si el estado anterior ya era 'cancelado' (idempotencia)
             //  - No reintegra si era 'entregado' (ya se consumió de verdad)

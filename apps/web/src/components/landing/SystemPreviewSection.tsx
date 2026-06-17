@@ -98,7 +98,7 @@ function BrowserMockup() {
         <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
         <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
         <div className="ml-3 flex-1 max-w-xs h-5 rounded bg-white border border-line flex items-center px-2 text-[9px] text-muted">
-          tudominio.com/admin
+          clicktoeat.lumiaaisolutions.com/admin
         </div>
       </div>
 

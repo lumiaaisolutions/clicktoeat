@@ -30,8 +30,15 @@ final class Features
     // F88 — exclusivas Premium
     public const MULTI_SUCURSAL     = 'multi_sucursal';
     public const WHITE_LABEL        = 'white_label';
-    public const API_WEBHOOKS       = 'api_webhooks';
+    public const API_WEBHOOKS       = 'api_webhooks';   // deprecated — no se ofrece más
     public const SOPORTE_PREMIUM    = 'soporte_premium';
+
+    // F100 — Nuevas features junio 2026
+    public const REVIEWS            = 'reviews';
+    public const CUPONES_PROGRAMADOS= 'cupones_programados';
+    public const AUTO_PAUSE_STOCK   = 'auto_pause_stock';
+    public const POS_OFFLINE        = 'pos_offline';
+    public const CENTRO_APRENDIZAJE = 'centro_aprendizaje';
 
     /** @return list<string> */
     public static function all(): array

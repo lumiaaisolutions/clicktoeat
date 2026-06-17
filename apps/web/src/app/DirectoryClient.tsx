@@ -286,9 +286,77 @@ export function DirectoryClient({ locales }: { locales: LocalDirectorio[] }) {
       <PricingSection />
       <SystemPreviewSection />
       <CTAOwnerSection />
+      <ComingSoonAppSection />
       <ShareQRSection />
       <Footer />
     </main>
+  );
+}
+
+/* ─────────── Próximamente: App ClickToEat ─────────── */
+function ComingSoonAppSection() {
+  return (
+    <section className="px-4 sm:px-6 py-20 max-w-6xl mx-auto">
+      <div className="rounded-3xl border border-line bg-gradient-to-br from-ink to-zinc-900 text-white p-8 sm:p-12 overflow-hidden relative">
+        <div className="grid lg:grid-cols-[1fr_280px] gap-8 items-center">
+          <div>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 text-[10px] font-bold uppercase tracking-wider text-amber-300">
+              <Icon name="sparkles" size={11} />
+              Próximamente
+            </span>
+            <h2 className="ce-display mt-3 text-3xl sm:text-4xl font-bold leading-tight">
+              App <span className="gradient-text">ClickToEat</span>
+            </h2>
+            <p className="mt-3 text-white/70 max-w-md leading-relaxed">
+              Tu local en una app dedicada. Recibe pedidos en tiempo real con
+              sonido y vibración, atiende desde el celular, mantén la cocina
+              al día sin pegarte al navegador.
+            </p>
+            <ul className="mt-5 space-y-2 text-sm text-white/80">
+              <li className="flex items-start gap-2">
+                <Icon name="bell" size={14} className="text-amber-300 mt-0.5 shrink-0" />
+                Notificaciones push con sonido distintivo
+              </li>
+              <li className="flex items-start gap-2">
+                <Icon name="package" size={14} className="text-amber-300 mt-0.5 shrink-0" />
+                Layout "tablet en cocina" optimizado
+              </li>
+              <li className="flex items-start gap-2">
+                <Icon name="shield" size={14} className="text-amber-300 mt-0.5 shrink-0" />
+                Funciona offline (sync al volver conexión)
+              </li>
+            </ul>
+            <p className="mt-5 text-xs text-white/50">
+              Disponible en iOS y Android. Te avisamos cuando salga.
+            </p>
+          </div>
+
+          {/* Mockup de la app — iPhone simulado */}
+          <div className="relative mx-auto">
+            <div className="w-[200px] aspect-[9/19] rounded-[36px] bg-zinc-800 border-4 border-zinc-700 p-2 shadow-glass">
+              <div className="w-full h-full rounded-[28px] bg-white overflow-hidden relative">
+                <div className="w-20 h-4 bg-zinc-900 absolute top-2 left-1/2 -translate-x-1/2 rounded-full" />
+                <div className="pt-8 px-3 text-ink">
+                  <div className="w-10 h-10 rounded-xl bg-ink grid place-items-center mb-2">
+                    <Icon name="utensils" size={18} className="text-white" />
+                  </div>
+                  <p className="ce-display text-[11px] font-bold leading-tight">ClickToEat</p>
+                  <p className="text-[8px] text-muted">Tu local en vivo</p>
+                  <div className="mt-3 space-y-1.5">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="rounded-lg bg-red-50 border border-red-200 p-1.5">
+                        <p className="text-[8px] font-bold text-red-700">PEDIDO #00{i}</p>
+                        <p className="text-[7px] text-muted">2 productos · $245</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -607,7 +675,7 @@ function CTAOwnerSection() {
 
             <ul className="mt-6 space-y-3">
               {[
-                'URL pública: tudominio.com/tu-local',
+                'URL pública: clicktoeat.lumiaaisolutions.com/tu-negocio',
                 'Inventario, recetas y métricas',
                 'Sin tarifas escondidas',
               ].map((t) => (
@@ -620,13 +688,22 @@ function CTAOwnerSection() {
               ))}
             </ul>
 
-            <Link
-              href="/login"
-              className="mt-8 inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-ink text-white text-sm sm:text-base font-medium hover:opacity-90 tap-target group"
-            >
-              Registrar mi local
-              <Icon name="arrow-right" size={16} className="group-hover:translate-x-0.5 transition" />
-            </Link>
+            <div className="mt-8 flex flex-wrap gap-3 items-center">
+              <Link
+                href="/registro"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-[color:var(--ce-accent)] text-white text-sm sm:text-base font-bold hover:opacity-90 tap-target group shadow-soft hover:shadow-glass transition"
+              >
+                Empezar gratis 14 días
+                <Icon name="arrow-right" size={16} className="group-hover:translate-x-0.5 transition" />
+              </Link>
+              <Link
+                href="#pricing"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl border border-line bg-white text-sm font-semibold text-ink hover:border-ink/30 transition"
+              >
+                Ver planes y precios
+              </Link>
+            </div>
+            <p className="text-[11px] text-muted mt-2">Sin tarjeta · cancela cuando quieras</p>
           </div>
 
           {/* Mockup tipo "phone preview" */}

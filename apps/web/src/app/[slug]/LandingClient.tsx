@@ -8,6 +8,7 @@ import { buildWhatsAppUrl } from '@/lib/whatsapp';
 import { cn, formatMXN } from '@/lib/utils';
 import type { MenuResponse, MenuProducto } from '@/lib/api';
 import { Icon, type IconName } from '@/components/ui/Icon';
+import { ReviewsSection } from '@/components/landing/ReviewsSection';
 import 'leaflet/dist/leaflet.css';
 
 const LeafletMap = dynamic(() => import('@/components/admin/LeafletMap'), {
@@ -391,6 +392,9 @@ export function LandingClient({ menu }: Props) {
           })
         )}
       </main>
+
+      {/* F100 — Reviews del local (solo si tiene >= 1 review aprobado) */}
+      <ReviewsSection slug={local.slug} />
 
       {/* FOOTER — restaurante premium dark con LUMIA credit */}
       <Footer local={local} branding={branding} />

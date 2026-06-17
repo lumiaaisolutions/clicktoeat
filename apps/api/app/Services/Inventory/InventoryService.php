@@ -87,6 +87,12 @@ class InventoryService
             if ($stockAntes > $umbral && $nuevoStock <= $umbral) {
                 $this->notificarBajoStock($pedido->local_id, $ing);
             }
+
+            // F100 — Auto-pause: si el ingrediente se agota (stock <= 0),
+            // marcar como `disponible = false` todos los productos que lo usan.
+            if ($stockAntes > 0 && $nuevoStock <= 0) {
+                $this->autoPausarProductosDelIngrediente($pedido->local_id, $ing);
+            }
         }
     }
 
@@ -236,5 +242,86 @@ class InventoryService
                 'unidad'         => $ing->unidad,
             ],
         ]);
+
+        // F100 — Email al owner del local (best-effort, no rompe si falla)
+        $this->mailearBajoStock($localId, $ing, 'bajo_stock');
+    }
+
+    /**
+     * Cuando un ingrediente se agota, marca como `disponible = false`
+     * todos los productos que lo usan. Cuando vuelva a tener stock, el owner
+     * debe re-habilitarlos manualmente (o llamar `reactivarProductosDelIngrediente`).
+     */
+    protected function autoPausarProductosDelIngrediente(int $localId, Ingrediente $ing): void
+    {
+        $productoIds = \App\Models\Receta::query()
+            ->where('ingrediente_id', $ing->id)
+            ->pluck('producto_id')
+            ->unique();
+
+        if ($productoIds->isEmpty()) return;
+
+        $afectados = \App\Models\Producto::query()
+            ->where('local_id', $localId)
+            ->whereIn('id', $productoIds)
+            ->where('disponible', true)
+            ->update(['disponible' => false]);
+
+        if ($afectados === 0) return;
+
+        // Notificación al owner explicando qué pasó
+        Notificacion::create([
+            'local_id' => $localId,
+            'tipo'     => 'auto_pause',
+            'titulo'   => "Productos pausados automáticamente",
+            'mensaje'  => "Se acabó {$ing->nombre} → {$afectados} producto(s) marcado(s) como agotado en tu landing.",
+            'data'     => [
+                'ingrediente_id' => $ing->id,
+                'productos_afectados' => $afectados,
+            ],
+        ]);
+
+        $this->mailearBajoStock($localId, $ing, 'agotado');
+    }
+
+    /**
+     * Mail al owner del local. Evita spam: registra en stock_alerts_sent
+     * y no manda el mismo tipo para el mismo ingrediente más de 1 vez por día.
+     */
+    protected function mailearBajoStock(int $localId, Ingrediente $ing, string $tipo): void
+    {
+        try {
+            $reciente = \DB::table('stock_alerts_sent')
+                ->where('local_id', $localId)
+                ->where('ingrediente_id', $ing->id)
+                ->where('tipo', $tipo)
+                ->where('sent_at', '>=', now()->subDay())
+                ->exists();
+            if ($reciente) return;
+
+            \DB::table('stock_alerts_sent')->insert([
+                'local_id'       => $localId,
+                'ingrediente_id' => $ing->id,
+                'tipo'           => $tipo,
+                'sent_at'        => now(),
+            ]);
+
+            $local = \App\Models\Local::query()->withoutGlobalScopes()->find($localId);
+            $owner = \App\Models\User::query()->where('local_id', $localId)->where('rol', 'owner')->first();
+            if (! $local || ! $owner?->email) return;
+
+            $asunto  = $tipo === 'agotado'
+                ? "🔴 Se agotó {$ing->nombre} en {$local->nombre}"
+                : "🟡 Bajo stock: {$ing->nombre} en {$local->nombre}";
+            $mensaje = $tipo === 'agotado'
+                ? "El ingrediente \"{$ing->nombre}\" se agotó. Los productos que lo usan se pausaron automáticamente en tu landing pública para evitar pedidos imposibles. Repón el stock y reactívalos desde /admin/productos."
+                : "Quedan {$ing->stock} {$ing->unidad} de \"{$ing->nombre}\" (mínimo configurado: {$ing->stock_minimo}). Pide más antes de quedarte sin.";
+
+            \Illuminate\Support\Facades\Mail::raw($mensaje, function ($m) use ($owner, $asunto) {
+                $m->to($owner->email)->subject($asunto);
+            });
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 }

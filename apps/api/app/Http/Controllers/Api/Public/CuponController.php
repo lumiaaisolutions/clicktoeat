@@ -49,6 +49,10 @@ class CuponController extends Controller
         if (! $cupon->tieneCupoDisponible()) {
             return response()->json(['valid' => false, 'message' => 'Este cupón ya alcanzó su límite de usos.'], 200);
         }
+        // F100 — Validar horario programado
+        if (! $cupon->aplicaEnEsteMomento()) {
+            return response()->json(['valid' => false, 'message' => 'Este cupón solo aplica en su horario configurado.'], 200);
+        }
         if ((float) $data['subtotal'] < (float) $cupon->min_subtotal) {
             return response()->json([
                 'valid'   => false,
@@ -69,5 +73,38 @@ class CuponController extends Controller
                 ? "Aplicado: {$cupon->valor}% de descuento."
                 : 'Descuento aplicado.',
         ]);
+    }
+
+    /**
+     * F100 — Listado de cupones DESTACADOS activos para mostrar en la landing
+     * como banner "Promo activa ahora". Filtra por horario en runtime.
+     */
+    public function destacados(string $slug): JsonResponse
+    {
+        $local = Local::where('slug', $slug)->where('activo', true)->first();
+        if (! $local) return response()->json(['data' => []]);
+
+        $items = Cupon::withoutGlobalScopes()
+            ->where('local_id', $local->id)
+            ->where('destacado_en_landing', true)
+            ->vigente()
+            ->get()
+            ->filter(fn ($c) => $c->aplicaEnEsteMomento() && $c->tieneCupoDisponible())
+            ->map(fn ($c) => [
+                'id'                  => $c->id,
+                'codigo'              => $c->codigo,
+                'tipo'                => $c->tipo,
+                'valor'               => (float) $c->valor,
+                'min_subtotal'        => (float) $c->min_subtotal,
+                'productos_sugeridos' => $c->productos_sugeridos ?? [],
+                'hora_inicio'         => $c->hora_inicio,
+                'hora_fin'            => $c->hora_fin,
+                'descripcion_corta'   => $c->tipo === 'percent'
+                    ? "{$c->valor}% OFF con {$c->codigo}"
+                    : "\${$c->valor} OFF con {$c->codigo}",
+            ])
+            ->values();
+
+        return response()->json(['data' => $items]);
     }
 }
