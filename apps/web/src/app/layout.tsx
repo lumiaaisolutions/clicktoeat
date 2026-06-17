@@ -3,6 +3,7 @@ import './globals.css';
 import { InitialLoader } from '@/components/ui/InitialLoader';
 import { RouteTransition } from '@/components/ui/RouteTransition';
 import { PwaRegister } from '@/components/pwa/PwaRegister';
+import { RefCapture } from '@/components/referral/RefCapture';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
@@ -62,6 +63,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <InitialLoader />
         <RouteTransition />
         <PwaRegister />
+        <RefCapture />
         {children}
       </body>
     </html>

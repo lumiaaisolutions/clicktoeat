@@ -43,6 +43,17 @@ export default function ReferidosPage() {
     );
   }
 
+  // El share_url del backend depende de env APP_URL_FRONTEND, que puede caer
+  // a localhost si no está configurada. Construimos el link en cliente con
+  // el origen real del browser — siempre apunta al dominio correcto.
+  const origin = typeof window !== 'undefined'
+    ? (process.env.NEXT_PUBLIC_FRONTEND_URL ?? window.location.origin)
+    : 'https://clicktoeat.lumiaaisolutions.com';
+  const shareUrl = d.codigo ? `${origin.replace(/\/$/, '')}/?ref=${d.codigo}` : null;
+  const mensajeWhatsapp = d.codigo && shareUrl
+    ? `Te recomiendo ClickToEat para tu local. Es muy fácil: tu menú online + pedidos por WhatsApp, sin comisiones. Usa mi código *${d.codigo}* al registrarte y los dos ganamos. ${shareUrl}`
+    : null;
+
   const copy = async (text: string) => {
     try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); }
     catch { toast.error('No se pudo copiar'); }
@@ -73,21 +84,21 @@ export default function ReferidosPage() {
           )}
         </div>
 
-        {d.share_url && (
+        {shareUrl && (
           <>
             <p className="text-xs font-semibold uppercase tracking-wider text-muted mt-6">Link para compartir</p>
             <div className="mt-2 flex items-center gap-2 flex-wrap">
               <code className="text-xs sm:text-sm flex-1 min-w-0 truncate px-3 py-2 rounded-xl bg-white border border-line">
-                {d.share_url}
+                {shareUrl}
               </code>
-              <Button variant="secondary" size="sm" onClick={() => copy(d.share_url!)}>Copiar link</Button>
+              <Button variant="secondary" size="sm" onClick={() => copy(shareUrl)}>Copiar link</Button>
             </div>
           </>
         )}
 
-        {d.mensaje_whatsapp && (
+        {mensajeWhatsapp && (
           <a
-            href={`https://wa.me/?text=${encodeURIComponent(d.mensaje_whatsapp)}`}
+            href={`https://wa.me/?text=${encodeURIComponent(mensajeWhatsapp)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-5 inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 text-white text-sm font-semibold hover:opacity-90"

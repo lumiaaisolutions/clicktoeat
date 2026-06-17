@@ -9,6 +9,7 @@ import { useAuth } from '@/store/auth';
 import { Icon } from '@/components/ui/Icon';
 import { Logo } from '@/components/ui/Logo';
 import { cn } from '@/lib/utils';
+import { readStoredRefCode, clearStoredRefCode } from '@/components/referral/RefCapture';
 
 const LocationPicker = dynamic(() => import('@/components/admin/LocationPicker').then((m) => m.LocationPicker), { ssr: false });
 
@@ -144,6 +145,7 @@ export function OnboardingClient() {
         { headers: { Authorization: `Bearer ${token}` } },
       );
       await setTokenAndHydrate(res.data.token);
+      clearStoredRefCode();
       router.replace('/admin');
     } catch (e: any) {
       setError(e.response?.data?.message ?? 'No pudimos finalizar.');
@@ -233,12 +235,17 @@ function buildPayloadForStep(step: StepName, d: OnboardingData): Record<string, 
         password: d.password.password,
         password_confirmation: d.password.password,
       };
-    case 'local':
+    case 'local': {
+      // F36b — Si el visitante llegó via ?ref=CODE, RefCapture lo guardó en
+      // localStorage. Lo enviamos aquí para que el backend cree el Referral.
+      const refCode = readStoredRefCode();
       return {
         nombre:  d.local.nombre,
         slug:    d.local.slug || slugify(d.local.nombre),
         tagline: d.local.tagline || null,
+        ...(refCode ? { codigo_referido: refCode } : {}),
       };
+    }
     case 'branding':
       return {
         color_primario: d.branding.color_primario,

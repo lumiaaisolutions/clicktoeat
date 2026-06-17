@@ -422,10 +422,36 @@ function TicketModal({
   open, pedido, local, onClose,
 }: { open: boolean; pedido: Pedido | null; local: LocalAdmin | null; onClose: () => void }) {
   const [descargando, setDescargando] = useState(false);
+  // Pre-cargamos el logo como data URL para:
+  //  1. mostrar la imagen aunque el server NO devuelva CORS headers, y
+  //  2. permitir que html2canvas lo capture sin tainted canvas.
+  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
+  const logoUrlRaw = local?.logo_url ?? null;
+
+  useEffect(() => {
+    let cancelled = false;
+    setLogoDataUrl(null);
+    if (!logoUrlRaw) return;
+    (async () => {
+      try {
+        const res = await fetch(logoUrlRaw, { mode: 'cors', credentials: 'omit' });
+        if (!res.ok) throw new Error('fetch failed');
+        const blob = await res.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (!cancelled && typeof reader.result === 'string') setLogoDataUrl(reader.result);
+        };
+        reader.readAsDataURL(blob);
+      } catch {
+        // CORS o 404 — dejamos sin logo. El ticket sigue funcionando sin él.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [logoUrlRaw]);
+
   if (!pedido) return null;
 
   const nombreNegocio = local?.nombre ?? 'Mi negocio';
-  const logoUrl = local?.logo_url ?? null;
   const direccion = local?.direccion ?? null;
   const telefono = local?.telefono ?? local?.whatsapp ?? null;
 
@@ -434,13 +460,15 @@ function TicketModal({
     try {
       const node = document.getElementById('ticket-print');
       if (!node) throw new Error('Ticket no disponible');
-      // html2canvas se carga dinámicamente para no inflar el bundle principal.
       const { default: html2canvas } = await import('html2canvas');
       const canvas = await html2canvas(node, {
         backgroundColor: '#ffffff',
         scale: 2,
         useCORS: true,
+        allowTaint: false,
         logging: false,
+        windowWidth: node.scrollWidth,
+        windowHeight: node.scrollHeight,
       });
       canvas.toBlob((blob) => {
         if (!blob) { toast.error('No se pudo generar la imagen'); return; }
@@ -454,48 +482,88 @@ function TicketModal({
         URL.revokeObjectURL(url);
         toast.success('Ticket descargado');
       }, 'image/png');
-    } catch (e) {
+    } catch {
       toast.error('No se pudo descargar el ticket');
     } finally {
       setDescargando(false);
     }
   };
 
+  /**
+   * Inyecta un `<style>` temporal con `@page { size: 80mm auto }` antes de
+   * imprimir. Sin esto, Safari ignora el @page named que tenemos en
+   * globals.css y termina paginando el ticket en hojas US Letter completas.
+   * Tras imprimir, removemos el style para no afectar otras impresiones.
+   */
+  const imprimir = () => {
+    const styleId = 'ticket-print-page-style';
+    let style = document.getElementById(styleId) as HTMLStyleElement | null;
+    if (!style) {
+      style = document.createElement('style');
+      style.id = styleId;
+      document.head.appendChild(style);
+    }
+    style.textContent = '@page { size: 80mm auto; margin: 3mm; }';
+    window.print();
+    // Pequeño delay antes de remover; algunos browsers parsean @page tras print().
+    setTimeout(() => { style?.remove(); }, 1500);
+  };
+
   return (
     <Modal open={open} onClose={onClose} title={`Ticket · ${pedido.codigo}`}>
       <div
         id="ticket-print"
-        className="font-mono text-[11px] mx-auto bg-white"
-        style={{ width: 280, padding: 12, color: '#0B0B0F' }}
+        style={{
+          width: 280,
+          padding: 14,
+          margin: '0 auto',
+          background: '#ffffff',
+          color: '#0B0B0F',
+          fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace',
+          fontSize: 11,
+          lineHeight: 1.45,
+          boxSizing: 'border-box',
+        }}
       >
-        {logoUrl && (
-          <div className="flex justify-center mb-2">
-            <img src={logoUrl} alt={nombreNegocio} crossOrigin="anonymous" style={{ maxHeight: 56, maxWidth: '70%', objectFit: 'contain' }} />
+        {logoDataUrl && (
+          <div style={{ textAlign: 'center', marginBottom: 8 }}>
+            <img
+              src={logoDataUrl}
+              alt={nombreNegocio}
+              style={{ maxHeight: 56, maxWidth: '70%', objectFit: 'contain', display: 'inline-block' }}
+            />
           </div>
         )}
-        <p className="text-center font-bold text-[13px] leading-tight">{nombreNegocio}</p>
-        {direccion && <p className="text-center text-[10px] mt-0.5 leading-snug">{direccion}</p>}
-        {telefono && <p className="text-center text-[10px] mt-0.5">Tel: {telefono}</p>}
-        <p className="text-center mt-2">{new Date(pedido.created_at).toLocaleString('es-MX')}</p>
-        <p className="text-center mb-2">Folio: {pedido.codigo}</p>
-        <hr className="border-dashed my-2" style={{ borderColor: '#888' }} />
+        <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 13 }}>{nombreNegocio}</div>
+        {direccion && <div style={{ textAlign: 'center', fontSize: 10, marginTop: 2 }}>{direccion}</div>}
+        {telefono && <div style={{ textAlign: 'center', fontSize: 10, marginTop: 2 }}>Tel: {telefono}</div>}
+        <div style={{ textAlign: 'center', marginTop: 8 }}>
+          {new Date(pedido.created_at).toLocaleString('es-MX')}
+        </div>
+        <div style={{ textAlign: 'center' }}>Folio: {pedido.codigo}</div>
+
+        <div style={{ borderTop: '1px dashed #888', marginTop: 10, marginBottom: 8 }} />
+
         {(pedido.detalles ?? []).map((d) => (
-          <div key={d.id} className="flex justify-between gap-2 py-0.5">
-            <span className="truncate">{d.cantidad}× {d.producto_nombre}</span>
-            <span className="tabular-nums">{formatMXN(d.subtotal)}</span>
+          <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '3px 0' }}>
+            <span style={{ flex: 1, minWidth: 0, wordBreak: 'break-word' }}>{d.cantidad}× {d.producto_nombre}</span>
+            <span style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{formatMXN(d.subtotal)}</span>
           </div>
         ))}
-        <hr className="border-dashed my-2" style={{ borderColor: '#888' }} />
-        <div className="flex justify-between font-bold text-[12px]">
+
+        <div style={{ borderTop: '1px dashed #888', marginTop: 8, marginBottom: 8 }} />
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 12 }}>
           <span>Total</span>
-          <span className="tabular-nums">{formatMXN(pedido.total)}</span>
+          <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatMXN(pedido.total)}</span>
         </div>
-        <p className="text-center mt-2">Pago: {labelPago(pedido.metodo_pago)}</p>
+
+        <div style={{ textAlign: 'center', marginTop: 10 }}>Pago: {labelPago(pedido.metodo_pago)}</div>
         {pedido.cliente_nombre && pedido.cliente_nombre !== 'Mostrador' && (
-          <p className="text-center">Cliente: {pedido.cliente_nombre}</p>
+          <div style={{ textAlign: 'center' }}>Cliente: {pedido.cliente_nombre}</div>
         )}
-        <p className="text-center mt-2">¡Gracias por su compra!</p>
-        <p className="text-center text-[9px] mt-1 opacity-60">via ClickToEat</p>
+        <div style={{ textAlign: 'center', marginTop: 10 }}>¡Gracias por su compra!</div>
+        <div style={{ textAlign: 'center', fontSize: 9, marginTop: 4, opacity: 0.6 }}>via ClickToEat</div>
       </div>
 
       <div className="flex flex-wrap gap-2 justify-end mt-4 pt-3 border-t border-line print:hidden">
@@ -504,7 +572,7 @@ function TicketModal({
           <Icon name="download" size={16} />
           Descargar imagen
         </Button>
-        <Button onClick={() => window.print()} className="inline-flex items-center gap-2">
+        <Button onClick={imprimir} className="inline-flex items-center gap-2">
           <Icon name="qr-code" size={16} />
           Imprimir
         </Button>

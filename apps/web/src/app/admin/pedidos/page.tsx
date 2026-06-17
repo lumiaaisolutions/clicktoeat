@@ -271,12 +271,14 @@ function LinkCalificacionModal({ pedido, onClose }: { pedido: Pedido; onClose: (
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 min-w-0 max-w-full overflow-hidden">
       <p className="text-sm text-muted">
         Manda este link al cliente por WhatsApp. Cuando lo abra, podrá calificarte 1-5 estrellas y dejar un comentario.
       </p>
 
-      <div className="rounded-xl border border-line bg-line/20 p-3 break-all text-xs font-mono">{link}</div>
+      <div className="rounded-xl border border-line bg-line/20 p-3 text-xs font-mono break-all overflow-hidden">
+        {link}
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <a
@@ -298,9 +300,11 @@ function LinkCalificacionModal({ pedido, onClose }: { pedido: Pedido; onClose: (
         </button>
       </div>
 
-      <details className="rounded-xl border border-line bg-white p-3 text-xs">
+      <details className="rounded-xl border border-line bg-white p-3 text-xs overflow-hidden">
         <summary className="cursor-pointer font-semibold">Vista previa del mensaje</summary>
-        <p className="text-muted mt-2 leading-relaxed whitespace-pre-wrap">{mensaje}</p>
+        <p className="text-muted mt-2 leading-relaxed break-words overflow-wrap-anywhere" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+          {mensaje}
+        </p>
       </details>
 
       <button type="button" onClick={onClose} className="w-full text-center text-xs text-muted hover:text-ink py-2">Cerrar</button>

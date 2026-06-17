@@ -47,6 +47,18 @@ interface NavItem {
   requiredPlan?: 'professional' | 'premium';
 }
 
+/**
+ * Marcador de sección dentro de la lista plana del NAV. Se intercala con
+ * NavItems para que NavLinks renderice un header tipo "OPERACIÓN" arriba
+ * del primer ítem de ese bloque. Si todo el bloque queda filtrado (por
+ * permisos o plan), el header no se muestra.
+ */
+interface NavSection {
+  section: string;
+}
+type NavEntry = NavItem | NavSection;
+const isSection = (e: NavEntry): e is NavSection => 'section' in e;
+
 function Icon({ name, className }: { name: IconName; className?: string }) {
   const stroke = {
     fill: 'none', stroke: 'currentColor', strokeWidth: 1.75,
@@ -142,43 +154,88 @@ function UserCard({ user, onLogout }: { user: UserCardData; onLogout: () => void
  * backend). Items sin permiso = visibles para todos (Inicio, Equipo solo
  * owner se filtra aparte).
  */
-const NAV_OWNER: NavItem[] = [
+const NAV_OWNER: NavEntry[] = [
   { href: '/admin',              label: 'Inicio',      icon: 'home' },
-  { href: '/admin/metricas',     label: 'Reportes',    icon: 'chart',   permiso: 'metricas',   feature: 'metricas_basicas', requiredPlan: 'professional' },
+
+  { section: 'Operación' },
   { href: '/admin/punto-venta',  label: 'Venta',       icon: 'cart',    permiso: 'pos',        feature: 'pos' },
   { href: '/admin/pedidos',      label: 'Pedidos',     icon: 'bell',    permiso: 'pedidos' },
+  { href: '/admin/metricas',     label: 'Reportes',    icon: 'chart',   permiso: 'metricas',   feature: 'metricas_basicas', requiredPlan: 'professional' },
+
+  { section: 'Catálogo' },
   { href: '/admin/productos',    label: 'Productos',   icon: 'package', permiso: 'productos' },
   { href: '/admin/categorias',   label: 'Categorías',  icon: 'list',    permiso: 'categorias' },
   { href: '/admin/inventario',   label: 'Inventario',  icon: 'box',     permiso: 'inventario', feature: 'inventario',       requiredPlan: 'professional' },
   { href: '/admin/compras',      label: 'Compras',     icon: 'receipt', permiso: 'compras',    feature: 'compras',          requiredPlan: 'professional' },
-  { href: '/admin/horarios',     label: 'Horarios',    icon: 'clock',   permiso: 'horarios' },
-  { href: '/admin/qr',           label: 'QR',          icon: 'qr',      permiso: 'qr',         feature: 'qr_personalizado' },
+
+  { section: 'Clientes' },
   { href: '/admin/cupones',      label: 'Cupones',     icon: 'sparkles' },
   { href: '/admin/reviews',      label: 'Calificaciones', icon: 'star' },
-  { href: '/admin/referidos',    label: 'Referidos',   icon: 'users',   ownerOnly: true },
+  { href: '/admin/referidos',    label: 'Referidos',   icon: 'gift',    ownerOnly: true },
+
+  { section: 'Configuración' },
+  { href: '/admin/horarios',     label: 'Horarios',    icon: 'clock',   permiso: 'horarios' },
+  { href: '/admin/qr',           label: 'QR',          icon: 'qr',      permiso: 'qr',         feature: 'qr_personalizado' },
   { href: '/admin/branding',     label: 'Branding',    icon: 'palette', permiso: 'branding' },
   { href: '/admin/staff',        label: 'Equipo',      icon: 'users',   ownerOnly: true,       feature: 'staff_multi',      requiredPlan: 'professional' },
+
+  { section: 'Cuenta' },
+  { href: '/admin/billing',      label: 'Suscripción', icon: 'card',    ownerOnly: true },
   { href: '/admin/audit-log',    label: 'Historial',   icon: 'history', permiso: 'audit_log',  feature: 'audit_log',        requiredPlan: 'professional' },
+
+  { section: 'Ayuda' },
+  { href: '/admin/centro-aprendizaje', label: 'Aprende a usar', icon: 'sparkles' },
+  { href: '/admin/ayuda',        label: 'Centro de ayuda', icon: 'help' },
   // F100 — Integraciones removidas por decisión del producto (ERP/cocina externa no se ofrece).
   // Si en el futuro vuelve, restaurar esta línea y agregar 'api_webhooks' al Premium en PlansSeeder.
   // { href: '/admin/integraciones', label: 'Integraciones', icon: 'plug', ownerOnly: true, feature: 'api_webhooks', requiredPlan: 'premium' },
-  { href: '/admin/billing',      label: 'Suscripción', icon: 'card',    ownerOnly: true },
-  { href: '/admin/centro-aprendizaje', label: 'Aprende a usar', icon: 'sparkles' },
-  { href: '/admin/ayuda',        label: 'Centro de ayuda', icon: 'help' },
 ];
 
-const NAV_SUPER: NavItem[] = [
+const NAV_SUPER: NavEntry[] = [
   { href: '/admin',                  label: 'Resumen',          icon: 'home' },
+
+  { section: 'Negocios' },
   { href: '/admin/locales',          label: 'Locales',          icon: 'store' },
   { href: '/admin/saas-metrics',     label: 'SaaS',             icon: 'chart' },
+
+  { section: 'Marketing' },
   { href: '/admin/anuncios',         label: 'Anuncios',         icon: 'bell' },
   { href: '/admin/cupones-globales', label: 'Cupones globales', icon: 'gift' },
-  { href: '/admin/newsletter',       label: 'Newsletter',       icon: 'bell' },
+  { href: '/admin/newsletter',       label: 'Newsletter',       icon: 'message-circle' },
+
+  { section: 'Operación' },
   { href: '/admin/tickets',          label: 'Soporte',          icon: 'message-circle' },
   { href: '/admin/zonas',            label: 'Zonas',            icon: 'map-pin' },
   { href: '/admin/email-templates',  label: 'Emails',           icon: 'receipt' },
+
+  { section: 'Auditoría' },
   { href: '/admin/auditoria',        label: 'Auditoría',        icon: 'history' },
 ];
+
+/**
+ * Quita los headers de NavSection que no tengan NavItems debajo. Pasa una
+ * vez por la lista; un header se conserva sólo si el siguiente entry hasta
+ * el próximo header es un NavItem.
+ */
+function collapseEmptySections(entries: NavEntry[]): NavEntry[] {
+  const out: NavEntry[] = [];
+  for (let i = 0; i < entries.length; i++) {
+    const e = entries[i];
+    if (isSection(e)) {
+      // Mira hacia adelante hasta el próximo header. Si hay al menos un item, conservar.
+      let j = i + 1;
+      let tieneItems = false;
+      while (j < entries.length && !isSection(entries[j])) {
+        tieneItems = true;
+        break;
+      }
+      if (tieneItems) out.push(e);
+    } else {
+      out.push(e);
+    }
+  }
+  return out;
+}
 
 function SidebarHeader({ rol, showBell, isSuper }: { rol: string; showBell: boolean; isSuper?: boolean }) {
   return (
@@ -200,13 +257,27 @@ function SidebarHeader({ rol, showBell, isSuper }: { rol: string; showBell: bool
   );
 }
 
-function NavLinks({ items, pathname, dense = false }: { items: NavItem[]; pathname: string; dense?: boolean }) {
+function NavLinks({ items, pathname, dense = false }: { items: NavEntry[]; pathname: string; dense?: boolean }) {
   const has    = usePlan((s) => s.has);
   const unread = useLivePedidos((s) => s.unread);
   const showUpgrade = useUpgradeModal((s) => s.show);
   return (
     <nav className="flex-1 py-3 px-2 overflow-y-auto scroll-fine space-y-0.5">
-      {items.map((item) => {
+      {items.map((entry, idx) => {
+        if (isSection(entry)) {
+          return (
+            <div
+              key={`section-${idx}-${entry.section}`}
+              className={cn(
+                'px-3 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-muted/80 select-none',
+                idx === 0 && 'pt-2',
+              )}
+            >
+              {entry.section}
+            </div>
+          );
+        }
+        const item = entry;
         const active = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
         const locked = !!item.feature && !has(item.feature);
         const showBadge = item.href === '/admin/pedidos' && unread > 0 && !active;
@@ -290,21 +361,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // Cerrar drawer al cambiar de ruta
   useEffect(() => { setDrawerOpen(false); }, [pathname]);
 
-  const nav = useMemo<NavItem[]>(() => {
-    if (user?.rol === 'super_admin') return NAV_SUPER;
+  const nav = useMemo<NavEntry[]>(() => {
+    if (user?.rol === 'super_admin') return collapseEmptySections(NAV_SUPER);
     if (!user) return [];
 
     const isOwner = user.rol === 'owner';
     const permisos = user.permisos;
 
-    return NAV_OWNER.filter((item) => {
-      if (item.ownerOnly && !isOwner) return false;
-      // Owner siempre ve todo
+    const visible = NAV_OWNER.filter((entry) => {
+      if (isSection(entry)) return true;  // los headers se filtran después
+      if (entry.ownerOnly && !isOwner) return false;
       if (isOwner) return true;
-      // Staff: si no requiere permiso, lo ve (caso "Inicio"). Si requiere, debe tenerlo.
-      if (!item.permiso) return true;
-      return permisos?.includes(item.permiso) ?? false;
+      if (!entry.permiso) return true;
+      return permisos?.includes(entry.permiso) ?? false;
     });
+
+    return collapseEmptySections(visible);
   }, [user]);
 
   if (!user) {

@@ -182,59 +182,10 @@ export function BrandingEditor({ localId }: { localId?: number } = {}) {
             </div>
           </Section>
 
-          {/* Plantillas — aplican paleta + tipografía + overrides en un click */}
-          <Section title="Plantillas" icon="sparkles" hint="Comienza con un look listo. Después puedes ajustar lo que quieras.">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {LANDING_TEMPLATES.map((t) => {
-                const active = draft.color_primario === t.primario && draft.tipografia === t.tipografia;
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => setDraft((d) => ({
-                      ...d,
-                      color_primario:   t.primario,
-                      color_secundario: t.secundario,
-                      color_fondo:      t.fondo,
-                      tipografia:       t.tipografia,
-                      color_overrides:  t.overrides ?? null,
-                    }))}
-                    className={cn(
-                      'relative rounded-2xl border-2 overflow-hidden text-left transition group',
-                      active
-                        ? 'border-emerald-500 ring-2 ring-emerald-200 shadow-soft'
-                        : 'border-line hover:border-ink/30',
-                    )}
-                  >
-                    {active && (
-                      <span className="absolute top-1.5 right-1.5 z-10 w-5 h-5 rounded-full bg-emerald-500 grid place-items-center text-white shadow">
-                        <Icon name="check" size={11} />
-                      </span>
-                    )}
-                    {/* Mini-preview de la landing */}
-                    <div className="h-20 relative" style={{ background: t.fondo }}>
-                      <div className="absolute inset-0 grid place-items-center">
-                        <span className="text-base font-bold" style={{ color: t.primario, fontFamily: `"${t.tipografia}", system-ui, sans-serif` }}>
-                          Aa
-                        </span>
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 h-2 flex">
-                        <span className="flex-1" style={{ background: t.primario }} />
-                        <span className="flex-1" style={{ background: t.secundario }} />
-                      </div>
-                    </div>
-                    <div className={cn('p-2', active && 'bg-emerald-50/60')}>
-                      <p className="text-[11px] font-bold leading-tight">{t.name}</p>
-                      <p className="text-[10px] text-muted truncate">{t.tipografia}</p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </Section>
+          {/* Plantillas removidas — las "Paletas sugeridas" de la sección Colores
+              cumplen la misma función con menos duplicación. */}
 
-          <Section title="Colores" icon="qr-code" hint="Paleta de tu marca. Se aplican a la landing en tiempo real.">
+          <Section title="Colores" icon="qr-code" hint="Paleta de tu marca. Se aplican a la landing en tiempo real. Toca cualquier cuadro de color para elegir el tuyo o escribe el código hex.">
             <div className="grid grid-cols-3 gap-3">
               <ColorField label="Primario"   value={draft.color_primario   ?? ''} onChange={(v) => set('color_primario', v)}   error={errors.color_primario}   />
               <ColorField label="Secundario" value={draft.color_secundario ?? ''} onChange={(v) => set('color_secundario', v)} error={errors.color_secundario} />
@@ -586,6 +537,22 @@ function ColorField({
   label, value, onChange, error,
 }: { label: string; value: string; onChange: (v: string) => void; error?: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [hexInput, setHexInput] = useState((value || '').replace('#', ''));
+
+  // Mantén el input de hex sincronizado cuando el color cambie por otra ruta
+  // (paleta sugerida, picker nativo, etc).
+  useEffect(() => {
+    setHexInput((value || '').replace('#', ''));
+  }, [value]);
+
+  const commitHex = (raw: string) => {
+    const clean = raw.replace(/[^0-9a-fA-F]/g, '').slice(0, 6).toUpperCase();
+    setHexInput(clean);
+    if (clean.length === 6) {
+      onChange(`#${clean}`);
+    }
+  };
+
   return (
     <div className="block">
       <span className="block text-sm font-medium mb-1">{label}</span>
@@ -595,23 +562,46 @@ function ColorField({
         className="w-full h-14 rounded-xl border-2 border-line hover:border-ink/40 transition cursor-pointer relative overflow-hidden group"
         style={{ backgroundColor: value || '#000000' }}
         aria-label={`Elegir color ${label}`}
+        title="Toca para abrir el selector o escribe el hex abajo"
       >
-        <span className="absolute inset-0 grid place-items-center bg-black/0 group-hover:bg-black/20 transition">
+        <span className="absolute inset-0 grid place-items-center bg-black/0 group-hover:bg-black/20 transition pointer-events-none">
           <span className="opacity-0 group-hover:opacity-100 transition text-white text-xs font-semibold drop-shadow flex items-center gap-1.5">
             <Icon name="palette" size={14} />
-            Cambiar color
+            Tocar para elegir
           </span>
         </span>
       </button>
+      {/* Input nativo: en algunos navegadores el popup se posiciona donde le
+       * da la gana (incl. fuera de la pantalla). Lo dejamos visible pero
+       * pequeño justo debajo del swatch para que el popup ancle ahí (en mobile
+       * Safari/Chrome el picker sale en sheet centrado). */}
       <input
         ref={inputRef}
         type="color"
         value={value || '#000000'}
         onChange={(e) => onChange(e.target.value.toUpperCase())}
-        className="sr-only"
-        aria-hidden
-        tabIndex={-1}
+        className="mt-1.5 w-full h-7 rounded-md cursor-pointer border border-line bg-transparent"
+        aria-label={`Selector visual de color ${label}`}
       />
+      {/* Input de hex — siempre visible. Permite pegar/escribir códigos exactos
+       * y sirve de fallback si el popup nativo no funciona bien en algún
+       * navegador. */}
+      <div className="mt-1.5 flex items-center gap-1.5">
+        <span className="text-[11px] text-muted font-mono">#</span>
+        <input
+          type="text"
+          inputMode="text"
+          autoCapitalize="characters"
+          autoComplete="off"
+          spellCheck={false}
+          placeholder="FF2D2D"
+          value={hexInput}
+          onChange={(e) => commitHex(e.target.value)}
+          maxLength={6}
+          className="w-full px-2 py-1 rounded-md border border-line text-xs font-mono uppercase tracking-wider focus:outline-none focus:border-ink/40"
+          aria-label={`Código hex de ${label}`}
+        />
+      </div>
       {error && <span className="block text-xs text-red-600 mt-1">{error}</span>}
     </div>
   );
@@ -765,62 +755,3 @@ function GranularColors({
   );
 }
 
-/* ─────────── Plantillas de landing — paleta + tipografía + overrides ─────────── */
-const LANDING_TEMPLATES = [
-  {
-    id: 'mex-callejero',
-    name: 'Cocina Mexicana',
-    primario: '#FF2D2D', secundario: '#0B0B0F', fondo: '#FAFAF7',
-    tipografia: 'Bricolage Grotesque',
-    overrides: { badge_oferta: '#16A34A' },
-  },
-  {
-    id: 'italiana',
-    name: 'Pizzería Italiana',
-    primario: '#16A34A', secundario: '#7C2D12', fondo: '#FFF8EC',
-    tipografia: 'Playfair Display',
-    overrides: { boton_primario: '#C2410C', precio: '#7C2D12' },
-  },
-  {
-    id: 'cafeteria',
-    name: 'Cafetería Boutique',
-    primario: '#92400E', secundario: '#3F2C0F', fondo: '#FEF7E9',
-    tipografia: 'Cormorant Garamond',
-    overrides: null,
-  },
-  {
-    id: 'sushi-minimal',
-    name: 'Sushi Minimal',
-    primario: '#0B0B0F', secundario: '#DC2626', fondo: '#FFFFFF',
-    tipografia: 'Inter',
-    overrides: { boton_primario: '#DC2626', badge_oferta: '#DC2626' },
-  },
-  {
-    id: 'postres',
-    name: 'Postres y Dulces',
-    primario: '#E91E8C', secundario: '#5B1233', fondo: '#FFF7FB',
-    tipografia: 'DM Serif Display',
-    overrides: null,
-  },
-  {
-    id: 'bar',
-    name: 'Bar / Coctelería',
-    primario: '#1E3A8A', secundario: '#0F172A', fondo: '#F0F4FF',
-    tipografia: 'Space Grotesk',
-    overrides: { boton_primario: '#DAA520', badge_oferta: '#DAA520' },
-  },
-  {
-    id: 'vegan',
-    name: 'Healthy / Vegano',
-    primario: '#65A30D', secundario: '#3F6212', fondo: '#F7FEE7',
-    tipografia: 'Manrope',
-    overrides: null,
-  },
-  {
-    id: 'pasteleria',
-    name: 'Pastelería Clásica',
-    primario: '#D97706', secundario: '#7C2D12', fondo: '#FFFBEB',
-    tipografia: 'Fraunces',
-    overrides: { precio: '#7C2D12' },
-  },
-] as const;
