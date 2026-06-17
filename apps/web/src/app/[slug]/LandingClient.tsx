@@ -9,6 +9,7 @@ import { cn, formatMXN } from '@/lib/utils';
 import type { MenuResponse, MenuProducto } from '@/lib/api';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { ReviewsSection } from '@/components/landing/ReviewsSection';
+import { CuponDestacadoBanner } from '@/components/landing/CuponDestacadoBanner';
 import 'leaflet/dist/leaflet.css';
 
 const LeafletMap = dynamic(() => import('@/components/admin/LeafletMap'), {
@@ -225,6 +226,9 @@ export function LandingClient({ menu }: Props) {
           </motion.h1>
         </div>
       </header>
+
+      {/* F100 — Banner cupón destacado activo AHORA */}
+      <CuponDestacadoBanner slug={local.slug} productos={productos} />
 
       {/* ===================== MAIN ===================== */}
       <main className="relative z-[2] max-w-[1140px] mx-auto px-[clamp(14px,3.5vw,28px)] pb-0">

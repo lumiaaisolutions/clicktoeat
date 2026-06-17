@@ -67,6 +67,14 @@ class CuponController extends Controller
             'fecha_hasta'   => ['nullable', 'date', 'after_or_equal:fecha_desde'],
             'max_usos'      => ['nullable', 'integer', 'min:1'],
             'activo'        => ['boolean'],
+            // F100 — cupones programados por horario
+            'hora_inicio'         => ['nullable', 'date_format:H:i'],
+            'hora_fin'            => ['nullable', 'date_format:H:i', 'after:hora_inicio'],
+            'dias_semana'         => ['nullable', 'array'],
+            'dias_semana.*'       => ['string', 'in:mon,tue,wed,thu,fri,sat,sun'],
+            'destacado_en_landing'=> ['boolean'],
+            'productos_sugeridos' => ['nullable', 'array'],
+            'productos_sugeridos.*'=> ['integer', 'exists:productos,id'],
         ]);
     }
 }

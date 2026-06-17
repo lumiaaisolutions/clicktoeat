@@ -91,6 +91,28 @@ export default function PedidosPage() {
     }
   };
 
+  /**
+   * F100 — Copia al portapapeles el link de calificación del cliente para
+   * que el owner lo mande por WhatsApp manualmente. El Review se creó
+   * automáticamente al marcar el pedido como entregado.
+   */
+  const copiarLinkCalificacion = async (p: Pedido) => {
+    try {
+      const { data } = await api.get<{ data: Array<{ token: string }> }>('/admin/reviews');
+      const review = data.data.find((r: any) => r.pedido_id === p.id);
+      if (!review) {
+        toast.error('No se encontró link de calificación para este pedido.');
+        return;
+      }
+      const FRONTEND = process.env.NEXT_PUBLIC_FRONTEND_URL ?? window.location.origin;
+      const link = `${FRONTEND}/review/${review.token}`;
+      await navigator.clipboard.writeText(link);
+      toast.success('Link copiado — mándalo al cliente por WhatsApp');
+    } catch {
+      toast.error('No se pudo copiar el link');
+    }
+  };
+
   return (
     <div>
       <AdminPageHeader
@@ -163,6 +185,16 @@ export default function PedidosPage() {
                     </span>
                   )}
                   <span className="ml-auto font-bold">{formatMXN(p.total)}</span>
+                  {p.estado === 'entregado' && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); copiarLinkCalificacion(p); }}
+                      className="text-xs px-2 py-1 rounded-full border border-line hover:bg-amber-50 hover:border-amber-300 inline-flex items-center gap-1"
+                      title="Manda este link al cliente por WhatsApp para que califique"
+                    >
+                      <Icon name="star" size={10} />
+                      Link de calificación
+                    </button>
+                  )}
                   {trashed === 'only' && (
                     <button
                       onClick={(e) => { e.stopPropagation(); handleRestore(p); }}

@@ -236,6 +236,10 @@ Route::middleware('throttle:60,1')->group(function () {
         Route::apiResource('cupones', \App\Http\Controllers\Api\CuponController::class);
         Route::post('cupones/{cupon}/toggle', [\App\Http\Controllers\Api\CuponController::class, 'toggle']);
 
+        // F100 — Reviews/calificaciones del local (moderación owner)
+        Route::get('admin/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'indexAdmin']);
+        Route::patch('admin/reviews/{review}/toggle', [\App\Http\Controllers\Api\ReviewController::class, 'toggleAprobado']);
+
         // Programa de referidos
         Route::get('referidos', [\App\Http\Controllers\Api\ReferidoController::class, 'index']);
 

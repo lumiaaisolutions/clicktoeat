@@ -23,7 +23,24 @@ interface Cupon {
   max_usos: number | null;
   usos_actuales: number;
   activo: boolean;
+  hora_inicio?: string | null;
+  hora_fin?: string | null;
+  dias_semana?: string[] | null;
+  destacado_en_landing?: boolean;
+  productos_sugeridos?: number[] | null;
 }
+
+interface ProductoMin { id: number; nombre: string; precio: number | string }
+
+const DIAS = [
+  { id: 'mon', label: 'L' },
+  { id: 'tue', label: 'M' },
+  { id: 'wed', label: 'X' },
+  { id: 'thu', label: 'J' },
+  { id: 'fri', label: 'V' },
+  { id: 'sat', label: 'S' },
+  { id: 'sun', label: 'D' },
+];
 
 export default function CuponesPage() {
   const [items, setItems] = useState<Cupon[] | null>(null);
@@ -123,6 +140,12 @@ function CuponModal({ open, onClose, onSaved, cupon }: {
   const [maxUsos,      setMaxUsos]      = useState<string>('');
   const [fechaHasta,   setFechaHasta]   = useState<string>('');
   const [activo,       setActivo]       = useState(true);
+  const [horaInicio,   setHoraInicio]   = useState<string>('');
+  const [horaFin,      setHoraFin]      = useState<string>('');
+  const [diasSemana,   setDiasSemana]   = useState<string[]>([]);
+  const [destacado,    setDestacado]    = useState(false);
+  const [productosSug, setProductosSug] = useState<number[]>([]);
+  const [productos,    setProductos]    = useState<ProductoMin[]>([]);
   const [errors,       setErrors]       = useState<Record<string, string>>({});
   const [saving,       setSaving]       = useState(false);
 
@@ -135,21 +158,37 @@ function CuponModal({ open, onClose, onSaved, cupon }: {
     setMaxUsos(cupon?.max_usos?.toString() ?? '');
     setFechaHasta(cupon?.fecha_hasta ?? '');
     setActivo(cupon?.activo ?? true);
+    setHoraInicio((cupon?.hora_inicio ?? '').slice(0, 5));
+    setHoraFin((cupon?.hora_fin ?? '').slice(0, 5));
+    setDiasSemana(cupon?.dias_semana ?? []);
+    setDestacado(cupon?.destacado_en_landing ?? false);
+    setProductosSug(cupon?.productos_sugeridos ?? []);
     setErrors({});
   }, [open, cupon]);
+
+  // Cargar catálogo de productos solo si el switch de destacado está activo
+  useEffect(() => {
+    if (!destacado || productos.length > 0) return;
+    api.get<{ data: ProductoMin[] }>('/productos').then(({ data }) => setProductos(data.data)).catch(() => {});
+  }, [destacado, productos.length]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setErrors({});
     try {
-      const payload = {
+      const payload: any = {
         codigo: codigo.toUpperCase().trim(),
         tipo, valor,
         min_subtotal: minSubtotal,
         max_usos: maxUsos ? Number(maxUsos) : null,
         fecha_hasta: fechaHasta || null,
         activo,
+        hora_inicio: horaInicio || null,
+        hora_fin:    horaFin    || null,
+        dias_semana: diasSemana.length > 0 ? diasSemana : null,
+        destacado_en_landing: destacado,
+        productos_sugeridos: destacado && productosSug.length > 0 ? productosSug : null,
       };
       if (cupon) await api.patch(`/cupones/${cupon.id}`, payload);
       else       await api.post('/cupones', payload);
@@ -162,6 +201,14 @@ function CuponModal({ open, onClose, onSaved, cupon }: {
       setErrors(flat);
       if (!Object.keys(flat).length) toast.error(err?.response?.data?.message ?? 'No se pudo guardar');
     } finally { setSaving(false); }
+  };
+
+  const toggleDia = (d: string) => {
+    setDiasSemana((s) => s.includes(d) ? s.filter((x) => x !== d) : [...s, d]);
+  };
+
+  const toggleProducto = (id: number) => {
+    setProductosSug((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
   };
 
   return (
@@ -216,6 +263,89 @@ function CuponModal({ open, onClose, onSaved, cupon }: {
           hint="Vacío = no vence"
         />
         <Switch label="Activo" hint="Si lo pausas, el cliente no podrá aplicarlo" checked={activo} onChange={setActivo} />
+
+        {/* ─── F100: Cupón programado por horario ─── */}
+        <div className="rounded-2xl border border-line bg-amber-50/40 p-4 space-y-3">
+          <div>
+            <p className="text-sm font-semibold text-amber-900">Horario (opcional)</p>
+            <p className="text-xs text-muted mt-0.5">Si lo configuras, el cupón solo aplica en este rango. Útil para "happy hour" o "combo del día".</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field
+              label="Desde la hora"
+              type="time"
+              value={horaInicio}
+              onChange={(e) => setHoraInicio(e.target.value)}
+              hint="Ej. 17:00"
+              error={errors.hora_inicio}
+            />
+            <Field
+              label="Hasta la hora"
+              type="time"
+              value={horaFin}
+              onChange={(e) => setHoraFin(e.target.value)}
+              hint="Ej. 19:00"
+              error={errors.hora_fin}
+            />
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold mb-1.5">Días de la semana (vacío = todos)</p>
+            <div className="grid grid-cols-7 gap-1">
+              {DIAS.map((d) => {
+                const active = diasSemana.includes(d.id);
+                return (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => toggleDia(d.id)}
+                    className={cn(
+                      'h-10 rounded-lg border-2 text-sm font-bold transition',
+                      active ? 'border-emerald-500 bg-emerald-50 text-emerald-900' : 'border-line bg-white text-muted hover:border-ink/30',
+                    )}
+                  >{d.label}</button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* ─── F100: Destacar en landing del local ─── */}
+        <div className="rounded-2xl border border-line bg-emerald-50/40 p-4 space-y-3">
+          <Switch
+            label="Mostrar como banner en mi landing pública"
+            hint="Aparece arriba de la landing como promo activa. Útil para 2x1, descuentos sorpresa, etc."
+            checked={destacado}
+            onChange={setDestacado}
+          />
+
+          {destacado && (
+            <div>
+              <p className="text-xs font-semibold mb-1.5">Productos que se agregan al carrito al tocar el banner</p>
+              <p className="text-[11px] text-muted mb-2">El cliente toca "Aprovechar" → estos productos se agregan al carrito automáticamente con el código de descuento aplicado.</p>
+              {productos.length === 0 ? (
+                <p className="text-xs text-muted italic">Cargando productos…</p>
+              ) : (
+                <div className="max-h-48 overflow-y-auto border border-line rounded-xl bg-white p-2 space-y-1">
+                  {productos.map((p) => {
+                    const checked = productosSug.includes(p.id);
+                    return (
+                      <label key={p.id} className="flex items-center gap-2 px-2 py-1 hover:bg-line/30 rounded cursor-pointer">
+                        <input type="checkbox" checked={checked} onChange={() => toggleProducto(p.id)} className="rounded border-line" />
+                        <span className="flex-1 text-sm truncate">{p.nombre}</span>
+                        <span className="text-xs text-muted">${Number(p.precio).toFixed(2)}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+              {productosSug.length > 0 && (
+                <p className="text-[11px] text-emerald-700 mt-1.5">{productosSug.length} producto(s) seleccionado(s).</p>
+              )}
+            </div>
+          )}
+        </div>
 
         <div className="flex justify-end gap-2 pt-3 border-t border-line">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>

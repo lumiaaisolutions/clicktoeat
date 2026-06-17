@@ -25,11 +25,14 @@ interface CartState {
   /** slug del local activo — el carrito se purga al cambiar de tenant */
   localSlug: string | null;
   items: CartItem[];
+  /** F100 — código de cupón aplicado al carrito (se persiste con el cart) */
+  coupon: string | null;
 
   setLocal: (slug: string) => void;
   add: (item: Omit<CartItem, 'cantidad'> & { cantidad?: number }) => void;
   remove: (lineKey: string) => void;
   setQty: (lineKey: string, qty: number) => void;
+  setCoupon: (code: string | null) => void;
   clear: () => void;
 
   subtotal: () => number;
@@ -41,11 +44,16 @@ export const useCart = create<CartState>()(
     (set, get) => ({
       localSlug: null,
       items: [],
+      coupon: null,
 
       setLocal(slug) {
         if (get().localSlug !== slug) {
-          set({ localSlug: slug, items: [] });
+          set({ localSlug: slug, items: [], coupon: null });
         }
+      },
+
+      setCoupon(code) {
+        set({ coupon: code ? code.toUpperCase().trim() : null });
       },
 
       add(input) {
@@ -76,7 +84,7 @@ export const useCart = create<CartState>()(
       },
 
       clear() {
-        set({ items: [] });
+        set({ items: [], coupon: null });
       },
 
       subtotal() {
@@ -90,7 +98,7 @@ export const useCart = create<CartState>()(
     {
       name: 'clickeat:cart',
       storage: createJSONStorage(() => localStorage),
-      partialize: (s) => ({ localSlug: s.localSlug, items: s.items }),
+      partialize: (s) => ({ localSlug: s.localSlug, items: s.items, coupon: s.coupon }),
     },
   ),
 );
