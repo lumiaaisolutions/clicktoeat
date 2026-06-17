@@ -110,4 +110,11 @@ class ReviewController extends Controller
         $review->update(['aprobado' => ! $review->aprobado]);
         return response()->json(['data' => $review]);
     }
+
+    /** F100 — Borrar review (definitivo). Útil para spam/ofensa. */
+    public function destroyAdmin(Review $review): JsonResponse
+    {
+        $review->delete();
+        return response()->json(null, 204);
+    }
 }

@@ -32,6 +32,7 @@ const ESTADO_COLOR: Record<PedidoEstado, string> = {
   cancelado:  'bg-red-100 text-red-700',
 };
 
+// Avances "naturales" — flujo normal del pedido
 const TRANSICIONES: Record<PedidoEstado, PedidoEstado[]> = {
   nuevo:      ['confirmado', 'cancelado'],
   confirmado: ['preparando', 'cancelado'],
@@ -40,6 +41,18 @@ const TRANSICIONES: Record<PedidoEstado, PedidoEstado[]> = {
   en_camino:  ['entregado', 'cancelado'],
   entregado:  [],
   cancelado:  [],
+};
+
+// F100 — Retrocesos permitidos por si el owner se equivocó al avanzar el estado.
+// Útil para "ups, no era entregado, era listo".
+const TRANSICIONES_ATRAS: Record<PedidoEstado, PedidoEstado[]> = {
+  nuevo:      [],
+  confirmado: ['nuevo'],
+  preparando: ['confirmado'],
+  listo:      ['preparando'],
+  en_camino:  ['listo'],
+  entregado:  ['en_camino', 'listo'],
+  cancelado:  ['nuevo'],
 };
 
 export default function PedidosPage() {
@@ -92,25 +105,17 @@ export default function PedidosPage() {
   };
 
   /**
-   * F100 — Copia al portapapeles el link de calificación del cliente para
-   * que el owner lo mande por WhatsApp manualmente. El Review se creó
-   * automáticamente al marcar el pedido como entregado.
+   * F100 — Abre el modal de "Link de calificación" del pedido entregado.
+   * El token viene en `pedido.review_token` (PedidoResource lo expone),
+   * sin llamadas extra al backend para evitar 429.
    */
-  const copiarLinkCalificacion = async (p: Pedido) => {
-    try {
-      const { data } = await api.get<{ data: Array<{ token: string }> }>('/admin/reviews');
-      const review = data.data.find((r: any) => r.pedido_id === p.id);
-      if (!review) {
-        toast.error('No se encontró link de calificación para este pedido.');
-        return;
-      }
-      const FRONTEND = process.env.NEXT_PUBLIC_FRONTEND_URL ?? window.location.origin;
-      const link = `${FRONTEND}/review/${review.token}`;
-      await navigator.clipboard.writeText(link);
-      toast.success('Link copiado — mándalo al cliente por WhatsApp');
-    } catch {
-      toast.error('No se pudo copiar el link');
+  const [linkCalifPedido, setLinkCalifPedido] = useState<Pedido | null>(null);
+  const abrirLinkCalificacion = (p: Pedido) => {
+    if (!p.review_token) {
+      toast.error('Este pedido aún no tiene link de calificación. Vuelve a marcarlo como entregado.');
+      return;
     }
+    setLinkCalifPedido(p);
   };
 
   return (
@@ -185,9 +190,20 @@ export default function PedidosPage() {
                     </span>
                   )}
                   <span className="ml-auto font-bold">{formatMXN(p.total)}</span>
+                  {/* F100 — Botón "Cambiar estado" para owners que quieren cambiar rápido sin abrir el detalle */}
+                  {trashed !== 'only' && p.estado !== 'entregado' && p.estado !== 'cancelado' && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setOpen(p); }}
+                      className="text-xs px-2 py-1 rounded-full border border-line hover:bg-line/40 inline-flex items-center gap-1"
+                      title="Cambiar el estado del pedido"
+                    >
+                      <Icon name="settings" size={10} />
+                      Cambiar estado
+                    </button>
+                  )}
                   {p.estado === 'entregado' && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); copiarLinkCalificacion(p); }}
+                      onClick={(e) => { e.stopPropagation(); abrirLinkCalificacion(p); }}
                       className="text-xs px-2 py-1 rounded-full border border-line hover:bg-amber-50 hover:border-amber-300 inline-flex items-center gap-1"
                       title="Manda este link al cliente por WhatsApp para que califique"
                     >
@@ -216,6 +232,64 @@ export default function PedidosPage() {
       <Modal open={!!open} onClose={() => setOpen(null)} title={`Pedido ${open?.codigo ?? ''}`} size="lg">
         {open && <PedidoDetalle pedido={open} onChange={changeEstado} />}
       </Modal>
+
+      <Modal open={!!linkCalifPedido} onClose={() => setLinkCalifPedido(null)} title="Link de calificación" size="md">
+        {linkCalifPedido && <LinkCalificacionModal pedido={linkCalifPedido} onClose={() => setLinkCalifPedido(null)} />}
+      </Modal>
+    </div>
+  );
+}
+
+function LinkCalificacionModal({ pedido, onClose }: { pedido: Pedido; onClose: () => void }) {
+  const FRONTEND = process.env.NEXT_PUBLIC_FRONTEND_URL ?? (typeof window !== 'undefined' ? window.location.origin : '');
+  const link = `${FRONTEND}/review/${pedido.review_token}`;
+  const mensaje = `Hola ${pedido.cliente_nombre} 👋 ¡Gracias por tu pedido en nuestro local! Nos encantaría saber qué te pareció. Califícanos en 30 segundos aquí: ${link}`;
+  const telefonoLimpio = (pedido.cliente_telefono || '').replace(/\D/g, '');
+  const waUrl = telefonoLimpio
+    ? `https://wa.me/${telefonoLimpio}?text=${encodeURIComponent(mensaje)}`
+    : `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(link);
+      toast.success('Link copiado al portapapeles');
+    } catch { toast.error('No se pudo copiar'); }
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted">
+        Manda este link al cliente por WhatsApp. Cuando lo abra, podrá calificarte 1-5 estrellas y dejar un comentario.
+      </p>
+
+      <div className="rounded-xl border border-line bg-line/20 p-3 break-all text-xs font-mono">{link}</div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <a
+          href={waUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition tap-target"
+        >
+          <Icon name="whatsapp" size={16} />
+          {telefonoLimpio ? 'Abrir WhatsApp del cliente' : 'Mandar por WhatsApp'}
+        </a>
+        <button
+          type="button"
+          onClick={copiar}
+          className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border border-line bg-white text-sm font-semibold hover:border-ink/30 transition"
+        >
+          <Icon name="copy" size={14} />
+          Copiar solo el link
+        </button>
+      </div>
+
+      <details className="rounded-xl border border-line bg-white p-3 text-xs">
+        <summary className="cursor-pointer font-semibold">Vista previa del mensaje</summary>
+        <p className="text-muted mt-2 leading-relaxed whitespace-pre-wrap">{mensaje}</p>
+      </details>
+
+      <button type="button" onClick={onClose} className="w-full text-center text-xs text-muted hover:text-ink py-2">Cerrar</button>
     </div>
   );
 }
@@ -237,6 +311,7 @@ function PedidoDetalle({
   }, [pedido.id, pedido.detalles]);
 
   const transiciones = TRANSICIONES[pedido.estado] ?? [];
+  const retrocesos   = TRANSICIONES_ATRAS[pedido.estado] ?? [];
 
   return (
     <div>
@@ -244,14 +319,27 @@ function PedidoDetalle({
         <span className={cn('text-xs px-2 py-1 rounded-full font-medium', ESTADO_COLOR[pedido.estado])}>
           {pedido.estado}
         </span>
-        {transiciones.length === 0 ? (
+        {transiciones.length === 0 && retrocesos.length === 0 && (
           <span className="text-xs text-muted">Estado final</span>
-        ) : (
-          transiciones.map((t) => (
-            <Button key={t} size="sm" variant="secondary" onClick={() => onChange(pedido, t)}>
-              → {t.replace('_', ' ')}
-            </Button>
-          ))
+        )}
+        {transiciones.map((t) => (
+          <Button key={t} size="sm" variant="secondary" onClick={() => onChange(pedido, t)}>
+            → {t.replace('_', ' ')}
+          </Button>
+        ))}
+        {retrocesos.length > 0 && (
+          <>
+            <span className="text-[10px] text-muted uppercase tracking-wider ml-2">¿Te equivocaste?</span>
+            {retrocesos.map((t) => (
+              <Button key={t} size="sm" variant="ghost" onClick={() => {
+                if (confirm(`Regresar el estado a "${t.replace('_', ' ')}"? Solo úsalo si avanzaste por error.`)) {
+                  onChange(pedido, t);
+                }
+              }}>
+                ← {t.replace('_', ' ')}
+              </Button>
+            ))}
+          </>
         )}
       </div>
 

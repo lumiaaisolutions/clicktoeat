@@ -42,6 +42,13 @@ body {
 .ce-serif   { font-family: "Instrument Serif", "Georgia", serif; letter-spacing: -0.01em; font-weight: 400; }
 .ce-body    { font-family: "Hanken Grotesk", system-ui, sans-serif; }
 
+/* F100 — dentro de la landing del local (.ce-warm), la tipografía configurada
+ * por el owner se aplica TAMBIÉN a .ce-serif. Sin esto solo se notaba en
+ * "Lo más pedido hoy" porque era el único elemento con .ce-display. */
+.ce-warm .ce-serif {
+  font-family: var(--ce-display-font, "Instrument Serif"), "Georgia", serif;
+}
+
 .glass {
   background: rgba(255,255,255,0.65);
   backdrop-filter: saturate(1.2) blur(10px);

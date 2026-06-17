@@ -1797,6 +1797,20 @@ function Footer({ local, branding }: { local: Local; branding: Branding }) {
             </a>
           </div>
         </div>
+
+        {/* F100 — Botón "Ver más restaurantes en ClickToEat" para regresar al directorio */}
+        <div className="mt-10 pt-6 border-t border-white/10 text-center">
+          <a
+            href="https://clicktoeat.lumiaaisolutions.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-white/20 text-white/80 text-sm font-semibold hover:bg-white/5 hover:border-white/40 transition"
+          >
+            <Icon name="storefront" size={14} />
+            Ver más restaurantes en ClickToEat
+            <Icon name="arrow-up-right" size={12} />
+          </a>
+        </div>
       </div>
     </footer>
   );
@@ -2117,42 +2131,44 @@ function HotProductosBanner({
   if (items.length === 0) return null;
 
   return (
-    <section className="rounded-2xl border border-line bg-white px-3 py-3 mb-4 shadow-sm">
-      <div className="flex items-center gap-2 mb-2.5">
-        <Icon name="flame" size={16} style={{ color: 'var(--ce-accent)' }} />
-        <p className="ce-display font-bold text-sm leading-none">
+    <section className="rounded-2xl border border-line bg-white p-4 mb-5 shadow-sm">
+      <div className="flex items-center gap-2 mb-3">
+        <Icon name="flame" size={18} style={{ color: 'var(--ce-accent)' }} />
+        <p className="ce-display font-bold text-base leading-none">
           Lo más pedido <span style={{ color: 'var(--ce-accent)' }}>hoy</span>
         </p>
         <span className="ml-auto text-[10px] uppercase tracking-wider text-muted font-semibold">Tendencia</span>
       </div>
-      {/* Lista vertical más ancha — ligeramente más pequeña que las cards de producto de abajo */}
-      <ul className="flex flex-col gap-1.5">
+      {/* Grid de 3 cards con thumb cuadrado pero compacto. Visible y legible
+          en mobile sin acaparar toda la pantalla. */}
+      <div className="grid grid-cols-3 gap-2">
         {items.slice(0, 3).map(({ p, unidades }, i) => (
-          <li key={p.id}>
-            <button
-              type="button"
-              onClick={() => onTap(p)}
-              className="group w-full flex items-center gap-2.5 py-1.5 px-1.5 rounded-lg hover:bg-line/30 transition text-left"
-            >
-              <span
-                className="shrink-0 w-6 h-6 rounded-full text-white text-[11px] font-bold grid place-items-center"
-                style={{ background: 'var(--ce-accent)' }}
-              >{i + 1}</span>
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => onTap(p)}
+            className="group rounded-xl border border-line overflow-hidden hover:border-ink/40 transition text-left bg-white"
+          >
+            <div className="relative aspect-square overflow-hidden bg-line/30">
               {p.imagen ? (
-                <img src={p.imagen} alt="" loading="lazy" className="w-11 h-11 rounded-lg object-cover shrink-0" />
+                <img src={p.imagen} alt={p.nombre} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
               ) : (
-                <span className="w-11 h-11 rounded-lg bg-line/30 grid place-items-center shrink-0">
-                  <Icon name="utensils" size={14} className="opacity-40" />
-                </span>
+                <div className="w-full h-full grid place-items-center">
+                  <Icon name="utensils" size={22} className="opacity-30" />
+                </div>
               )}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate leading-tight">{p.nombre}</p>
-                <p className="text-[11px] text-muted tabular-nums leading-tight">{unidades} {unidades === 1 ? 'pedido' : 'pedidos'}</p>
-              </div>
-            </button>
-          </li>
+              <span
+                className="absolute top-1.5 left-1.5 inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full text-white shadow"
+                style={{ background: 'var(--ce-accent)' }}
+              >#{i + 1}</span>
+            </div>
+            <div className="px-2 py-2">
+              <p className="text-xs sm:text-[13px] font-semibold truncate leading-tight">{p.nombre}</p>
+              <p className="text-[10px] text-muted tabular-nums mt-0.5">{unidades} {unidades === 1 ? 'pedido' : 'pedidos'}</p>
+            </div>
+          </button>
         ))}
-      </ul>
+      </div>
     </section>
   );
 }

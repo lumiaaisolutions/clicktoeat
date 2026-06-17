@@ -239,6 +239,7 @@ Route::middleware('throttle:60,1')->group(function () {
         // F100 — Reviews/calificaciones del local (moderación owner)
         Route::get('admin/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'indexAdmin']);
         Route::patch('admin/reviews/{review}/toggle', [\App\Http\Controllers\Api\ReviewController::class, 'toggleAprobado']);
+        Route::delete('admin/reviews/{review}', [\App\Http\Controllers\Api\ReviewController::class, 'destroyAdmin']);
 
         // Programa de referidos
         Route::get('referidos', [\App\Http\Controllers\Api\ReferidoController::class, 'index']);

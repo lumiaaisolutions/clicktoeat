@@ -48,6 +48,15 @@ export default function ReviewsAdminPage() {
     toast.success('Link copiado al portapapeles');
   };
 
+  const borrar = async (r: Review) => {
+    if (!confirm(`¿Borrar definitivamente la calificación de ${r.cliente_nombre}? Esta acción no se puede deshacer.`)) return;
+    try {
+      await api.delete(`/admin/reviews/${r.id}`);
+      toast.success('Calificación eliminada');
+      refresh();
+    } catch { toast.error('No se pudo borrar'); }
+  };
+
   const filtered = (items ?? []).filter((r) => {
     if (filtro === 'pendientes') return r.rating === 0;
     if (filtro === 'aprobados')  return r.rating > 0 && r.aprobado;
@@ -114,7 +123,7 @@ export default function ReviewsAdminPage() {
                   {r.comentario && <p className="text-sm mt-1.5 italic">"{r.comentario}"</p>}
                   <p className="text-xs text-muted mt-1.5">{new Date(r.created_at).toLocaleString('es-MX')}</p>
                 </div>
-                <div className="flex gap-1 shrink-0">
+                <div className="flex gap-1 shrink-0 flex-wrap justify-end">
                   {r.rating === 0 ? (
                     <Button size="sm" variant="secondary" onClick={() => copyLink(r)}>
                       <Icon name="copy" size={12} className="mr-1" />
@@ -129,6 +138,16 @@ export default function ReviewsAdminPage() {
                       {r.aprobado ? 'Ocultar' : 'Aprobar'}
                     </Button>
                   )}
+                  {/* F100 — Borrar definitivo (útil para spam u ofensa). Confirmación requerida. */}
+                  <button
+                    type="button"
+                    onClick={() => borrar(r)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-red-200 bg-white text-red-600 hover:bg-red-50 text-xs font-semibold transition"
+                    title="Borrar definitivamente"
+                  >
+                    <Icon name="x" size={12} />
+                    Borrar
+                  </button>
                 </div>
               </div>
             </li>

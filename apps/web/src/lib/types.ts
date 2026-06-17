@@ -158,6 +158,7 @@ export interface Pedido {
   entregado_at: string | null;
   created_at: string;
   updated_at: string;
+  review_token?: string | null;  // F100 — token de calificación
 }
 
 export interface Ingrediente {

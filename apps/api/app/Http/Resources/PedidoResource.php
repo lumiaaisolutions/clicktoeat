@@ -34,6 +34,13 @@ class PedidoResource extends JsonResource
             'entregado_at'   => $this->entregado_at?->toIso8601String(),
             'created_at'     => $this->created_at?->toIso8601String(),
             'updated_at'     => $this->updated_at?->toIso8601String(),
+            // F100 — Token de Review generado al marcar entregado, para que el
+            // owner pueda copiar/compartir link de calificación sin tener que
+            // listar /admin/reviews. Solo se incluye si existe.
+            'review_token'   => $this->whenLoaded('review', fn () => $this->review?->token)
+                ?? \App\Models\Review::query()->withoutGlobalScopes()
+                    ->where('pedido_id', $this->id)
+                    ->value('token'),
         ];
     }
 }
