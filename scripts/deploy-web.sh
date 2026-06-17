@@ -75,7 +75,9 @@ if (( SKIP_BUILD == 0 )); then
     cd "${LOCAL_WEB_DIR}"
 
     [[ -d node_modules ]] || npm ci
-    NEXT_PUBLIC_API_URL="${API_URL}" NEXT_PUBLIC_APP_URL="${APP_URL}" \
+    NEXT_PUBLIC_API_URL="${API_URL}" \
+    NEXT_PUBLIC_APP_URL="${APP_URL}" \
+    NEXT_PUBLIC_SENTRY_DSN="${NEXT_PUBLIC_SENTRY_DSN:-}" \
         npm run build \
         || fail "Build de Next.js falló"
 fi
