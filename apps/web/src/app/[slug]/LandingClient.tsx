@@ -2117,49 +2117,39 @@ function HotProductosBanner({
   if (items.length === 0) return null;
 
   return (
-    <section className="rounded-3xl border border-line bg-white p-3 sm:p-4 mb-5 shadow-sm">
-      <div className="flex items-center gap-2 mb-3 px-1">
-        <Icon name="flame" size={18} style={{ color: 'var(--ce-accent)' }} />
-        <p className="ce-display font-bold text-sm sm:text-base leading-none">
+    <section className="rounded-2xl border border-line bg-white px-3 py-2 mb-4 shadow-sm">
+      <div className="flex items-center gap-1.5 mb-2">
+        <Icon name="flame" size={14} style={{ color: 'var(--ce-accent)' }} />
+        <p className="ce-display font-bold text-xs leading-none">
           Lo más pedido <span style={{ color: 'var(--ce-accent)' }}>hoy</span>
         </p>
-        <span className="ml-auto text-[10px] uppercase tracking-wider text-muted font-semibold">Tendencia</span>
       </div>
-      <div className="grid grid-cols-3 gap-2">
-        {items.map(({ p, unidades }, i) => (
-          <button
-            key={p.id}
-            type="button"
-            onClick={() => onTap(p)}
-            className="group rounded-2xl border border-line overflow-hidden hover:border-ink/40 transition text-left bg-white"
-          >
-            <div className="relative aspect-square overflow-hidden bg-line/30">
-              {p.imagen ? (
-                <img
-                  src={p.imagen}
-                  alt={p.nombre}
-                  loading="lazy"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-              ) : (
-                <div className="w-full h-full grid place-items-center">
-                  <Icon name="utensils" size={24} className="opacity-30" />
-                </div>
-              )}
+      {/* Lista compacta horizontal — más delgada que el grid de cards */}
+      <ul className="flex flex-col gap-1">
+        {items.slice(0, 3).map(({ p, unidades }, i) => (
+          <li key={p.id}>
+            <button
+              type="button"
+              onClick={() => onTap(p)}
+              className="group w-full flex items-center gap-2 py-1 px-1 rounded-lg hover:bg-line/30 transition text-left"
+            >
               <span
-                className="absolute top-1.5 left-1.5 inline-flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full text-white shadow"
+                className="shrink-0 w-5 h-5 rounded-full text-white text-[10px] font-bold grid place-items-center"
                 style={{ background: 'var(--ce-accent)' }}
-              >
-                #{i + 1}
-              </span>
-            </div>
-            <div className="px-2 py-1.5">
-              <p className="text-[11px] sm:text-xs font-semibold truncate">{p.nombre}</p>
-              <p className="text-[10px] text-muted tabular-nums">{unidades} pedidos</p>
-            </div>
-          </button>
+              >{i + 1}</span>
+              {p.imagen ? (
+                <img src={p.imagen} alt="" loading="lazy" className="w-8 h-8 rounded-md object-cover shrink-0" />
+              ) : (
+                <span className="w-8 h-8 rounded-md bg-line/30 grid place-items-center shrink-0">
+                  <Icon name="utensils" size={12} className="opacity-40" />
+                </span>
+              )}
+              <span className="flex-1 min-w-0 text-sm font-medium truncate">{p.nombre}</span>
+              <span className="text-[10px] text-muted tabular-nums shrink-0">{unidades} ped.</span>
+            </button>
+          </li>
         ))}
-      </div>
+      </ul>
     </section>
   );
 }

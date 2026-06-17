@@ -31,6 +31,11 @@ const CARDS: HelpCard[] = [
   { slug: 'metricas',    icon: 'chart',     title: 'Reportes',          body: 'Tus números del día.', steps: TOURS.metricas?.length ?? 0 },
   { slug: 'audit-log',   icon: 'history',   title: 'Historial',         body: 'Quién hizo qué y cuándo.', steps: TOURS['audit-log']?.length ?? 0 },
   { slug: 'billing',     icon: 'card',      title: 'Suscripción',       body: 'Plan, método de pago, facturas.', steps: TOURS.billing?.length ?? 0 },
+  // F100 — features nuevas
+  { slug: 'cupones-horario', icon: 'sparkles', title: 'Cupones automáticos', body: '2x1, happy hour, combo del día con horario.', steps: TOURS['cupones-horario']?.length ?? 0 },
+  { slug: 'reviews',     icon: 'star',      title: 'Calificaciones',    body: 'Reseñas públicas de tus clientes.', steps: TOURS.reviews?.length ?? 0 },
+  { slug: 'inventario-auto-pause', icon: 'package', title: 'Pausa automática', body: 'Productos se ocultan solos si no hay stock.', steps: TOURS['inventario-auto-pause']?.length ?? 0 },
+  { slug: 'centro-aprendizaje', icon: 'sparkles', title: 'Centro de aprendizaje', body: 'Animaciones que te enseñan a usar todo.', steps: TOURS['centro-aprendizaje']?.length ?? 0 },
 ];
 
 export default function AyudaPage() {

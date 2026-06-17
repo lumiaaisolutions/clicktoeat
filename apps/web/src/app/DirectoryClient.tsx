@@ -453,6 +453,25 @@ function Hero({
             </a>
           </motion.div>
 
+          {/* CTA owner — destacado para captar suscripciones */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.85 }}
+            className="mt-6"
+          >
+            <a
+              href="#pricing"
+              className="group relative inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-[color:var(--ce-accent)] text-white text-sm sm:text-base font-bold shadow-soft hover:shadow-glass transition tap-target overflow-hidden"
+            >
+              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+              <Icon name="storefront" size={18} />
+              ¿Tienes un local? Suscríbete y empieza gratis 14 días
+              <Icon name="arrow-right" size={16} className="group-hover:translate-x-0.5 transition" />
+            </a>
+            <p className="text-[11px] text-muted mt-1.5 ml-1">Sin tarjeta · cancela cuando quieras</p>
+          </motion.div>
+
           {/* Stats row */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}

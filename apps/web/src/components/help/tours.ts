@@ -257,6 +257,88 @@ export const TOURS: Record<string, TourStep[]> = {
       placement: 'center',
       icon: 'cup-soda',
     },
+    {
+      title: 'Funciona sin internet',
+      body: 'Si se cae la red, el POS sigue cobrando localmente. Cuando vuelva el internet, los pedidos se sincronizan automáticamente.',
+      placement: 'center',
+      icon: 'shield',
+    },
+  ],
+
+  /* ── F100: Cupones por horario (happy hour, 2x1) ── */
+  'cupones-horario': [
+    {
+      title: 'Cupones con horario automático',
+      body: 'Crea promociones que se activan solas: 2x1 cervezas miércoles 5-7pm, combo del día, etc.',
+      placement: 'center',
+      icon: 'sparkles',
+    },
+    {
+      title: 'Configura el horario',
+      body: 'En el form del cupón, activa "Horario" y elige hora desde/hasta + días de la semana (L M X J V S D).',
+      placement: 'center',
+      icon: 'clock',
+    },
+    {
+      title: 'Aparece en tu landing',
+      body: 'Activa "Mostrar como banner en mi landing pública" y elige los productos que se agregan al carrito al tocarlo. El cliente lo ve activo SOLO en el horario configurado.',
+      placement: 'center',
+      icon: 'storefront',
+    },
+  ],
+
+  /* ── F100: Reviews / calificaciones del local ── */
+  reviews: [
+    {
+      title: 'Calificaciones de tus clientes',
+      body: 'Después de cada pedido entregado, generamos un link único para que el cliente te califique 1-5 estrellas.',
+      placement: 'center',
+      icon: 'star',
+    },
+    {
+      title: 'Manda el link',
+      body: 'En /admin/pedidos toca el chip "⭐ Link de calificación" en un pedido entregado para copiar el link y mandarlo al cliente por WhatsApp.',
+      placement: 'center',
+      icon: 'message-circle',
+    },
+    {
+      title: 'Aparecen en tu landing',
+      body: 'Las calificaciones aprobadas se muestran abajo de tu menú con el promedio. Aquí puedes ocultar las que no te interesan.',
+      placement: 'center',
+      icon: 'storefront',
+    },
+  ],
+
+  /* ── F100: Centro de aprendizaje ── */
+  'centro-aprendizaje': [
+    {
+      title: 'Aprende a usar el panel',
+      body: '6 lecciones cortas con animaciones que te muestran exactamente cómo hacer cada cosa. Sin videos, sin manuales.',
+      placement: 'center',
+      icon: 'sparkles',
+    },
+    {
+      title: 'Toca cualquier lección',
+      body: 'Se abre un modal con la animación + pasos numerados + botón directo al módulo.',
+      placement: 'center',
+      icon: 'play',
+    },
+  ],
+
+  /* ── F100: Inventario auto-pause ── */
+  'inventario-auto-pause': [
+    {
+      title: 'Pausa automática de productos sin stock',
+      body: 'Cuando un ingrediente se agota, los productos que lo usan se marcan como "agotado" en tu landing automáticamente. Cero pedidos imposibles.',
+      placement: 'center',
+      icon: 'package',
+    },
+    {
+      title: 'Te llega un correo',
+      body: 'Recibes notificación in-app + correo cuando algo se agota o cuando un ingrediente cruza el umbral mínimo de stock.',
+      placement: 'center',
+      icon: 'bell',
+    },
   ],
   /* ── Multi-sucursal — explica el LocalSwitcher cuando el user tiene más de un local ── */
   'multi-sucursal': [

@@ -38,6 +38,7 @@ class BillingController extends Controller
             ->orderBy('orden')
             ->get()
             ->map(fn (Plan $p) => [
+                'id'                    => $p->id,   // F100: necesario para el BillingModal del super_admin
                 'slug'                  => $p->slug,
                 'nombre'                => $p->nombre,
                 'precio_mxn'            => $p->priceMxn(),

@@ -525,19 +525,19 @@ export function BrandingEditor({ localId }: { localId?: number } = {}) {
               href={local.public_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-flex items-center justify-center gap-1.5 w-full text-center text-sm underline hover:text-[color:var(--ce-accent)] transition"
+              className="mt-3 inline-flex items-center justify-center gap-1.5 w-full px-4 py-2.5 rounded-2xl bg-ink text-white text-sm font-semibold hover:opacity-90 transition tap-target"
             >
-              Ver landing real
-              <Icon name="arrow-up-right" size={13} />
+              <Icon name="arrow-up-right" size={14} />
+              Ver landing de mi local
             </a>
             <a
               href={(process.env.NEXT_PUBLIC_APP_URL ?? 'https://clicktoeat.lumiaaisolutions.com') + '/'}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-1.5 inline-flex items-center justify-center gap-1.5 w-full text-center text-xs text-muted hover:text-ink transition"
+              className="mt-2 inline-flex items-center justify-center gap-1.5 w-full px-4 py-2.5 rounded-2xl border border-line bg-white text-sm font-semibold text-ink hover:border-ink/40 transition tap-target"
             >
-              Ver directorio de todos los locales
-              <Icon name="arrow-up-right" size={11} />
+              <Icon name="home" size={14} />
+              Volver al landing principal de ClickToEat
             </a>
           </div>
         </aside>
