@@ -150,6 +150,15 @@ class AuthController extends Controller
         $local = $user->local;
         $plan  = $local?->plan;
 
+        // F100g — Auto-heal de trial_ends_at: locales legacy o marcados como
+        // `trialing` por super_admin sin fecha quedaban con `trial_ends_at = null`
+        // y el frontend no podía mostrar el contador "termina en X días". Si lo
+        // detectamos al leer /me, seteamos 14 días desde HOY (genérico — el super
+        // admin puede ajustar manualmente desde el panel si necesita otro plazo).
+        if ($local && $local->plan_status === 'trialing' && empty($local->trial_ends_at)) {
+            $local->forceFill(['trial_ends_at' => now()->addDays(14)])->save();
+        }
+
         return response()->json([
             'user' => $payload,
             // Plan + status del SaaS para que el frontend pueda hacer gating

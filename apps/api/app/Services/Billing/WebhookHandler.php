@@ -43,11 +43,30 @@ class WebhookHandler
         $planSlug       = $session->metadata['plan_slug'] ?? null;
         $plan           = $planSlug ? Plan::where('slug', $planSlug)->first() : null;
 
-        DB::transaction(function () use ($customerId, $subscriptionId, $plan, $record) {
-            $local = Local::query()
-                ->where('stripe_customer_id', $customerId)
-                ->orWhere('stripe_subscription_id', $subscriptionId)
-                ->first();
+        // F100g — Soporte para "activate-existing": si el checkout viene con
+        // `client_reference_id = local:N` (o metadata `existing_local_id`),
+        // vinculamos a ese local SIN crear uno nuevo.
+        $existingLocalId = null;
+        $clientRef = $session->client_reference_id ?? null;
+        if ($clientRef && str_starts_with($clientRef, 'local:')) {
+            $existingLocalId = (int) substr($clientRef, 6);
+        } elseif (! empty($session->metadata['existing_local_id'])) {
+            $existingLocalId = (int) $session->metadata['existing_local_id'];
+        }
+
+        DB::transaction(function () use ($customerId, $subscriptionId, $plan, $record, $existingLocalId) {
+            $local = null;
+
+            if ($existingLocalId) {
+                $local = Local::query()->find($existingLocalId);
+            }
+
+            if (! $local) {
+                $local = Local::query()
+                    ->where('stripe_customer_id', $customerId)
+                    ->orWhere('stripe_subscription_id', $subscriptionId)
+                    ->first();
+            }
 
             if (! $local) {
                 // El frontend probablemente todavía no llamó a /billing/session.

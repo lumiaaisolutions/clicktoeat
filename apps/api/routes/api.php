@@ -231,6 +231,9 @@ Route::middleware('throttle:60,1')->group(function () {
 
         // Billing — Customer Portal de Stripe (cambiar plan, cancelar, facturas)
         Route::get('billing/portal', [\App\Http\Controllers\Api\BillingController::class, 'portal']);
+        // F100g — Activa local existente (sin stripe_customer) vinculando una
+        // nueva subscription al local actual vía client_reference_id.
+        Route::post('billing/activate-existing', [\App\Http\Controllers\Api\BillingController::class, 'activateExisting']);
 
         // Cupones / descuentos
         Route::apiResource('cupones', \App\Http\Controllers\Api\CuponController::class);

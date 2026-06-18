@@ -203,6 +203,83 @@ class BillingController extends Controller
     }
 
     /**
+     * F100g — Activa un local EXISTENTE (en trial manual o sin Stripe)
+     * generando un Stripe Checkout vinculado a ese local específico vía
+     * `client_reference_id`. El webhook usa este ID para vincular la
+     * subscription al local existente sin crear uno nuevo.
+     *
+     * Usado por el botón "Agregar tarjeta y activar" del page /admin/billing
+     * cuando el local todavía no tiene `stripe_customer_id`.
+     */
+    public function activateExisting(TenantContext $ctx): JsonResponse
+    {
+        $local = $ctx->local();
+        if (! $local) {
+            return response()->json(['message' => 'Sin tenant.'], 403);
+        }
+        if (! empty($local->stripe_customer_id)) {
+            return response()->json([
+                'message' => 'Este local ya tiene suscripción Stripe. Usa el portal en su lugar.',
+                'code'    => 'ALREADY_HAS_CUSTOMER',
+            ], 409);
+        }
+        $plan = $local->plan;
+        if (! $plan || empty($plan->stripe_price_id)) {
+            return response()->json([
+                'message' => 'El plan del local no tiene precio configurado en Stripe.',
+                'code'    => 'PLAN_NOT_PROVISIONED',
+            ], 503);
+        }
+
+        $payload = [
+            'mode'                       => 'subscription',
+            'payment_method_collection'  => 'always',  // exigir tarjeta — el local ya está consumiendo trial
+            'line_items'                 => [[
+                'price'    => $plan->stripe_price_id,
+                'quantity' => 1,
+            ]],
+            'subscription_data' => [
+                'metadata' => [
+                    'plan_slug'        => $plan->slug,
+                    'existing_local_id' => (string) $local->id,
+                ],
+            ],
+            'metadata' => [
+                'plan_slug'         => $plan->slug,
+                'existing_local_id' => (string) $local->id,
+            ],
+            // client_reference_id es el identificador que el webhook usa primero
+            // antes de buscar por customer/subscription. Formato "local:N".
+            'client_reference_id'   => 'local:'.$local->id,
+            'success_url'           => config('stripe.success_url'),
+            'cancel_url'            => config('stripe.cancel_url'),
+            'allow_promotion_codes' => true,
+            'locale'                => config('stripe.locale', 'es-419'),
+        ];
+
+        // Pre-llenar email del owner si lo tenemos — Stripe lo usa para crear el customer.
+        $ownerEmail = $local->owner?->email;
+        if ($ownerEmail && filter_var($ownerEmail, FILTER_VALIDATE_EMAIL)) {
+            $payload['customer_email'] = $ownerEmail;
+        }
+
+        try {
+            $session = $this->stripeFactory->make()->checkout->sessions->create($payload);
+        } catch (Throwable $e) {
+            report($e);
+            return response()->json([
+                'message' => 'No pudimos iniciar el checkout. Intenta de nuevo.',
+                'code'    => 'STRIPE_CHECKOUT_FAILED',
+            ], 502);
+        }
+
+        return response()->json([
+            'session_id'  => $session->id,
+            'session_url' => $session->url,
+        ]);
+    }
+
+    /**
      * Genera la URL del Customer Portal (cambiar plan, cancelar, ver facturas).
      * Requiere auth + tenant scope.
      */

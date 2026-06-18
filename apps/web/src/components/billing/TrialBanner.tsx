@@ -1,8 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { usePlan } from '@/store/plan';
 import { Icon } from '@/components/ui/Icon';
+import { api } from '@/lib/api';
 
 /**
  * Banner superior del admin para informar el estado del plan:
@@ -18,6 +21,32 @@ export function TrialBanner() {
   const isTrialing = usePlan((s) => s.isTrialing());
   const isPastDue  = usePlan((s) => s.isPastDue());
   const daysLeft   = usePlan((s) => s.daysUntilTrialEnd());
+  const pathname   = usePathname() ?? '';
+  const router     = useRouter();
+  const [opening, setOpening] = useState(false);
+
+  // El CTA "Agregar tarjeta" del banner antes era un <Link> a /admin/billing.
+  // Si el owner ya estaba en /admin/billing parecía "no hacer nada". Ahora:
+  //  - Si está fuera de /admin/billing → navega ahí.
+  //  - Si ya está en /admin/billing → dispara el checkout directo, sin pedirle
+  //    que pulse otro botón.
+  const agregarTarjeta = async () => {
+    if (!pathname.startsWith('/admin/billing')) {
+      router.push('/admin/billing');
+      return;
+    }
+    setOpening(true);
+    try {
+      if (plan?.has_stripe_customer) {
+        const { data } = await api.get<{ url: string }>('/billing/portal');
+        window.location.href = data.url;
+      } else {
+        const { data } = await api.post<{ session_url?: string; url?: string }>('/billing/activate-existing');
+        const url = data?.session_url ?? data?.url;
+        if (url) window.location.href = url;
+      }
+    } catch { setOpening(false); }
+  };
 
   if (!plan) return null;
 
@@ -40,9 +69,14 @@ export function TrialBanner() {
             </>
           )}
         </span>
-        <Link href="/admin/billing" className="ml-2 underline font-medium text-amber-900 hover:text-amber-950">
-          Agregar tarjeta
-        </Link>
+        <button
+          type="button"
+          onClick={agregarTarjeta}
+          disabled={opening}
+          className="ml-2 underline font-medium text-amber-900 hover:text-amber-950 disabled:opacity-60"
+        >
+          {opening ? 'Abriendo…' : 'Agregar tarjeta'}
+        </button>
       </div>
     );
   }

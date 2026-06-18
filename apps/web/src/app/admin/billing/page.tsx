@@ -43,16 +43,25 @@ export default function BillingPage() {
 
   // El local "tiene Stripe" cuando ya pasó por checkout y existe customer.
   // Para locales en trial manual seteados por super_admin, no hay Stripe
-  // customer → el portal NO funciona y hay que mandarlos a Checkout para
-  // que metan tarjeta. Esto evita el 404 silencioso de antes.
+  // customer → el portal NO funciona y hay que abrir un Checkout específico
+  // para el local existente (no usar /onboarding/elegir-plan, que crea otro
+  // local nuevo desde cero).
   const tieneStripe = !!plan?.has_stripe_customer;
 
   async function openPortal() {
     setOpening(true); setError(null);
-    // Sin customer → no hay portal. Mandamos directo a checkout del plan
-    // actual para que el dueño pueda meter tarjeta y activar la suscripción.
+    // Sin customer → usamos el endpoint nuevo `activate-existing` que crea
+    // Stripe Checkout VINCULADO al local actual via client_reference_id.
     if (!tieneStripe) {
-      window.location.href = '/onboarding/elegir-plan';
+      try {
+        const { data } = await api.post<{ session_url?: string; url?: string }>('/billing/activate-existing');
+        const url = data?.session_url ?? data?.url;
+        if (!url) throw new Error('Sin URL de Stripe');
+        window.location.href = url;
+      } catch (e: any) {
+        setError(e?.response?.data?.message ?? 'No pudimos abrir el checkout para activar tu local.');
+        setOpening(false);
+      }
       return;
     }
     try {
