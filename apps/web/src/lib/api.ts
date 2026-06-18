@@ -123,6 +123,7 @@ export interface MenuResponse {
       redes: Record<string, string> | null;
       metodosPago: Array<'efectivo' | 'tarjeta_entrega' | 'transferencia'>;
       delivery: {
+        activo: boolean;
         fee: number;
         minMinutos: number;
         radioKm: number;

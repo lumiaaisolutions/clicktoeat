@@ -84,6 +84,7 @@ class MenuController extends Controller
                     'redes'       => $local->redes_sociales,
                     'metodosPago' => $local->metodos_pago ?? ['efectivo', 'tarjeta_entrega', 'transferencia'],
                     'delivery'    => [
+                        'activo'     => (bool) ($local->delivery_activo ?? true),
                         'fee'        => (float) $local->delivery_fee,
                         'minMinutos' => $local->delivery_min_minutos,
                         'radioKm'    => (int) ($local->delivery_radio_km ?? 5),

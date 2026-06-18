@@ -30,6 +30,7 @@ class LocalResource extends JsonResource
             'lng'                  => $this->lng !== null ? (float) $this->lng : null,
             'horarios'             => $this->horarios,
             'zona_entrega'         => $this->zona_entrega,
+            'delivery_activo'      => (bool) ($this->delivery_activo ?? true),
             'delivery_fee'         => (float) $this->delivery_fee,
             'delivery_min_minutos' => (int) $this->delivery_min_minutos,
             'delivery_radio_km'    => (int) ($this->delivery_radio_km ?? 5),

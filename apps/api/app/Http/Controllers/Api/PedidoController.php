@@ -231,6 +231,19 @@ class PedidoController extends Controller
     }
 
     /**
+     * Borra el pedido permanentemente. Acepta también pedidos soft-deleted
+     * (para limpiar la papelera). Usado por el botón "Borrar definitivo" en
+     * /admin/pedidos con doble confirmación en el frontend.
+     */
+    public function forceDestroy(int $id): JsonResponse
+    {
+        $pedido = Pedido::withTrashed()->findOrFail($id);
+        $this->authorize('delete', $pedido);
+        $pedido->forceDelete();
+        return response()->json(null, 204);
+    }
+
+    /**
      * Exporta pedidos del local a CSV. Acepta filtros:
      *   ?from=2026-06-01&to=2026-06-30&estado=entregado
      *

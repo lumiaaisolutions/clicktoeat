@@ -52,6 +52,7 @@ class UpdateBrandingRequest extends FormRequest
             'horarios.*.dia'           => ['required_with:horarios', 'in:lun,mar,mie,jue,vie,sab,dom'],
             'horarios.*.open'          => ['required_with:horarios', 'date_format:H:i'],
             'horarios.*.close'         => ['required_with:horarios', 'date_format:H:i'],
+            'delivery_activo'          => ['sometimes', 'boolean'],
             'delivery_fee'             => ['sometimes', 'numeric', 'min:0', 'max:9999'],
             'delivery_min_minutos'     => ['sometimes', 'integer', 'min:0', 'max:300'],
             'delivery_radio_km'        => ['sometimes', 'integer', 'min:1', 'max:200'],

@@ -104,6 +104,26 @@ export default function PedidosPage() {
     }
   };
 
+  // Doble confirmación para force-delete. El primer click abre el modal con
+  // el código del pedido; el segundo confirma. Sin shortcuts: nada de
+  // confirm() nativo porque en mobile algunos browsers lo bloquean.
+  const [borrarPedido, setBorrarPedido] = useState<Pedido | null>(null);
+  const [borrandoPedido, setBorrandoPedido] = useState(false);
+  const confirmarBorrar = async () => {
+    if (!borrarPedido) return;
+    setBorrandoPedido(true);
+    try {
+      await api.delete(`/pedidos/${borrarPedido.id}/force`);
+      toast.success(`Pedido ${borrarPedido.codigo} eliminado`);
+      setBorrarPedido(null);
+      refresh();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'No se pudo borrar');
+    } finally {
+      setBorrandoPedido(false);
+    }
+  };
+
   /**
    * F100 — Abre el modal de "Link de calificación" del pedido entregado.
    * Si el token ya viene en `pedido.review_token`, se usa directo (caso normal).
@@ -233,6 +253,16 @@ export default function PedidosPage() {
                       ↺ Restaurar
                     </button>
                   )}
+                  {/* Borrar definitivo — útil para pedidos erróneos o de prueba.
+                      Doble confirmación en modal aparte; NO se restaura. */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setBorrarPedido(p); }}
+                    className="text-xs px-2 py-1 rounded-full border border-red-200 bg-white text-red-600 hover:bg-red-50 inline-flex items-center gap-1"
+                    title="Borrar permanentemente (sin restauración)"
+                  >
+                    <Icon name="x" size={10} />
+                    Borrar
+                  </button>
                 </div>
                 <div className="mt-1 text-xs text-muted">
                   {labelEntrega(p.metodo_entrega)} · {p.metodo_pago.replace('_', ' ')} · {new Date(p.created_at).toLocaleString('es-MX')}
@@ -249,6 +279,51 @@ export default function PedidosPage() {
 
       <Modal open={!!linkCalifPedido} onClose={() => setLinkCalifPedido(null)} title="Link de calificación" size="md">
         {linkCalifPedido && <LinkCalificacionModal pedido={linkCalifPedido} onClose={() => setLinkCalifPedido(null)} />}
+      </Modal>
+
+      <Modal open={!!borrarPedido} onClose={() => setBorrarPedido(null)} title="¿Borrar este pedido?" size="sm">
+        {borrarPedido && (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-red-200 bg-red-50/60 p-4">
+              <div className="flex items-start gap-3">
+                <div className="shrink-0 w-9 h-9 rounded-full bg-red-100 grid place-items-center">
+                  <Icon name="alert-triangle" size={16} className="text-red-600" />
+                </div>
+                <div className="text-sm">
+                  <p className="font-bold text-red-900">Esta acción NO se puede deshacer.</p>
+                  <p className="text-red-800 mt-1">
+                    El pedido se eliminará permanentemente, incluyendo todos sus detalles. No aparecerá en la papelera ni en reportes.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-line bg-white p-3 text-sm">
+              <p><span className="text-muted">Folio:</span> <span className="font-mono">{borrarPedido.codigo}</span></p>
+              <p><span className="text-muted">Cliente:</span> {borrarPedido.cliente_nombre}</p>
+              <p><span className="text-muted">Total:</span> {formatMXN(borrarPedido.total)}</p>
+            </div>
+
+            <p className="text-xs text-muted">
+              Úsalo solo para pedidos de prueba o creados por error. Para pedidos reales que ya no aplican, marca como <strong>cancelado</strong> en su lugar — eso mantiene el histórico.
+            </p>
+
+            <div className="flex gap-2 justify-end pt-3 border-t border-line">
+              <Button variant="secondary" onClick={() => setBorrarPedido(null)} disabled={borrandoPedido}>
+                Mejor no
+              </Button>
+              <button
+                type="button"
+                onClick={confirmarBorrar}
+                disabled={borrandoPedido}
+                className="px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-60 inline-flex items-center gap-2"
+              >
+                <Icon name="x" size={14} />
+                {borrandoPedido ? 'Borrando…' : 'Sí, borrar definitivamente'}
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

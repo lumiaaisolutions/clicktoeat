@@ -293,6 +293,8 @@ Route::middleware('throttle:60,1')->group(function () {
         Route::patch('pedidos/{pedido}/estado',     [PedidoController::class, 'updateEstado']);
         Route::delete('pedidos/{pedido}',           [PedidoController::class, 'destroy']);
         Route::post('pedidos/{id}/restore',         [PedidoController::class, 'restore']);
+        // Force-delete: borra permanentemente (incluye soft-deleted). Sin restauración.
+        Route::delete('pedidos/{id}/force',         [PedidoController::class, 'forceDestroy']);
 
         // Uploads
         Route::post('uploads/image', [UploadController::class, 'store'])

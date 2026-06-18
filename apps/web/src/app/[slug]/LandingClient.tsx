@@ -1125,7 +1125,13 @@ function CheckoutSheet({
   const [clienteLat,     setClienteLat]     = useState<number | null>(null);
   const [clienteLng,     setClienteLng]     = useState<number | null>(null);
   const [fueraDeRango,   setFueraDeRango]   = useState(false);
-  const [metodo,         setMetodo]         = useState<'pickup' | 'delivery'>('pickup');
+  // F100d — Si el local desactivó "servicio a domicilio" desde branding, el
+  // método queda forzado a pickup y NO mostramos la opción delivery.
+  const deliveryActivo = local.delivery.activo !== false;
+  const [metodo,         setMetodo]         = useState<'pickup' | 'delivery'>(deliveryActivo ? 'pickup' : 'pickup');
+  useEffect(() => {
+    if (!deliveryActivo && metodo === 'delivery') setMetodo('pickup');
+  }, [deliveryActivo, metodo]);
   const [pago,           setPago]           = useState<'efectivo' | 'tarjeta_entrega' | 'transferencia'>(
     (local.metodosPago?.[0] ?? 'efectivo') as any,
   );
@@ -1368,7 +1374,7 @@ function CheckoutSheet({
                     Tipo de entrega
                   </label>
                   <div className="flex gap-2 rounded-2xl p-1.5 border border-line" style={{ background: '#FBF7F1' }}>
-                    {(['delivery', 'pickup'] as const).map((m) => (
+                    {(deliveryActivo ? (['delivery', 'pickup'] as const) : (['pickup'] as const)).map((m) => (
                       <button
                         key={m}
                         type="button"

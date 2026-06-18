@@ -350,11 +350,11 @@ function CheckoutModal({
         <p className="ce-display text-4xl font-bold">{formatMXN(subtotal)}</p>
       </div>
 
-      <label className="block text-sm font-medium mb-1">Identifica el pedido (opcional)</label>
+      <label className="block text-sm font-medium mb-1">Ingresa el nombre del cliente o un identificador</label>
       <input
         value={cliente}
         onChange={(e) => setCliente(e.target.value)}
-        placeholder="ej. Mesa 4, Cliente con lentes, Para llevar"
+        placeholder="ej. Juan, Mesa 4, Para llevar"
         className="w-full mb-4 px-3 py-2 border border-line rounded-xl"
         maxLength={120}
       />
@@ -526,7 +526,7 @@ function TicketModal({
         }}
       >
         {logoDataUrl && (
-          <div style={{ textAlign: 'center', marginBottom: 8 }}>
+          <div style={{ textAlign: 'center', marginBottom: '0.7em' }}>
             <img
               src={logoDataUrl}
               alt={nombreNegocio}
@@ -534,36 +534,36 @@ function TicketModal({
             />
           </div>
         )}
-        <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 13 }}>{nombreNegocio}</div>
-        {direccion && <div style={{ textAlign: 'center', fontSize: 10, marginTop: 2 }}>{direccion}</div>}
-        {telefono && <div style={{ textAlign: 'center', fontSize: 10, marginTop: 2 }}>Tel: {telefono}</div>}
-        <div style={{ textAlign: 'center', marginTop: 8 }}>
+        <div style={{ textAlign: 'center', fontWeight: 700, fontSize: '1.18em' }}>{nombreNegocio}</div>
+        {direccion && <div style={{ textAlign: 'center', fontSize: '0.9em', marginTop: '0.2em' }}>{direccion}</div>}
+        {telefono && <div style={{ textAlign: 'center', fontSize: '0.9em', marginTop: '0.2em' }}>Tel: {telefono}</div>}
+        <div style={{ textAlign: 'center', marginTop: '0.7em' }}>
           {new Date(pedido.created_at).toLocaleString('es-MX')}
         </div>
         <div style={{ textAlign: 'center' }}>Folio: {pedido.codigo}</div>
 
-        <div style={{ borderTop: '1px dashed #888', marginTop: 10, marginBottom: 8 }} />
+        <div style={{ borderTop: '1px dashed #888', marginTop: '0.9em', marginBottom: '0.7em' }} />
 
         {(pedido.detalles ?? []).map((d) => (
-          <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '3px 0' }}>
+          <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '0.25em 0' }}>
             <span style={{ flex: 1, minWidth: 0, wordBreak: 'break-word' }}>{d.cantidad}× {d.producto_nombre}</span>
             <span style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{formatMXN(d.subtotal)}</span>
           </div>
         ))}
 
-        <div style={{ borderTop: '1px dashed #888', marginTop: 8, marginBottom: 8 }} />
+        <div style={{ borderTop: '1px dashed #888', marginTop: '0.7em', marginBottom: '0.7em' }} />
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '1.08em' }}>
           <span>Total</span>
           <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatMXN(pedido.total)}</span>
         </div>
 
-        <div style={{ textAlign: 'center', marginTop: 10 }}>Pago: {labelPago(pedido.metodo_pago)}</div>
+        <div style={{ textAlign: 'center', marginTop: '0.9em' }}>Pago: {labelPago(pedido.metodo_pago)}</div>
         {pedido.cliente_nombre && pedido.cliente_nombre !== 'Mostrador' && (
           <div style={{ textAlign: 'center' }}>Cliente: {pedido.cliente_nombre}</div>
         )}
-        <div style={{ textAlign: 'center', marginTop: 10 }}>¡Gracias por su compra!</div>
-        <div style={{ textAlign: 'center', fontSize: 9, marginTop: 4, opacity: 0.6 }}>via ClickToEat</div>
+        <div style={{ textAlign: 'center', marginTop: '0.9em' }}>¡Gracias por su compra!</div>
+        <div style={{ textAlign: 'center', fontSize: '0.78em', marginTop: '0.4em', opacity: 0.6 }}>via ClickToEat</div>
       </div>
 
       <div className="flex flex-wrap gap-2 justify-end mt-4 pt-3 border-t border-line print:hidden">

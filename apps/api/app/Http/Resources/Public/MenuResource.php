@@ -24,6 +24,7 @@ class MenuResource extends JsonResource
             'whatsapp'         => $this->whatsapp,
             'horarios'         => $this->horarios,
             'estado'           => HorarioCalculator::estado($this->resource),
+            'deliveryActivo'   => (bool) ($this->delivery_activo ?? true),
             'deliveryFee'      => (float) $this->delivery_fee,
             'deliveryMinutos'  => (int) $this->delivery_min_minutos,
             'deliveryRadioKm'  => (int) ($this->delivery_radio_km ?? 5),

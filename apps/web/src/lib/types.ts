@@ -88,6 +88,7 @@ export interface LocalAdmin {
   lng: number | null;
   horarios: Array<{ dia: string; open: string; close: string }> | null;
   zona_entrega: unknown;
+  delivery_activo?: boolean;
   delivery_fee: number;
   delivery_min_minutos: number;
   delivery_radio_km: number;

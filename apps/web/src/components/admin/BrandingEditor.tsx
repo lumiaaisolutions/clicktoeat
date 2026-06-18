@@ -55,6 +55,7 @@ export function BrandingEditor({ localId }: { localId?: number } = {}) {
         whatsapp: draft.whatsapp,
         telefono: draft.telefono,
         direccion: draft.direccion,
+        delivery_activo: draft.delivery_activo ?? true,
         delivery_fee: draft.delivery_fee,
         delivery_min_minutos: draft.delivery_min_minutos,
         delivery_radio_km: draft.delivery_radio_km,
@@ -300,21 +301,33 @@ export function BrandingEditor({ localId }: { localId?: number } = {}) {
               />
               {errors.direccion && <span className="text-xs text-red-600">{errors.direccion}</span>}
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              <Field label="Envío (MXN)" type="number" step="0.01" value={draft.delivery_fee ?? 0} onChange={(e) => set('delivery_fee', Number(e.target.value))} error={errors.delivery_fee} />
-              <Field label="Tiempo mín. (min)" type="number" value={draft.delivery_min_minutos ?? 0} onChange={(e) => set('delivery_min_minutos', Number(e.target.value))} error={errors.delivery_min_minutos} />
-              <Field label="Radio (km)" type="number" value={draft.delivery_radio_km ?? 5} onChange={(e) => set('delivery_radio_km', Number(e.target.value))} error={errors.delivery_radio_km} hint="Distancia máx. de entrega" />
-            </div>
+            {/* F100d — Toggle servicio a domicilio. Si está apagado, el landing
+                NO muestra opción "Entrega a domicilio" y los campos de envío
+                se ocultan aquí abajo. */}
+            <Switch
+              label="¿Cuentas con servicio a domicilio?"
+              hint="Si está apagado, tu landing solo mostrará 'Recoger en sucursal' y se ocultarán los datos de envío de abajo."
+              checked={draft.delivery_activo ?? true}
+              onChange={(v) => set('delivery_activo', v)}
+            />
 
-            {/* Métodos de pago */}
+            {(draft.delivery_activo ?? true) && (
+              <div className="grid grid-cols-3 gap-3 mt-3">
+                <Field label="Envío (MXN)" type="number" step="0.01" value={draft.delivery_fee ?? 0} onChange={(e) => set('delivery_fee', Number(e.target.value))} error={errors.delivery_fee} />
+                <Field label="Tiempo mín. (min)" type="number" value={draft.delivery_min_minutos ?? 0} onChange={(e) => set('delivery_min_minutos', Number(e.target.value))} error={errors.delivery_min_minutos} />
+                <Field label="Radio (km)" type="number" value={draft.delivery_radio_km ?? 5} onChange={(e) => set('delivery_radio_km', Number(e.target.value))} error={errors.delivery_radio_km} hint="Distancia máx. de entrega" />
+              </div>
+            )}
+
+            {/* Métodos de pago — "tarjeta a la entrega" sólo tiene sentido si hay delivery */}
             <div>
               <p className="block text-sm font-medium mb-2">Métodos de pago aceptados</p>
               <div className="flex flex-col gap-2">
                 {([
-                  { value: 'efectivo',        label: 'Efectivo' },
-                  { value: 'tarjeta_entrega', label: 'Tarjeta a la entrega' },
-                  { value: 'transferencia',   label: 'Transferencia / SPEI' },
-                ] as const).map(({ value, label }) => {
+                  { value: 'efectivo',        label: 'Efectivo',                requiereDelivery: false },
+                  { value: 'tarjeta_entrega', label: 'Tarjeta a la entrega',    requiereDelivery: true  },
+                  { value: 'transferencia',   label: 'Transferencia / SPEI',    requiereDelivery: false },
+                ] as const).filter((opt) => !opt.requiereDelivery || (draft.delivery_activo ?? true)).map(({ value, label }) => {
                   const activos = draft.metodos_pago ?? ['efectivo', 'tarjeta_entrega', 'transferencia'];
                   const checked = activos.includes(value);
                   const toggle = () => {

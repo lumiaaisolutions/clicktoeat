@@ -94,13 +94,26 @@ class OnboardingController extends Controller
                 ->where('activo', true)
                 ->first();
             if ($referrer && $referrer->id !== $token->local_id) {
-                \App\Models\Referral::firstOrCreate(
+                $referral = \App\Models\Referral::firstOrCreate(
                     [
                         'referrer_local_id' => $referrer->id,
                         'referred_local_id' => $token->local_id,
                     ],
                     ['status' => 'pending'],
                 );
+                \Illuminate\Support\Facades\Log::info('Referral pending creado', [
+                    'referral_id'       => $referral->id,
+                    'referrer_local_id' => $referrer->id,
+                    'referred_local_id' => $token->local_id,
+                    'codigo'            => $code,
+                    'was_created'       => $referral->wasRecentlyCreated,
+                ]);
+            } else {
+                \Illuminate\Support\Facades\Log::info('Código de referido NO aplicado', [
+                    'codigo'          => $code,
+                    'reason'          => $referrer ? 'self_referral' : 'codigo_invalido_o_local_inactivo',
+                    'local_id'        => $token->local_id,
+                ]);
             }
         }
 

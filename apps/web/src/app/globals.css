@@ -95,15 +95,12 @@ body {
 .bottom-safe { bottom: env(safe-area-inset-bottom); }
 
 /* Impresión del ticket — formato 80mm térmica.
- * Sin @page size la impresora del navegador usa Letter/A4 y deja un margen
- * blanco enorme alrededor del ticket de 280px. Con `size: 80mm auto`
- * cualquier impresora térmica de 80mm (lo estándar en POS) saca un ticket
- * proporcionado, sin desperdicio de papel. */
-@page ticket {
-  size: 80mm auto;
-  margin: 4mm;
-}
-
+ *
+ * El JS del componente TicketModal inyecta dinámicamente un `@page` sin
+ * nombre cuando el owner pulsa "Imprimir", para forzar a Safari y Chrome
+ * a usar página de 80mm auto. Aquí abajo escalamos #ticket-print al ancho
+ * de la página inyectada (con un fallback que se ve grande también en
+ * impresora Letter/A4 si el navegador ignora @page por completo). */
 @media print {
   body * { visibility: hidden; }
   #ticket-print, #ticket-print *,
@@ -111,13 +108,25 @@ body {
     visibility: visible;
   }
   #ticket-print {
-    position: absolute; left: 0; top: 0; width: 72mm !important;
-    padding: 4mm !important; font-family: ui-monospace, monospace; font-size: 11px;
-    page: ticket;
+    position: absolute; left: 0; top: 0;
+    /* Ocupa 100% del ancho de la página de impresión (sea 80mm o Letter
+     * si el navegador ignora el @page). Sin width fijo en px — eso era
+     * lo que hacía que el ticket saliera chiquito al centro de una hoja
+     * Letter. */
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 4mm !important;
+    font-family: ui-monospace, monospace;
+    /* Más grande que el preview en pantalla para que sea legible aún en
+     * térmica de 80mm o en hoja completa. */
+    font-size: 13pt !important;
+    line-height: 1.5 !important;
     color: #000 !important;
+    box-sizing: border-box;
   }
   #ticket-print img {
-    max-height: 18mm !important;
+    max-height: 22mm !important;
   }
   #qr-printable {
     position: absolute; left: 50%; top: 1cm; transform: translateX(-50%);
