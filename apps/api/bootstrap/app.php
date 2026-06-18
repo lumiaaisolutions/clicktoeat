@@ -87,6 +87,13 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Services\Notifications\TrialNudgeDispatcher::dispatchPending();
         })->daily()->at('10:00')->name('trial-nudge-emails')->onOneServer();
 
+        // ─── F100g: Expira trials MANUALES vencidos ─────────────────────
+        // Trials creados via Stripe se expiran solos por webhook. Los
+        // marcados a mano por super_admin no — este cron los cierra el día
+        // que vencen para que PlanInactiveScreen los bloquee.
+        $schedule->command('trials:expire-manual')
+            ->daily()->at('10:30')->name('expire-manual-trials')->onOneServer();
+
         // ─── Carrito abandonado (F75) — cada 15 min ────────────────────
         $schedule->call(function () {
             \App\Services\Notifications\CarritoAbandonadoDispatcher::dispatchPending();

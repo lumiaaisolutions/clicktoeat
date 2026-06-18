@@ -231,19 +231,48 @@ class BillingController extends Controller
             ], 503);
         }
 
+        // F100g — Calcular trial restante. Si al local todavía le quedan días
+        // de prueba (trial_ends_at en el futuro), pasamos ese timestamp a
+        // Stripe para que: (a) NO cobre hoy, (b) guarde la tarjeta, (c) cobre
+        // AUTOMÁTICAMENTE al expirar el trial. Sin esto, Stripe asume "nueva
+        // sub sin trial" y cobra $299 inmediato — sorpresa al cliente.
+        //
+        // Si el trial ya expiró (caso edge: el cron expire-manual aún no corrió),
+        // usamos un mínimo de 1 hora para que de todos modos Stripe muestre
+        // "MXN 0.00 due today" y no asuste al cliente al final del checkout.
+        $trialEndTs = null;
+        if ($local->trial_ends_at && $local->trial_ends_at->isFuture()) {
+            $trialEndTs = $local->trial_ends_at->timestamp;
+        } elseif ($local->plan_status === 'trialing') {
+            $trialEndTs = now()->addHour()->timestamp;
+        }
+
+        $subscriptionData = [
+            'metadata' => [
+                'plan_slug'         => $plan->slug,
+                'existing_local_id' => (string) $local->id,
+            ],
+        ];
+        if ($trialEndTs) {
+            $subscriptionData['trial_end'] = $trialEndTs;
+            // Con trial activo, si el cliente NO completa el método de pago en
+            // tiempo, Stripe cancela la sub automáticamente.
+            $subscriptionData['trial_settings'] = [
+                'end_behavior' => ['missing_payment_method' => 'cancel'],
+            ];
+        }
+
         $payload = [
             'mode'                       => 'subscription',
-            'payment_method_collection'  => 'always',  // exigir tarjeta — el local ya está consumiendo trial
+            // 'always' fuerza al cliente a capturar tarjeta. Combinado con
+            // trial_end → checkout muestra "MXN 0.00 due today" pero pide
+            // tarjeta para cobro futuro automático.
+            'payment_method_collection'  => 'always',
             'line_items'                 => [[
                 'price'    => $plan->stripe_price_id,
                 'quantity' => 1,
             ]],
-            'subscription_data' => [
-                'metadata' => [
-                    'plan_slug'        => $plan->slug,
-                    'existing_local_id' => (string) $local->id,
-                ],
-            ],
+            'subscription_data'          => $subscriptionData,
             'metadata' => [
                 'plan_slug'         => $plan->slug,
                 'existing_local_id' => (string) $local->id,
