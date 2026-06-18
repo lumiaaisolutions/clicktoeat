@@ -19,6 +19,9 @@ export interface PlanInfo {
   trial_ends_at:          string | null;
   current_period_ends_at: string | null;
   is_active: boolean;
+  /** F100g — true si el local ya completó Stripe checkout (existe customer).
+   * El billing page lo usa para decidir entre Customer Portal y Checkout. */
+  has_stripe_customer?: boolean;
 }
 
 interface PlanState {

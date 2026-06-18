@@ -44,6 +44,8 @@ interface HelpState {
   markSeen(slug: string): void;
   /** ¿Debería arrancar el tour automáticamente la primera vez? */
   shouldAutoTour(slug: string): boolean;
+  /** F100g — Limpia TODOS los "visto". Los tours volverán a auto-dispararse. */
+  resetAll(): void;
 }
 
 export const useHelpCenter = create<HelpState>((set, get) => ({
@@ -70,4 +72,11 @@ export const useHelpCenter = create<HelpState>((set, get) => ({
   },
 
   shouldAutoTour: (slug) => !get().seen.has(slug),
+
+  resetAll: () => {
+    if (typeof window !== 'undefined') {
+      try { window.localStorage.removeItem(SEEN_KEY); } catch { /* ignore */ }
+    }
+    set({ seen: new Set(), activeTour: null, activeHelp: null });
+  },
 }));

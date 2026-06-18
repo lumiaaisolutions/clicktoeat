@@ -189,6 +189,18 @@ class LocalController extends Controller
             'current_period_ends_at'  => ['sometimes', 'nullable', 'date'],
         ]);
 
+        // F100g — Si el super_admin marca el local como `trialing` SIN
+        // proporcionar `trial_ends_at`, auto-setear a 14 días desde hoy.
+        // Sin esto, el frontend mostraba "Tu trial termina en  días"
+        // (sin número) porque daysUntilTrialEnd() devuelve null cuando
+        // trial_ends_at es null. También aplica si el local YA estaba en
+        // otro estado y se cambia a trialing sin la fecha.
+        $vaATrial = ($data['plan_status'] ?? null) === 'trialing';
+        $sinFecha = empty($data['trial_ends_at']) && empty($local->trial_ends_at);
+        if ($vaATrial && $sinFecha) {
+            $data['trial_ends_at'] = now()->addDays(14);
+        }
+
         $local->update($data);
         return new LocalResource($local->fresh());
     }

@@ -41,8 +41,20 @@ export default function BillingPage() {
     );
   }
 
+  // El local "tiene Stripe" cuando ya pasó por checkout y existe customer.
+  // Para locales en trial manual seteados por super_admin, no hay Stripe
+  // customer → el portal NO funciona y hay que mandarlos a Checkout para
+  // que metan tarjeta. Esto evita el 404 silencioso de antes.
+  const tieneStripe = !!plan?.has_stripe_customer;
+
   async function openPortal() {
     setOpening(true); setError(null);
+    // Sin customer → no hay portal. Mandamos directo a checkout del plan
+    // actual para que el dueño pueda meter tarjeta y activar la suscripción.
+    if (!tieneStripe) {
+      window.location.href = '/onboarding/elegir-plan';
+      return;
+    }
     try {
       const { data } = await api.get<{ url: string }>('/billing/portal');
       window.location.href = data.url;
@@ -105,9 +117,14 @@ export default function BillingPage() {
                     <Icon name="compass" size={16} className="animate-spin" />
                     Abriendo…
                   </>
-                ) : (
+                ) : tieneStripe ? (
                   <>
                     Cambiar plan / método de pago
+                    <Icon name="arrow-up-right" size={14} />
+                  </>
+                ) : (
+                  <>
+                    Agregar tarjeta y activar
                     <Icon name="arrow-up-right" size={14} />
                   </>
                 )}
@@ -116,9 +133,21 @@ export default function BillingPage() {
 
             {isTrialing && (
               <div className="mt-6 rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-900">
-                <strong>Estás en trial.</strong> Tu trial termina en{' '}
-                <strong>{daysLeft} {daysLeft === 1 ? 'día' : 'días'}</strong>. Agrega tu tarjeta antes
-                de esa fecha para mantener tu local activo. <strong>No te cobramos nada hoy.</strong>
+                <strong>Estás en trial.</strong>{' '}
+                {daysLeft !== null
+                  ? <>Tu trial termina en <strong>{daysLeft} {daysLeft === 1 ? 'día' : 'días'}</strong>. </>
+                  : <>Agrega tu tarjeta para mantener el acceso al terminar el periodo de prueba. </>
+                }
+                Agrega tu tarjeta antes para mantener tu local activo. <strong>No te cobramos nada hoy.</strong>
+              </div>
+            )}
+
+            {/* Aviso "Este local no tiene suscripción activa" SOLO cuando NO
+                está en trial. Antes salía siempre que faltara stripe_customer
+                aún con un trial válido marcado por super_admin → ruido visual. */}
+            {!tieneStripe && !isTrialing && plan.status !== 'canceled' && (
+              <div className="mt-6 rounded-2xl bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-900">
+                Aún no has configurado tu método de pago. Toca <strong>"Agregar tarjeta y activar"</strong> arriba para empezar.
               </div>
             )}
 

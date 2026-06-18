@@ -41,6 +41,14 @@ const CARDS: HelpCard[] = [
 export default function AyudaPage() {
   const openTour = useHelpCenter((s) => s.openTour);
   const seen     = useHelpCenter((s) => s.seen);
+  const resetAll = useHelpCenter((s) => s.resetAll);
+
+  const hayVistos = seen.size > 0;
+
+  const reiniciarTodos = () => {
+    if (!confirm('¿Quitar el marcador de "visto" de todos los tutoriales? Los tours volverán a aparecer automáticamente al entrar a cada módulo por primera vez.')) return;
+    resetAll();
+  };
 
   return (
     <div className="space-y-6">
@@ -50,6 +58,17 @@ export default function AyudaPage() {
         title="¿Cómo funciona"
         titleAccent="ClickToEat?"
         description="Recorridos guiados para cada módulo. Selecciona uno para abrir el tour interactivo con tooltips y resaltado en pantalla."
+        actions={hayVistos ? (
+          <button
+            type="button"
+            onClick={reiniciarTodos}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl border border-line bg-white text-sm font-semibold text-ink hover:border-ink/30 transition"
+            title="Limpia los marcadores 'visto' para que los tours vuelvan a aparecer al iniciar"
+          >
+            <Icon name="history" size={14} />
+            Volver a ver los tutoriales
+          </button>
+        ) : undefined}
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

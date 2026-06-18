@@ -168,6 +168,9 @@ class AuthController extends Controller
                 'trial_ends_at'          => $local->trial_ends_at?->toIso8601String(),
                 'current_period_ends_at' => $local->current_period_ends_at?->toIso8601String(),
                 'is_active'              => $local->hasActivePlan(),
+                // F100g — el frontend lo usa para decidir si abre el Stripe
+                // Customer Portal (requiere customer) o redirige a checkout.
+                'has_stripe_customer'    => ! empty($local->stripe_customer_id),
             ] : null,
         ]);
     }

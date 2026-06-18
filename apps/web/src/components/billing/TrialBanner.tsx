@@ -22,12 +22,23 @@ export function TrialBanner() {
   if (!plan) return null;
 
   if (isTrialing) {
+    // Si trial_ends_at viene null (caso de trial seteado a mano sin fecha),
+    // mostramos un mensaje genérico sin "X días" para no decir "null días".
+    const tieneFecha = daysLeft !== null;
     return (
       <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-center text-sm">
         <span className="inline-flex items-center gap-1.5">
           <Icon name="clock" size={14} className="text-amber-700" />
-          Tu trial de <strong>{plan.nombre}</strong> termina en{' '}
-          <strong>{daysLeft} {daysLeft === 1 ? 'día' : 'días'}</strong>.
+          {tieneFecha ? (
+            <>
+              Tu trial de <strong>{plan.nombre}</strong> termina en{' '}
+              <strong>{daysLeft} {daysLeft === 1 ? 'día' : 'días'}</strong>.
+            </>
+          ) : (
+            <>
+              Estás en <strong>trial de {plan.nombre}</strong>. Agrega tu tarjeta para mantener el acceso.
+            </>
+          )}
         </span>
         <Link href="/admin/billing" className="ml-2 underline font-medium text-amber-900 hover:text-amber-950">
           Agregar tarjeta
