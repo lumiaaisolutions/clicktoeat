@@ -72,10 +72,26 @@ export function PinnedFoodStory() {
       style={{ height: `${FRAMES.length * 110}vh` }}
       aria-label="Cómo funciona ClickToEat — historia visual"
     >
-      <div className="sticky top-0 h-screen overflow-hidden flex items-center">
-        <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
-          {/* Lado imagen — cross-fade entre frames con un sutil scale */}
-          <div className="relative order-2 lg:order-1 w-full aspect-[4/5] sm:aspect-[5/6] lg:aspect-[4/5] rounded-3xl overflow-hidden bg-line/20 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.35)]">
+      {/* Usamos h-[100svh] (small viewport height) en lugar de h-screen para
+          que iOS Safari/Chrome no rompan el cálculo cuando la URL bar
+          aparece/desaparece — en h-screen la sección quedaba más alta que
+          el viewport visible y el texto + imagen no entraban juntos. */}
+      <div className="sticky top-0 h-[100svh] overflow-hidden flex items-center py-4 lg:py-0">
+        <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-16 items-center">
+          {/* Lado texto — va PRIMERO en mobile (order-1) y derecha en desktop.
+              Altura auto en mobile para que no reserve 280px vacíos cuando
+              el título es corto, queda fija solo en desktop. */}
+          <div className="relative order-1 lg:order-2 min-h-[180px] sm:min-h-[200px] lg:h-[420px]">
+            {FRAMES.map((f, i) => (
+              <FrameText key={f.title} frame={f} index={i} progress={scrollYProgress} total={FRAMES.length} />
+            ))}
+          </div>
+
+          {/* Lado imagen — cross-fade entre frames con un sutil scale.
+              Mobile: aspect 4/3 + max-h para que NUNCA exceda la mitad del
+              viewport (antes 4/5 + sin tope hacía que la imagen midiera
+              ~412px de alto y se comiera la sección). */}
+          <div className="relative order-2 lg:order-1 w-full mx-auto max-w-[420px] lg:max-w-none aspect-[4/3] sm:aspect-[5/4] lg:aspect-[4/5] max-h-[45svh] lg:max-h-none rounded-3xl overflow-hidden bg-line/20 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.35)]">
             {FRAMES.map((f, i) => (
               <FrameImage key={f.image} frame={f} index={i} progress={scrollYProgress} total={FRAMES.length} />
             ))}
@@ -85,13 +101,6 @@ export function PinnedFoodStory() {
                 <ProgressBar key={i} index={i} total={FRAMES.length} progress={scrollYProgress} />
               ))}
             </div>
-          </div>
-
-          {/* Lado texto — cross-fade + slide leve */}
-          <div className="relative order-1 lg:order-2 h-[280px] sm:h-[320px] lg:h-[420px]">
-            {FRAMES.map((f, i) => (
-              <FrameText key={f.title} frame={f} index={i} progress={scrollYProgress} total={FRAMES.length} />
-            ))}
           </div>
         </div>
       </div>
@@ -159,14 +168,14 @@ function FrameText({
       style={{ opacity, y }}
       className="absolute inset-0 flex flex-col justify-center"
     >
-      <p className="text-xs sm:text-sm font-medium uppercase tracking-[0.22em] inline-flex items-center gap-2 text-muted">
+      <p className="text-[11px] sm:text-sm font-medium uppercase tracking-[0.22em] inline-flex items-center gap-2 text-muted">
         <Icon name={frame.icon} size={14} className="text-[color:var(--ce-accent)]" />
         {frame.kicker}
       </p>
-      <h2 className="ce-display mt-4 text-4xl sm:text-5xl md:text-6xl font-bold leading-[1.02] tracking-tight">
+      <h2 className="ce-display mt-2 sm:mt-4 text-[26px] sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight">
         {frame.title}
       </h2>
-      <p className="mt-4 text-base sm:text-lg text-muted max-w-md leading-relaxed">
+      <p className="mt-2 sm:mt-4 text-sm sm:text-base lg:text-lg text-muted max-w-md leading-relaxed">
         {frame.body}
       </p>
     </motion.div>

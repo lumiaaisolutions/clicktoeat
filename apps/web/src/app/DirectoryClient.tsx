@@ -20,6 +20,7 @@ import { WhyClickToEatSection } from '@/components/landing/WhyClickToEatSection'
 import { SystemPreviewSection } from '@/components/landing/SystemPreviewSection';
 import { PricingSection } from '@/components/landing/PricingSection';
 import { BurgerSequence } from '@/components/landing/BurgerSequence';
+import { InteractiveOrbs } from '@/components/landing/InteractiveOrbs';
 import type { LocalDirectorio } from './page';
 
 const FAV_KEY = 'clicktoeat:favs';
@@ -376,12 +377,9 @@ function Hero({
 
   return (
     <section className="relative overflow-hidden">
-      {/* mesh gradient orbs — solo los del lado izquierdo. El derecho lo
-          ocupa BurgerSequence ahora. */}
-      <div aria-hidden className="absolute inset-0 pointer-events-none">
-        <div className="hero-orb" style={{ background: '#FF2D2D', width: 480, height: 480, top: -120, left: -80 }} />
-        <div className="hero-orb" style={{ background: '#10b981', width: 320, height: 320, bottom: -120, left: '20%', opacity: 0.15 }} />
-      </div>
+      {/* Orbs interactivos — flotan en loop + parallax al cursor. Solo en
+          el hero del lado izquierdo (el derecho lo ocupa BurgerSequence). */}
+      <InteractiveOrbs />
 
       <motion.div
         style={{ y: heroY, opacity: heroOpacity }}
