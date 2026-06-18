@@ -4,16 +4,24 @@ import { useEffect, useRef } from 'react';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 
 /**
- * Orbs (blobs) decorativos del hero del landing. Cumplen 2 funciones:
+ * Orbs (blobs) decorativos del hero del landing.
  *
- *  1. **Float continuo** — cada orb sube/baja en loop infinito con offset
- *     distinto, dándole "vida" al hero sin ser distractivo.
- *  2. **Reacción al mouse** — cada orb se desplaza ligeramente hacia o
- *     en oposición al cursor (parallax sutil) con spring damping. En
- *     touch devices no hacemos tracking → ahorramos batería.
+ * Capas:
+ *  - **Wrapper (motion)**: traslada por mouse (transform x/y).
+ *  - **Inner (motion)**: float infinito + scale (transform). Como vive
+ *    dentro del wrapper, no colisiona con el transform del padre.
  *
- * Reemplaza al div estático con clase `.hero-orb` que estaba hardcoded
- * en HeroDirectory. Más interactivo, mejor sensación de profundidad.
+ * Efectos:
+ *  1. Float autónomo de 6-10s con amplitud GRANDE (±50px) y escala
+ *     1 → 1.18 → 0.9 → 1 para que SIEMPRE se note movimiento, incluso
+ *     sin mover el mouse.
+ *  2. Parallax al cursor con `range` hasta 300px en el orb más reactivo
+ *     y spring responsivo (stiffness 120, damping 18). Cada orb tiene
+ *     un `follow` distinto — el rojo persigue al cursor, el verde se
+ *     escapa de él, el naranja se mueve menos. La paralaxis crea una
+ *     sensación de capas / profundidad.
+ *  3. En touch devices (`hover: none`) no se monta el listener — los
+ *     orbs siguen flotando pero no responden al toque (cero overhead).
  */
 interface OrbConfig {
   color: string;
@@ -23,63 +31,57 @@ interface OrbConfig {
   right?: string;
   bottom?: string;
   opacity?: number;
-  /** -1 a +1 — cuánto sigue al mouse. Positivo = sigue, negativo = huye */
+  /** -1.5 a +1.5 — cuánto sigue al mouse. Positivo = sigue, negativo = huye. */
   follow?: number;
   /** Segundos por ciclo del float */
   floatSeconds?: number;
+  /** Amplitud del float en px (default 50) */
+  floatAmplitude?: number;
 }
 
 const DEFAULT_ORBS: OrbConfig[] = [
-  { color: '#FF2D2D', size: 520, top: '-140px',  left: '-100px', opacity: 0.45, follow:  0.8, floatSeconds: 8 },
-  { color: '#10b981', size: 360, bottom: '-140px', left: '18%',  opacity: 0.18, follow: -0.6, floatSeconds: 11 },
-  { color: '#FFA62D', size: 280, top: '40%',      left: '38%',   opacity: 0.12, follow:  0.4, floatSeconds: 13 },
+  // Rojo grande arriba-izquierda — persigue agresivamente
+  { color: '#FF2D2D', size: 560, top: '-160px',  left: '-120px', opacity: 0.60, follow:  1.2, floatSeconds: 7,  floatAmplitude: 55 },
+  // Verde mediano abajo-izquierda — se escapa del cursor
+  { color: '#10b981', size: 380, bottom: '-160px', left: '12%',  opacity: 0.42, follow: -1.0, floatSeconds: 9,  floatAmplitude: 45 },
+  // Naranja pequeño centro — se mueve poco, sigue al cursor
+  { color: '#FFA62D', size: 300, top: '35%',      left: '32%',   opacity: 0.32, follow:  0.7, floatSeconds: 11, floatAmplitude: 40 },
 ];
 
 export function InteractiveOrbs({ orbs = DEFAULT_ORBS }: { orbs?: OrbConfig[] }) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-
-  // mouseX/mouseY van de -1 a 1 (centrado en el container)
+  // Normalizamos el cursor al VIEWPORT (no al container) — así el efecto se
+  // siente natural al mover el mouse por toda la página, no solo dentro del
+  // hero. El cálculo es: (mouse - centro_viewport) / (mitad del viewport).
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
-  const smoothX = useSpring(mouseX, { stiffness: 60, damping: 18, mass: 1.2 });
-  const smoothY = useSpring(mouseY, { stiffness: 60, damping: 18, mass: 1.2 });
+  const smoothX = useSpring(mouseX, { stiffness: 120, damping: 18, mass: 0.8 });
+  const smoothY = useSpring(mouseY, { stiffness: 120, damping: 18, mass: 0.8 });
 
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
+    if (typeof window === 'undefined') return;
     // En touch (mobile) no hacemos tracking — los orbs siguen flotando con
-    // la animación CSS pero no responden al toque para ahorrar batería.
+    // el animate de framer pero no responden al toque (cero overhead).
     if (window.matchMedia('(hover: none)').matches) return;
 
     const onMove = (e: MouseEvent) => {
-      const rect = el.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
-      // Normaliza a [-1, 1] usando media-pantalla como rango máximo
-      const nx = (e.clientX - cx) / (rect.width / 2);
-      const ny = (e.clientY - cy) / (rect.height / 2);
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      // Normaliza el cursor a [-1, 1] usando la mitad de la pantalla.
+      const nx = (e.clientX - w / 2) / (w / 2);
+      const ny = (e.clientY - h / 2) / (h / 2);
       mouseX.set(Math.max(-1, Math.min(1, nx)));
       mouseY.set(Math.max(-1, Math.min(1, ny)));
     };
-    const onLeave = () => {
-      mouseX.set(0);
-      mouseY.set(0);
-    };
 
     window.addEventListener('mousemove', onMove, { passive: true });
-    window.addEventListener('mouseout', onLeave);
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseout', onLeave);
-    };
+    return () => window.removeEventListener('mousemove', onMove);
   }, [mouseX, mouseY]);
 
   return (
-    <div
-      ref={containerRef}
-      aria-hidden
-      className="absolute inset-0 pointer-events-none overflow-hidden"
-    >
+    // Sin `overflow-hidden` aquí — el contenedor padre (HeroDirectory section)
+    // ya lo tiene. Tener doble overflow recortaba el movimiento del orb más
+    // de lo necesario.
+    <div aria-hidden className="absolute inset-0 pointer-events-none">
       {orbs.map((orb, i) => (
         <Orb key={i} orb={orb} smoothX={smoothX} smoothY={smoothY} idx={i} />
       ))}
@@ -96,19 +98,17 @@ function Orb({
   idx: number;
 }) {
   const follow = orb.follow ?? 0.5;
-  // Máximo de desplazamiento por mouse (px). Más grande = más sensación de parallax.
-  const range = 80;
+  // Máximo de desplazamiento por mouse (px). Más grande = más sensación de
+  // parallax / profundidad. Aumentado a 200 para que el efecto sea claramente
+  // visible (antes 80 ≈ apenas 10% del tamaño del orb, casi imperceptible).
+  const range = 200;
   const x = useTransform(smoothX, (v) => v * range * follow);
   const y = useTransform(smoothY, (v) => v * range * follow);
 
-  const floatSeconds = orb.floatSeconds ?? 9;
-  // Cada orb tiene un offset distinto en el keyframe para no flotar al unísono
-  const delay = idx * -2.3;
+  const floatSeconds   = orb.floatSeconds ?? 9;
+  const floatAmplitude = orb.floatAmplitude ?? 50;
+  const delay          = idx * -2.3;
 
-  // Wrapper externo: posiciona absoluto + traslada por mouse (transform).
-  // Inner: float continuo + scale (también transform pero en el HIJO no
-  // colisiona con el del wrapper). Doble capa para que ambos animations
-  // coexistan sin pelearse por el mismo transform.
   return (
     <motion.div
       style={{
@@ -121,12 +121,27 @@ function Orb({
         bottom: orb.bottom,
         width: orb.size,
         height: orb.size,
+        willChange: 'transform',
       }}
     >
       <motion.div
         animate={{
-          translateY: ['0px', '-22px', '0px', '14px', '0px'],
-          scale:      [1, 1.08, 1, 0.96, 1],
+          // Float continuo amplio en Y + drift suave en X + respiración fuerte.
+          // Más amplitud = SIEMPRE se ve algo moviéndose, aun sin tocar mouse.
+          translateY: [
+            '0px',
+            `-${floatAmplitude}px`,
+            '0px',
+            `${floatAmplitude * 0.6}px`,
+            '0px',
+          ],
+          translateX: [
+            '0px',
+            `${floatAmplitude * 0.4}px`,
+            `-${floatAmplitude * 0.3}px`,
+            '0px',
+          ],
+          scale: [1, 1.18, 0.92, 1.08, 1],
         }}
         transition={{
           duration: floatSeconds,
@@ -140,7 +155,7 @@ function Orb({
           background: orb.color,
           opacity: orb.opacity ?? 0.4,
           borderRadius: '9999px',
-          filter: 'blur(80px)',
+          filter: 'blur(70px)',
           willChange: 'transform',
         }}
       />
