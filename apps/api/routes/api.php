@@ -328,6 +328,9 @@ Route::middleware('throttle:60,1')->group(function () {
         Route::get('locales/{local:id}/usuarios',           [PasswordController::class, 'localUsers']);
         Route::patch('locales/{local:id}/owner-password',   [PasswordController::class, 'resetLocalOwner'])
             ->middleware('throttle:10,1');
+        // F100f — Editar datos del usuario del local (nombre, email) desde super_admin
+        Route::patch('users/{user}/profile',                [PasswordController::class, 'updateUserProfile'])
+            ->middleware('throttle:30,1');
 
         // F92 — Módulos super_admin globales (anuncios, cupones plantilla, newsletter, tickets, zonas, auditoría)
         Route::get('audit-logs',                              [\App\Http\Controllers\Api\Admin\AuditLogGlobalController::class, 'index']);

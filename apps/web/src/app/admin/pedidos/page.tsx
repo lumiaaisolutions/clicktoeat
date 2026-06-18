@@ -32,6 +32,17 @@ const ESTADO_COLOR: Record<PedidoEstado, string> = {
   cancelado:  'bg-red-100 text-red-700',
 };
 
+// Color del avatar circular en la card del pedido (más claro/saturado que el badge)
+const ESTADO_AVATAR: Record<PedidoEstado, string> = {
+  nuevo:      'bg-blue-50 text-blue-600',
+  confirmado: 'bg-indigo-50 text-indigo-600',
+  preparando: 'bg-amber-50 text-amber-600',
+  listo:      'bg-teal-50 text-teal-600',
+  en_camino:  'bg-violet-50 text-violet-600',
+  entregado:  'bg-emerald-50 text-emerald-600',
+  cancelado:  'bg-red-50 text-red-600',
+};
+
 // Avances "naturales" — flujo normal del pedido
 const TRANSICIONES: Record<PedidoEstado, PedidoEstado[]> = {
   nuevo:      ['confirmado', 'cancelado'],
@@ -195,83 +206,104 @@ export default function PedidosPage() {
         }
       />
 
-      <div className="rounded-2xl border border-line bg-white overflow-hidden">
-        {items === null ? (
-          <div className="p-4 space-y-2">
-            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-14" />)}
-          </div>
-        ) : items.length === 0 ? (
-          <div className="p-10 text-center text-muted text-sm">No hay pedidos en este estado.</div>
-        ) : (
-          <ul className="divide-y divide-line">
-            {items.map((p) => (
-              <li
+      {items === null ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-32" />)}
+        </div>
+      ) : items.length === 0 ? (
+        <div className="rounded-2xl border border-line bg-white p-10 text-center text-muted text-sm">
+          No hay pedidos en este estado.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {items.map((p) => {
+            const iniciales = (p.cliente_nombre || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || '·';
+            const colorAvatar = ESTADO_AVATAR[p.estado] ?? 'bg-zinc-100 text-zinc-700';
+            return (
+              <article
                 key={p.id}
-                className={cn('p-4', trashed !== 'only' && 'hover:bg-line/20 cursor-pointer')}
+                className={cn(
+                  'group rounded-2xl border border-line bg-white p-4 transition-shadow',
+                  trashed !== 'only' && 'cursor-pointer hover:border-ink/30 hover:shadow-soft',
+                )}
                 onClick={trashed === 'only' ? undefined : () => setOpen(p)}
               >
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className={cn('text-xs px-2 py-1 rounded-full font-medium', ESTADO_COLOR[p.estado])}>
-                    {p.estado}
+                <div className="flex items-start gap-3">
+                  <div className={cn('shrink-0 w-11 h-11 rounded-full grid place-items-center text-sm font-bold ring-2 ring-white shadow-soft', colorAvatar)}>
+                    {iniciales}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold truncate">{p.cliente_nombre}</span>
+                      <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider', ESTADO_COLOR[p.estado])}>
+                        {p.estado}
+                      </span>
+                      {p.lealtad_premio_listo && (
+                        <span className="text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 inline-flex items-center gap-1">
+                          <Icon name="gift" size={10} /> Premio
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted mt-0.5 flex items-center gap-2 flex-wrap">
+                      <span className="font-mono">{p.codigo}</span>
+                      {p.cliente_telefono && <span>· {p.cliente_telefono}</span>}
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <div className="font-extrabold text-lg leading-none">{formatMXN(p.total)}</div>
+                    <div className="text-[10px] text-muted mt-1 uppercase tracking-wider">{labelEntrega(p.metodo_entrega)}</div>
+                  </div>
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-line flex items-center gap-2 flex-wrap text-xs">
+                  <span className="text-muted">
+                    {p.metodo_pago.replace('_', ' ')} · {new Date(p.created_at).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })}
                   </span>
-                  <span className="font-mono text-xs text-muted">{p.codigo}</span>
-                  <span className="font-medium">{p.cliente_nombre}</span>
-                  <span className="text-sm text-muted">· {p.cliente_telefono}</span>
-                  {p.lealtad_premio_listo && (
-                    <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-300 inline-flex items-center gap-1">
-                      <Icon name="gift" size={10} /> Premio listo — regálale algo
-                    </span>
-                  )}
-                  <span className="ml-auto font-bold">{formatMXN(p.total)}</span>
-                  {/* F100 — Botón "Cambiar estado" para owners que quieren cambiar rápido sin abrir el detalle */}
-                  {trashed !== 'only' && p.estado !== 'entregado' && p.estado !== 'cancelado' && (
+                  <div className="ml-auto flex gap-1.5 flex-wrap">
+                    {trashed !== 'only' && p.estado !== 'entregado' && p.estado !== 'cancelado' && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setOpen(p); }}
+                        className="px-2.5 py-1 rounded-full border border-line hover:bg-line/40 inline-flex items-center gap-1"
+                        title="Cambiar el estado del pedido"
+                      >
+                        <Icon name="settings" size={10} />
+                        Estado
+                      </button>
+                    )}
+                    {p.estado === 'entregado' && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); abrirLinkCalificacion(p); }}
+                        disabled={generandoLink === p.id}
+                        className="px-2.5 py-1 rounded-full border border-line hover:bg-amber-50 hover:border-amber-300 inline-flex items-center gap-1 disabled:opacity-60"
+                        title="Manda este link al cliente por WhatsApp para que califique"
+                      >
+                        <Icon name="star" size={10} className={generandoLink === p.id ? 'animate-pulse' : ''} />
+                        {generandoLink === p.id ? 'Generando…' : 'Calificación'}
+                      </button>
+                    )}
+                    {trashed === 'only' && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleRestore(p); }}
+                        className="px-2.5 py-1 rounded-full border border-line hover:bg-bg"
+                      >
+                        ↺ Restaurar
+                      </button>
+                    )}
                     <button
-                      onClick={(e) => { e.stopPropagation(); setOpen(p); }}
-                      className="text-xs px-2 py-1 rounded-full border border-line hover:bg-line/40 inline-flex items-center gap-1"
-                      title="Cambiar el estado del pedido"
+                      onClick={(e) => { e.stopPropagation(); setBorrarPedido(p); }}
+                      className="px-2.5 py-1 rounded-full border border-red-200 bg-white text-red-600 hover:bg-red-50 inline-flex items-center gap-1"
+                      title="Borrar permanentemente (sin restauración)"
                     >
-                      <Icon name="settings" size={10} />
-                      Cambiar estado
+                      <Icon name="x" size={10} />
+                      Borrar
                     </button>
-                  )}
-                  {p.estado === 'entregado' && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); abrirLinkCalificacion(p); }}
-                      disabled={generandoLink === p.id}
-                      className="text-xs px-2 py-1 rounded-full border border-line hover:bg-amber-50 hover:border-amber-300 inline-flex items-center gap-1 disabled:opacity-60"
-                      title="Manda este link al cliente por WhatsApp para que califique"
-                    >
-                      <Icon name="star" size={10} className={generandoLink === p.id ? 'animate-pulse' : ''} />
-                      {generandoLink === p.id ? 'Generando…' : 'Link de calificación'}
-                    </button>
-                  )}
-                  {trashed === 'only' && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleRestore(p); }}
-                      className="text-xs px-2 py-1 rounded-full border border-line hover:bg-bg"
-                    >
-                      ↺ Restaurar
-                    </button>
-                  )}
-                  {/* Borrar definitivo — útil para pedidos erróneos o de prueba.
-                      Doble confirmación en modal aparte; NO se restaura. */}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setBorrarPedido(p); }}
-                    className="text-xs px-2 py-1 rounded-full border border-red-200 bg-white text-red-600 hover:bg-red-50 inline-flex items-center gap-1"
-                    title="Borrar permanentemente (sin restauración)"
-                  >
-                    <Icon name="x" size={10} />
-                    Borrar
-                  </button>
+                  </div>
                 </div>
-                <div className="mt-1 text-xs text-muted">
-                  {labelEntrega(p.metodo_entrega)} · {p.metodo_pago.replace('_', ' ')} · {new Date(p.created_at).toLocaleString('es-MX')}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
 
       <Modal open={!!open} onClose={() => setOpen(null)} title={`Pedido ${open?.codigo ?? ''}`} size="lg">
         {open && <PedidoDetalle pedido={open} onChange={changeEstado} />}

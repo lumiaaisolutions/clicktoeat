@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
@@ -69,19 +69,14 @@ export default function EmailTemplatesPage() {
         actions={<Button onClick={() => setOpen('new')}>Personalizar un correo</Button>}
       />
 
-      <div className="rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 mb-4 text-sm">
-        <p className="font-semibold text-amber-900 mb-1">Variables disponibles</p>
-        <p className="text-xs text-amber-800 mb-2">
-          Pega cualquiera de estas en el asunto o cuerpo del correo. Se reemplazan automáticamente con datos reales al enviar.
+      {/* F100f — Sin bloque de variables técnicas. Los botones para insertar
+          variables ahora viven DENTRO del editor del correo (cuando el owner
+          está realmente editando). Aquí solo damos una pista corta. */}
+      <div className="rounded-2xl border border-line bg-white px-4 py-3 mb-4 text-sm flex items-start gap-3">
+        <Icon name="sparkles" size={16} className="shrink-0 mt-0.5 text-emerald-600" />
+        <p className="text-muted leading-relaxed">
+          Al editar un correo, podrás insertar datos del cliente, del pedido o del local con un toque desde la barra de "Insertar dato".
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
-          {PLACEHOLDERS.map((p) => (
-            <div key={p.token} className="bg-white border border-amber-200 rounded-lg px-2 py-1.5">
-              <code className="text-[11px] font-mono text-amber-900">{p.token}</code>
-              <span className="text-[10px] text-muted block">{p.label}</span>
-            </div>
-          ))}
-        </div>
       </div>
 
       {!items ? <Skeleton className="h-60" /> : items.length === 0 ? (
@@ -141,6 +136,40 @@ function EditorModal({ tpl, slugsUsados, onClose, onSaved }: { tpl: Tpl | null; 
   const [busy,    setBusy]    = useState(false);
   const [preview, setPreview] = useState<{ subject_rendered: string; body_html_rendered: string } | null>(null);
 
+  // F100f — Refs para insertar variables EN EL CURSOR del campo activo (asunto
+  // o cuerpo). Sin esto, el owner tenía que copiar/pegar manualmente strings
+  // técnicos tipo `{{ nombre_local }}`.
+  const subjectRef = useRef<HTMLInputElement | null>(null);
+  const bodyRef    = useRef<HTMLTextAreaElement | null>(null);
+  const [focused, setFocused] = useState<'subject' | 'body'>('body');
+
+  const insertarVar = (token: string) => {
+    if (focused === 'subject') {
+      const el = subjectRef.current;
+      if (!el) { setSubject((s) => s + token); return; }
+      const start = el.selectionStart ?? subject.length;
+      const end   = el.selectionEnd ?? subject.length;
+      const next = subject.slice(0, start) + token + subject.slice(end);
+      setSubject(next);
+      // Reposiciona el cursor tras el insert
+      requestAnimationFrame(() => {
+        el.focus();
+        el.setSelectionRange(start + token.length, start + token.length);
+      });
+    } else {
+      const el = bodyRef.current;
+      if (!el) { setBody((s) => s + token); return; }
+      const start = el.selectionStart ?? body.length;
+      const end   = el.selectionEnd ?? body.length;
+      const next = body.slice(0, start) + token + body.slice(end);
+      setBody(next);
+      requestAnimationFrame(() => {
+        el.focus();
+        el.setSelectionRange(start + token.length, start + token.length);
+      });
+    }
+  };
+
   const disponibles = SLUGS.filter((s) => !slugsUsados.has(s.slug));
   const info = tpl ? SLUG_TO_LABEL[tpl.slug] : (slug ? SLUG_TO_LABEL[slug] : null);
 
@@ -199,18 +228,45 @@ function EditorModal({ tpl, slugsUsados, onClose, onSaved }: { tpl: Tpl | null; 
         )}
 
         <Field
+          ref={subjectRef}
           label="Asunto del correo"
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
+          onFocus={() => setFocused('subject')}
           hint="Lo que el destinatario verá como título"
           required
         />
+
+        {/* F100f — Barra de "Insertar dato". Botones que insertan en el cursor
+            del campo activo. Cero exposición de sintaxis técnica al usuario. */}
+        <div className="rounded-xl border border-line bg-zinc-50 p-2.5 my-2">
+          <p className="text-[10px] uppercase tracking-wider font-bold text-muted mb-1.5 px-1">
+            Insertar dato {focused === 'subject' ? 'en el asunto' : 'en el mensaje'}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {PLACEHOLDERS.map((p) => (
+              <button
+                key={p.token}
+                type="button"
+                onClick={() => insertarVar(p.token)}
+                className="text-xs px-2.5 py-1 rounded-full bg-white border border-line hover:border-ink/40 hover:bg-line/30 transition inline-flex items-center gap-1"
+                title={`Inserta ${p.label} en el cursor`}
+              >
+                <Icon name="plus" size={10} />
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <Textarea
-          label="Mensaje (HTML)"
+          ref={bodyRef}
+          label="Mensaje"
           value={body}
           onChange={(e) => setBody(e.target.value)}
+          onFocus={() => setFocused('body')}
           rows={14}
-          hint="Puedes usar HTML básico. Pega variables como {{ nombre_local }} y se reemplazan al enviar."
+          hint="Usa los botones de arriba para insertar el nombre del cliente, el total, etc."
           required
         />
 

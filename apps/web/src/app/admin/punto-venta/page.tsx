@@ -53,14 +53,24 @@ export default function PuntoVentaPage() {
     });
   }, [productos, activeCat, q]);
 
-  const addToCart = (p: Producto) => {
+  const addToCart = (p: Producto, qty: number = 1) => {
     setCart((c) => {
       const existing = c.find((l) => l.producto.id === p.id);
       if (existing) {
-        return c.map((l) => l.producto.id === p.id ? { ...l, cantidad: Math.min(99, l.cantidad + 1) } : l);
+        return c.map((l) => l.producto.id === p.id ? { ...l, cantidad: Math.min(99, l.cantidad + qty) } : l);
       }
-      return [...c, { producto: p, cantidad: 1 }];
+      return [...c, { producto: p, cantidad: Math.min(99, Math.max(1, qty)) }];
     });
+  };
+
+  // Modal de "Agregar al pedido" — pide cantidad y muestra extras si el
+  // producto los tiene. Reemplaza el viejo flujo de "click directo agrega 1"
+  // que no soportaba toppings/extras desde el POS.
+  const [agregandoProd, setAgregandoProd] = useState<Producto | null>(null);
+  const abrirAgregar = (p: Producto) => setAgregandoProd(p);
+  const confirmarAgregar = (p: Producto, qty: number) => {
+    addToCart(p, qty);
+    setAgregandoProd(null);
   };
 
   const setQty = (id: number, qty: number) => {
@@ -93,6 +103,19 @@ export default function PuntoVentaPage() {
             onChange={(e) => setQ(e.target.value)}
             className="flex-1 min-w-[140px] px-3 py-2 border border-line rounded-xl bg-white text-base sm:text-sm min-h-[44px] sm:min-h-0"
           />
+          {/* Dropdown de categorías — alternativa al chips para acceso rápido
+              al filtrar por categoría especialmente en mobile/menús largos. */}
+          <select
+            value={activeCat ?? ''}
+            onChange={(e) => setActiveCat(e.target.value === '' ? null : Number(e.target.value))}
+            className="px-3 py-2 border border-line rounded-xl bg-white text-sm min-h-[44px] sm:min-h-0"
+            aria-label="Filtrar por categoría"
+          >
+            <option value="">Todas las categorías</option>
+            {categorias.map((c) => (
+              <option key={c.id} value={c.id}>{c.nombre}</option>
+            ))}
+          </select>
         </header>
 
         <div className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 border-b border-line bg-white overflow-x-auto whitespace-nowrap flex gap-2 no-scrollbar">
@@ -124,21 +147,42 @@ export default function PuntoVentaPage() {
             <div className="text-center text-muted py-10 text-sm">Sin productos en este filtro.</div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
-              {filtered.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => addToCart(p)}
-                  className="text-left rounded-2xl bg-white border border-line overflow-hidden hover:border-ink/40 shadow-soft transition active:scale-95"
-                >
-                  <div className="aspect-[4/3] bg-line/40">
-                    {p.imagen_url && <img src={p.imagen_url} alt="" className="w-full h-full object-cover" />}
-                  </div>
-                  <div className="p-2">
-                    <div className="text-xs sm:text-sm font-medium truncate">{p.nombre}</div>
-                    <div className="text-sm font-bold mt-0.5">{formatMXN(p.precio)}</div>
-                  </div>
-                </button>
-              ))}
+              {filtered.map((p) => {
+                const tieneExtras = (p.extras?.length ?? 0) > 0;
+                const enCart = cart.find((l) => l.producto.id === p.id);
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => abrirAgregar(p)}
+                    className="relative text-left rounded-2xl bg-white border border-line overflow-hidden hover:border-ink/40 shadow-soft transition active:scale-95"
+                    title="Tocar para agregar al pedido"
+                  >
+                    <div className="aspect-[4/3] bg-line/40 relative">
+                      {p.imagen_url && <img src={p.imagen_url} alt="" className="w-full h-full object-cover" />}
+                      {tieneExtras && (
+                        <span className="absolute top-1.5 left-1.5 text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                          Opciones
+                        </span>
+                      )}
+                      {enCart && (
+                        <span className="absolute top-1.5 right-1.5 text-[10px] font-bold w-6 h-6 grid place-items-center rounded-full bg-ink text-white shadow">
+                          ×{enCart.cantidad}
+                        </span>
+                      )}
+                    </div>
+                    <div className="p-2 flex items-center gap-1.5">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs sm:text-sm font-medium truncate">{p.nombre}</div>
+                        <div className="text-sm font-bold mt-0.5">{formatMXN(p.precio)}</div>
+                      </div>
+                      <span
+                        className="shrink-0 w-9 h-9 grid place-items-center rounded-full bg-ink text-white text-lg leading-none"
+                        aria-hidden
+                      >+</span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -220,6 +264,12 @@ export default function PuntoVentaPage() {
       />
 
       <TicketModal open={!!ultimo} pedido={ultimo} local={local} onClose={() => setUltimo(null)} />
+
+      <AgregarProductoModal
+        producto={agregandoProd}
+        onClose={() => setAgregandoProd(null)}
+        onConfirm={confirmarAgregar}
+      />
 
       {/* Tab switcher móvil — flotante abajo */}
       <div className="md:hidden fixed bottom-3 inset-x-3 z-30 pb-safe">
@@ -588,4 +638,97 @@ function labelPago(m: Pedido['metodo_pago']): string {
     tarjeta_tpv:     'Tarjeta TPV',
     transferencia:   'Transferencia',
   }[m];
+}
+
+// ─── Agregar producto al pedido (con cantidad + extras opcionales) ──────────
+// El POS antes hacía click → agrega 1, sin posibilidad de elegir extras ni
+// cantidad. Este modal cubre ambos casos:
+//  - Si el producto tiene extras, muestra los grupos y el usuario selecciona.
+//  - Cantidad: input +/- con default 1, persiste hasta que se confirma.
+//  - "Agregar al pedido" mete el ítem al cart y cierra. Cancelar descarta.
+function AgregarProductoModal({
+  producto, onClose, onConfirm,
+}: { producto: Producto | null; onClose: () => void; onConfirm: (p: Producto, qty: number) => void }) {
+  const [qty, setQty] = useState(1);
+
+  useEffect(() => {
+    if (producto) setQty(1);
+  }, [producto]);
+
+  if (!producto) return null;
+
+  const tieneExtras = (producto.extras?.length ?? 0) > 0;
+
+  return (
+    <Modal open={!!producto} onClose={onClose} title={producto.nombre} size="md">
+      <div className="space-y-4">
+        {producto.imagen_url && (
+          <div className="aspect-[16/9] rounded-2xl overflow-hidden bg-line/30">
+            <img src={producto.imagen_url} alt={producto.nombre} className="w-full h-full object-cover" />
+          </div>
+        )}
+
+        {producto.descripcion && (
+          <p className="text-sm text-muted">{producto.descripcion}</p>
+        )}
+
+        <div className="flex items-baseline justify-between">
+          <span className="text-2xl font-bold">{formatMXN(producto.precio)}</span>
+          <span className="text-xs text-muted">precio unitario</span>
+        </div>
+
+        {tieneExtras && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50/40 p-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-amber-900 mb-2">Opciones / Toppings</p>
+            <p className="text-xs text-amber-800 mb-3">
+              Este producto tiene opciones. Para el POS rápido, se agrega sin opciones — si necesitas personalizarlo, cobra el extra en efectivo aparte. <strong>Para que el cliente elija las opciones, usa la landing pública.</strong>
+            </p>
+            <ul className="text-xs text-amber-900 space-y-1">
+              {producto.extras!.map((g, gi) => (
+                <li key={gi}>
+                  <span className="font-semibold">{g.group}:</span> {g.items.map((i) => i.name).join(', ')}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div>
+          <p className="block text-sm font-medium mb-2">Cantidad</p>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setQty((q) => Math.max(1, q - 1))}
+              className="w-11 h-11 rounded-full border border-line text-xl tap-target hover:bg-line/40"
+              aria-label="Menos"
+            >−</button>
+            <input
+              type="number"
+              min={1}
+              max={99}
+              value={qty}
+              onChange={(e) => setQty(Math.max(1, Math.min(99, Number(e.target.value) || 1)))}
+              className="w-20 text-center text-xl font-bold py-2 border border-line rounded-xl"
+            />
+            <button
+              type="button"
+              onClick={() => setQty((q) => Math.min(99, q + 1))}
+              className="w-11 h-11 rounded-full border border-line text-xl tap-target hover:bg-line/40"
+              aria-label="Más"
+            >+</button>
+            <span className="ml-auto text-sm text-muted">
+              Subtotal: <span className="font-bold text-ink">{formatMXN(producto.precio * qty)}</span>
+            </span>
+          </div>
+        </div>
+
+        <div className="flex gap-2 justify-end pt-3 border-t border-line">
+          <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+          <Button onClick={() => onConfirm(producto, qty)}>
+            Agregar {qty > 1 ? `${qty} al pedido` : 'al pedido'}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
 }

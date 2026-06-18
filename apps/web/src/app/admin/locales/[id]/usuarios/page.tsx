@@ -151,6 +151,19 @@ export default function LocalUsuariosPage() {
           )}
         </section>
 
+        {/* F100f — Editar datos del owner (nombre + email) */}
+        {owner && (
+          <section className="rounded-2xl border border-line bg-white p-5 lg:col-span-2">
+            <h2 className="ce-display font-bold mb-1">Editar datos del owner</h2>
+            <p className="text-sm text-muted mb-4">
+              Actualiza nombre o correo de <strong>{owner.email}</strong>. Si cambias el correo, sus sesiones activas se cerrarán automáticamente.
+            </p>
+            <EditarOwnerForm owner={owner} onSaved={(updated) => {
+              setUsers((prev) => prev.map((u) => u.id === updated.id ? { ...u, ...updated } : u));
+            }} />
+          </section>
+        )}
+
         {/* Reset password del owner */}
         <section className="rounded-2xl border border-line bg-white p-5 lg:col-span-2">
           <h2 className="ce-display font-bold mb-1">Resetear contraseña del owner</h2>
@@ -306,5 +319,75 @@ function MultiSucursalEditor({ ownerId, ownerNombre, currentLocalId }: {
         })}
       </div>
     </div>
+  );
+}
+
+/* ─────────── F100f — Editar nombre + email del owner ─────────── */
+function EditarOwnerForm({ owner, onSaved }: { owner: LocalUser; onSaved: (u: Partial<LocalUser> & { id: number }) => void }) {
+  const [nombre, setNombre] = useState(owner.nombre);
+  const [email, setEmail] = useState(owner.email);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setNombre(owner.nombre);
+    setEmail(owner.email);
+  }, [owner.id, owner.nombre, owner.email]);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrors({});
+    setSaving(true);
+    try {
+      const { data } = await api.patch<{ data: LocalUser; sessions_revoked: boolean }>(
+        `/admin/users/${owner.id}/profile`,
+        { nombre, email },
+      );
+      onSaved(data.data);
+      toast.success(
+        data.sessions_revoked
+          ? 'Datos actualizados. Sesiones cerradas porque cambió el correo.'
+          : 'Datos actualizados',
+      );
+    } catch (err: any) {
+      const apiErrors = err?.response?.data?.errors ?? {};
+      const flat: Record<string, string> = {};
+      for (const [k, v] of Object.entries(apiErrors)) flat[k] = (v as string[])[0];
+      setErrors(flat);
+      toast.error(err?.response?.data?.message ?? 'No se pudo actualizar');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const sinCambios = nombre === owner.nombre && email === owner.email;
+
+  return (
+    <form onSubmit={submit} className="max-w-md space-y-1">
+      <Field
+        label="Nombre completo"
+        type="text"
+        value={nombre}
+        onChange={(e) => setNombre(e.target.value)}
+        error={errors.nombre}
+        required
+        autoComplete="name"
+      />
+      <Field
+        label="Correo electrónico"
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        error={errors.email}
+        hint="Si cambia, sus sesiones activas se cerrarán y deberá entrar con el nuevo correo."
+        required
+        autoComplete="email"
+      />
+      <div className="mt-3">
+        <Button type="submit" loading={saving} disabled={sinCambios}>
+          Guardar cambios
+        </Button>
+      </div>
+    </form>
   );
 }

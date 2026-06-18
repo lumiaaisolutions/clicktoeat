@@ -121,7 +121,7 @@ export const TOURS: Record<string, TourStep[]> = {
   pedidos: [
     {
       title: 'Tus pedidos en vivo',
-      body: 'Cada vez que un cliente pide por WhatsApp, aparece aquí. Confirma, prepara, entrega.',
+      body: 'Cada vez que un cliente pide por WhatsApp, aparece aquí en una tarjeta visual. Confirma, prepara, entrega.',
       placement: 'center',
       icon: 'bell',
       illustration: 'pedido',
@@ -129,9 +129,27 @@ export const TOURS: Record<string, TourStep[]> = {
     {
       target: '[data-tour="pedidos-filtros"]',
       title: 'Filtros',
-      body: 'Filtra por estado (nuevos, en preparación, entregados) o por fecha.',
+      body: 'Filtra por estado (nuevos, preparación, entregados) o muestra solo eliminados.',
       placement: 'bottom',
       icon: 'list',
+    },
+    {
+      title: 'Cambia el estado',
+      body: 'En cada tarjeta el chip "Estado" abre el detalle. Avanza el flujo (nuevo → confirmado → preparando → listo → entregado) o retrocede si te equivocaste.',
+      placement: 'center',
+      icon: 'settings',
+    },
+    {
+      title: 'Calificación del cliente',
+      body: 'Al entregar un pedido aparece el botón "Calificación" — abre un modal con WhatsApp directo: 1 click manda al cliente un link para que te califique.',
+      placement: 'center',
+      icon: 'star',
+    },
+    {
+      title: 'Borrar definitivo',
+      body: 'Para pedidos de prueba o erróneos usa el botón rojo "Borrar". Pide doble confirmación y NO se restaura. Para pedidos reales mejor marca como "cancelado".',
+      placement: 'center',
+      icon: 'x',
     },
   ],
 
@@ -172,9 +190,15 @@ export const TOURS: Record<string, TourStep[]> = {
     {
       target: '[data-tour="branding-colores"]',
       title: 'Color de tu marca',
-      body: 'El color primario tiñe los botones, badges y acentos. Elige uno que represente tu local.',
+      body: 'Toca el cuadro de color para elegir el tuyo o escribe el código hex directo. Las paletas sugeridas te dan un punto de partida.',
       placement: 'bottom',
       icon: 'sparkles',
+    },
+    {
+      title: '¿Tienes servicio a domicilio?',
+      body: 'Activa el switch "¿Cuentas con servicio a domicilio?". Si lo apagas, tu landing solo ofrece "Recoger en sucursal" y se ocultan los campos de envío.',
+      placement: 'center',
+      icon: 'truck',
     },
   ],
 
@@ -253,9 +277,27 @@ export const TOURS: Record<string, TourStep[]> = {
   'punto-venta': [
     {
       title: 'Caja en sucursal',
-      body: 'Para cobrar a clientes que pagan en el local. Crea el pedido manualmente y registra el cobro.',
+      body: 'Para cobrar a clientes que pagan en el local. Crea el pedido y registra el cobro en pocos toques.',
       placement: 'center',
       icon: 'cup-soda',
+    },
+    {
+      title: 'Filtra por categoría',
+      body: 'Usa los chips o el desplegable "Todas las categorías" para encontrar rápido lo que tu cliente pide.',
+      placement: 'center',
+      icon: 'list',
+    },
+    {
+      title: 'Agregar al pedido',
+      body: 'Toca cualquier producto: se abre un modal con foto, descripción, opciones (si tiene toppings) y un selector +/− para elegir cantidad antes de agregar.',
+      placement: 'center',
+      icon: 'plus',
+    },
+    {
+      title: 'Cobrar',
+      body: 'En el panel derecho ajustas cantidades, escribes nombre del cliente y eliges método de pago. Confirmar cobro genera el ticket listo para imprimir o descargar.',
+      placement: 'center',
+      icon: 'card',
     },
     {
       title: 'Funciona sin internet',
@@ -340,6 +382,22 @@ export const TOURS: Record<string, TourStep[]> = {
       icon: 'bell',
     },
   ],
+  /* ── F100e: Sucursales (página informativa del plan Premium) ── */
+  sucursales: [
+    {
+      title: 'Administra varias sucursales',
+      body: 'Si tu cadena crece, agregamos cada sucursal a tu cuenta y las administras desde un mismo panel con el switcher arriba del sidebar.',
+      placement: 'center',
+      icon: 'store',
+    },
+    {
+      title: 'Alta con apoyo de soporte',
+      body: 'Mándanos un mensaje con el nombre, dirección y WhatsApp de la nueva sucursal. La dejamos lista en menos de 24h. Disponible en plan Premium.',
+      placement: 'center',
+      icon: 'message-circle',
+    },
+  ],
+
   /* ── Multi-sucursal — explica el LocalSwitcher cuando el user tiene más de un local ── */
   'multi-sucursal': [
     {

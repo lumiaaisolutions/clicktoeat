@@ -178,6 +178,7 @@ const NAV_OWNER: NavEntry[] = [
   { href: '/admin/qr',           label: 'QR',          icon: 'qr',      permiso: 'qr',         feature: 'qr_personalizado' },
   { href: '/admin/branding',     label: 'Branding',    icon: 'palette', permiso: 'branding' },
   { href: '/admin/staff',        label: 'Equipo',      icon: 'users',   ownerOnly: true,       feature: 'staff_multi',      requiredPlan: 'professional' },
+  { href: '/admin/sucursales',   label: 'Sucursales',  icon: 'store',   ownerOnly: true,       feature: 'multi_sucursal',   requiredPlan: 'premium' },
 
   { section: 'Cuenta' },
   { href: '/admin/billing',      label: 'Suscripción', icon: 'card',    ownerOnly: true },

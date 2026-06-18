@@ -93,4 +93,38 @@ class PasswordController extends Controller
 
         return response()->json(['data' => $users]);
     }
+
+    /**
+     * F100f — Super_admin edita datos básicos del user de un local
+     * (nombre, email). Útil cuando el owner pide cambio o hay typo en el
+     * registro. Cierra todas las sesiones activas si el email cambió.
+     */
+    public function updateUserProfile(\App\Models\User $user, Request $request): JsonResponse
+    {
+        if (! $request->user()?->isSuperAdmin()) {
+            abort(403, 'Solo super_admin puede editar perfiles ajenos.');
+        }
+
+        $data = $request->validate([
+            'nombre' => ['required', 'string', 'max:120'],
+            'email'  => ['required', 'email', 'max:160',
+                \Illuminate\Validation\Rule::unique('users', 'email')->ignore($user->id),
+            ],
+        ]);
+
+        $emailCambio = $user->email !== $data['email'];
+
+        $user->update($data);
+
+        if ($emailCambio) {
+            // El email es la credencial principal — invalidamos tokens para
+            // forzar re-login con el nuevo email.
+            $user->tokens()->delete();
+        }
+
+        return response()->json([
+            'data' => $user->only(['id', 'nombre', 'email', 'rol']),
+            'sessions_revoked' => $emailCambio,
+        ]);
+    }
 }
