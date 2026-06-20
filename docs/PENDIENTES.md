@@ -54,11 +54,18 @@ sileo `5d2cdc5` después de aplicar las env vars de Capa 1 abajo.
   - API restrictions: solo Maps JavaScript + Places + Geocoding (las que uses)
 - **Tiempo**: 5 min.
 
-### 5. Activar backup diario en Hostinger
-- **Por qué**: sin esto pierdes hasta 7 días de datos si algo se rompe.
-- **Cómo**: hPanel → VPS → Backups → Add-on Daily backups ($6/mes).
-- **Tiempo**: 2 min.
-- **Cuándo**: hacerlo antes de tener clientes reales pagando.
+### 5. ~~Activar backup diario en Hostinger~~ ✅ YA ACTIVO
+- **Verificado 2026-06-20 via API Hostinger** — backups diarios corriendo:
+  - 2026-06-20 04:34Z ✓
+  - 2026-06-13 04:41Z ✓
+  - 2026-06-06 04:48Z ✓
+  - 2026-05-30 07:21Z ✓
+- **Para listar via API en el futuro**:
+  ```bash
+  curl -s -H "Authorization: Bearer $HAPI" \
+    https://developers.hostinger.com/api/vps/v1/virtual-machines/1698236/actions \
+    | jq '.data[] | select(.name == "backup_create")'
+  ```
 
 ### 6. Revocar la MCP restricted key de Stripe
 - **Por qué**: limpieza. La restricted key con prefijo `rk_live_51TPnLAR...` ya no se necesita.
