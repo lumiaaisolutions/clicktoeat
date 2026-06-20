@@ -20,13 +20,28 @@
     RewriteRule ^ index.php [L]
 </IfModule>
 
-# F100c — CORS headers para archivos estáticos servidos directo por LiteSpeed
-# (uploads de logos/productos). Sin esto el frontend no puede convertirlos a
-# data URL via fetch para imprimir tickets o capturas con html2canvas.
+# SEV-4 — Headers de seguridad globales (HSTS, anti-clickjack, MIME-sniff,
+# referrer, permissions). LiteSpeed entiende sintaxis Apache.
 <IfModule mod_headers.c>
+    Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+    Header always unset X-Powered-By
+    Header always unset Server
+
+    # F100c — CORS para archivos estáticos servidos directo por LiteSpeed
+    # (uploads de logos/productos). Sin esto el frontend no puede convertirlos
+    # a data URL via fetch para imprimir tickets o capturas con html2canvas.
     <FilesMatch "\.(jpe?g|png|gif|webp|svg|ico)$">
         Header set Access-Control-Allow-Origin "*"
         Header set Access-Control-Allow-Methods "GET, OPTIONS"
         Header set Cross-Origin-Resource-Policy "cross-origin"
     </FilesMatch>
 </IfModule>
+
+# Bloquear acceso a archivos sensibles si caen en webroot por error.
+<FilesMatch "(^\.env|^\.git|\.env\..*|\.(sql|sqlite|log|bak)$|\.backup.*)$">
+    Require all denied
+</FilesMatch>

@@ -111,8 +111,9 @@ if [[ -n "${AVAIL_KB}" ]] && (( AVAIL_KB < 500 * 1024 )); then
     fail "Disco insuficiente en ${LOCAL_DIR}: $((AVAIL_KB/1024)) MB libres"
 fi
 
-# MySQL accesible
-if ! mysqladmin --user="${DB_USER}" --password="${DB_PASSWORD}" \
+# MySQL accesible. SEV-17: el password va por MYSQL_PWD env var en vez de
+# `--password=` en la línea de comandos (visible en `ps`/CageFS audit logs).
+if ! MYSQL_PWD="${DB_PASSWORD}" mysqladmin --user="${DB_USER}" \
                 --host="${DB_HOST}" --port="${DB_PORT}" \
                 --connect-timeout=5 ping --silent > /dev/null 2>&1; then
     fail "MySQL no responde en ${DB_HOST}:${DB_PORT}"
@@ -130,9 +131,12 @@ START_DUMP=$(date +%s)
 # OJO en Hostinger Shared: el user MySQL típicamente NO tiene privilegios
 # para --routines y --triggers (requieren acceso a mysql.proc) ni para
 # tablespaces. Omitir flags problemáticos.
-mysqldump \
+#
+# SEV-17 — password via MYSQL_PWD env (no `--password=`) para que no aparezca
+# en `ps aux`. La env var queda sólo en el proceso mysqldump, no exportada
+# al shell padre.
+MYSQL_PWD="${DB_PASSWORD}" mysqldump \
     --user="${DB_USER}" \
-    --password="${DB_PASSWORD}" \
     --host="${DB_HOST}" \
     --port="${DB_PORT}" \
     --single-transaction \

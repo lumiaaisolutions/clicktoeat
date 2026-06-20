@@ -1,33 +1,16 @@
 'use client';
 
-import { AnimatePresence, motion } from 'framer-motion';
-import { useToast } from '@/store/toast';
-import { cn } from '@/lib/utils';
+import { Toaster as SileoToaster } from 'sileo';
 
-const TONE: Record<string, string> = {
-  success: 'bg-emerald-600 text-white',
-  error:   'bg-red-600 text-white',
-  info:    'bg-ink text-white',
-};
-
+// Wrapper sobre el Toaster de Sileo con los defaults visuales del proyecto.
+// Mantenemos el nombre `Toaster` para no tocar los layouts que ya lo montan
+// (apps/web/src/app/admin/layout.tsx).
 export function Toaster() {
-  const { toasts, dismiss } = useToast();
   return (
-    <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 max-w-sm">
-      <AnimatePresence>
-        {toasts.map((t) => (
-          <motion.button
-            key={t.id}
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 20, opacity: 0 }}
-            onClick={() => dismiss(t.id)}
-            className={cn('px-4 py-3 rounded-2xl shadow-glass text-sm font-medium text-left', TONE[t.kind])}
-          >
-            {t.text}
-          </motion.button>
-        ))}
-      </AnimatePresence>
-    </div>
+    <SileoToaster
+      position="bottom-right"
+      theme="system"
+      offset={{ bottom: 16, right: 16 }}
+    />
   );
 }

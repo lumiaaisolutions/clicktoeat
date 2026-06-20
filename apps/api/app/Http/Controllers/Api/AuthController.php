@@ -65,22 +65,45 @@ class AuthController extends Controller
      */
     public function login(LoginRequest $request): JsonResponse
     {
-        $key = 'login:'.$request->ip().':'.strtolower($request->input('email'));
+        // SEV-10 — Rate limit en 3 capas independientes para que un atacante
+        // con un pool de IPs no pueda evadir el cap por cuenta y para que un
+        // atacante en una sola IP no pueda hacer DoS de una cuenta ajena.
+        //
+        // TODO: Cuando tengamos llaves de Cloudflare Turnstile (o hCaptcha),
+        // exigir token tras 3 fallos seguidos. Esto frena el credential
+        // stuffing automatizado incluso si el atacante respeta los límites.
+        $email      = strtolower((string) $request->input('email'));
+        $emailKey   = 'login:email:'.$email;
+        $ipKey      = 'login:ip:'.$request->ip();
+        $globalKey  = 'login:global';
+        $emailWindow  = 60 * 15;  // 15 min — bloqueo por cuenta
+        $ipWindow     = 60 * 15;
+        $globalWindow = 60 * 15;
 
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            $seconds = RateLimiter::availableIn($key);
-            // Devolvemos JSON 429 directo — `ValidationException::status(429)`
-            // es ignorado por Laravel (siempre fuerza 422 para ValidationException).
-            return response()->json([
-                'message' => "Demasiados intentos. Intenta de nuevo en {$seconds}s.",
-                'errors'  => ['email' => ["Demasiados intentos. Intenta de nuevo en {$seconds}s."]],
-            ], 429);
+        foreach ([
+            [$emailKey,  5,    'Demasiados intentos para esta cuenta.'],
+            [$ipKey,     50,   'Demasiados intentos desde esta dirección.'],
+            [$globalKey, 5000, 'El servicio está bajo presión, intenta más tarde.'],
+        ] as [$key, $limit, $msg]) {
+            if (RateLimiter::tooManyAttempts($key, $limit)) {
+                $seconds = RateLimiter::availableIn($key);
+                // 429 JSON directo — `ValidationException::status(429)` lo ignora Laravel.
+                return response()->json([
+                    'message' => "{$msg} Intenta de nuevo en {$seconds}s.",
+                    'errors'  => ['email' => ["{$msg} Intenta de nuevo en {$seconds}s."]],
+                ], 429)->header('Retry-After', (string) $seconds);
+            }
         }
 
-        $user = User::where('email', $request->string('email'))->first();
+        $user = User::where('email', $email)->first();
 
         if (! $user || ! Hash::check($request->string('password'), $user->password)) {
-            RateLimiter::hit($key, 60);
+            // Incrementa los 3 contadores — un atacante que prueba muchos
+            // emails desde una IP cae primero por ipKey; un atacante
+            // distribuido golpea emailKey de una víctima específica.
+            RateLimiter::hit($emailKey,  $emailWindow);
+            RateLimiter::hit($ipKey,     $ipWindow);
+            RateLimiter::hit($globalKey, $globalWindow);
             throw ValidationException::withMessages([
                 'email' => ['Credenciales incorrectas.'],
             ]);
@@ -111,7 +134,9 @@ class AuthController extends Controller
                 $secret = \Illuminate\Support\Facades\Crypt::decryptString($user->two_factor_secret);
                 $valid  = (new \PragmaRX\Google2FA\Google2FA())->verifyKey($secret, $otp);
                 if (! $valid) {
-                    RateLimiter::hit($key, 60);
+                    RateLimiter::hit($emailKey,  $emailWindow);
+                    RateLimiter::hit($ipKey,     $ipWindow);
+                    RateLimiter::hit($globalKey, $globalWindow);
                     throw ValidationException::withMessages([
                         'otp' => ['Código 2FA incorrecto.'],
                     ]);
@@ -119,7 +144,8 @@ class AuthController extends Controller
             }
         }
 
-        RateLimiter::clear($key);
+        RateLimiter::clear($emailKey);
+        RateLimiter::clear($ipKey);
 
         $device = $request->input('device') ?: 'web';
         $token  = $user->createToken($device, $this->abilitiesFor($user))->plainTextToken;

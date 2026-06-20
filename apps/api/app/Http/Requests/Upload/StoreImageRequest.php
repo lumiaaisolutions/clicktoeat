@@ -42,7 +42,6 @@ class StoreImageRequest extends FormRequest
             'content_type' => $this->header('Content-Type'),
             'has_image'    => $this->hasFile('image'),
             'files_keys'   => array_keys($this->allFiles()),
-            'all_keys'     => array_keys($this->all()),
             'errors'       => $validator->errors()->toArray(),
         ]);
 

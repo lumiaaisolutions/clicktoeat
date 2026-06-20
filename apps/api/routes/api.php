@@ -209,6 +209,12 @@ Route::middleware('throttle:60,1')->group(function () {
         Route::post('push/unsubscribe',      [\App\Http\Controllers\Api\PushSubscriptionController::class, 'unsubscribe'])
             ->middleware('throttle:20,1');
 
+        // App móvil (iOS/Android) — registro de token de Expo Push
+        Route::post('mobile/register-device',   [\App\Http\Controllers\Api\MobileDeviceController::class, 'register'])
+            ->middleware('throttle:20,1');
+        Route::post('mobile/unregister-device', [\App\Http\Controllers\Api\MobileDeviceController::class, 'unregister'])
+            ->middleware('throttle:20,1');
+
         // Horarios (gestión dedicada)
         Route::get('local/horarios',   [HorarioController::class, 'show']);
         Route::patch('local/horarios', [HorarioController::class, 'update']);

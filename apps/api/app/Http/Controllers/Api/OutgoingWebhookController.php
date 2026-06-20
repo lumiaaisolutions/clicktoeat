@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\OutgoingWebhook;
+use App\Rules\SafePublicUrl;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -28,7 +29,10 @@ class OutgoingWebhookController extends Controller
     {
         $data = $req->validate([
             'event'  => ['required', 'in:pedido.creado'],
-            'url'    => ['required', 'url', 'max:500'],
+            // SEV-3 — Defensa anti-SSRF: el validador `url` de Laravel sólo
+            // chequea sintaxis. SafePublicUrl resuelve el host y rechaza
+            // IPs privadas / loopback / link-local / metadata cloud.
+            'url'    => ['required', 'url', 'max:500', new SafePublicUrl(allowHttp: ! app()->isProduction())],
             'active' => ['sometimes', 'boolean'],
         ]);
 
@@ -48,7 +52,7 @@ class OutgoingWebhookController extends Controller
         abort_unless($webhook->local_id === $tenant->localIdOrFail(), 404);
 
         $data = $req->validate([
-            'url'    => ['sometimes', 'url', 'max:500'],
+            'url'    => ['sometimes', 'url', 'max:500', new SafePublicUrl(allowHttp: ! app()->isProduction())],
             'active' => ['sometimes', 'boolean'],
         ]);
         $webhook->update($data);

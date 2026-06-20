@@ -60,7 +60,10 @@ services:
       MYSQL_USER: clicktoeat
       MYSQL_PASSWORD: clicktoeat
     ports:
-      - "3307:3306"
+      # SEV-13 — bind sólo a loopback. Antes era 0.0.0.0 → exponía MySQL
+      # con creds débiles a cualquiera en la LAN del dev. Para conectar
+      # desde el host, sigue siendo localhost:3307.
+      - "127.0.0.1:3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro

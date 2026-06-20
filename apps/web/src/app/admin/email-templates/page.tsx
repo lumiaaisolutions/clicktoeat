@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import DOMPurify from 'dompurify';
 import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
@@ -287,10 +288,55 @@ function EditorModal({ tpl, slugsUsados, onClose, onSaved }: { tpl: Tpl | null; 
           <div className="mt-4 rounded-2xl border border-line bg-zinc-50 p-4">
             <p className="text-[11px] uppercase tracking-wider font-bold text-muted mb-1">Vista previa con datos de ejemplo</p>
             <p className="font-bold mb-2">{preview.subject_rendered}</p>
-            <div className="bg-white rounded-xl border border-line p-4 text-sm" dangerouslySetInnerHTML={{ __html: preview.body_html_rendered }} />
+            <EmailPreviewFrame html={preview.body_html_rendered} />
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * SEV-7 — Render seguro del HTML del template:
+ *   1. DOMPurify quita scripts, event handlers, iframes anidados, forms con
+ *      action, etc. Si la rama de DOMPurify alguna vez tiene un bypass,
+ *      la siguiente capa lo contiene.
+ *   2. <iframe sandbox> SIN `allow-scripts` — aunque el HTML traiga `<script>`
+ *      por algún edge case del backend, el navegador NO lo ejecuta. Es la
+ *      defensa más fuerte: aísla la preview del contexto admin (que tiene
+ *      el token Sanctum en localStorage).
+ *
+ * Nota: el sandbox bloquea también `<base href>`, formularios, popups y
+ * navegación top-level. Para email rendering basta — no necesitamos JS ni
+ * navegación.
+ */
+function EmailPreviewFrame({ html }: { html: string }) {
+  const srcDoc = useMemo(() => {
+    const sanitized = DOMPurify.sanitize(html, {
+      USE_PROFILES: { html: true },
+      FORBID_TAGS:  ['script', 'iframe', 'object', 'embed', 'form', 'meta', 'link', 'base'],
+      FORBID_ATTR:  ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur', 'onsubmit', 'formaction', 'srcdoc'],
+    });
+    // Encapsular en un documento mínimo. El sandbox ya bloquea JS aunque
+    // se cuele un `<script>`, pero damos estilos consistentes con el panel.
+    return `<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<style>
+  body { font: 14px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color: #18181b; margin: 16px; background: #fff; }
+  a { color: #2563eb; text-decoration: underline; }
+  img { max-width: 100%; height: auto; }
+  table { border-collapse: collapse; }
+</style>
+</head><body>${sanitized}</body></html>`;
+  }, [html]);
+
+  return (
+    <iframe
+      title="Vista previa del correo"
+      sandbox=""
+      srcDoc={srcDoc}
+      className="bg-white rounded-xl border border-line w-full"
+      style={{ minHeight: 320 }}
+    />
   );
 }

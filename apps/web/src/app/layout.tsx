@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import 'sileo/styles.css';
 import { InitialLoader } from '@/components/ui/InitialLoader';
 import { RouteTransition } from '@/components/ui/RouteTransition';
 import { PwaRegister } from '@/components/pwa/PwaRegister';

@@ -11,6 +11,7 @@ storage/framework/sessions/*
 storage/framework/views/*
 .idea/
 .vscode/
+.claude/
 .DS_Store
 Thumbs.db
 *.log
