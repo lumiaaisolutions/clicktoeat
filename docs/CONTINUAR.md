@@ -1,34 +1,46 @@
 # Cómo continuar el proyecto en otra sesión
 
-> **Snapshot al 2026-06-18 cierre de sesión.** Si abres el proyecto en
+> **Snapshot al 2026-06-19 cierre de sesión.** Si abres el proyecto en
 > una sesión nueva, lee este archivo primero.
 
 ## Estado del sistema
 
 **100% operativo en LIVE.** Cualquier cliente puede registrarse y pagar
-con tarjeta real desde ya, y el ciclo de cobro automático tras el trial
-está cerrado (Stripe respeta el trial_end + cron expira trials manuales).
+con tarjeta real, y el ciclo de cobro automático tras el trial está cerrado.
+**API con hardening de seguridad completo** del audit del 2026-06-19. Web
+está sirviendo el bundle del Jun 18 (rollback tras outage NPROC) — falta
+re-deploy con el fix sileo `5d2cdc5` después de aplicar env vars de Capa 1.
 
 | Capa | URL | Estado |
 |------|-----|--------|
-| Frontend | https://clicktoeat.lumiaaisolutions.com | ✅ Up |
-| API | https://clicktoeat-api.lumiaaisolutions.com | ✅ Up |
-| BD | MySQL managed en VPS Hostinger | ✅ Up |
-| Stripe | LIVE mode, `acct_1TPnLARxHYFQWlid` | ✅ Charges enabled |
-| Mail | SMTP Hostinger `contacto@lumiaaisolutions.com` | ✅ Funcional |
-| Sentry | `lumia-yd.sentry.io` (Laravel + Next.js) | ✅ Recibiendo errores |
+| Frontend | https://clicktoeat.lumiaaisolutions.com | 🟢 Up (bundle Jun 18, pre-audit) |
+| API | https://clicktoeat-api.lumiaaisolutions.com | 🟢 Up con audit `08e41a2` aplicado |
+| BD | MySQL managed en VPS Hostinger | 🟢 Up |
+| Stripe | LIVE mode, `acct_1TPnLARxHYFQWlid` | 🟢 Charges enabled |
+| Mail | SMTP Hostinger `contacto@lumiaaisolutions.com` | 🟢 Funcional |
+| Sentry | `lumia-yd.sentry.io` (Laravel + Next.js) | 🟢 Recibiendo errores |
 
 **Health checks:**
 ```bash
 curl -I https://clicktoeat.lumiaaisolutions.com/        # 200
-curl -I https://clicktoeat-api.lumiaaisolutions.com/up  # 200
+curl -I https://clicktoeat-api.lumiaaisolutions.com/up  # 200 + 5 headers de seguridad
 ```
 
 ## Tests + commit actual
 
-- **194/194 phpunit verde** (subió desde 185 → 189 → 194 esta semana)
-- TypeScript estricto OK, Next.js build OK sin warnings
-- Último commit en main: ver `git log -1 --oneline`
+- **218/218 phpunit verde** (subió desde 194/194 con SafePublicUrlRuleTest
+  y MobileDeviceRegistrationTest actualizado).
+- TypeScript estricto OK, Next.js build OK.
+- Último commit en main: ver `git log -1 --oneline`.
+
+## Auditoría integral de seguridad — 2026-06-19
+
+Bloque rojo + naranja aplicados (14 de 18 hallazgos resueltos en código).
+**API en prod ya tiene todos los hardening live** (verificado con `curl -sI`).
+Web los tendrá tras el próximo deploy.
+
+Detalles, estado por SEV y roadmap restante:
+[`docs/security/auditoria-integral-2026-06-19.md`](security/auditoria-integral-2026-06-19.md).
 
 ## Stripe LIVE — configurado
 

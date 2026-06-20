@@ -1,28 +1,71 @@
 # Pendientes — lista única de verdad
 
-> Estado al **2026-06-18 cierre de sesión**.
+> Estado al **2026-06-19 cierre de sesión**.
 > Esta es la fuente única de verdad sobre qué falta hacer. Si está acá,
 > está pendiente. Si NO está acá, ya está hecho.
 
 ## 🔴 Bloqueantes
 
-**Ninguno.** El sistema está 100% operativo en LIVE. El ciclo
-trial → cobro automático está cerrado end-to-end con tests verde.
+**Ninguno crítico.** Sitio web está sirviendo (bundle viejo Jun 18 sin
+hardening del audit). API está sirviendo CON hardening completo. Ningún
+cliente afectado, pero el web está pendiente de re-deploy con el fix
+sileo `5d2cdc5` después de aplicar las env vars de Capa 1 abajo.
 
 ## 🟧 Solo TU acción (no requiere código)
 
-### 1. Activar backup diario en Hostinger
+### 1. Aplicar env vars en Passenger (Capa 1 — NPROC fix) ⚡
+- **Por qué**: el deploy del web crasheó con `pthread_create: Resource temporarily unavailable` (NPROC limit de CloudLinux LVE). El bundle nuevo necesita menos threads/proceso para entrar.
+- **Cómo**: hPanel → Hosting → `clicktoeat.lumiaaisolutions.com` → Node.js → la app activa → Environment variables. Agrega:
+  ```
+  UV_THREADPOOL_SIZE=2
+  NODE_OPTIONS=--max-old-space-size=512
+  NEXT_TELEMETRY_DISABLED=1
+  ```
+  → Save → Restart la app desde el panel.
+- **Verifica**: `curl -sI https://clicktoeat.lumiaaisolutions.com/ | head -3` debe seguir 200.
+- **Tiempo**: 5 min.
+- **Detalle**: [`docs/infra/passenger-node-tuning.md`](infra/passenger-node-tuning.md).
+
+### 2. Re-deploy del web con el fix sileo (tras aplicar #1)
+- **Por qué**: el web está sirviendo el bundle pre-audit. Falta meter Sileo (toasts), DOMPurify (preview email), Sentry mask, Next 14.2.35, CSP headers.
+- **Cómo**:
+  ```bash
+  cd /Users/fernandotorres/Desktop/LUMIA/clicktoeat
+  git push origin main          # commit abe0a07 (docs)
+  ./scripts/deploy-web.sh       # build + tar + scp + restart + health
+  curl -sI https://clicktoeat.lumiaaisolutions.com/ | head -10
+  ```
+- **Tiempo**: 10-15 min.
+- **Si vuelve a 503**: NO es nuestro código — es NPROC. Pasar a #3.
+
+### 3. (Solo si #2 falla) Pedir aumento NPROC a Hostinger
+- **Por qué**: Capa 1 no fue suficiente.
+- **Cómo**: ticket en hPanel:
+  > "Mi app Next.js en `clicktoeat.lumiaaisolutions.com` está crasheando con
+  > `pthread_create: Resource temporarily unavailable`. Cuenta `u221820910`.
+  > Ya apliqué `UV_THREADPOOL_SIZE=2` + `--max-old-space-size=512`.
+  > ¿Pueden aumentar el NPROC limit a 200?"
+- **Tiempo**: 1 min ticket + ~24-48h respuesta.
+
+### 4. Restringir Google Maps API key (SEV-8 del audit)
+- **Por qué**: la key está commiteada en `apps/web/.env.production` (pública por ser `NEXT_PUBLIC_*`). Si no tiene restricciones, cualquiera consume tu cuota.
+- **Cómo**: Google Cloud Console → APIs & Services → Credentials → la key activa:
+  - Application restrictions: HTTP referrers → `https://*.lumiaaisolutions.com/*`
+  - API restrictions: solo Maps JavaScript + Places + Geocoding (las que uses)
+- **Tiempo**: 5 min.
+
+### 5. Activar backup diario en Hostinger
 - **Por qué**: sin esto pierdes hasta 7 días de datos si algo se rompe.
 - **Cómo**: hPanel → VPS → Backups → Add-on Daily backups ($6/mes).
 - **Tiempo**: 2 min.
 - **Cuándo**: hacerlo antes de tener clientes reales pagando.
 
-### 2. Revocar la MCP restricted key de Stripe
+### 6. Revocar la MCP restricted key de Stripe
 - **Por qué**: limpieza. La restricted key con prefijo `rk_live_51TPnLAR...` ya no se necesita.
 - **Cómo**: dashboard.stripe.com → Developers → API keys → Restricted keys → Revoke.
 - **Tiempo**: 1 min.
 
-### 3. Probar el flow end-to-end con tarjeta real
+### 7. Probar el flow end-to-end con tarjeta real
 - **Por qué**: validar al 100% que cuando llegue un cliente real funciona sin sustos.
 - **Cómo**:
   1. https://clicktoeat.lumiaaisolutions.com/registro con email distinto al tuyo
@@ -32,7 +75,7 @@ trial → cobro automático está cerrado end-to-end con tests verde.
   5. `/admin/billing` → cancelas antes del día 14 → cargo = $0
 - **Tiempo**: 15 min.
 
-### 4. (Opcional) Validar el cron `trials:expire-manual` en prod
+### 8. (Opcional) Validar el cron `trials:expire-manual` en prod
 - **Por qué**: confirmar que el nuevo cron corre diario 10:30am.
 - **Cómo**: el cron maestro `* * * * * php artisan schedule:run` ya existe
   en hPanel. Para verificación manual:
@@ -44,17 +87,45 @@ trial → cobro automático está cerrado end-to-end con tests verde.
   ```
 - **Tiempo**: 3 min.
 
+## 🟣 Roadmap del security audit — 2026-06-19
+
+Bloque rojo y naranja **completados y deployados** (API). Lo que falta:
+
+### Bloque amarillo (este mes — refactors)
+- **#14 — `$this->authorize()` en 12+ controllers state-changing** + tests
+  negativos cross-tenant. Cierra SEV-12 (BFLA). ~2-3 días.
+- **#15 — Quitar `Model::unguard()` global** + test de regresión que falla
+  si algún modelo no tiene `$fillable`. Cierra SEV-6. ~1 día.
+- **#16 — Dependabot + composer/npm audit bloqueante en CI** + pre-commit
+  `gitleaks protect --staged` + SBOM CycloneDX por release. Cierra SEV-18.
+  Medio día.
+
+### Bloque azul (este trimestre — cambios arquitectónicos grandes)
+- **#17 — Migrar token de `localStorage` a cookie HttpOnly+Secure+SameSite=Lax**
+  + middleware `CookieToBearer` + CSP estricta blocking + considerar
+  separar panel admin en subdominio. Cierra SEV-2 (la cripto más
+  importante del audit). ~1 semana.
+- **#18 — WAF/CDN Cloudflare delante** del API + edge cache + SIEM
+  unificada + test de restore real periódico. Arquitectura, mucho impacto
+  defensivo.
+
+Reporte completo: [`docs/security/auditoria-integral-2026-06-19.md`](security/auditoria-integral-2026-06-19.md).
+
 ## 🟨 Features documentadas pero NO implementadas
 
 Estos NO son bugs ni faltantes — son ideas futuras con plan listo.
 **No las construyas a menos que un cliente las pida** (regla: no
 construir sin demanda).
 
-### App móvil React Native + Expo
+### App móvil React Native + Expo — ✅ MVP backend + frontend implementado (2026-06-19)
+- **Backend**: `MobileDeviceController`, `MobileDevice` model, migración
+  `2026_06_19_120000_create_mobile_devices_table.php`, `ExpoPushSender`,
+  `PushDispatcher`, rutas `/mobile/register-device` y `/mobile/unregister-device`.
+- **App** (Expo SDK 56): `apps/mobile/` con secure token storage, NativeWind,
+  push handler con 409 graceful.
 - **Doc**: `docs/features/app-movil-clicktoeat.md`
-- **Para qué**: "tablet en cocina" con sonido + push notifications nativas
-- **Cuándo conviene**: cuando tengas 50+ locales pagando
-- **Esfuerzo**: 5-7 días + Apple $99/año + Google Play $25 one-time
+- **Lo que falta**: build final + alta en App Store y Google Play
+  (Apple $99/año + Google $25 one-time).
 
 ### API pública para integradores
 - **Doc**: `docs/features/api-publica-y-ab-testing.md`

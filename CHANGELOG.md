@@ -6,6 +6,90 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+### Security — Auditoría integral 2026-06-19 (SEV-1..18)
+
+Bloque rojo (críticos) + bloque naranja (altos) aplicados a la API. Web
+en bundle anterior temporalmente tras outage NPROC (ver Fixed → Frontend).
+
+- **SEV-1** Sanctum tokens expiran a 7 días (antes eran eternos). CVSS 8.6.
+- **SEV-3** Nueva `App\Rules\SafePublicUrl` anti-SSRF en webhooks salientes:
+  rechaza loopback, RFC 1918, link-local, multicast e IMDS metadata. 21
+  tests. CVSS 8.5.
+- **SEV-4** Security headers en producción: HSTS preload (2 años), X-Frame
+  DENY, X-Content nosniff, Referrer-Policy, Permissions-Policy, CSP
+  Report-Only (whitelist Stripe/Sentry/Maps/Expo). CVSS 8.1.
+- **SEV-5** CORS explícito en `config/cors.php` — métodos y headers
+  listados, expone rate-limit headers.
+- **SEV-7** Email preview de `/admin/email-templates` ahora en
+  `<iframe sandbox>` sin `allow-scripts` + DOMPurify (defensa en dos
+  capas) en vez de `dangerouslySetInnerHTML`. CVSS 7.6.
+- **SEV-9** Sentry `replayIntegration` con `maskAllText`, `maskAllInputs`,
+  `blockAllMedia`; `beforeSend` que redacta `Authorization`, `Cookie`,
+  email/teléfono en mensajes. Aplicado a client/server/edge runtimes.
+- **SEV-10** Login con rate limit en 3 capas (email/IP/global) con
+  ventana 15min + header `Retry-After`. Sustituye al cap único IP+email/60s.
+- **SEV-11** `MobileDevice::register` rechaza con 409
+  `device_already_registered` si el `expo_push_token` pertenece a otra
+  cuenta (antes se reasignaba silenciosamente). App mobile maneja 409
+  gracefully.
+- **SEV-13** `docker-compose.yml` MySQL bind a `127.0.0.1:3307` (antes 0.0.0.0).
+- **SEV-14** Next.js `14.2.15 → 14.2.35` (cubre CVE-2025-29927 auth bypass
+  via x-middleware-subrequest y CVE-2025-32421 cache poisoning).
+- **SEV-15** `StoreImageRequest` log de 422 ya no incluye `all_keys` del
+  request.
+- **SEV-16** `Header always unset X-Powered-By/Server` en `.htaccess`.
+- **SEV-17** `backup-mysql.sh` usa `MYSQL_PWD` env var en lugar de
+  `--password=` en cmdline (no aparece en `ps aux`).
+
+Reporte completo: `docs/security/auditoria-integral-2026-06-19.md`.
+
+### Added — App móvil ClickToEat (Expo + React Native + NativeWind)
+
+- Backend: `MobileDeviceController` + `MobileDevice` model + migración
+  `2026_06_19_120000_create_mobile_devices_table.php`.
+- Servicios: `ExpoPushSender` (batch 100 + cleanup tokens inválidos) +
+  `PushDispatcher` (fan-out web + mobile).
+- Rutas: `POST /mobile/register-device`, `POST /mobile/unregister-device`
+  con `auth:sanctum` + `tenant` + `throttle:20,1`.
+- App Expo en `apps/mobile/` con secure token storage, NativeWind, tokens
+  store Zustand, push handler con 409 graceful.
+
+### Added — Toast notifications con sileo
+
+- `sileo@0.1.5` integrado como motor de toasts con físicas (basado en
+  motion@12). Adapter en `src/store/toast.ts` mantiene la API pública
+  (`toast.success/error/info(text)`); cero breaking changes en ~20
+  archivos que importan toast.
+- `<Toaster>` usa `next/dynamic({ssr:false})` + lazy `await import('sileo')`
+  para evitar evaluación en server bundle. Ver ADR-009.
+- **Bonus**: First Load JS shared by admin baja **226 kB → 179 kB** (~50 kB
+  ahorro — sileo + motion ahora en chunk client-only).
+
+### Added — Ops + docs
+
+- `scripts/rollback-web.sh` — rollback del frontend en un comando, usa
+  `bash -s` con heredoc (CageFS-friendly).
+- 5 docs nuevos en `docs/security/`, `docs/runbook/`, `docs/issues/`,
+  `docs/infra/`, `docs/decisions/`.
+
+### Fixed — Frontend SSR crash + Outage NPROC (`5d2cdc5`)
+
+- `<Toaster>` envuelto en `next/dynamic({ssr:false})` y `store/toast.ts`
+  hace `await import('sileo')` lazy dentro de los handlers. Evita que el
+  bundle server de Next.js standalone evalúe sileo + `motion/react` (que
+  tienen side effects al cargarse).
+- Outage del 2026-06-19 21:20 → 21:38 MX (HTTP 503) tuvo como causa real
+  el **NPROC limit de Hostinger CloudLinux LVE** (`pthread_create:
+  Resource temporarily unavailable`), no sileo. El fix queda como
+  hardening preventivo + mejora del bundle size. Para el outage se
+  aplicó rollback al bundle anterior y se documentó plan de Capa 1
+  (`UV_THREADPOOL_SIZE=2` etc.) en `docs/infra/passenger-node-tuning.md`.
+
+### Tests
+
+- phpunit subió de **194/194 → 218/218 verde** (nuevo `SafePublicUrlRuleTest`
+  con 21 casos + `MobileDeviceRegistrationTest` actualizado para el 409).
+
 ### Added — Fase 39-91: ola masiva de features (2026-06-15 → 2026-06-16)
 
 **Mejoras del cliente final (landing pública)**
