@@ -1,0 +1,110 @@
+# Dependabot config — auto-PRs de actualizaciones de seguridad
+#
+# Cierra parte de SEV-18 del audit 2026-06-19 (cadena de suministro).
+# Las actualizaciones de seguridad llegan como PRs automáticas; las de
+# versiones nuevas las consolidamos semanalmente para no saturar.
+#
+# Docs: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+version: 2
+
+updates:
+  # ───────────────────────────────────────────────────────────────────
+  # Composer (Laravel API)
+  # ───────────────────────────────────────────────────────────────────
+  - package-ecosystem: composer
+    directory: /apps/api
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/Mexico_City
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - php
+    commit-message:
+      prefix: "chore(api)"
+      prefix-development: "chore(api-dev)"
+      include: scope
+    # Ignoramos majors automáticos — los revisamos a mano por riesgo
+    # de breaking changes (especialmente laravel/framework).
+    ignore:
+      - dependency-name: "laravel/framework"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "stripe/stripe-php"
+        update-types: ["version-update:semver-major"]
+
+  # ───────────────────────────────────────────────────────────────────
+  # NPM (Next.js Web)
+  # ───────────────────────────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: /apps/web
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/Mexico_City
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - javascript
+    commit-message:
+      prefix: "chore(web)"
+      prefix-development: "chore(web-dev)"
+      include: scope
+    # Ignorar majors automáticos:
+    # - next: el bump 14 → 15/16 lo planeamos aparte
+    # - react: idem
+    # - sileo: pre-1.0, NO bumpear ni patches automático (ver ADR-009)
+    ignore:
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "sileo"
+        update-types: ["version-update:semver-patch", "version-update:semver-minor", "version-update:semver-major"]
+
+  # ───────────────────────────────────────────────────────────────────
+  # NPM (Mobile App — Expo)
+  # ───────────────────────────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: /apps/mobile
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/Mexico_City
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - mobile
+      - expo
+    commit-message:
+      prefix: "chore(mobile)"
+      include: scope
+    # Expo SDK bumps los hacemos manuales — coordinar con build EAS
+    ignore:
+      - dependency-name: "expo"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-native"
+        update-types: ["version-update:semver-major"]
+
+  # ───────────────────────────────────────────────────────────────────
+  # GitHub Actions (los workflows en .github/workflows/)
+  # ───────────────────────────────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/Mexico_City
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: "chore(ci)"
+      include: scope
