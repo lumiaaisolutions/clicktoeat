@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { fetchMenu, MenuNotFoundError } from '@/lib/api';
 import { LandingClient } from './LandingClient';
 
@@ -20,13 +20,25 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return {
       title: `${data.local.nombre} — Menú`,
       description: data.local.tagline ?? `Pide en ${data.local.nombre} por WhatsApp`,
-      themeColor: data.branding.colorPrimario,
       openGraph: {
         title: data.local.nombre,
         description: data.local.tagline ?? '',
         images: data.branding.banner ? [{ url: data.branding.banner }] : [],
       },
     };
+  } catch {
+    return {};
+  }
+}
+
+// Next.js 14: themeColor va en `viewport` export, NO en `metadata`.
+// La segunda llamada a fetchMenu queda deduplicada por el cache de fetch
+// de React dentro del mismo render tree (es una sola request al API).
+export async function generateViewport({ params }: PageProps): Promise<Viewport> {
+  if (RESERVED.has(params.slug)) return {};
+  try {
+    const { data } = await fetchMenu(params.slug);
+    return { themeColor: data.branding.colorPrimario };
   } catch {
     return {};
   }
