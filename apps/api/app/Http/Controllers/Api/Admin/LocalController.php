@@ -94,8 +94,11 @@ class LocalController extends Controller
                     'password' => Hash::make($request->input('owner.password')),
                     'rol'      => 'owner',
                     'local_id' => $local->id,
-                    'email_verified_at' => now(),
                 ]);
+                // `email_verified_at` NO va en $fillable — campo de sistema,
+                // no de input. Para auto-verificar al onboarding via
+                // super_admin usamos forceFill (escape hatch intencional).
+                $owner->forceFill(['email_verified_at' => now()])->save();
                 $local->forceFill(['owner_id' => $owner->id])->save();
             }
 

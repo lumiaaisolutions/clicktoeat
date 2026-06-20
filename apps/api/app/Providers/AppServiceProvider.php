@@ -22,7 +22,12 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Model::shouldBeStrict(! $this->app->isProduction());
-        Model::unguard();
+
+        // SEV-6 — `Model::unguard()` global removido en 2026-06-20.
+        // Cada modelo declara su propio `$fillable` (verificado por
+        // FillableGuardTest). El allowlist explícito por modelo es la
+        // red correcta contra mass assignment, no un toggle global que
+        // depende de disciplina humana en cada PR nuevo.
 
         if ($this->app->environment('production')) {
             URL::forceScheme('https');

@@ -67,15 +67,19 @@ class StaffController extends Controller
         }
         $permisos = array_values(array_intersect($permisos, User::MODULOS_VALIDOS));
 
+        // `email_verified_at` NO está en $fillable (correcto — un atacante
+        // no debe poder auto-verificar su email vía mass-assignment).
+        // Aquí es seguro porque el owner ya pasó por auth + el staff lo
+        // marca confiable. `forceFill` es el escape hatch intencional.
         $staff = User::create([
-            'nombre'             => $request->input('nombre'),
-            'email'              => $request->input('email'),
-            'password'           => Hash::make($request->input('password')),
-            'rol'                => 'staff',
-            'permisos'           => $permisos,
-            'local_id'           => $request->user()->local_id,
-            'email_verified_at'  => now(),
+            'nombre'   => $request->input('nombre'),
+            'email'    => $request->input('email'),
+            'password' => Hash::make($request->input('password')),
+            'rol'      => 'staff',
+            'permisos' => $permisos,
+            'local_id' => $request->user()->local_id,
         ]);
+        $staff->forceFill(['email_verified_at' => now()])->save();
 
         return (new StaffResource($staff))
             ->response()
