@@ -1,17 +1,19 @@
 'use client';
 
-// Adapter sobre `sileo` para mantener la misma API pública que el toast
-// store anterior (Zustand + framer-motion). Los call sites siguen usando
-// `import { toast } from '@/store/toast'` y `toast.success(text)` sin
-// cambios — sileo se encarga del render, el stacking, el dismiss y la
-// física de las animaciones.
+// Adapter sobre `sileo` que mantiene la misma API pública que el toast store
+// anterior. Los call sites (`import { toast } from '@/store/toast'` +
+// `toast.success(text)`) no cambian.
 //
-// Para opciones avanzadas (descripción larga, botón de acción, promise
-// toasts) usar `sileo` directamente desde 'sileo':
-//   import { sileo } from 'sileo';
-//   sileo.success({ title: 'Listo', description: '...', button: { ... } });
-
-import { sileo } from 'sileo';
+// IMPORTANTE — lazy dynamic import:
+// `sileo/dist/index.mjs` invoca `__insertCSS()` al top-level del módulo, y
+// `motion@12` (su dep) también tiene side effects al cargar. Aunque la
+// directiva 'use client' del paquete debería evitar que se evalúe en server,
+// el bundler de Next.js 14.2.x `output: 'standalone'` no siempre respeta el
+// boundary para paquetes de node_modules → se cuela al runtime de Passenger
+// (Node sin DOM) → crash al boot, HTTP 503.
+//
+// Solución: nunca importar `sileo` a top level. Cargarlo bajo demanda dentro
+// de los handlers, que sólo se invocan desde el cliente.
 
 export interface ToastItem {
   id: string;
@@ -19,26 +21,28 @@ export interface ToastItem {
   text: string;
 }
 
+async function show(kind: 'success' | 'error' | 'info', text: string): Promise<void> {
+  if (typeof window === 'undefined') return; // safety net
+  const { sileo } = await import('sileo');
+  sileo[kind]({ title: text });
+}
+
 export const toast = {
-  success: (text: string) => sileo.success({ title: text }),
-  error:   (text: string) => sileo.error({   title: text }),
-  info:    (text: string) => sileo.info({    title: text }),
+  success: (text: string) => { void show('success', text); },
+  error:   (text: string) => { void show('error',   text); },
+  info:    (text: string) => { void show('info',    text); },
 };
 
-// Compat shim: el código viejo importaba `useToast` para acceder a la
-// lista de toasts y renderizarlos. Ahora Sileo lo hace por su cuenta,
-// pero dejamos el hook como no-op para que ningún import existente
-// (o futuro hecho por costumbre) se rompa.
+// Compat shim para call sites legacy que importan `useToast`. Sileo gestiona
+// su propio estado, así que devolvemos un stub que sólo dispara los toasts.
 export function useToast() {
   return {
     toasts: [] as ToastItem[],
     push(kind: ToastItem['kind'], text: string) {
-      if (kind === 'error') sileo.error({ title: text });
-      else if (kind === 'success') sileo.success({ title: text });
-      else sileo.info({ title: text });
+      void show(kind, text);
     },
     dismiss(_id: string) {
-      // sileo gestiona dismiss internamente.
+      // sileo gestiona dismiss internamente
     },
   };
 }

@@ -115,6 +115,9 @@ RSYNC_OPTS=(
     --exclude='.phpunit.result.cache'
     --exclude='tests/'
     --exclude='composer.phar'
+    # Artefactos del test runner local — prod usa MySQL gestionado.
+    --exclude='database/database.sqlite'
+    --exclude='storage/framework/testing/'
     -e "ssh -i ${SSH_KEY} -p ${SSH_PORT} -o StrictHostKeyChecking=accept-new"
 )
 
