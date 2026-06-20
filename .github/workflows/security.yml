@@ -97,6 +97,14 @@ jobs:
       - name: Audit (omit dev, falla en HIGH / CRITICAL)
         run: npm audit --omit=dev --audit-level=high
 
+      # SEV-18 — verificación de firmas de los packages instalados.
+      # Catch de supply-chain: si un paquete fue reemplazado en el
+      # registry npm (escenario tipo event-stream / colors.js), las
+      # firmas no validan y este step falla.
+      - name: Verify package signatures (supply chain)
+        run: npm audit signatures
+        continue-on-error: true   # algunos packages legacy no firman aún; warning, no fail
+
   # ─────────────────────────────────────────────────────────────
   # Validación del .env productivo no esté trackeado
   # ─────────────────────────────────────────────────────────────
