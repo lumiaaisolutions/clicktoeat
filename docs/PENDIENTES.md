@@ -1,6 +1,6 @@
 # Pendientes — lista única de verdad
 
-> Estado al **2026-06-19 cierre de sesión**.
+> Estado al **2026-06-20 cierre de sesión**.
 > Esta es la fuente única de verdad sobre qué falta hacer. Si está acá,
 > está pendiente. Si NO está acá, ya está hecho.
 
@@ -15,16 +15,32 @@ sileo `5d2cdc5` después de aplicar las env vars de Capa 1 abajo.
 
 ### 1. Aplicar env vars en Passenger (Capa 1 — NPROC fix) ⚡
 - **Por qué**: el deploy del web crasheó con `pthread_create: Resource temporarily unavailable` (NPROC limit de CloudLinux LVE). El bundle nuevo necesita menos threads/proceso para entrar.
-- **Cómo**: hPanel → Hosting → `clicktoeat.lumiaaisolutions.com` → Node.js → la app activa → Environment variables. Agrega:
+- **Tiempo**: 3-5 min.
+- **Dos caminos** — elige el que prefieras:
+
+  **Camino A — hPanel UI** (oficial):
+  - hPanel → Hosting → `clicktoeat.lumiaaisolutions.com` → Node.js → Environment variables
+  - Agrega: `UV_THREADPOOL_SIZE=2`, `NODE_OPTIONS=--max-old-space-size=512`, `NEXT_TELEMETRY_DISABLED=1`
+  - Save → Restart
+
+  **Camino B — SSH + `Passengerfile.json`** (rápido, versionable):
+  ```bash
+  ssh -i ~/.ssh/id_ed25519 -p 65002 u221820910@86.38.202.72
+  cat > ~/domains/clicktoeat.lumiaaisolutions.com/nodejs/Passengerfile.json <<'EOF'
+  {
+    "envvars": {
+      "UV_THREADPOOL_SIZE": "2",
+      "NODE_OPTIONS": "--max-old-space-size=512",
+      "NEXT_TELEMETRY_DISABLED": "1"
+    }
+  }
+  EOF
+  touch ~/domains/clicktoeat.lumiaaisolutions.com/nodejs/tmp/restart.txt
+  exit
   ```
-  UV_THREADPOOL_SIZE=2
-  NODE_OPTIONS=--max-old-space-size=512
-  NEXT_TELEMETRY_DISABLED=1
-  ```
-  → Save → Restart la app desde el panel.
+
 - **Verifica**: `curl -sI https://clicktoeat.lumiaaisolutions.com/ | head -3` debe seguir 200.
-- **Tiempo**: 5 min.
-- **Detalle**: [`docs/infra/passenger-node-tuning.md`](infra/passenger-node-tuning.md).
+- **Detalle**: [`docs/runbook/aplicar-env-vars-passenger.md`](runbook/aplicar-env-vars-passenger.md) + [`docs/infra/passenger-node-tuning.md`](infra/passenger-node-tuning.md).
 
 ### 2. Re-deploy del web con el fix sileo (tras aplicar #1)
 - **Por qué**: el web está sirviendo el bundle pre-audit. Falta meter Sileo (toasts), DOMPurify (preview email), Sentry mask, Next 14.2.35, CSP headers.
@@ -53,6 +69,21 @@ sileo `5d2cdc5` después de aplicar las env vars de Capa 1 abajo.
   - Application restrictions: HTTP referrers → `https://*.lumiaaisolutions.com/*`
   - API restrictions: solo Maps JavaScript + Places + Geocoding (las que uses)
 - **Tiempo**: 5 min.
+
+### 4b. Borrar API token Hostinger expuesto (URGENTE — 5 seg)
+- **Por qué**: el 2026-06-20 compartiste el token `l05wCls...0dc61` en chat
+  para que el agente probara el API. Quedó en el transcript persistente +
+  en `.claude/settings.local.json` (gitignored, pero si por error se
+  commitea queda en git history). Aunque expira en 1 mes, mejor revocarlo
+  YA.
+- **Cómo**: https://hpanel.hostinger.com/api → token "clicktobarber" →
+  **Regenerate** (o icono de basura → confirm).
+- **Verifica** que devuelve 401 después:
+  ```bash
+  curl -sI -H "Authorization: Bearer l05wCls...0dc61" \
+    https://developers.hostinger.com/api/vps/v1/virtual-machines
+  # Esperado: HTTP/2 401
+  ```
 
 ### 5. ~~Activar backup diario en Hostinger~~ ✅ YA ACTIVO
 - **Verificado 2026-06-20 via API Hostinger** — backups diarios corriendo:

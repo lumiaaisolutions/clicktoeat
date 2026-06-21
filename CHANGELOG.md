@@ -6,6 +6,47 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+### Security — Continuación audit 2026-06-20 (SEV-6 cerrado + SEV-18 parcial)
+
+- **SEV-6 cerrado completo** (`c4c6d8c` + `0e246b6`):
+  - Removido `Model::unguard()` global de `AppServiceProvider::boot()`.
+  - Nuevo `FillableGuardTest` que falla el build si algún modelo no
+    declara `$fillable` o `$guarded`.
+  - `StaffController::store` y `Admin/LocalController::store` migrados
+    a `forceFill(['email_verified_at' => now()])` después del `User::create`.
+- **SEV-18 ~70% cerrado**:
+  - `.github/dependabot.yml` (`91979c7`) — auto-PRs semanales composer/npm/
+    github-actions. Ignora majors de stack core (laravel, next, react, expo)
+    y TODOS los bumps de sileo (pre-1.0).
+  - `npm audit signatures` en security.yml workflow (`60107e3`) — catch
+    tipo event-stream. `continue-on-error: true` hasta migración Sigstore.
+
+### Fixed — Cosmético + estabilidad
+
+- **`themeColor` en Next 14** (`e39b432`): movido de `metadata` export a
+  `generateViewport` en `apps/web/src/app/[slug]/page.tsx`. Antes el
+  stderr.log de Passenger se saturaba con `⚠ Unsupported metadata
+  themeColor` en cada render — visto durante el debug del outage NPROC.
+- **Sileo pinneado exacto** (`d2cbafe`): `^0.1.5` → `0.1.5`. Defensa
+  contra bump automático rompiendo el adapter (semver no aplica en 0.x).
+
+### Verified — Hostinger ops
+
+- Vía API Hostinger (`GET /api/vps/v1/virtual-machines/1698236/actions`)
+  confirmamos **backups diarios automáticos activos**: 2026-06-20, 06-13,
+  06-06, 05-30 todos con state=success. Cierra pendiente "Activar backup
+  diario" del `PENDIENTES.md` (`eb7028b`).
+
+### Tests
+
+- phpunit subió de **218/218 → 219/219 verde** (nuevo `FillableGuardTest`).
+
+### Added — Docs
+
+- `docs/runbook/aplicar-env-vars-passenger.md` — runbook para setear
+  env vars de Passenger via hPanel UI O via `Passengerfile.json` en SSH.
+- `docs/runbook/cierre-sesion-2026-06-20.md`.
+
 ### Security — Auditoría integral 2026-06-19 (SEV-1..18)
 
 Bloque rojo (críticos) + bloque naranja (altos) aplicados a la API. Web

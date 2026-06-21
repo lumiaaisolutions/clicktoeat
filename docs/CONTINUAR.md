@@ -1,6 +1,6 @@
 # Cómo continuar el proyecto en otra sesión
 
-> **Snapshot al 2026-06-19 cierre de sesión.** Si abres el proyecto en
+> **Snapshot al 2026-06-20 cierre de sesión.** Si abres el proyecto en
 > una sesión nueva, lee este archivo primero.
 
 ## Estado del sistema
@@ -28,19 +28,36 @@ curl -I https://clicktoeat-api.lumiaaisolutions.com/up  # 200 + 5 headers de seg
 
 ## Tests + commit actual
 
-- **218/218 phpunit verde** (subió desde 194/194 con SafePublicUrlRuleTest
-  y MobileDeviceRegistrationTest actualizado).
+- **219/219 phpunit verde** (subió desde 218/218 con `FillableGuardTest`
+  agregado al cerrar SEV-6 el 2026-06-20).
 - TypeScript estricto OK, Next.js build OK.
 - Último commit en main: ver `git log -1 --oneline`.
 
-## Auditoría integral de seguridad — 2026-06-19
+## Auditoría integral de seguridad — 2026-06-19/20
 
-Bloque rojo + naranja aplicados (14 de 18 hallazgos resueltos en código).
-**API en prod ya tiene todos los hardening live** (verificado con `curl -sI`).
-Web los tendrá tras el próximo deploy.
+Bloque rojo + naranja aplicados. Avance al 2026-06-20:
+
+- **16 de 18 hallazgos resueltos en código** (subió desde 14).
+- SEV-6 completo cerrado el 2026-06-20 (Model::unguard removido +
+  FillableGuardTest + migración a forceFill).
+- SEV-18 ~70% cerrado (Dependabot + npm audit signatures en CI).
+- **API en prod tiene todos los hardening live** (verificado con `curl -sI`).
+- Web los tendrá tras el próximo deploy (bloqueado por pendiente de
+  env vars NPROC — ver `docs/PENDIENTES.md` items 1-2).
 
 Detalles, estado por SEV y roadmap restante:
 [`docs/security/auditoria-integral-2026-06-19.md`](security/auditoria-integral-2026-06-19.md).
+
+## Backups Hostinger (confirmado 2026-06-20)
+
+Verificado via API Hostinger (`GET /api/vps/v1/virtual-machines/1698236/actions`)
+que los backups diarios automáticos están activos:
+- 2026-06-20 04:34Z ✓
+- 2026-06-13 04:41Z ✓
+- 2026-06-06 04:48Z ✓
+- 2026-05-30 07:21Z ✓
+
+El pendiente "Activar backup diario" del `PENDIENTES.md` ya está cerrado.
 
 ## Stripe LIVE — configurado
 

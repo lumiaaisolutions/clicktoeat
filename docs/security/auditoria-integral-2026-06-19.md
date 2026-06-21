@@ -9,13 +9,13 @@
 **18 hallazgos** sobre el sistema completo (Laravel API + Next.js web +
 infra Hostinger + multi-tenancy + mobile):
 
-| Severidad | Cant | Estado deployment |
+| Severidad | Cant | Estado deployment (actualizado 2026-06-20) |
 |---|---|---|
 | 🔴 Crítica | 4 (SEV-1..4) | 3 deployadas (API), 1 parcial (web — pendiente re-deploy) |
-| 🟠 Alta    | 6 (SEV-5..10) | Deployadas (API), 2 web pendientes |
+| 🟠 Alta    | 6 (SEV-5..10) | 5 deployadas. **SEV-6 cerrado completo el 2026-06-20** (Model::unguard removido + FillableGuardTest + migración forceFill). SEV-7 y SEV-9 web pendientes. |
 | 🟡 Media   | 4 (SEV-11..14) | Deployadas |
 | 🔵 Baja    | 3 (SEV-15..17) | Deployadas |
-| ⚪ Info     | 1 (SEV-18) | Pendiente (CI/SBOM) |
+| ⚪ Info     | 1 (SEV-18) | **~70% cerrado el 2026-06-20** (Dependabot + npm audit signatures). Falta SBOM CycloneDX + pre-commit gitleaks. |
 
 **Commits relevantes**:
 - `08e41a2` — hardening completo + mobile feature backend (ya en prod API)
@@ -57,10 +57,17 @@ romper landings.
 **Fix**: ✅ Métodos y headers explícitos. Expone rate-limit headers.
 **Estado prod**: ✅ Live.
 
-### 🟠 SEV-6 — `Model::unguard()` global (CVSS 6.8 si se materializa)
+### 🟠 SEV-6 — `Model::unguard()` global ✅ CERRADO 2026-06-20
 **Ubicación**: `apps/api/app/Providers/AppServiceProvider.php:25`
-**Estado**: ⚠️ NO removido — mitigado por disciplina (29/29 modelos tienen `$fillable`).
-Trabajo del bloque amarillo (#15 del roadmap).
+**Fix aplicado** (commits `c4c6d8c` + `0e246b6`):
+- Removido `Model::unguard()` global.
+- Nuevo `FillableGuardTest` que falla el build si algún modelo no declara
+  `$fillable` o `$guarded` — red para el siguiente modelo nuevo.
+- `StaffController::store()` y `Admin/LocalController::store()` migrados
+  a `forceFill(['email_verified_at' => now()])` (campo de sistema, NO
+  va en $fillable porque sino un atacante podría auto-verificar email).
+**Verificación**: 219/219 phpunit verde.
+**Estado prod**: ✅ Live en API.
 
 ### 🟠 SEV-7 — `dangerouslySetInnerHTML` en preview de email (CVSS 7.6)
 **Ubicación**: `apps/web/src/app/admin/email-templates/page.tsx:291`
@@ -118,7 +125,13 @@ Test actualizado. App mobile maneja 409 gracefully.
 **Estado**: ✅ Aplicado.
 
 ### ⚪ SEV-18 — Falta SBOM, dependency scanning automatizado, pre-commit gitleaks
-**Estado**: Roadmap (#16 del bloque amarillo).
+**Estado**: ✅ ~70% cerrado el 2026-06-20 (commits `91979c7` + `60107e3`):
+- `.github/dependabot.yml` creado — auto-PRs semanales para composer + npm
+  + github-actions. Ignora majors de stack core y todos los bumps de sileo.
+- `npm audit signatures` agregado al workflow security.yml (catch tipo
+  event-stream/colors.js). `continue-on-error: true` hasta migración
+  ecosistema a Sigstore.
+**Falta**: SBOM CycloneDX por release + pre-commit `gitleaks protect --staged`.
 
 ---
 

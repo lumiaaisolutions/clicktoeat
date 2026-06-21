@@ -26,10 +26,9 @@ node[X]: pthread_create: Resource temporarily unavailable
 
 Sitio devuelve HTTP 503 desde el LiteSpeed frontend.
 
-## Fix — Env vars en hPanel
+## Fix — Env vars en Passenger
 
-**hPanel** → Hosting → `clicktoeat.lumiaaisolutions.com` → **Node.js** →
-selecciona la app → **Environment variables**:
+Las 3 vars que reducen el uso de threads del Node server:
 
 | Variable | Valor | Por qué |
 |---|---|---|
@@ -37,8 +36,15 @@ selecciona la app → **Environment variables**:
 | `NODE_OPTIONS` | `--max-old-space-size=512` | Limita heap V8 a 512 MB. Default puede llegar a 1.7 GB y obliga a Node a reservar más memoria → más worker threads de GC. |
 | `NEXT_TELEMETRY_DISABLED` | `1` | Next.js arranca un thread de telemetría para reportar métricas anónimas. No lo necesitamos en prod. |
 
-Después del cambio, **Restart** la app desde el mismo panel
-(o `touch ~/domains/clicktoeat.lumiaaisolutions.com/nodejs/tmp/restart.txt`).
+**Dos caminos para aplicarlas** — ver runbook detallado:
+[`docs/runbook/aplicar-env-vars-passenger.md`](../runbook/aplicar-env-vars-passenger.md).
+
+Resumen:
+- **Camino A (hPanel UI)** — manual, oficial, lento (~5 min).
+- **Camino B (`Passengerfile.json` via SSH)** — rápido, versionable (~3 min).
+
+Después del cambio, **Restart** la app
+(`touch ~/domains/clicktoeat.lumiaaisolutions.com/nodejs/tmp/restart.txt`).
 
 ## Verificación
 
