@@ -7,6 +7,15 @@ use App\Models\PushSubscription;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * SEV-12 nota: subscribe + unsubscribe usan inline auth (abort 401 + filter
+ * por user_id). publicKey es endpoint público intencional.
+ *
+ * Hardening futuro (similar a SEV-11 de MobileDevice): updateOrCreate por
+ * endpoint permite a un atacante con endpoint conocido reasignar la
+ * suscripción a su user_id. Considerar 409 reject cross-user. No urgente
+ * porque endpoints push son largos y aleatorios (no enumerables).
+ */
 class PushSubscriptionController extends Controller
 {
     /** Devuelve la clave pública VAPID al frontend. */

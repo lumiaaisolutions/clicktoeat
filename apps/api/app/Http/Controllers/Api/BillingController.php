@@ -21,6 +21,13 @@ use Throwable;
  * - GET  /billing/session/{id}   Verifica el resultado + emite onboarding_token.
  * - GET  /billing/plans          Lista de planes activos (público — para pricing UI).
  * - GET  /billing/portal         Genera URL del Customer Portal (autenticado).
+ *
+ * SEV-12 nota: cada endpoint protegido usa TenantContext + inline 403 si no
+ * hay local (`if (! $local) return 403`). Los endpoints públicos (plans,
+ * checkout, session) intencionalmente no requieren auth — son parte del
+ * flujo de onboarding. Patrón consistente con BillingController de Stripe
+ * Connect; no requiere Policy reusable porque cada endpoint tiene lógica
+ * específica de Stripe (no es CRUD).
  */
 class BillingController extends Controller
 {

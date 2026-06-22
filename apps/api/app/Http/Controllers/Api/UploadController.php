@@ -9,6 +9,12 @@ use Illuminate\Http\JsonResponse;
 
 /**
  * @OA\Tag(name="Uploads", description="Sube imágenes al disco público. Devuelve url + public_id.")
+ *
+ * SEV-12 nota: la autorización vive en StoreImageRequest::authorize() que
+ * llama a $user->can('uploadImage', Producto::class) — eso ES el patrón
+ * canónico Laravel de auth via FormRequest. Equivalente a $this->authorize
+ * en el controller. Audit 2026-06-19 lo flageó por "no authorize en
+ * controller" pero el FormRequest cumple el contrato.
  */
 class UploadController extends Controller
 {
