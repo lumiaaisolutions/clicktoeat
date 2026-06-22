@@ -557,7 +557,7 @@ function CreateLocalModal({
   const [tagline, setTagline] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [direccion, setDireccion] = useState('');
-  const [colorPrimario, setColorPrimario] = useState('#FF2D2D');
+  const [colorPrimario, setColorPrimario] = useState('#F26A1F');
 
   const [withOwner, setWithOwner] = useState(true);
   const [ownerNombre, setOwnerNombre] = useState('');
@@ -570,7 +570,7 @@ function CreateLocalModal({
   useEffect(() => {
     if (!open) return;
     setNombre(''); setSlug(''); setGiro(''); setTagline(''); setWhatsapp(''); setDireccion('');
-    setColorPrimario('#FF2D2D');
+    setColorPrimario('#F26A1F');
     setWithOwner(true); setOwnerNombre(''); setOwnerEmail(''); setOwnerPassword('');
     setErrors({});
   }, [open]);

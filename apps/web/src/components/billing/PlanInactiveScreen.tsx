@@ -45,7 +45,7 @@ export function PlanInactiveScreen() {
         <div
           aria-hidden
           className="h-1.5 w-full"
-          style={{ background: 'linear-gradient(90deg, #FF2D2D 0%, #FF6B35 50%, #FFA62D 100%)' }}
+          style={{ background: 'linear-gradient(90deg, #F26A1F 0%, #FF6B35 50%, #FFA62D 100%)' }}
         />
         <div className="p-8 sm:p-10 text-center">
           <div className="w-16 h-16 rounded-2xl bg-amber-100 grid place-items-center mx-auto">
@@ -87,7 +87,7 @@ export function PlanInactiveScreen() {
               })}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-ink font-semibold underline hover:text-[color:var(--ce-accent,#FF2D2D)]"
+              className="text-ink font-semibold underline hover:text-[color:var(--ce-accent,#F26A1F)]"
             >
               Escríbenos por WhatsApp
             </a>{' '}

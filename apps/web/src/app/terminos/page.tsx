@@ -74,7 +74,7 @@ export default function TerminosPage() {
 
         <h2 className="ce-display font-bold text-xl mt-6">8. Privacidad</h2>
         <p>
-          Consulta nuestro <Link href="/privacidad" className="text-[#FF2D2D] underline">Aviso de privacidad</Link> para
+          Consulta nuestro <Link href="/privacidad" className="text-[#F26A1F] underline">Aviso de privacidad</Link> para
           conocer qué datos tratamos y cómo.
         </p>
 
@@ -91,7 +91,7 @@ export default function TerminosPage() {
 
         <h2 className="ce-display font-bold text-xl mt-6">Contacto</h2>
         <p>
-          <a href="mailto:soporte@lumiaaisolutions.com" className="text-[#FF2D2D] underline">soporte@lumiaaisolutions.com</a>
+          <a href="mailto:soporte@lumiaaisolutions.com" className="text-[#F26A1F] underline">soporte@lumiaaisolutions.com</a>
         </p>
       </article>
 

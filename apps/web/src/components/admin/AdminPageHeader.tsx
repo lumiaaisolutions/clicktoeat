@@ -57,7 +57,7 @@ export function AdminPageHeader({
       <div className="relative grid lg:grid-cols-[1fr_auto] gap-5 sm:gap-6 lg:gap-8 items-end p-5 sm:p-7 md:p-9">
         <div className="min-w-0">
           <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-[0.18em] inline-flex items-center gap-2 text-muted">
-            <Icon name={kickerIcon} size={14} className="text-[color:var(--ce-accent,#FF2D2D)]" />
+            <Icon name={kickerIcon} size={14} className="text-[color:var(--ce-accent,#F26A1F)]" />
             {kicker}
           </p>
           <h1 className="ce-display mt-3 text-3xl sm:text-4xl md:text-5xl font-bold leading-[1.02] tracking-tight">

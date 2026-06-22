@@ -743,7 +743,7 @@ function PhoneMockup() {
           {/* Contenido */}
           <div className="absolute inset-0 pt-10 px-4">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-full grid place-items-center text-white font-bold ce-display" style={{ background: '#FF2D2D' }}>T</div>
+              <div className="w-10 h-10 rounded-full grid place-items-center text-white font-bold ce-display" style={{ background: '#F26A1F' }}>T</div>
               <div>
                 <div className="ce-display font-bold leading-tight">Tu Local</div>
                 <div className="text-[10px] text-muted">tu-tagline</div>

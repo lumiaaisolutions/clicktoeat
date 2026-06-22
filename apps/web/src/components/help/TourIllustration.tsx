@@ -47,7 +47,7 @@ function MenuIllustration() {
           <rect x={36} y={36 + i * 24} width={36} height={16} rx={4} fill="#FEF3C7" />
           <rect x={82} y={38 + i * 24} width={120 - i * 12} height={4} rx={2} fill="#0B0B0F" opacity={0.75} />
           <rect x={82} y={46 + i * 24} width={60} height={3} rx={1.5} fill="#9CA3AF" />
-          <rect x={222} y={36 + i * 24} width={26} height={16} rx={4} fill="#FF2D2D" />
+          <rect x={222} y={36 + i * 24} width={26} height={16} rx={4} fill="#F26A1F" />
         </motion.g>
       ))}
     </svg>
@@ -60,7 +60,7 @@ function PedidoIllustration() {
       {/* Phone */}
       <rect x="36" y="14" width="84" height="112" rx="14" fill="#0B0B0F" />
       <rect x="42" y="22" width="72" height="96" rx="6" fill="#fff" />
-      <rect x="50" y="32" width="56" height="6" rx="3" fill="#FF2D2D" />
+      <rect x="50" y="32" width="56" height="6" rx="3" fill="#F26A1F" />
       <rect x="50" y="44" width="40" height="4" rx="2" fill="#0B0B0F" opacity={0.7} />
       <rect x="50" y="54" width="56" height="22" rx="6" fill="#25D366" />
       <text x="78" y="69" textAnchor="middle" fontSize="9" fill="#fff" fontWeight="700">WhatsApp</text>
@@ -71,8 +71,8 @@ function PedidoIllustration() {
         animate={{ x: 12, opacity: 1 }}
         transition={{ duration: 1, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }}
       >
-        <path d="M138 70 L166 70" stroke="#FF2D2D" strokeWidth={3} strokeLinecap="round" />
-        <path d="M158 62 L168 70 L158 78" stroke="#FF2D2D" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <path d="M138 70 L166 70" stroke="#F26A1F" strokeWidth={3} strokeLinecap="round" />
+        <path d="M158 62 L168 70 L158 78" stroke="#F26A1F" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" fill="none" />
       </motion.g>
 
       {/* Notificación */}
@@ -81,8 +81,8 @@ function PedidoIllustration() {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.5, type: 'spring', stiffness: 280, damping: 12 }}
       >
-        <rect x="184" y="44" width="76" height="52" rx="10" fill="#fff" stroke="#FF2D2D" strokeWidth={2} />
-        <circle cx="200" cy="60" r="6" fill="#FF2D2D" />
+        <rect x="184" y="44" width="76" height="52" rx="10" fill="#fff" stroke="#F26A1F" strokeWidth={2} />
+        <circle cx="200" cy="60" r="6" fill="#F26A1F" />
         <text x="200" y="63" textAnchor="middle" fontSize="8" fill="#fff" fontWeight="900">!</text>
         <rect x="212" y="56" width="42" height="4" rx="2" fill="#0B0B0F" />
         <rect x="192" y="74" width="60" height="3" rx="1.5" fill="#9CA3AF" />
@@ -96,7 +96,7 @@ function QrIllustration() {
   return (
     <svg viewBox="0 0 280 140" className="w-full h-32">
       <rect x="60" y="14" width="100" height="112" rx="12" fill="#fff" stroke="#E5E7EB" />
-      <rect x="68" y="22" width="84" height="20" fill="#FF2D2D" />
+      <rect x="68" y="22" width="84" height="20" fill="#F26A1F" />
       <text x="110" y="36" textAnchor="middle" fontSize="9" fill="#fff" fontWeight="800">TU LOCAL</text>
       {/* QR mock */}
       <g transform="translate(76,50)">
@@ -120,7 +120,7 @@ function QrIllustration() {
       <motion.line
         x1="60" x2="160"
         y1="50" y2="50"
-        stroke="#FF2D2D" strokeWidth={2}
+        stroke="#F26A1F" strokeWidth={2}
         animate={{ y1: [50, 120, 50], y2: [50, 120, 50] }}
         transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
       />
@@ -132,7 +132,7 @@ function QrIllustration() {
         transition={{ duration: 1.5, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }}
       >
         <rect x="190" y="36" width="50" height="80" rx="8" fill="#0B0B0F" />
-        <rect x="194" y="40" width="42" height="72" rx="3" fill="#FF2D2D" opacity={0.15} />
+        <rect x="194" y="40" width="42" height="72" rx="3" fill="#F26A1F" opacity={0.15} />
         <text x="215" y="80" textAnchor="middle" fontSize="22">📱</text>
       </motion.g>
     </svg>
@@ -140,7 +140,7 @@ function QrIllustration() {
 }
 
 function ColoresIllustration() {
-  const swatches = ['#FF2D2D', '#16A34A', '#1E3A8A', '#D97706', '#0B0B0F'];
+  const swatches = ['#F26A1F', '#16A34A', '#1E3A8A', '#D97706', '#0B0B0F'];
   return (
     <svg viewBox="0 0 280 140" className="w-full h-32">
       <rect x="18" y="42" width="244" height="64" rx="14" fill="#FAFAF7" stroke="#E5E7EB" />
@@ -197,7 +197,7 @@ function StaffIllustration() {
   return (
     <svg viewBox="0 0 280 140" className="w-full h-32">
       {[
-        { x: 70,  color: '#FF2D2D' },
+        { x: 70,  color: '#F26A1F' },
         { x: 140, color: '#16A34A' },
         { x: 210, color: '#1E3A8A' },
       ].map(({ x, color }, i) => (
@@ -229,7 +229,7 @@ function HorariosIllustration() {
       })}
       <motion.line
         x1={140} y1={70} x2={140} y2={34}
-        stroke="#FF2D2D" strokeWidth={3} strokeLinecap="round"
+        stroke="#F26A1F" strokeWidth={3} strokeLinecap="round"
         style={{ originX: '140px', originY: '70px' }}
         animate={{ rotate: 360 }}
         transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
@@ -255,7 +255,7 @@ function MetricasIllustration() {
         <motion.rect
           key={i}
           x={32 + i * 32} width={20} rx={3}
-          fill={i === 3 ? '#FF2D2D' : '#0B0B0F'}
+          fill={i === 3 ? '#F26A1F' : '#0B0B0F'}
           initial={{ y: 118, height: 0 }}
           animate={{ y: 118 - h, height: h }}
           transition={{ delay: 0.1 + i * 0.07, duration: 0.6, ease: [0.2, 0.8, 0.2, 1] }}

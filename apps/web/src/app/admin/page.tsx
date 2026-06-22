@@ -218,7 +218,7 @@ function Kpi({ icon, label, value, sub, highlight }: { icon: IconName; label: st
         </span>
         <p className="text-[10px] uppercase tracking-wider text-muted font-semibold">{label}</p>
       </div>
-      <p className={cn('ce-display text-2xl md:text-3xl font-bold mt-2 tabular-nums truncate', highlight && 'text-[color:var(--ce-accent,#FF2D2D)]')}>{value}</p>
+      <p className={cn('ce-display text-2xl md:text-3xl font-bold mt-2 tabular-nums truncate', highlight && 'text-[color:var(--ce-accent,#F26A1F)]')}>{value}</p>
       {sub && <p className="text-xs text-muted">{sub}</p>}
     </div>
   );

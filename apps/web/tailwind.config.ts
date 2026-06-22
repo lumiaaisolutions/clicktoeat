@@ -24,7 +24,7 @@ const config: Config = {
         line:    'var(--ce-line,    #E8E8E2)',
         muted:   'var(--ce-muted,   #6B6B6B)',
         surface: 'var(--ce-surface, #FFFFFF)',
-        accent:  'var(--ce-accent,  #FF2D2D)',
+        accent:  'var(--ce-accent,  #F26A1F)',
       },
       borderRadius: {
         xl:  '14px',

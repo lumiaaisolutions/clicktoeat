@@ -108,7 +108,7 @@ export function BrandingEditor({ localId }: { localId?: number } = {}) {
       <header className="relative mb-8 sm:mb-10 overflow-hidden rounded-3xl border border-line bg-gradient-to-br from-white via-[color:var(--ce-bg)] to-white px-6 sm:px-8 py-8 sm:py-10">
         {/* Orbs decorativos sutiles — mismo lenguaje visual del landing */}
         <div aria-hidden className="absolute inset-0 pointer-events-none opacity-40">
-          <div className="hero-orb" style={{ background: '#FF2D2D', width: 280, height: 280, top: -100, right: -60 }} />
+          <div className="hero-orb" style={{ background: '#F26A1F', width: 280, height: 280, top: -100, right: -60 }} />
           <div className="hero-orb" style={{ background: '#10b981', width: 220, height: 220, bottom: -100, left: '20%', opacity: 0.4 }} />
         </div>
 
@@ -243,11 +243,11 @@ export function BrandingEditor({ localId }: { localId?: number } = {}) {
             <GranularColors
               value={draft.color_overrides ?? null}
               fallback={{
-                boton_primario:   draft.color_primario   ?? '#FF2D2D',
+                boton_primario:   draft.color_primario   ?? '#F26A1F',
                 boton_secundario: draft.color_secundario ?? '#0B0B0F',
                 badge_oferta:     '#DC2626',
-                precio:           draft.color_primario   ?? '#FF2D2D',
-                header_bg:        draft.color_primario   ?? '#FF2D2D',
+                precio:           draft.color_primario   ?? '#F26A1F',
+                header_bg:        draft.color_primario   ?? '#F26A1F',
                 header_text:      '#FFFFFF',
               }}
               onChange={(v) => set('color_overrides', v as any)}
@@ -640,7 +640,7 @@ const FONT_OPTIONS = [
 
 /* ─────────── Paletas de color sugeridas ─────────── */
 const COLOR_PALETTES = [
-  { name: 'ClickToEat',  primario: '#FF2D2D', secundario: '#0B0B0F', fondo: '#FAFAF7' },
+  { name: 'ClickToEat',  primario: '#F26A1F', secundario: '#0B0B0F', fondo: '#FAFAF7' },
   { name: 'Postres',     primario: '#E91E8C', secundario: '#5B1233', fondo: '#FFF7FB' },
   { name: 'Italiana',    primario: '#16A34A', secundario: '#14532D', fondo: '#F0FDF4' },
   { name: 'Cafetería',   primario: '#92400E', secundario: '#3F2C0F', fondo: '#FEF7E9' },

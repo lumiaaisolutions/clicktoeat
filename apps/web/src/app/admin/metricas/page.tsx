@@ -237,15 +237,15 @@ function SerieChart({ serie }: { serie: MetricasResponse['serie_diaria'] }) {
             stroke="rgba(0,0,0,0.06)" strokeDasharray="2 4" />
         ))}
         {/* Área */}
-        <path d={areaPath} fill="var(--ce-accent, #FF2D2D)" fillOpacity="0.15" />
+        <path d={areaPath} fill="var(--ce-accent, #F26A1F)" fillOpacity="0.15" />
         {/* Línea */}
-        <path d={linePath} fill="none" stroke="var(--ce-accent, #FF2D2D)" strokeWidth="2.5"
+        <path d={linePath} fill="none" stroke="var(--ce-accent, #F26A1F)" strokeWidth="2.5"
           strokeLinejoin="round" strokeLinecap="round" />
         {/* Puntos */}
         {serie.map((s, i) => (
           <g key={i}>
             <circle cx={xFor(i)} cy={yFor(s.ventas)} r="3"
-              fill="white" stroke="var(--ce-accent, #FF2D2D)" strokeWidth="2" />
+              fill="white" stroke="var(--ce-accent, #F26A1F)" strokeWidth="2" />
             <title>{`${s.fecha}: ${s.pedidos} pedidos · $${s.ventas.toFixed(2)}`}</title>
           </g>
         ))}
@@ -284,7 +284,7 @@ function TopProductos({ items }: { items: MetricasResponse['top_productos'] }) {
               className="h-full rounded-full"
               style={{
                 width: `${(p.cantidad / maxQty) * 100}%`,
-                background: 'var(--ce-accent, #FF2D2D)',
+                background: 'var(--ce-accent, #F26A1F)',
               }}
             />
           </div>

@@ -224,7 +224,7 @@ function TourStepView({
         {/* Progress bar arriba */}
         <div className="h-1 bg-line/50 relative">
           <motion.div
-            className="absolute inset-y-0 left-0 bg-gradient-to-r from-amber-400 to-[color:var(--ce-accent,#FF2D2D)]"
+            className="absolute inset-y-0 left-0 bg-gradient-to-r from-amber-400 to-[color:var(--ce-accent,#F26A1F)]"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.45, ease: [0.2, 0.8, 0.2, 1] }}

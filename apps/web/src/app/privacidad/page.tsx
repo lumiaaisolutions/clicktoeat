@@ -130,7 +130,7 @@ export default function PrivacidadPage() {
         <h2 className="ce-display font-bold text-xl mt-8">Contacto</h2>
         <p>
           Cualquier duda escribe a{' '}
-          <a href="mailto:soporte@lumiaaisolutions.com" className="text-[#FF2D2D] underline">
+          <a href="mailto:soporte@lumiaaisolutions.com" className="text-[#F26A1F] underline">
             soporte@lumiaaisolutions.com
           </a>.
         </p>

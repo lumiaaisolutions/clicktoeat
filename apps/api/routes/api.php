@@ -245,6 +245,11 @@ Route::middleware('throttle:60,1')->group(function () {
         Route::apiResource('cupones', \App\Http\Controllers\Api\CuponController::class);
         Route::post('cupones/{cupon}/toggle', [\App\Http\Controllers\Api\CuponController::class, 'toggle']);
 
+        // F101 — Gastos operativos (luz, agua, gas, renta, etc.)
+        // Distinto de `compras` (inventario de insumos). Esto es OPEX puro.
+        Route::get('gastos/resumen', [\App\Http\Controllers\Api\GastoController::class, 'resumen']);
+        Route::apiResource('gastos',  \App\Http\Controllers\Api\GastoController::class);
+
         // F100 — Reviews/calificaciones del local (moderación owner)
         Route::get('admin/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'indexAdmin']);
         Route::patch('admin/reviews/{review}/toggle', [\App\Http\Controllers\Api\ReviewController::class, 'toggleAprobado']);

@@ -170,7 +170,7 @@ export default function QRPage() {
                   <div className="grid grid-cols-4 gap-1.5">
                     {[
                       { fg: '#0B0B0F', bg: '#FFFFFF', name: 'Clásico' },
-                      { fg: '#FF2D2D', bg: '#FFF7F4', name: 'Cálido' },
+                      { fg: '#F26A1F', bg: '#FFF7F4', name: 'Cálido' },
                       { fg: '#FFFFFF', bg: '#0B0B0F', name: 'Inverso' },
                       { fg: '#1A5D3A', bg: '#F0FAF5', name: 'Verde' },
                       { fg: '#1E3A8A', bg: '#EFF6FF', name: 'Azul' },

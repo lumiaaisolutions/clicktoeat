@@ -50,7 +50,7 @@ interface OnboardingData {
 const emptyData: OnboardingData = {
   password: { nombre: '', email: '', password: '' },
   local:    { nombre: '', slug: '', tagline: '' },
-  branding: { color_primario: '#FF2D2D', logo_url: '', banner_url: '' },
+  branding: { color_primario: '#F26A1F', logo_url: '', banner_url: '' },
   contacto: { whatsapp: '52', direccion: '', lat: null, lng: null },
 };
 
@@ -344,7 +344,7 @@ function LocalStep({ data, onChange, onSubmit, loading }: {
 /* ─────────────── Step 3: Tu identidad ─────────────── */
 
 const PALETAS = [
-  { name: 'ClickToEat', primario: '#FF2D2D' },
+  { name: 'ClickToEat', primario: '#F26A1F' },
   { name: 'Postres',    primario: '#EC4899' },
   { name: 'Italiana',   primario: '#15803D' },
   { name: 'Cafetería',  primario: '#92400E' },

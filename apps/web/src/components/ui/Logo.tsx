@@ -32,9 +32,10 @@ interface LogoProps {
  */
 export function Logo({
   variant = 'lockup', size = 32, stacked = false,
-  bg = '#0B0B0F', fg = '#FFFFFF', textColor,
+  bg = '#1F2937', fg = '#FFFFFF', textColor,
   className,
 }: LogoProps) {
+  const cursor = '#F26A1F';
   const mark = (
     <svg
       width={size}
@@ -45,10 +46,10 @@ export function Logo({
       style={{ flexShrink: 0 }}
     >
       <rect x="0" y="0" width="32" height="32" rx="8" fill={bg} />
-      {/* Cursor de mouse (esquina superior izq) */}
+      {/* Cursor de mouse (acción "Click" — en color de acento) */}
       <path
         d="M9 8 L9 19 L12.5 16 L14.5 20 L16.8 19 L14.8 15 L19 15 Z"
-        fill={fg}
+        fill={cursor}
       />
       {/* Tenedor estilizado abajo (3 dientes pequeños + mango) */}
       <g fill={fg}>
@@ -74,7 +75,7 @@ export function Logo({
         letterSpacing: '-0.02em',
       }}
     >
-      Click<span style={{ opacity: 0.5 }}>To</span>Eat
+      Click<span style={{ opacity: 0.5 }}>To</span><span style={{ color: cursor }}>Eat</span>
     </span>
   );
 

@@ -272,6 +272,70 @@ Snapshot por diseño: aunque el producto se renombre o suba precio, el pedido vi
 
 ---
 
+### `mobile_devices`
+
+Token Expo Push de cada dispositivo móvil registrado. Introducida en
+2026-06-19 junto con la app nativa iOS/Android.
+
+| Columna             | Tipo                                       |
+|---------------------|--------------------------------------------|
+| `id`                | bigint PK                                  |
+| `user_id`           | bigint FK → `users.id` (cascade)           |
+| `local_id`          | bigint FK → `locales.id` (cascade, null)   |
+| `expo_push_token`   | varchar(200) UNIQUE                        |
+| `platform`          | varchar(10) — `ios` \| `android`           |
+| `device_name`       | varchar(120) null                          |
+| `app_version`       | varchar(32) null                           |
+| `last_seen_at`      | timestamp null                             |
+| timestamps          |                                            |
+
+Índices: UNIQUE `(expo_push_token)`, KEY `(user_id, local_id)`.
+
+> El token Expo **no es secreto**. Por eso el endpoint
+> `/mobile/register-device` rechaza con 409 cuando otro user intenta
+> reclamarlo — ver [SEV-11](../security/sev-11-mobile-device-token-reassignment.md).
+
+Referencia: [`docs/api/mobile.md`](../api/mobile.md), [`docs/architecture/push-dispatcher.md`](../architecture/push-dispatcher.md).
+
+---
+
+### `gastos`
+
+Registro de gastos operativos del local (OPEX): luz, agua, gas, renta,
+nómina, etc. Introducida 2026-06-22. Distinto de `compras` (que es
+inventario de insumos para producir pedidos).
+
+| Columna              | Tipo                                       |
+|----------------------|--------------------------------------------|
+| `id`                 | bigint PK                                  |
+| `local_id`           | bigint FK → `locales.id` (cascade)         |
+| `categoria`          | varchar(32) — ver `Gasto::CATEGORIAS`       |
+| `concepto`           | varchar(200)                               |
+| `monto_centavos`     | unsignedInteger — siempre en centavos MXN  |
+| `fecha`              | date                                       |
+| `recurrente`         | boolean default false                      |
+| `notas`              | text null                                  |
+| `comprobante_url`    | varchar(500) null                          |
+| `created_by_user_id` | bigint FK → `users.id` (nullable, set null)|
+| timestamps + softDeletes |                                        |
+
+Índices: `(local_id, fecha)`, `(local_id, categoria, fecha)`.
+
+> Categorías válidas: `luz`, `agua`, `gas`, `internet`, `telefono`, `renta`,
+> `nomina`, `mantenimiento`, `marketing`, `impuestos`, `seguros`,
+> `comisiones_bancarias`, `otros`. El API rechaza cualquier otra con 422.
+
+> Multi-tenancy via `BelongsToTenant` trait + `TenantScope` global.
+> El cliente envía `monto_mxn` (decimal) y el controller convierte a
+> `monto_centavos` con `round($x * 100)` para evitar drift de floats.
+
+Endpoints: `GET /v1/gastos`, `POST /v1/gastos`, `GET /v1/gastos/{id}`,
+`PATCH /v1/gastos/{id}`, `DELETE /v1/gastos/{id}`,
+`GET /v1/gastos/resumen?mes=YYYY-MM` (total + delta vs mes anterior + breakdown
+por categoría). Solo `owner` puede crear/editar/borrar (policy).
+
+---
+
 ## Tablas de framework
 
 ### `personal_access_tokens` (Sanctum)

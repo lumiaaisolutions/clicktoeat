@@ -106,7 +106,7 @@ export default function AyudaPage() {
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-muted">
                   {c.steps} {c.steps === 1 ? 'paso' : 'pasos'}
                 </span>
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink group-hover:text-[color:var(--ce-accent,#FF2D2D)] transition">
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink group-hover:text-[color:var(--ce-accent,#F26A1F)] transition">
                   <Icon name="play" size={12} />
                   {visto ? 'Repetir' : 'Empezar'}
                 </span>

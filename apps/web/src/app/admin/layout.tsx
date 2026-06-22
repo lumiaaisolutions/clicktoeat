@@ -31,7 +31,7 @@ type IconName =
   | 'home' | 'chart' | 'cart' | 'bell' | 'package' | 'list'
   | 'box' | 'receipt' | 'clock' | 'qr' | 'palette' | 'store' | 'lock' | 'card' | 'settings' | 'plug'
   | 'users' | 'history' | 'help' | 'sparkles' | 'star'
-  | 'gift' | 'message-circle' | 'map-pin';
+  | 'gift' | 'message-circle' | 'map-pin' | 'wallet';
 
 interface NavItem {
   href: string;
@@ -88,6 +88,7 @@ function Icon({ name, className }: { name: IconName; className?: string }) {
     case 'gift':    return <svg {...common} {...stroke}><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>;
     case 'message-circle': return <svg {...common} {...stroke}><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>;
     case 'map-pin': return <svg {...common} {...stroke}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>;
+    case 'wallet':  return <svg {...common} {...stroke}><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2"/><path d="M22 12h-5a2 2 0 0 0 0 4h5"/><circle cx="17" cy="14" r="0.6" fill="currentColor"/></svg>;
   }
 }
 
@@ -167,6 +168,7 @@ const NAV_OWNER: NavEntry[] = [
   { href: '/admin/categorias',   label: 'Categorías',  icon: 'list',    permiso: 'categorias' },
   { href: '/admin/inventario',   label: 'Inventario',  icon: 'box',     permiso: 'inventario', feature: 'inventario',       requiredPlan: 'professional' },
   { href: '/admin/compras',      label: 'Compras',     icon: 'receipt', permiso: 'compras',    feature: 'compras',          requiredPlan: 'professional' },
+  { href: '/admin/gastos',       label: 'Gastos',      icon: 'wallet',  ownerOnly: true },
 
   { section: 'Clientes' },
   { href: '/admin/cupones',      label: 'Cupones',     icon: 'sparkles' },
@@ -320,7 +322,7 @@ function NavLinks({ items, pathname, dense = false }: { items: NavEntry[]; pathn
             <span className="truncate flex-1">{item.label}</span>
             {showBadge && (
               <span
-                className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-[color:var(--ce-accent,#FF2D2D)] text-white text-[10px] font-bold grid place-items-center halo-pulse"
+                className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-[color:var(--ce-accent,#F26A1F)] text-white text-[10px] font-bold grid place-items-center halo-pulse"
                 aria-label={`${unread} pedidos nuevos`}
               >
                 {unread > 9 ? '9+' : unread}

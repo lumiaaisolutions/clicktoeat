@@ -202,12 +202,12 @@ function AnimProducto() {
     <motion.svg viewBox="0 0 200 110" className="w-full h-full">
       <rect x="0" y="0" width="200" height="110" fill="#FBF8F3" />
       {/* Cursor simulado */}
-      <motion.circle cx="40" cy="30" r="4" fill="#FF2D2D"
+      <motion.circle cx="40" cy="30" r="4" fill="#F26A1F"
         animate={{ cx: [40, 120, 120, 120], cy: [30, 30, 70, 70] }}
         transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }} />
       {/* Sidebar */}
       <rect x="0" y="0" width="50" height="110" fill="#fff" stroke="#eee" />
-      <rect x="8" y="20" width="34" height="6" rx="2" fill="#FF2D2D" />
+      <rect x="8" y="20" width="34" height="6" rx="2" fill="#F26A1F" />
       <rect x="8" y="32" width="30" height="4" rx="2" fill="#aaa" />
       <rect x="8" y="42" width="34" height="4" rx="2" fill="#aaa" />
       {/* Botón nuevo producto */}
@@ -224,7 +224,7 @@ function AnimProducto() {
         <rect x="65" y="55" width="40" height="40" rx="4" fill="#f5d896" />
         <rect x="110" y="60" width="60" height="6" rx="2" fill="#0B0B0F" />
         <rect x="110" y="70" width="40" height="4" rx="2" fill="#aaa" />
-        <rect x="110" y="80" width="30" height="10" rx="3" fill="#FF2D2D" />
+        <rect x="110" y="80" width="30" height="10" rx="3" fill="#F26A1F" />
         <text x="115" y="88" fontSize="6" fill="#fff">$120</text>
       </motion.g>
     </motion.svg>
@@ -266,9 +266,9 @@ function AnimCupon() {
         style={{ originX: '40px', originY: '30px' }}
         transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
       >
-        <circle cx="40" cy="30" r="18" fill="none" stroke="#FF2D2D" strokeWidth="2" />
-        <line x1="40" y1="30" x2="40" y2="18" stroke="#FF2D2D" strokeWidth="2" />
-        <line x1="40" y1="30" x2="48" y2="30" stroke="#FF2D2D" strokeWidth="2" />
+        <circle cx="40" cy="30" r="18" fill="none" stroke="#F26A1F" strokeWidth="2" />
+        <line x1="40" y1="30" x2="40" y2="18" stroke="#F26A1F" strokeWidth="2" />
+        <line x1="40" y1="30" x2="48" y2="30" stroke="#F26A1F" strokeWidth="2" />
       </motion.g>
       {/* Cupón emerging */}
       <motion.g
@@ -296,7 +296,7 @@ function AnimBell() {
         <path d="M100,30 a16,16 0 0 0 -16,16 v12 l-4,6 h40 l-4,-6 v-12 a16,16 0 0 0 -16,-16 z" fill="#0B0B0F" />
         <circle cx="100" cy="70" r="4" fill="#0B0B0F" />
       </motion.g>
-      <motion.circle cx="112" cy="34" r="5" fill="#FF2D2D"
+      <motion.circle cx="112" cy="34" r="5" fill="#F26A1F"
         animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 0.6, repeat: Infinity }} />
       <text x="111" y="37" fontSize="7" fill="#fff" textAnchor="middle" fontWeight="bold">1</text>
       <motion.text x="100" y="95" fontSize="8" textAnchor="middle" fill="#0B0B0F"

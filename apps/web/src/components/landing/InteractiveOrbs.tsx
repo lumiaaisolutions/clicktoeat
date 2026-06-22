@@ -41,7 +41,7 @@ interface OrbConfig {
 
 const DEFAULT_ORBS: OrbConfig[] = [
   // Rojo grande arriba-izquierda — persigue agresivamente
-  { color: '#FF2D2D', size: 560, top: '-160px',  left: '-120px', opacity: 0.60, follow:  1.2, floatSeconds: 7,  floatAmplitude: 55 },
+  { color: '#F26A1F', size: 560, top: '-160px',  left: '-120px', opacity: 0.60, follow:  1.2, floatSeconds: 7,  floatAmplitude: 55 },
   // Verde mediano abajo-izquierda — se escapa del cursor
   { color: '#10b981', size: 380, bottom: '-160px', left: '12%',  opacity: 0.42, follow: -1.0, floatSeconds: 9,  floatAmplitude: 45 },
   // Naranja pequeño centro — se mueve poco, sigue al cursor

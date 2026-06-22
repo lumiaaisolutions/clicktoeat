@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --ce-accent:  #FF2D2D;
+  --ce-accent:  #F26A1F;
   --ce-ink:     #0B0B0F;
   --ce-bg:      #FAFAF7;
   --ce-line:    #E8E8E2;
@@ -138,7 +138,7 @@ body {
 
 /* Gradient text accent (Lumina-style) */
 .gradient-text {
-  background: linear-gradient(135deg, #FF2D2D 0%, #FF6B35 50%, #FFA62D 100%);
+  background: linear-gradient(135deg, #F26A1F 0%, #FF6B35 50%, #FFA62D 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -396,11 +396,11 @@ html { scroll-behavior: smooth; }
 }
 .ce-lumia {
   background: linear-gradient(90deg,
-    var(--ce-accent, #FF2D2D) 0%,
+    var(--ce-accent, #F26A1F) 0%,
     #FFA62D 25%,
     #FF6B35 50%,
     #FFA62D 75%,
-    var(--ce-accent, #FF2D2D) 100%);
+    var(--ce-accent, #F26A1F) 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
@@ -409,7 +409,7 @@ html { scroll-behavior: smooth; }
   font-weight: 800;
   letter-spacing: 0.04em;
   animation: ce-lumia-shimmer 4s linear infinite;
-  text-shadow: 0 0 22px color-mix(in srgb, var(--ce-accent, #FF2D2D) 28%, transparent);
+  text-shadow: 0 0 22px color-mix(in srgb, var(--ce-accent, #F26A1F) 28%, transparent);
 }
 .ce-lumia-link {
   display: inline-flex;

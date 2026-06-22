@@ -15,7 +15,7 @@ import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/lib/utils';
 
 const TEMPLATES = [
-  { id: 'mexicana',  nombre: 'Tacos El Gordo',   eslogan: 'Pastor de leña, tortillas a mano', primario: '#FF2D2D', fondo: '#FAFAF7', fuente: 'Bricolage Grotesque' },
+  { id: 'mexicana',  nombre: 'Tacos El Gordo',   eslogan: 'Pastor de leña, tortillas a mano', primario: '#F26A1F', fondo: '#FAFAF7', fuente: 'Bricolage Grotesque' },
   { id: 'italiana',  nombre: 'Pizza Bambino',    eslogan: 'Napolitana 72h de fermentación',   primario: '#16A34A', fondo: '#FFF8EC', fuente: 'Playfair Display' },
   { id: 'cafeteria', nombre: 'Café de la Plaza', eslogan: 'Tostado en grano fresco',           primario: '#92400E', fondo: '#FEF7E9', fuente: 'Cormorant Garamond' },
   { id: 'postres',   nombre: 'Stitch Postres',   eslogan: 'Rebanadas para llevar',              primario: '#E91E8C', fondo: '#FFF7FB', fuente: 'DM Serif Display' },
@@ -66,7 +66,7 @@ export default function DemoPage() {
         {/* Hero pitch */}
         <div className="text-center mb-8 sm:mb-10">
           <p className="text-xs uppercase tracking-[0.18em] text-muted font-bold inline-flex items-center gap-2">
-            <Icon name="sparkles" size={14} className="text-[#FF2D2D]" />
+            <Icon name="sparkles" size={14} className="text-[#F26A1F]" />
             Pruébalo en vivo
           </p>
           <h1 className="ce-display text-3xl sm:text-5xl font-bold leading-[1.05] mt-3">

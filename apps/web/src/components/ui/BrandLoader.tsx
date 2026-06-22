@@ -25,7 +25,7 @@ export function BrandLoader({ compact = false }: { compact?: boolean }) {
             animate={{ opacity: [0.3, 0.5, 0.3], scale: [0.9, 1.05, 0.9] }}
             transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
             className="hero-orb"
-            style={{ background: '#FF2D2D', width: 420, height: 420, top: '15%', left: '-10%' }}
+            style={{ background: '#F26A1F', width: 420, height: 420, top: '15%', left: '-10%' }}
           />
           <motion.div
             initial={{ opacity: 0.2, scale: 0.9 }}
