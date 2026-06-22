@@ -144,7 +144,8 @@ class CuponAuthorizationTest extends TestCase
         // (el middleware EnforceTenantScope hace bypass).
         // Seguridad: super_admin NO debe ser bloqueado por la policy (200 ≠ 403).
         // El shape de la respuesta tiene un quirk de serialización separado
-        // (data viene vacío) — TODO investigar en commit aparte; no afecta esta claim.
+        // documentado en docs/issues/2026-06-22-super-admin-empty-cupon-response.md
+        // — bug funcional, NO afecta esta claim de seguridad.
         $this->getJson("/api/v1/cupones/{$this->cuponB->id}")
             ->assertOk();
     }
