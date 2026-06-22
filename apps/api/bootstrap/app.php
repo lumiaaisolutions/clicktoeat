@@ -21,8 +21,23 @@ return Application::configure(basePath: dirname(__DIR__))
         // API token-only (Sanctum personal access tokens).
         // NO usamos el modo "SPA stateful" porque Next.js corre en otro origen
         // (localhost:3000) y eso forzaría CSRF + cookies. Bearer token puro.
+        //
+        // SEV-2 — CookieToBearer es el primer paso de la migración a cookie
+        // HttpOnly (ADR-010). Lee la cookie `cte_token` y la convierte en
+        // header Authorization Bearer ANTES de auth:sanctum. Aditivo, no
+        // rompe el flujo actual (bearer header explícito sigue teniendo
+        // prioridad).
+        //
+        // EncryptCookies es REQUERIDO antes de CookieToBearer porque el
+        // login emite la cookie encriptada por convención Laravel. Sin
+        // este middleware, en prod la cookie se enviaría al cliente como
+        // base64 del token plano (leak en cualquier interceptor de cookies
+        // del navegador con extensiones). EncryptCookies → en respuesta
+        // encripta antes de enviar; en request decripta antes de leer.
         $middleware->use([
             \Illuminate\Http\Middleware\HandleCors::class,
+            \Illuminate\Cookie\Middleware\EncryptCookies::class,
+            \App\Http\Middleware\CookieToBearer::class,
         ]);
 
         $middleware->alias([

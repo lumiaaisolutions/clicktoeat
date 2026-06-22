@@ -150,10 +150,30 @@ class AuthController extends Controller
         $device = $request->input('device') ?: 'web';
         $token  = $user->createToken($device, $this->abilitiesFor($user))->plainTextToken;
 
-        return response()->json([
-            'user'  => $user->only(['id', 'nombre', 'email', 'rol', 'local_id']),
-            'token' => $token,
-        ]);
+        // SEV-2 — además del JSON token (para mobile/API externa), setamos
+        // una cookie HttpOnly+Secure+SameSite=Lax. El frontend web puede
+        // empezar a depender de la cookie en lugar de leer el token desde
+        // JS (cierra el vector XSS → ATO). Mientras tanto ambos caminos
+        // funcionan — el frontend actual sigue leyendo el JSON.
+        // TTL alineado con `config/sanctum.php:expiration` (7 días).
+        $cookie = cookie(
+            'cte_token',                // name
+            $token,                     // value
+            60 * 24 * 7,                // minutes (7 días)
+            '/',                        // path
+            null,                       // domain
+            app()->isProduction(),      // secure
+            true,                       // httpOnly
+            false,                      // raw
+            'Lax',                      // sameSite
+        );
+
+        return response()
+            ->json([
+                'user'  => $user->only(['id', 'nombre', 'email', 'rol', 'local_id']),
+                'token' => $token,
+            ])
+            ->withCookie($cookie);
     }
 
     /**
@@ -223,7 +243,11 @@ class AuthController extends Controller
     {
         $request->user()->currentAccessToken()->delete();
 
-        return response()->json(null, 204);
+        // SEV-2 — limpiamos también la cookie HttpOnly. forget(name) emite
+        // un Set-Cookie con expiración en el pasado.
+        return response()
+            ->json(null, 204)
+            ->withCookie(\Illuminate\Support\Facades\Cookie::forget('cte_token', '/'));
     }
 
     protected function abilitiesFor(User $user): array
