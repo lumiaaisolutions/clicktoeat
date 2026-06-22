@@ -200,27 +200,25 @@ limpio). Lo que sigue es solo lo que el código no puede hacer.
 ### Runbook completo
 [`docs/runbook/arrancar-app-movil.md`](runbook/arrancar-app-movil.md).
 
-## 🟣 Roadmap del security audit — 2026-06-19
+## 🟣 Roadmap del security audit — Estado al 2026-06-22
 
-Bloque rojo y naranja **completados y deployados** (API). Lo que falta:
+### ✅ Bloques rojo + naranja + amarillo CERRADOS
 
-### Bloque amarillo (este mes — refactors)
-- **#14 — `$this->authorize()` en 12+ controllers state-changing** + tests
-  negativos cross-tenant. Cierra SEV-12 (BFLA). ~2-3 días.
-- **#15 — Quitar `Model::unguard()` global** + test de regresión que falla
-  si algún modelo no tiene `$fillable`. Cierra SEV-6. ~1 día.
-- **#16 — Dependabot + composer/npm audit bloqueante en CI** + pre-commit
-  `gitleaks protect --staged` + SBOM CycloneDX por release. Cierra SEV-18.
-  Medio día.
+- 17 de 18 hallazgos resueltos en código.
+- SEV-6, SEV-12, SEV-18 todos cerrados completos en sesiones del audit.
 
-### Bloque azul (este trimestre — cambios arquitectónicos grandes)
-- **#17 — Migrar token de `localStorage` a cookie HttpOnly+Secure+SameSite=Lax**
-  + middleware `CookieToBearer` + CSP estricta blocking + considerar
-  separar panel admin en subdominio. Cierra SEV-2 (la cripto más
-  importante del audit). ~1 semana.
-- **#18 — WAF/CDN Cloudflare delante** del API + edge cache + SIEM
-  unificada + test de restore real periódico. Arquitectura, mucho impacto
-  defensivo.
+### 🔵 Bloque azul — Plan ejecutable, sin código
+
+- **SEV-2 — token localStorage → cookie HttpOnly**:
+  Spec completo + diseño + plan de despliegue + trade-offs en
+  [`docs/decisions/ADR-010-token-localStorage-to-httponly-cookie.md`](decisions/ADR-010-token-localStorage-to-httponly-cookie.md).
+  Sprint dedicado de 5-7 días. **Es el último hallazgo crítico abierto.**
+
+- **WAF + CDN Cloudflare**: arquitectura defensiva. Necesita decisión de
+  plan CF (Free vs Pro). 2-3 días de implementación.
+
+- **Turnstile invisible login**: cierra el último 15% de SEV-10. 4h
+  cuando tengas keys de Cloudflare.
 
 Reporte completo: [`docs/security/auditoria-integral-2026-06-19.md`](security/auditoria-integral-2026-06-19.md).
 

@@ -1,0 +1,129 @@
+name: SBOM (CycloneDX)
+
+# Genera Software Bill of Materials en formato CycloneDX para composer + npm.
+# Cierra el último 30% de SEV-18 del audit 2026-06-19.
+#
+# Triggers:
+#  - Push de tag v* → genera SBOM y lo adjunta como release artifact
+#  - Manual (workflow_dispatch) → uploaded como workflow artifact
+#  - Semanal (lunes 03:00 UTC) → tracking del baseline
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  # ──────────────────────────────────────────────────────────────
+  # SBOM del backend Laravel (PHP / composer)
+  # ──────────────────────────────────────────────────────────────
+  sbom-api:
+    name: SBOM apps/api (composer)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: apps/api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+
+      - name: Install dependencies (no dev)
+        run: composer install --prefer-dist --no-progress --no-interaction --no-dev
+
+      - name: Install CycloneDX composer plugin
+        run: composer global require --dev cyclonedx/cyclonedx-php-composer
+
+      - name: Generate SBOM (CycloneDX JSON)
+        run: |
+          export PATH="$HOME/.composer/vendor/bin:$PATH"
+          composer make-bom --output-format=JSON --output-file=sbom-api.cdx.json
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-api-${{ github.sha }}
+          path: apps/api/sbom-api.cdx.json
+          retention-days: 90
+
+  # ──────────────────────────────────────────────────────────────
+  # SBOM del frontend Next.js (npm)
+  # ──────────────────────────────────────────────────────────────
+  sbom-web:
+    name: SBOM apps/web (npm)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: apps/web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci --omit=dev
+
+      - name: Generate SBOM (CycloneDX JSON)
+        run: npx --yes @cyclonedx/cyclonedx-npm --output-file sbom-web.cdx.json --output-format JSON
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-web-${{ github.sha }}
+          path: apps/web/sbom-web.cdx.json
+          retention-days: 90
+
+  # ──────────────────────────────────────────────────────────────
+  # SBOM del mobile app (npm) — opcional, solo manual
+  # ──────────────────────────────────────────────────────────────
+  sbom-mobile:
+    name: SBOM apps/mobile (npm)
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: apps/mobile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci --omit=dev || true   # mobile puede no tener lock alineado
+
+      - name: Generate SBOM (CycloneDX JSON)
+        run: npx --yes @cyclonedx/cyclonedx-npm --output-file sbom-mobile.cdx.json --output-format JSON
+        continue-on-error: true
+
+      - name: Upload SBOM artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-mobile-${{ github.sha }}
+          path: apps/mobile/sbom-mobile.cdx.json
+          retention-days: 90

@@ -1,0 +1,38 @@
+# Pre-commit hooks — cierra el último 30% de SEV-18 del audit 2026-06-19.
+#
+# Instala una sola vez por dev:
+#   pip install pre-commit       # o brew install pre-commit
+#   pre-commit install           # registra el hook en .git/hooks/pre-commit
+#
+# Lo que hace cada commit local:
+#  - gitleaks: escanea el diff staged buscando secretos (API keys, tokens,
+#    private keys) ANTES de que lleguen al commit. Catch en local > catch
+#    en CI > catch en GitHub > catch en producción.
+#
+# Para skip un commit puntual (NO recomendado salvo emergencia):
+#   git commit --no-verify
+# Si lo skip, el workflow `security.yml` (gitleaks-action) sigue catando
+# en CI — es la segunda red.
+
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+        name: gitleaks (secret scanning)
+        description: Detecta secretos commiteados antes del push
+        args: ['--config=.github/gitleaks.toml', '--staged', '--verbose']
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-merge-conflict       # falla si hay markers <<<< sin resolver
+      - id: check-added-large-files    # falla en files > 500 KB (typo común)
+        args: ['--maxkb=500']
+      - id: check-json                 # valida JSON syntax (.env.example, etc.)
+      - id: check-yaml                 # valida YAML syntax (workflows, etc.)
+        exclude: ^docker/.*\.yaml$     # docker-compose puede tener templating
+      - id: end-of-file-fixer
+        exclude: ^.*\.(sql|json|md)$   # SQL/JSON/MD pueden no terminar en \n
+      - id: trailing-whitespace
+        exclude: ^.*\.md$              # markdown a veces usa double-space para line break

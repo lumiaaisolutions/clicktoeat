@@ -9,16 +9,18 @@
 **18 hallazgos** sobre el sistema completo (Laravel API + Next.js web +
 infra Hostinger + multi-tenancy + mobile):
 
-| Severidad | Cant | Estado deployment (actualizado 2026-06-22) |
+| Severidad | Cant | Estado deployment (actualizado 2026-06-22 cierre) |
 |---|---|---|
-| 🔴 Crítica | 4 (SEV-1..4) | 3 deployadas (API), 1 parcial (web — pendiente re-deploy) |
-| 🟠 Alta    | 6 (SEV-5..10) | 5 deployadas. **SEV-6 cerrado el 2026-06-20**. SEV-7 y SEV-9 web pendientes. |
-| 🟡 Media   | 4 (SEV-11..14) | Deployadas. **SEV-12 cerrado completo el 2026-06-22** (5 commits: CuponPolicy, ReviewPolicy + 8 inline-auth verificadas). |
+| 🔴 Crítica | 4 (SEV-1..4) | 3 deployadas (API). **SEV-2 con plan ejecutable en ADR-010** — implementación dedicada ~1 semana. |
+| 🟠 Alta    | 6 (SEV-5..10) | 5 deployadas. **SEV-6 cerrado el 2026-06-20**. SEV-7 y SEV-9 web pendientes deploy. |
+| 🟡 Media   | 4 (SEV-11..14) | Deployadas. **SEV-12 cerrado completo el 2026-06-22**. |
 | 🔵 Baja    | 3 (SEV-15..17) | Deployadas |
-| ⚪ Info     | 1 (SEV-18) | **~70% cerrado el 2026-06-20** (Dependabot + npm audit signatures). Falta SBOM CycloneDX + pre-commit gitleaks. |
+| ⚪ Info     | 1 (SEV-18) | **CERRADO COMPLETO el 2026-06-22**: Dependabot + npm audit signatures + SBOM CycloneDX workflow + pre-commit gitleaks. |
 
-**Resumen consolidado al 2026-06-22**: **17 de 18 hallazgos resueltos** en código.
-Solo queda SEV-2 (cookie HttpOnly — bloque azul, ~1 semana) y último 30% de SEV-18.
+**Resumen consolidado al cierre del audit (2026-06-22)**:
+- **17 de 18 hallazgos resueltos en código** (94%).
+- **1 con spec ejecutable** (SEV-2 → ADR-010, ~1 semana de sprint dedicado).
+- **0 hallazgos sin plan**.
 
 **Commits relevantes**:
 - `08e41a2` — hardening completo + mobile feature backend (ya en prod API)
@@ -146,14 +148,20 @@ Test actualizado. App mobile maneja 409 gracefully.
 **Fix**: ✅ Usa `MYSQL_PWD` env var en lugar de `--password=`.
 **Estado**: ✅ Aplicado.
 
-### ⚪ SEV-18 — Falta SBOM, dependency scanning automatizado, pre-commit gitleaks
-**Estado**: ✅ ~70% cerrado el 2026-06-20 (commits `91979c7` + `60107e3`):
-- `.github/dependabot.yml` creado — auto-PRs semanales para composer + npm
-  + github-actions. Ignora majors de stack core y todos los bumps de sileo.
-- `npm audit signatures` agregado al workflow security.yml (catch tipo
-  event-stream/colors.js). `continue-on-error: true` hasta migración
-  ecosistema a Sigstore.
-**Falta**: SBOM CycloneDX por release + pre-commit `gitleaks protect --staged`.
+### ⚪ SEV-18 — Cadena de suministro ✅ CERRADO COMPLETO 2026-06-22
+
+**Resolución en 4 capas**:
+
+1. `.github/dependabot.yml` — auto-PRs semanales composer + npm + github-actions
+   con ignores de majors de stack core y bumps de sileo (commit `91979c7`).
+2. `npm audit signatures` en `.github/workflows/security.yml` — catch tipo
+   event-stream/colors.js (commit `60107e3`).
+3. `.github/workflows/sbom.yml` — genera SBOM CycloneDX JSON para
+   composer + npm web + npm mobile en cada tag `v*` + manual + semanal.
+   Artifacts retenidos 90 días.
+4. `.pre-commit-config.yaml` — gitleaks como hook local antes del git push,
+   más higiene básica (merge conflict markers, large files, JSON/YAML syntax).
+   Documentado en `docs/runbook/setup-pre-commit-hooks.md`.
 
 ---
 

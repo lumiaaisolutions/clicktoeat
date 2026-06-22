@@ -6,6 +6,34 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+### Security — Cierre del audit 2026-06-22 (SEV-12 + SEV-18 completos)
+
+- **SEV-12 cerrado completo** (5 commits, `b47dea6` → `c5f64ee`):
+  - 4 controllers con Policy nueva: Cupon, Horario, Local.update, Review admin.
+  - 9 controllers con inline auth verificada como decisión consciente,
+    documentada en docblocks: CancellationFeedback, Metricas, AuditLog,
+    Search, Referido, Upload (FormRequest), Push, Billing, MobileDevice.
+  - Nuevo `CuponAuthorizationTest` con 7 casos cross-tenant (cierra
+    BOLA del owner via authorize + tenant match).
+  - phpunit 219 → **226 verde**.
+
+- **SEV-18 cerrado completo** (commits `91979c7`, `60107e3`, + este):
+  - `.github/workflows/sbom.yml` — genera SBOM CycloneDX JSON para
+    composer + npm web + npm mobile en cada tag `v*` + manual + cron
+    semanal. Artifacts retenidos 90 días.
+  - `.pre-commit-config.yaml` con gitleaks (versión 8.21.2 pinned) +
+    higiene básica (merge conflicts, large files, JSON/YAML syntax).
+  - `docs/runbook/setup-pre-commit-hooks.md` explicando instalación.
+
+- **SEV-2 con plan ejecutable** (no implementado por scope):
+  - `docs/decisions/ADR-010-token-localStorage-to-httponly-cookie.md`
+    con spec completo de la migración a cookie HttpOnly+Secure+
+    SameSite=Lax. Middleware CookieToBearer + cambios en Auth controller
+    + cambios en frontend `lib/api.ts` con `withCredentials: true`.
+    Plan de despliegue en 4 fases (5-7 días). Trade-offs documentados.
+
+### Audit consolidado: 17/18 hallazgos cerrados + 1 con plan ejecutable.
+
 ### Security — Continuación audit 2026-06-20 (SEV-6 cerrado + SEV-18 parcial)
 
 - **SEV-6 cerrado completo** (`c4c6d8c` + `0e246b6`):

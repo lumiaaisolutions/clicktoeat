@@ -30,20 +30,24 @@ curl -I https://clicktoeat-api.lumiaaisolutions.com/up  # 200 + 5 headers de seg
 
 - **226/226 phpunit verde** en main local (subió de 219 con `CuponAuthorizationTest`).
 - TypeScript estricto OK, Next.js build OK.
-- 5 commits del 2026-06-22 en local, **pendientes de push** (`git push origin main`
+- **7 commits del 2026-06-22 en local, pendientes de push** (`git push origin main`
   falló por credenciales — tu lado del macOS keychain).
-- Último commit local: `c5f64ee docs(api): marcar inline auth en Billing/Upload/Push (SEV-12 — 13/13 ✅)`.
+- Último commit local incluye SEV-18 último 30% (SBOM CycloneDX + pre-commit
+  gitleaks) y cierre formal del audit.
 
 ## Auditoría integral de seguridad — 2026-06-19/20
 
-Bloque rojo + naranja + amarillo aplicados. Avance al 2026-06-22:
+Bloques rojo + naranja + amarillo aplicados. Avance al 2026-06-22 cierre:
 
-- **17 de 18 hallazgos resueltos en código** (subió desde 16).
+- **17 de 18 hallazgos resueltos en código** (94%).
 - **SEV-12 cerrado el 2026-06-22**: 4 controllers con Policy nueva
   (Cupon, Horario, Local.update, Review admin) + 9 con inline auth
   documentada como intencional.
-- SEV-6 completo cerrado el 2026-06-20.
-- SEV-18 ~70% cerrado (Dependabot + npm audit signatures en CI).
+- **SEV-18 cerrado completo el 2026-06-22**: Dependabot + npm audit
+  signatures + SBOM CycloneDX workflow + pre-commit gitleaks + runbook.
+- **SEV-6 cerrado el 2026-06-20**.
+- **SEV-2 con plan ejecutable en ADR-010** — único crítico restante,
+  sprint dedicado de ~1 semana.
 - **API en prod tiene todos los hardening live** (verificado con `curl -sI`).
 - Web los tendrá tras el próximo deploy (bloqueado por pendiente de
   env vars NPROC — ver `docs/PENDIENTES.md` items 1-2).
