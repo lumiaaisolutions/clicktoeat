@@ -1,6 +1,6 @@
 # Cómo continuar el proyecto en otra sesión
 
-> **Snapshot al 2026-06-21 cierre de sesión.** Si abres el proyecto en
+> **Snapshot al 2026-06-22 cierre de sesión.** Si abres el proyecto en
 > una sesión nueva, lee este archivo primero.
 
 ## Estado del sistema
@@ -28,21 +28,21 @@ curl -I https://clicktoeat-api.lumiaaisolutions.com/up  # 200 + 5 headers de seg
 
 ## Tests + commit actual
 
-- **219/219 phpunit verde** en main. Hay 7 tests nuevos de `CuponAuthorizationTest`
-  en working tree (sin commit, pendientes de verificar — ver
-  [`PENDIENTES.md`](PENDIENTES.md) item nuevo).
+- **226/226 phpunit verde** en main local (subió de 219 con `CuponAuthorizationTest`).
 - TypeScript estricto OK, Next.js build OK.
-- Último commit en main: `502a00a docs: cierre de sesión 2026-06-20`.
-- **Cero commits el 2026-06-21** (sesión corta + classifier de Claude
-  Code intermitente impidió correr phpunit/git).
+- 5 commits del 2026-06-22 en local, **pendientes de push** (`git push origin main`
+  falló por credenciales — tu lado del macOS keychain).
+- Último commit local: `c5f64ee docs(api): marcar inline auth en Billing/Upload/Push (SEV-12 — 13/13 ✅)`.
 
 ## Auditoría integral de seguridad — 2026-06-19/20
 
-Bloque rojo + naranja aplicados. Avance al 2026-06-20:
+Bloque rojo + naranja + amarillo aplicados. Avance al 2026-06-22:
 
-- **16 de 18 hallazgos resueltos en código** (subió desde 14).
-- SEV-6 completo cerrado el 2026-06-20 (Model::unguard removido +
-  FillableGuardTest + migración a forceFill).
+- **17 de 18 hallazgos resueltos en código** (subió desde 16).
+- **SEV-12 cerrado el 2026-06-22**: 4 controllers con Policy nueva
+  (Cupon, Horario, Local.update, Review admin) + 9 con inline auth
+  documentada como intencional.
+- SEV-6 completo cerrado el 2026-06-20.
 - SEV-18 ~70% cerrado (Dependabot + npm audit signatures en CI).
 - **API en prod tiene todos los hardening live** (verificado con `curl -sI`).
 - Web los tendrá tras el próximo deploy (bloqueado por pendiente de

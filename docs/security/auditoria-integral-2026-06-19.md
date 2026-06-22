@@ -9,13 +9,16 @@
 **18 hallazgos** sobre el sistema completo (Laravel API + Next.js web +
 infra Hostinger + multi-tenancy + mobile):
 
-| Severidad | Cant | Estado deployment (actualizado 2026-06-20) |
+| Severidad | Cant | Estado deployment (actualizado 2026-06-22) |
 |---|---|---|
 | 🔴 Crítica | 4 (SEV-1..4) | 3 deployadas (API), 1 parcial (web — pendiente re-deploy) |
-| 🟠 Alta    | 6 (SEV-5..10) | 5 deployadas. **SEV-6 cerrado completo el 2026-06-20** (Model::unguard removido + FillableGuardTest + migración forceFill). SEV-7 y SEV-9 web pendientes. |
-| 🟡 Media   | 4 (SEV-11..14) | Deployadas |
+| 🟠 Alta    | 6 (SEV-5..10) | 5 deployadas. **SEV-6 cerrado el 2026-06-20**. SEV-7 y SEV-9 web pendientes. |
+| 🟡 Media   | 4 (SEV-11..14) | Deployadas. **SEV-12 cerrado completo el 2026-06-22** (5 commits: CuponPolicy, ReviewPolicy + 8 inline-auth verificadas). |
 | 🔵 Baja    | 3 (SEV-15..17) | Deployadas |
 | ⚪ Info     | 1 (SEV-18) | **~70% cerrado el 2026-06-20** (Dependabot + npm audit signatures). Falta SBOM CycloneDX + pre-commit gitleaks. |
+
+**Resumen consolidado al 2026-06-22**: **17 de 18 hallazgos resueltos** en código.
+Solo queda SEV-2 (cookie HttpOnly — bloque azul, ~1 semana) y último 30% de SEV-18.
 
 **Commits relevantes**:
 - `08e41a2` — hardening completo + mobile feature backend (ya en prod API)
@@ -98,10 +101,27 @@ email/teléfono en mensajes. Aplicado a los 3 runtimes.
 Test actualizado. App mobile maneja 409 gracefully.
 **Estado prod**: ✅ Live.
 
-### 🟡 SEV-12 — Controllers sin `$this->authorize()` explícito (CVSS 5.4)
-**Estado**: ⏳ WIP iniciado 2026-06-21 — Cupon (1 de 13 controllers) escrito en working tree pero sin commit (esperaba validación phpunit que quedó bloqueada por classifier intermitente). Continuar en próxima sesión.
-- `CuponPolicy` + `CuponController` con 6 authorize calls + `CuponAuthorizationTest` con 7 casos cross-tenant escritos.
-- Pendientes: Horario, Local.update, Billing, Review admin, CancellationFeedback, Metricas, AuditLog, Search, Referido, Upload, PushSubscription, MobileDevice.
+### 🟡 SEV-12 — Controllers sin `$this->authorize()` explícito ✅ CERRADO 2026-06-22
+**Resolución** (5 commits: `b47dea6`, `8624ee4`, `b9c1fd3`, `0af3489`, `c5f64ee`):
+
+**4 controllers con Policy explícita nueva**:
+- `CuponController` (6 methods) + nueva `CuponPolicy` + `CuponAuthorizationTest` (7 casos cross-tenant)
+- `HorarioController` (show + update) reusa `LocalPolicy`
+- `LocalController::update` reusa `LocalPolicy` (show ya tenía authorize)
+- `ReviewController` admin methods (indexAdmin, toggleAprobado, destroyAdmin) + nueva `ReviewPolicy`
+
+**9 controllers con inline auth verificada como decisión consciente** (documentado en docblock de cada uno):
+- `CancellationFeedbackController` — `abort(403)` inline (no es CRUD)
+- `MetricasController` — `abort_unless($user && $local_id)` (read-only)
+- `AuditLogController` — `throw 403` con lógica específica owner vs super_admin
+- `SearchController` — `$tenant->localIdOrFail()` (read-only por tenant)
+- `ReferidoController` — `if (! $local) return 403`
+- `UploadController` — `StoreImageRequest::authorize()` via FormRequest (patrón canónico)
+- `PushSubscriptionController` — inline 401 + filter por user_id (flag para hardening futuro similar SEV-11)
+- `BillingController` — `TenantContext` + inline 403 en cada endpoint protegido
+- `MobileDeviceController` — already authorized via `RegisterMobileDeviceRequest` + SEV-11 fix del 2026-06-19
+
+**Tests**: phpunit subió de 219 → **226 verde**.
 
 ### 🟡 SEV-13 — MySQL en `docker-compose.yml` expone 0.0.0.0 + password trivial
 **Ubicación**: `docker-compose.yml`

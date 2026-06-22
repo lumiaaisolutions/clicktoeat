@@ -1,6 +1,6 @@
 # Pendientes — lista única de verdad
 
-> Estado al **2026-06-21 cierre de sesión**.
+> Estado al **2026-06-22 cierre de sesión**.
 > Esta es la fuente única de verdad sobre qué falta hacer. Si está acá,
 > está pendiente. Si NO está acá, ya está hecho.
 
@@ -11,34 +11,28 @@ hardening del audit). API está sirviendo CON hardening completo. Ningún
 cliente afectado, pero el web está pendiente de re-deploy con el fix
 sileo `5d2cdc5` después de aplicar las env vars de Capa 1 abajo.
 
-## 🟡 WIP en working tree — sin commit ni verificar (2026-06-21)
+## ✅ SEV-12 cerrado completo (2026-06-22)
 
-Trabajo del bloque amarillo del audit (SEV-12) escrito pero pendiente
-de validar con phpunit:
-
-### Cupon authorization — primer controller del bloque amarillo
-
-Archivos modificados/nuevos en working tree:
+Los 13 controllers del audit están autorizados (4 con Policy nueva +
+9 con inline auth verificada). 5 commits locales pendientes de push:
 
 ```
-apps/api/app/Policies/CuponPolicy.php                 (nuevo)
-apps/api/app/Http/Controllers/Api/CuponController.php (modificado — 6 authorize calls)
-apps/api/tests/Feature/CuponAuthorizationTest.php     (nuevo — 7 casos cross-tenant)
+c5f64ee  docs(api): marcar inline auth en Billing/Upload/Push (13/13 ✅)
+0af3489  docs(api): marcar inline auth como intencional en 5 controllers (9/13)
+b9c1fd3  security(api): authorize en ReviewController admin (4/13)
+8624ee4  security(api): authorize en HorarioController + LocalController.update (3/13)
+b47dea6  security(api): autorización explícita en CuponController (1/13)
 ```
 
-**Para validar y commitear** (cuando puedas):
+**Para push** (mi `git push` falló por credenciales del macOS keychain):
 
 ```bash
-cd apps/api && php vendor/phpunit/phpunit/phpunit --filter=CuponAuthorization
+cd /Users/fernandotorres/Desktop/LUMIA/clicktoeat
+git push origin main
 ```
 
-- Si verde → me dices "verde" en la siguiente sesión y commiteo + sigo con el siguiente controller.
-- Si rojo → pasame el output y arreglo antes de avanzar.
-
-Esto cierra ~1/13 del trabajo total de SEV-12. Quedan 12 controllers
-más (Horario, Local.update, Billing, Review admin,
-CancellationFeedback, Metricas, AuditLog, Search, Referido, Upload,
-PushSubscription, MobileDevice).
+Si te pide credenciales, usa tu personal access token GitHub o configura
+SSH para el remote.
 
 ## 🟧 Solo TU acción (no requiere código)
 
