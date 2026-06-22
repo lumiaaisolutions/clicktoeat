@@ -11,6 +11,11 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * @OA\Tag(name="Audit log", description="Historial de cambios sensibles del local (sólo owner).")
+ *
+ * SEV-12 nota: usa inline `if (! isOwner() && ! isSuperAdmin()) throw` en
+ * lugar del patrón Policy. Decisión consciente — no es CRUD (read-only,
+ * lógica de filtrado específica al super_admin vs owner). Audit 2026-06-19
+ * lo flageó por "no Policy"; confirmamos que la autorización es correcta.
  */
 class AuditLogController extends Controller
 {

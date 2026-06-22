@@ -13,6 +13,11 @@ use Illuminate\Http\JsonResponse;
  * Endpoint del programa de referidos. Devuelve el código del local
  * + share URL + lista de referidos hechos por este local + estimación
  * del descuento ganado (10% × precio del plan × N rewarded).
+ *
+ * SEV-12 nota: usa inline `if (! $local) return 403` — el local viene
+ * del TenantContext, así que la auth implícita está cubierta por el
+ * middleware `tenant`. Sin Policy reutilizable porque es endpoint
+ * único de read.
  */
 class ReferidoController extends Controller
 {

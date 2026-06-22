@@ -13,6 +13,10 @@ use Illuminate\Support\Facades\DB;
 /**
  * Búsqueda global rápida para Cmd+K. Por tenant, devuelve hasta 5 hits
  * por tipo: pedidos (código + cliente), productos (nombre), clientes (teléfono o email).
+ *
+ * SEV-12 nota: usa `$tenant->localIdOrFail()` que lanza 403 si no hay
+ * tenant context. Suficiente para este endpoint (search es read-only por
+ * tenant). No requiere Policy reutilizable.
  */
 class SearchController extends Controller
 {

@@ -10,6 +10,10 @@ use Illuminate\Http\Request;
 
 /**
  * @OA\Tag(name="Métricas", description="KPIs y reportes estadísticos del local.")
+ *
+ * SEV-12 nota: Usa `abort_unless($user && $user->local_id)` inline + feature
+ * gate `metricas_avanzadas` en la ruta. Decisión consciente — no es CRUD,
+ * no necesita Policy reusable. Confirmado en audit follow-up 2026-06-22.
  */
 class MetricasController extends Controller
 {

@@ -12,6 +12,13 @@ use Illuminate\Support\Facades\DB;
  * gold-data para reducir churn — el módulo cancela igual aunque el
  * usuario no envíe motivo (no es bloqueante).
  */
+/**
+ * SEV-12 nota: Este controller usa `abort(403)` inline en lugar del patrón
+ * Policy + `$this->authorize()`. Ambos son válidos — la inline check es
+ * tight, clara y específica al caso (no es CRUD, no necesita policy
+ * reutilizable). El audit del 2026-06-19 lo flageó por "no Policy"; aquí
+ * confirmamos que es decisión consciente, no oversight.
+ */
 class CancellationFeedbackController extends Controller
 {
     public function store(Request $req): JsonResponse
