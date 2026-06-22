@@ -100,6 +100,7 @@ class ReviewController extends Controller
     /** Listado para owner — moderar / des-aprobar. */
     public function indexAdmin(): JsonResponse
     {
+        $this->authorize('viewAny', Review::class);
         $items = Review::query()->orderByDesc('id')->limit(100)->get();
         return response()->json(['data' => $items]);
     }
@@ -107,6 +108,7 @@ class ReviewController extends Controller
     /** Toggle aprobado por owner. */
     public function toggleAprobado(Review $review): JsonResponse
     {
+        $this->authorize('update', $review);
         $review->update(['aprobado' => ! $review->aprobado]);
         return response()->json(['data' => $review]);
     }
@@ -114,6 +116,7 @@ class ReviewController extends Controller
     /** F100 — Borrar review (definitivo). Útil para spam/ofensa. */
     public function destroyAdmin(Review $review): JsonResponse
     {
+        $this->authorize('delete', $review);
         $review->delete();
         return response()->json(null, 204);
     }
