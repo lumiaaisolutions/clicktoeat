@@ -7,7 +7,7 @@ use App\Models\Local;
 use App\Models\Pedido;
 use App\Models\Producto;
 use App\Services\Inventory\InventoryService;
-use App\Services\Notifications\WebPushSender;
+use App\Services\Notifications\PushDispatcher;
 use App\Services\WhatsApp\WhatsAppLinkBuilder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +24,7 @@ class OrderService
     public function __construct(
         protected InventoryService    $inventory,
         protected WhatsAppLinkBuilder $whatsapp,
-        protected WebPushSender       $push,
+        protected PushDispatcher      $push,
     ) {}
 
     /**
@@ -122,13 +122,18 @@ class OrderService
         // Ver: docs/runbook/integrar-reverb.md
         event(new \App\Events\PedidoCreado($pedido));
 
-        // Web Push a las suscripciones del local. No-op si VAPID no está
-        // configurado o si nadie del local subscribió desde el browser.
+        // Fan-out a Web Push (browser) + Expo Push (app móvil). Cada canal es
+        // no-op silencioso si no hay tokens registrados / VAPID sin config.
         $this->push->sendToLocal($local->id, [
             'title' => 'Nuevo pedido '.$pedido->codigo,
             'body'  => trim(($pedido->cliente_nombre ?? 'Cliente').' · $'.number_format((float) $pedido->total, 2)),
             'url'   => '/admin/pedidos',
             'tag'   => 'pedido-'.$pedido->id,
+            'data'  => [
+                'pedido_id' => $pedido->id,
+                'codigo'    => $pedido->codigo,
+                'route'     => '/(admin)/pedidos/'.$pedido->id,
+            ],
         ]);
 
         // Email de confirmación al cliente final, si dejó email.
