@@ -42,6 +42,7 @@ class LocalController extends Controller
     public function update(UpdateBrandingRequest $request): LocalResource
     {
         $local = $this->resolveLocal($request);
+        $this->authorize('update', $local);
         $local->update($request->validated());
         return new LocalResource($local->fresh());
     }

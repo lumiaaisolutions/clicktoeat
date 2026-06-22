@@ -27,6 +27,7 @@ class HorarioController extends Controller
     public function show(Request $request): JsonResponse
     {
         $local = $this->resolveLocal($request);
+        $this->authorize('view', $local);
 
         return response()->json([
             'data' => [
@@ -49,6 +50,7 @@ class HorarioController extends Controller
     public function update(UpdateHorariosRequest $request): JsonResponse
     {
         $local = $this->resolveLocal($request);
+        $this->authorize('update', $local);
 
         $data = $request->validated();
 
