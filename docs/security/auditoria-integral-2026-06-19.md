@@ -99,7 +99,9 @@ Test actualizado. App mobile maneja 409 gracefully.
 **Estado prod**: ✅ Live.
 
 ### 🟡 SEV-12 — Controllers sin `$this->authorize()` explícito (CVSS 5.4)
-**Estado**: ⚠️ NO aplicado. Trabajo del bloque amarillo (#14 del roadmap, ~2-3 días).
+**Estado**: ⏳ WIP iniciado 2026-06-21 — Cupon (1 de 13 controllers) escrito en working tree pero sin commit (esperaba validación phpunit que quedó bloqueada por classifier intermitente). Continuar en próxima sesión.
+- `CuponPolicy` + `CuponController` con 6 authorize calls + `CuponAuthorizationTest` con 7 casos cross-tenant escritos.
+- Pendientes: Horario, Local.update, Billing, Review admin, CancellationFeedback, Metricas, AuditLog, Search, Referido, Upload, PushSubscription, MobileDevice.
 
 ### 🟡 SEV-13 — MySQL en `docker-compose.yml` expone 0.0.0.0 + password trivial
 **Ubicación**: `docker-compose.yml`

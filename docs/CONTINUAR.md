@@ -1,6 +1,6 @@
 # Cómo continuar el proyecto en otra sesión
 
-> **Snapshot al 2026-06-20 cierre de sesión.** Si abres el proyecto en
+> **Snapshot al 2026-06-21 cierre de sesión.** Si abres el proyecto en
 > una sesión nueva, lee este archivo primero.
 
 ## Estado del sistema
@@ -28,10 +28,13 @@ curl -I https://clicktoeat-api.lumiaaisolutions.com/up  # 200 + 5 headers de seg
 
 ## Tests + commit actual
 
-- **219/219 phpunit verde** (subió desde 218/218 con `FillableGuardTest`
-  agregado al cerrar SEV-6 el 2026-06-20).
+- **219/219 phpunit verde** en main. Hay 7 tests nuevos de `CuponAuthorizationTest`
+  en working tree (sin commit, pendientes de verificar — ver
+  [`PENDIENTES.md`](PENDIENTES.md) item nuevo).
 - TypeScript estricto OK, Next.js build OK.
-- Último commit en main: ver `git log -1 --oneline`.
+- Último commit en main: `502a00a docs: cierre de sesión 2026-06-20`.
+- **Cero commits el 2026-06-21** (sesión corta + classifier de Claude
+  Code intermitente impidió correr phpunit/git).
 
 ## Auditoría integral de seguridad — 2026-06-19/20
 
@@ -161,14 +164,64 @@ El cron maestro `* * * * * php artisan schedule:run` ya está en hPanel — los 
 | 1 | Activar backup diario $6/mes | 2 min | hPanel → VPS → Backups → Add-on |
 | 2 | Probar flow E2E con tu tarjeta | 15 min | Registro real + Stripe trial → cancelar antes de 14 días |
 | 3 | Revocar MCP key Stripe `rk_live_51TPnLAR...` | 1 min | Dashboard Stripe → Developers → API keys → Revoke |
+| 4 | **App móvil**: `cd apps/mobile && npx eas init` | 5 min | Genera `projectId` para push en builds |
+| 5 | **App móvil**: subir `assets/sounds/bell.mp3` | 5 min | Sin esto la campana es no-op |
+| 6 | **App móvil**: Apple Developer ($99/año) | 24h aprob | Para TestFlight + App Store |
+| 7 | **App móvil**: Google Play ($25 one-time) | inmediato | Para internal testing + Play Store |
 
-## 🟨 Features documentadas pero NO implementadas
+## 📱 App móvil ClickToEat — implementada 2026-06-19/20
+
+**Estado**: 66 archivos TypeScript en `apps/mobile/`, typecheck limpio.
+Expo SDK 56 + Expo Router + NativeWind v4 + Zustand + TanStack Query.
+
+**Paridad funcional con el panel web** salvo lo que conscientemente vive
+mejor en escritorio (POS offline, editor de extras, recetas, upload de
+imágenes con cropper, newsletter/templates de email, webhooks outgoing).
+
+### Pantallas
+- 4 tabs principales: Inicio (dashboard) · Pedidos (cola en vivo con polling 10s + campana + haptics) · Buscar (`/search`) · Más (menú agrupado)
+- Pedidos: detalle con flujo completo de estados (confirmar → preparando → listo → en_camino → entregado) + cancelar
+- Catálogo: Productos (toggle disponibilidad + edit precio/descuento/promo) · Categorías (crear + toggle) · Cupones (toggle)
+- Inventario: lista con badge bajo stock → detalle + ajuste (entrada/ajuste/merma) + movimientos
+- Compras a proveedor (lectura)
+- Negocio: Reviews moderación · Staff (lectura) · Branding (info local + colores + lealtad)
+- Horarios (editor por día + cerrado_temporal)
+- Notificaciones in-app · Multi-sucursal switcher · Tickets de soporte (crear)
+- Audit log (gated 402 con CTA al panel web)
+- Super admin (solo `rol === 'super_admin'`): locales (suspender/reactivar) · SaaS metrics · Anuncios globales
+
+### Backend agregado
+- Tabla `mobile_devices` (migration `2026_06_19_120000`)
+- `POST /api/v1/mobile/register-device` + `unregister-device` (auth + tenant + throttle 20/min)
+- `ExpoPushSender` (HTTP a `exp.host/--/api/v2/push/send`)
+- `PushDispatcher` — fan-out unificado web + móvil
+- `OrderService::crear` ahora usa `PushDispatcher` con `data.route` para deep-link
+- **SEV-11 fix**: 409 cross-user en lugar de reasignación silenciosa
+- `MobileDeviceRegistrationTest` (6 casos cubren registro, idempotencia, cross-user, unregister, auth, validación)
+
+### Docs nuevos en esta sesión
+- [`docs/features/app-movil-clicktoeat.md`](features/app-movil-clicktoeat.md) — plan + estado + decisiones
+- [`docs/api/mobile.md`](api/mobile.md) — endpoints
+- [`docs/architecture/push-dispatcher.md`](architecture/push-dispatcher.md) — patrón fan-out
+- [`docs/security/sev-11-mobile-device-token-reassignment.md`](security/sev-11-mobile-device-token-reassignment.md)
+- [`docs/runbook/arrancar-app-movil.md`](runbook/arrancar-app-movil.md) — dev / EAS / TestFlight
+- `docs/database/schema.md` — sección `mobile_devices`
+
+### Lo que NO se construyó (decisión consciente)
+- Productos: crear desde cero con extras/toppings + upload imagen
+- POS con offline + idempotency
+- Recetas (UI de árbol ingrediente↔producto)
+- Newsletter, email templates editables, cupones globales, webhooks outgoing
+- Centro de aprendizaje
+- Migrar polling 10s → Reverb WebSocket (esperar feedback de batería real)
+- Tracking de repartidor en mapa (futuro)
+
+## 🟨 Otras features documentadas pero NO implementadas
 
 Estos son planes en `docs/features/` listos para cuando sean necesarios:
 
 | Item | Doc | Cuándo conviene |
 |---|---|---|
-| App móvil React Native | `app-movil-clicktoeat.md` | 50+ locales pagando |
 | API pública para terceros | `api-publica-y-ab-testing.md` | Cliente la pide |
 | A/B testing de menú | `api-publica-y-ab-testing.md` | Local con >50 pedidos/día |
 | Pre-pago Stripe Connect cliente final | (sin doc específico) | Requiere onboarding técnico del owner |
@@ -177,6 +230,14 @@ Estos son planes en `docs/features/` listos para cuando sean necesarios:
 | **Self-service alta de sucursales** | `pos-listas-tours-sucursales-emails-auditoria-2026-06-18.md` | Cliente Premium con cadena lo pida — hoy es asistido por soporte |
 
 ## 📚 Documentación clave para futuras sesiones
+
+### Cronología sesión 2026-06-19/20 — App móvil + SEV-11
+
+- `docs/features/app-movil-clicktoeat.md` — plan completo + estado real + decisiones aplicadas
+- `docs/api/mobile.md` — endpoints `/mobile/register-device` + `/mobile/unregister-device`
+- `docs/architecture/push-dispatcher.md` — patrón fan-out web + móvil
+- `docs/security/sev-11-mobile-device-token-reassignment.md` — hardening del registro
+- `docs/runbook/arrancar-app-movil.md` — dev, EAS, TestFlight, OTA
 
 ### Cronología de la sesión 2026-06-17 + 2026-06-18 (nuevos)
 

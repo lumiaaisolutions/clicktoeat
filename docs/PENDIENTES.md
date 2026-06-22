@@ -1,6 +1,6 @@
 # Pendientes — lista única de verdad
 
-> Estado al **2026-06-20 cierre de sesión**.
+> Estado al **2026-06-21 cierre de sesión**.
 > Esta es la fuente única de verdad sobre qué falta hacer. Si está acá,
 > está pendiente. Si NO está acá, ya está hecho.
 
@@ -10,6 +10,35 @@
 hardening del audit). API está sirviendo CON hardening completo. Ningún
 cliente afectado, pero el web está pendiente de re-deploy con el fix
 sileo `5d2cdc5` después de aplicar las env vars de Capa 1 abajo.
+
+## 🟡 WIP en working tree — sin commit ni verificar (2026-06-21)
+
+Trabajo del bloque amarillo del audit (SEV-12) escrito pero pendiente
+de validar con phpunit:
+
+### Cupon authorization — primer controller del bloque amarillo
+
+Archivos modificados/nuevos en working tree:
+
+```
+apps/api/app/Policies/CuponPolicy.php                 (nuevo)
+apps/api/app/Http/Controllers/Api/CuponController.php (modificado — 6 authorize calls)
+apps/api/tests/Feature/CuponAuthorizationTest.php     (nuevo — 7 casos cross-tenant)
+```
+
+**Para validar y commitear** (cuando puedas):
+
+```bash
+cd apps/api && php vendor/phpunit/phpunit/phpunit --filter=CuponAuthorization
+```
+
+- Si verde → me dices "verde" en la siguiente sesión y commiteo + sigo con el siguiente controller.
+- Si rojo → pasame el output y arreglo antes de avanzar.
+
+Esto cierra ~1/13 del trabajo total de SEV-12. Quedan 12 controllers
+más (Horario, Local.update, Billing, Review admin,
+CancellationFeedback, Metricas, AuditLog, Search, Referido, Upload,
+PushSubscription, MobileDevice).
 
 ## 🟧 Solo TU acción (no requiere código)
 
@@ -124,6 +153,58 @@ sileo `5d2cdc5` después de aplicar las env vars de Capa 1 abajo.
   php artisan trials:expire-manual   # corrida manual de prueba
   ```
 - **Tiempo**: 3 min.
+
+## 📱 App móvil ClickToEat — solo TU acción
+
+La app está construida (`apps/mobile/`, 66 archivos TypeScript, typecheck
+limpio). Lo que sigue es solo lo que el código no puede hacer.
+
+### Bloqueantes para correr la app en device real (~10 min total)
+
+#### 1. `npx eas init`
+- **Por qué**: registra el proyecto y escribe `projectId` en `app.json`.
+  Sin esto `getExpoPushTokenAsync` falla y no hay push en builds de prod.
+- **Cómo**:
+  ```bash
+  cd apps/mobile
+  npx eas login       # crea cuenta gratuita en expo.dev si no tienes
+  npx eas init
+  ```
+- **Tiempo**: 5 min.
+
+#### 2. Subir asset `assets/sounds/bell.mp3`
+- **Por qué**: la campana al llegar pedido nuevo es no-op silencioso sin este archivo.
+- **Spec**: MP3 ~0.5s, mono, 44.1 kHz, <50 KB.
+- **Dónde**: `apps/mobile/assets/sounds/bell.mp3`.
+- **Sugerencia**: freesound.org → buscar "bell notification short".
+- **Tiempo**: 5 min.
+
+### Bloqueantes solo cuando vayas a publicar (~$124/año primer año)
+
+#### 3. Cuenta Apple Developer Program
+- **Costo**: $99 USD/año.
+- **Cómo**: https://developer.apple.com/programs/enroll/
+- **Tiempo**: 24-48 h verificación.
+- **Después**: crear app en App Store Connect con `bundleIdentifier: com.lumia.clicktoeat`
+  → copiar App Store Connect App ID → pegar en `apps/mobile/eas.json` reemplazando `REEMPLAZAR_CON_APP_STORE_CONNECT_ID`.
+
+#### 4. Cuenta Google Play Console
+- **Costo**: $25 USD one-time.
+- **Cómo**: https://play.google.com/console
+- **Tiempo**: inmediato.
+
+#### 5. Privacy policy URL para App Store Connect
+- **Reusar**: `https://clicktoeat.lumiaaisolutions.com/privacidad`
+- **Dónde**: App Store Connect → App Information → Privacy Policy URL.
+
+### Assets de marca (no bloqueante, no urgente)
+- `assets/images/icon.png` — 1024×1024 PNG
+- `assets/images/splash-icon.png` — 200×200 PNG transparente
+- `assets/images/android-icon-foreground.png` + background + monochrome (1024×1024)
+- `assets/fonts/BricolageGrotesque-Bold.ttf` — Google Fonts (gratis)
+
+### Runbook completo
+[`docs/runbook/arrancar-app-movil.md`](runbook/arrancar-app-movil.md).
 
 ## 🟣 Roadmap del security audit — 2026-06-19
 
