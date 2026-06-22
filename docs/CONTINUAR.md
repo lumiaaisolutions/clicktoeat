@@ -33,8 +33,11 @@ curl -I https://clicktoeat-api.lumiaaisolutions.com/up  # 200 + 5 headers de seg
 - **Todos los commits del 2026-06-22 pusheados a GitHub**.
 - **API deployada a prod el 2026-06-22 15:18 UTC** (commit `bffb908`).
   Health check OK + headers de seguridad verificados live.
-- Web prod sigue con bundle viejo Jun 18 (rollback NPROC), pendiente de
-  re-deploy (acciones manuales del owner).
+- **WEB deployada a prod el 2026-06-22 22:35 UTC** con todos los hardening
+  del audit (CSP-Report-Only, headers, Sileo lazy, DOMPurify iframe email,
+  Sentry mask, Next 14.2.35). Health check OK.
+- Passengerfile.json setea UV_THREADPOOL_SIZE=2 + NODE_OPTIONS + telemetry
+  off (cierra el outage NPROC del 19-jun).
 
 ## Auditoría integral de seguridad — 2026-06-19/20
 
