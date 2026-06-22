@@ -28,12 +28,13 @@ curl -I https://clicktoeat-api.lumiaaisolutions.com/up  # 200 + 5 headers de seg
 
 ## Tests + commit actual
 
-- **226/226 phpunit verde** en main local (subió de 219 con `CuponAuthorizationTest`).
+- **231/231 phpunit verde** en main (incluye SEV-12 + SEV-2 backend half).
 - TypeScript estricto OK, Next.js build OK.
-- **7 commits del 2026-06-22 en local, pendientes de push** (`git push origin main`
-  falló por credenciales — tu lado del macOS keychain).
-- Último commit local incluye SEV-18 último 30% (SBOM CycloneDX + pre-commit
-  gitleaks) y cierre formal del audit.
+- **Todos los commits del 2026-06-22 pusheados a GitHub**.
+- **API deployada a prod el 2026-06-22 15:18 UTC** (commit `bffb908`).
+  Health check OK + headers de seguridad verificados live.
+- Web prod sigue con bundle viejo Jun 18 (rollback NPROC), pendiente de
+  re-deploy (acciones manuales del owner).
 
 ## Auditoría integral de seguridad — 2026-06-19/20
 

@@ -1,8 +1,13 @@
 # Pendientes — lista única de verdad
 
-> Estado al **2026-06-22 cierre de sesión**.
+> Estado al **2026-06-22 cierre de sesión final** (post-deploy API).
 > Esta es la fuente única de verdad sobre qué falta hacer. Si está acá,
 > está pendiente. Si NO está acá, ya está hecho.
+
+## 🚨 URGENTE — borrar tokens expuestos en chat
+
+1. **GitHub PAT** `ghp_v3Is3PKLT9...` — revocar en https://github.com/settings/tokens
+2. **Hostinger API token** `l05wCls...0dc61` — revocar en https://hpanel.hostinger.com/api
 
 ## 🔴 Bloqueantes
 
