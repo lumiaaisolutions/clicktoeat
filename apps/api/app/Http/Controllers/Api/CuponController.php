@@ -17,6 +17,7 @@ class CuponController extends Controller
 {
     public function index(Request $req): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Cupon::class);
         $q = Cupon::query()->orderBy('activo', 'desc')->orderBy('codigo');
         if ($req->boolean('vigentes')) $q->vigente();
         return JsonResource::collection($q->paginate(50));
@@ -24,6 +25,7 @@ class CuponController extends Controller
 
     public function store(Request $req): JsonResponse
     {
+        $this->authorize('create', Cupon::class);
         $data = $this->validateData($req);
         $cupon = Cupon::create($data);
         return response()->json(['data' => $cupon], 201);
@@ -31,11 +33,13 @@ class CuponController extends Controller
 
     public function show(Cupon $cupon): JsonResponse
     {
+        $this->authorize('view', $cupon);
         return response()->json(['data' => $cupon]);
     }
 
     public function update(Request $req, Cupon $cupon): JsonResponse
     {
+        $this->authorize('update', $cupon);
         $data = $this->validateData($req, $cupon->id);
         $cupon->update($data);
         return response()->json(['data' => $cupon->fresh()]);
@@ -43,12 +47,14 @@ class CuponController extends Controller
 
     public function destroy(Cupon $cupon): JsonResponse
     {
+        $this->authorize('delete', $cupon);
         $cupon->delete();
         return response()->json(null, 204);
     }
 
     public function toggle(Cupon $cupon): JsonResponse
     {
+        $this->authorize('toggle', $cupon);
         $cupon->update(['activo' => ! $cupon->activo]);
         return response()->json(['data' => $cupon]);
     }
