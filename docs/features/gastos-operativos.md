@@ -101,7 +101,7 @@ staff).
 
 ## Tests
 
-`tests/Feature/GastoTest.php` cubre:
+`tests/Feature/GastoTest.php` (18 tests) cubre:
 - Owner lista solo gastos de su local (tenant isolation)
 - Conversión `monto_mxn → monto_centavos`
 - Validación de categoría enum
@@ -110,11 +110,103 @@ staff).
 - Owner no ve gasto de otro local (policy)
 - Update + soft delete
 - Resumen total y breakdown
+- Upload + delete de comprobante (img + pdf)
+- Replace de comprobante (idempotente, borra el anterior)
+- Rechazo de MIME no permitido + archivo > 5MB
+- Export CSV con UTF-8 BOM y filtros
 
-## Por hacer (próximo sprint)
+`tests/Feature/MetricasUtilidadTest.php` (2 tests) cubre:
+- Cálculo correcto de ventas − gastos por mes
+- Tenant isolation: el otro local no contamina el total
 
-- [ ] Upload de comprobante (foto del recibo) — el campo `comprobante_url` ya existe,
-  falta el endpoint y el componente.
-- [ ] Gráfico de tendencia trimestral en `/admin/metricas` (combinar ventas vs gastos).
-- [ ] Auto-generar recordatorio cuando un gasto recurrente lleva +35 días sin nuevo registro.
-- [ ] Exportar a CSV/Excel para contador.
+`tests/Feature/GastosRecurrentesCommandTest.php` (4 tests) cubre:
+- Notifica si > 35 días sin registro
+- No notifica si está al día (≤ 35 días)
+- Idempotencia: 3 corridas del cron seguidas → 1 sola notif
+- Ignora gastos no-recurrentes
+
+## Extensiones (2026-06-22, post-MVP)
+
+### Comprobante adjunto
+
+Cada gasto puede tener un **comprobante** (imagen JPG/PNG/WEBP o PDF, máx 5 MB).
+Se sube vía:
+
+```
+POST   /v1/gastos/{id}/comprobante   (multipart/form-data, field: comprobante)
+DELETE /v1/gastos/{id}/comprobante
+```
+
+Archivo va a `storage/app/public/uploads/comprobantes/gasto-{id}-{rand8}.{ext}`
+y la URL pública se persiste en `gastos.comprobante_url`.
+
+- Permiso: **solo owner** (policy `update`).
+- Upload reemplaza al anterior (borra el archivo viejo del disk).
+- En el modal de edición se muestra:
+  - Thumbnail si es imagen
+  - Ícono 📄 si es PDF
+  - Botón "Ver comprobante" (abre en pestaña nueva)
+  - Botón "Quitar" (DELETE)
+
+### Export CSV
+
+```
+GET /v1/gastos/export?mes=YYYY-MM&categoria=X
+```
+
+Devuelve `text/csv` con UTF-8 BOM (Excel lo abre con acentos correctos).
+Columnas: `Fecha, Categoría, Concepto, Monto MXN, Recurrente, Notas, Comprobante`.
+
+Filtros opcionales: `mes`, `categoria`, `desde`, `hasta`.
+Filename automático: `gastos-YYYY-MM.csv`.
+
+En UI: botón "CSV" en la cabecera de `/admin/gastos`.
+
+### Utilidad neta — integración en `/admin/metricas`
+
+```
+GET /v1/metricas/utilidad?meses=N   (default 6, máx 24)
+```
+
+Devuelve serie mensual con:
+```json
+{
+  "meses": 6,
+  "serie": [
+    { "mes": "2026-06", "label": "jun. 26",
+      "ventas_mxn": 5000, "gastos_mxn": 1500,
+      "utilidad_mxn": 3500, "margen_pct": 70.0 }
+  ],
+  "total_ventas": ..., "total_gastos": ..., "total_utilidad": ...,
+  "margen_promedio": 65.4
+}
+```
+
+- **Ventas** = `SUM(pedidos.total)` con `estado != 'cancelado'`
+- **Gastos** = `SUM(gastos.monto_centavos) / 100`
+- **Utilidad** = ventas − gastos
+- No descuenta costo de insumos (`compras`) porque pocos locales capturan
+  compras consistentemente. Si en el futuro se quiere precisión contable,
+  agregar tercera línea "costo de venta".
+
+UI: nueva sección "Utilidad neta" en `/admin/metricas`, debajo de "Ventas por día",
+con gráfico dual-line (ventas verde + gastos naranja) + tabla con margen % por mes.
+
+### Cron: recordatorio de gastos recurrentes
+
+```
+php artisan gastos:check-recurrentes
+```
+
+Programado diario 09:30 (Laravel scheduler). Notifica al owner si un gasto
+recurrente lleva > 35 días sin nuevo registro. Idempotente vía
+`titulo + tipo + 7 días` window.
+
+Detalle: [`docs/runbook/cron-gastos-recurrentes.md`](../runbook/cron-gastos-recurrentes.md).
+
+## Por hacer (futuro, no urgente)
+
+- [ ] Pantalla equivalente en la app móvil (apps/mobile/) — hoy solo web.
+- [ ] Convertir `Schedule->at('09:30')` a TZ MX (hoy es UTC) para que llegue 9:30 hora local.
+- [ ] Export XLSX nativo (`phpoffice/phpspreadsheet`) si el contador prefiere xlsx.
+- [ ] Alerta automática si los gastos crecen > 20 % vs trimestre anterior.

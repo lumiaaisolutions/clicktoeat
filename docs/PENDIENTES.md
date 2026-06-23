@@ -1,6 +1,7 @@
 # Pendientes — lista única de verdad
 
-> Estado al **2026-06-22 cierre de sesión final** (post-deploy API).
+> Estado al **2026-06-22 cierre de sesión final2** (post-Fase 6 gastos
+> + branding refresh).
 > Esta es la fuente única de verdad sobre qué falta hacer. Si está acá,
 > está pendiente. Si NO está acá, ya está hecho.
 
@@ -226,6 +227,66 @@ limpio). Lo que sigue es solo lo que el código no puede hacer.
   cuando tengas keys de Cloudflare.
 
 Reporte completo: [`docs/security/auditoria-integral-2026-06-19.md`](security/auditoria-integral-2026-06-19.md).
+
+## 💚 Sesión 2026-06-22 (continuación) — TODO desplegado en prod
+
+Trabajo posterior al cierre original de hoy. Commit `a809f0c` + push +
+deploy api/web verificado.
+
+### Módulo Gastos operativos + extensiones
+- ✅ Tabla `gastos` + CRUD multi-tenant + 9 tests originales
+- ✅ Refresh de identidad: rojo `#FF2D2D` → naranja `#F26A1F` en CSS var,
+  Tailwind, favicon, manifest, Logo component (cursor naranja + "Eat" naranja),
+  bulk replace en 35+ archivos
+- ✅ Logo PNG en `/login` y landing hero (next/Image priority)
+- ✅ Upload de comprobantes (img/pdf 5MB) — POST/DELETE `/v1/gastos/{id}/comprobante`
+- ✅ Export CSV con UTF-8 BOM — GET `/v1/gastos/export`
+- ✅ Utilidad neta en `/admin/metricas` — endpoint `/v1/metricas/utilidad` +
+  gráfico dual-line + tabla de margen %
+- ✅ Cron `gastos:check-recurrentes` (daily 09:30) — notifica si gasto
+  recurrente lleva >35 días sin nuevo registro
+- ✅ SEV-19 (`Route [login] not defined` → 500) fixed con stub en `routes/web.php`
+
+**Tests:** 259/259 verde (240 previos + 19 nuevos).
+
+Docs creadas/actualizadas:
+- [`docs/features/gastos-operativos.md`](features/gastos-operativos.md) (extendido)
+- [`docs/api/gastos.md`](api/gastos.md) (nuevo — endpoints completos)
+- [`docs/database/schema.md`](database/schema.md) (tabla gastos agregada)
+- [`docs/runbook/cron-gastos-recurrentes.md`](runbook/cron-gastos-recurrentes.md) (nuevo)
+- [`docs/security/sev-19-route-login-missing.md`](security/sev-19-route-login-missing.md) (nuevo)
+
+### 🟡 Pendiente local (no urgente, no en prod)
+
+- **`apps/mobile/` sin commitear**: la app Expo SDK 56 sigue en local
+  con cambios sin `git add` (8 archivos modificados + carpetas nuevas
+  en `(admin)/`). También sin commitear: `docs/api/mobile.md`,
+  `docs/architecture/push-dispatcher.md`, `docs/runbook/arrancar-app-movil.md`,
+  `docs/security/sev-11-mobile-device-token-reassignment.md`,
+  `docs/README.md` (modificación), `docs/features/app-movil-clicktoeat.md`.
+  El backend de push fan-out YA está en prod (commit `bffb908`).
+  La app móvil necesita su propio commit + decisión cuándo publicar a stores.
+
+- **TRIAL_MANUAL_DAYS=15 en prod `.env`**: memoria del proyecto menciona
+  que ClickToBarber lo necesita. Verificar si aplica a ClickToEat y si
+  ya está aplicado en `apps/api/.env` de prod (default es 14).
+  Comando para revisar:
+  ```bash
+  ssh -i ~/.ssh/hostinger_clicktoeat -p 65002 u221820910@86.38.202.72 \
+    "grep TRIAL_MANUAL_DAYS ~/domains/clicktoeat-api.lumiaaisolutions.com/public_html/.env || echo 'NO SETEADO'"
+  ```
+
+### 🔵 Mejoras opcionales detectadas (no son bugs)
+
+- **Pantalla de Gastos en la app móvil** — hoy el módulo es solo web.
+  Trivial portar (mismo endpoint, mismos campos, sin lógica nueva).
+- **Cron en TZ MX**: el `Schedule->at('09:30')` corre en UTC. Si se
+  quiere que sea 09:30 hora MX, agregar `->timezone('America/Mexico_City')`
+  en `bootstrap/app.php`. Aplica también al resto de jobs.
+- **Export XLSX nativo**: si el contador prefiere xlsx, agregar
+  `phpoffice/phpspreadsheet` y un segundo endpoint `/v1/gastos/export.xlsx`.
+- **Alerta auto-crecimiento de gastos**: notif si gastos del mes
+  crecen >20% vs mismo mes año anterior. Útil pero no urgente.
 
 ## 🟨 Features documentadas pero NO implementadas
 

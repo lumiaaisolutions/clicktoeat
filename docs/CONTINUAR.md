@@ -1,21 +1,22 @@
 # Cómo continuar el proyecto en otra sesión
 
-> **Snapshot al 2026-06-22 cierre de sesión.** Si abres el proyecto en
-> una sesión nueva, lee este archivo primero.
+> **Snapshot al 2026-06-22 cierre de sesión final2** (post Fase 6 de
+> Gastos + branding refresh al naranja + bug fix SEV-19). Si abres el
+> proyecto en una sesión nueva, lee este archivo primero.
 
 ## Estado del sistema
 
 **100% operativo en LIVE.** Cualquier cliente puede registrarse y pagar
-con tarjeta real, y el ciclo de cobro automático tras el trial está cerrado.
-**API con hardening de seguridad completo** del audit del 2026-06-19. Web
-está sirviendo el bundle del Jun 18 (rollback tras outage NPROC) — falta
-re-deploy con el fix sileo `5d2cdc5` después de aplicar env vars de Capa 1.
+con tarjeta real, y el ciclo de cobro automático tras el trial está
+cerrado. **API con hardening de seguridad completo** + **módulo Gastos
+end-to-end** (CRUD + comprobantes + CSV + utilidad neta + cron de
+recordatorio) + **identidad visual al naranja `#F26A1F`** + **fix SEV-19**.
 
 | Capa | URL | Estado |
 |------|-----|--------|
-| Frontend | https://clicktoeat.lumiaaisolutions.com | 🟢 Up (bundle Jun 18, pre-audit) |
-| API | https://clicktoeat-api.lumiaaisolutions.com | 🟢 Up con audit `08e41a2` aplicado |
-| BD | MySQL managed en VPS Hostinger | 🟢 Up |
+| Frontend | https://clicktoeat.lumiaaisolutions.com | 🟢 Up (bundle 2026-06-22 con gastos + naranja) |
+| API | https://clicktoeat-api.lumiaaisolutions.com | 🟢 Up con audit + Fase 6 gastos aplicado |
+| BD | MySQL managed en VPS Hostinger | 🟢 Up + migración `gastos` aplicada |
 | Stripe | LIVE mode, `acct_1TPnLARxHYFQWlid` | 🟢 Charges enabled |
 | Mail | SMTP Hostinger `contacto@lumiaaisolutions.com` | 🟢 Funcional |
 | Sentry | `lumia-yd.sentry.io` (Laravel + Next.js) | 🟢 Recibiendo errores |
@@ -28,11 +29,15 @@ curl -I https://clicktoeat-api.lumiaaisolutions.com/up  # 200 + 5 headers de seg
 
 ## Tests + commit actual
 
-- **231/231 phpunit verde** en main (incluye SEV-12 + SEV-2 backend half).
-- TypeScript estricto OK, Next.js build OK.
+- **259/259 phpunit verde** en main (240 originales + 19 nuevos: gastos +
+  comprobantes + CSV + utilidad + cron + bug SEV-19).
+- TypeScript estricto OK, Next.js build OK (`/admin/gastos` 10.5 kB,
+  `/admin/metricas` 7.6 kB, `/login` 3.3 kB).
 - **Todos los commits del 2026-06-22 pusheados a GitHub**.
-- **API deployada a prod el 2026-06-22 15:18 UTC** (commit `bffb908`).
-  Health check OK + headers de seguridad verificados live.
+- **API + Web deployadas a prod el 2026-06-22** (último commit `a809f0c`).
+  Migración `gastos` aplicada, comando `gastos:check-recurrentes`
+  registrado en scheduler, todos los endpoints respondiendo 401 con auth
+  correcta y 200 sin auth.
 - **WEB deployada a prod el 2026-06-22 22:35 UTC** con todos los hardening
   del audit (CSP-Report-Only, headers, Sileo lazy, DOMPurify iframe email,
   Sentry mask, Next 14.2.35). Health check OK.
