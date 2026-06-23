@@ -7,13 +7,11 @@ interface LogoProps {
    *  'lockup' = símbolo + wordmark al lado.
    *  'wordmark' = solo el texto sin símbolo. */
   variant?: 'mark' | 'lockup' | 'wordmark';
-  /** Tamaño del símbolo en px (lado del cuadrado). Default 32. */
+  /** Tamaño del símbolo en px. Default 32. */
   size?: number;
   /** Si lockup, controla si el texto sigue al símbolo o queda debajo (stacked). */
   stacked?: boolean;
-  /** Color de fondo del mark (default ink). En lockup oscuro pierde contraste con dark UIs. */
-  bg?: string;
-  /** Color del símbolo dentro del mark (default white). */
+  /** Color del tenedor. Default #1F2937 (visible en fondos claros). */
   fg?: string;
   /** Color del wordmark. Default heredado (currentColor). */
   textColor?: string;
@@ -32,7 +30,7 @@ interface LogoProps {
  */
 export function Logo({
   variant = 'lockup', size = 32, stacked = false,
-  bg = '#1F2937', fg = '#FFFFFF', textColor,
+  fg = '#1F2937', textColor,
   className,
 }: LogoProps) {
   const cursor = '#F26A1F';
@@ -45,13 +43,12 @@ export function Logo({
       aria-label="ClickToEat"
       style={{ flexShrink: 0 }}
     >
-      <rect x="0" y="0" width="32" height="32" rx="8" fill={bg} />
       {/* Cursor de mouse (acción "Click" — en color de acento) */}
       <path
         d="M9 8 L9 19 L12.5 16 L14.5 20 L16.8 19 L14.8 15 L19 15 Z"
         fill={cursor}
       />
-      {/* Tenedor estilizado abajo (3 dientes pequeños + mango) */}
+      {/* Tenedor estilizado (3 dientes + mango) */}
       <g fill={fg}>
         <rect x="18" y="9"  width="1.4" height="5" rx="0.7" />
         <rect x="20" y="9"  width="1.4" height="5" rx="0.7" />

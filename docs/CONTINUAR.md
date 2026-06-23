@@ -1,8 +1,8 @@
 # Cómo continuar el proyecto en otra sesión
 
-> **Snapshot al 2026-06-22 cierre de sesión final2** (post Fase 6 de
-> Gastos + branding refresh al naranja + bug fix SEV-19). Si abres el
-> proyecto en una sesión nueva, lee este archivo primero.
+> **Snapshot al 2026-06-23** (post app móvil completa v1.1→v1.3 + super
+> admin + capa features/api + logo transparente). Si abres el proyecto en
+> una sesión nueva, lee este archivo primero.
 
 ## Estado del sistema
 
@@ -11,6 +11,9 @@ con tarjeta real, y el ciclo de cobro automático tras el trial está
 cerrado. **API con hardening de seguridad completo** + **módulo Gastos
 end-to-end** (CRUD + comprobantes + CSV + utilidad neta + cron de
 recordatorio) + **identidad visual al naranja `#F26A1F`** + **fix SEV-19**.
+**App móvil iOS+Android** con paridad completa del panel web (pantallas
+v1.0→v1.3 + super admin) lista para publicar — código en `apps/mobile/`,
+pendiente de commit y `npx eas init`.
 
 | Capa | URL | Estado |
 |------|-----|--------|
@@ -33,6 +36,8 @@ curl -I https://clicktoeat-api.lumiaaisolutions.com/up  # 200 + 5 headers de seg
   comprobantes + CSV + utilidad + cron + bug SEV-19).
 - TypeScript estricto OK, Next.js build OK (`/admin/gastos` 10.5 kB,
   `/admin/metricas` 7.6 kB, `/login` 3.3 kB).
+- **App móvil** (Expo SDK 56): typecheck limpio en 66+ archivos TS.
+  **Pendiente de commit** — ver sección §App móvil abajo.
 - **Todos los commits del 2026-06-22 pusheados a GitHub**.
 - **API + Web deployadas a prod el 2026-06-22** (último commit `a809f0c`).
   Migración `gastos` aplicada, comando `gastos:check-recurrentes`
@@ -177,57 +182,69 @@ El cron maestro `* * * * * php artisan schedule:run` ya está en hPanel — los 
 | 1 | Activar backup diario $6/mes | 2 min | hPanel → VPS → Backups → Add-on |
 | 2 | Probar flow E2E con tu tarjeta | 15 min | Registro real + Stripe trial → cancelar antes de 14 días |
 | 3 | Revocar MCP key Stripe `rk_live_51TPnLAR...` | 1 min | Dashboard Stripe → Developers → API keys → Revoke |
-| 4 | **App móvil**: `cd apps/mobile && npx eas init` | 5 min | Genera `projectId` para push en builds |
-| 5 | **App móvil**: subir `assets/sounds/bell.mp3` | 5 min | Sin esto la campana es no-op |
-| 6 | **App móvil**: Apple Developer ($99/año) | 24h aprob | Para TestFlight + App Store |
-| 7 | **App móvil**: Google Play ($25 one-time) | inmediato | Para internal testing + Play Store |
+| 4 | **App móvil**: commitear `apps/mobile/` | 2 min | `git add apps/mobile/ docs/ && git commit -m "feat(mobile): v1.1→v1.3 + super admin"` |
+| 5 | **App móvil**: `cd apps/mobile && npx eas init` | 5 min | Genera `projectId` para push en builds |
+| 6 | **App móvil**: subir `assets/sounds/bell.mp3` | 5 min | Sin esto la campana es no-op |
+| 7 | **App móvil**: Apple Developer ($99/año) | 24h aprob | Para TestFlight + App Store |
+| 8 | **App móvil**: Google Play ($25 one-time) | inmediato | Para internal testing + Play Store |
 
-## 📱 App móvil ClickToEat — implementada 2026-06-19/20
+## 📱 App móvil ClickToEat — completada 2026-06-19/20/23
 
-**Estado**: 66 archivos TypeScript en `apps/mobile/`, typecheck limpio.
+**Estado**: 66+ archivos TypeScript en `apps/mobile/`, typecheck limpio.
+**⚠️ Código local pendiente de commit** — hacer antes de la próxima sesión (ver §Pendiente TI #4).
 Expo SDK 56 + Expo Router + NativeWind v4 + Zustand + TanStack Query.
 
-**Paridad funcional con el panel web** salvo lo que conscientemente vive
-mejor en escritorio (POS offline, editor de extras, recetas, upload de
-imágenes con cropper, newsletter/templates de email, webhooks outgoing).
+**Paridad funcional completa con el panel web** salvo lo que vive mejor en escritorio:
+upload de imágenes, POS offline, editor de extras/toppings, recetas, newsletter, webhooks.
 
-### Pantallas
-- 4 tabs principales: Inicio (dashboard) · Pedidos (cola en vivo con polling 10s + campana + haptics) · Buscar (`/search`) · Más (menú agrupado)
-- Pedidos: detalle con flujo completo de estados (confirmar → preparando → listo → en_camino → entregado) + cancelar
-- Catálogo: Productos (toggle disponibilidad + edit precio/descuento/promo) · Categorías (crear + toggle) · Cupones (toggle)
-- Inventario: lista con badge bajo stock → detalle + ajuste (entrada/ajuste/merma) + movimientos
-- Compras a proveedor (lectura)
-- Negocio: Reviews moderación · Staff (lectura) · Branding (info local + colores + lealtad)
-- Horarios (editor por día + cerrado_temporal)
-- Notificaciones in-app · Multi-sucursal switcher · Tickets de soporte (crear)
-- Audit log (gated 402 con CTA al panel web)
-- Super admin (solo `rol === 'super_admin'`): locales (suspender/reactivar) · SaaS metrics · Anuncios globales
+### Pantallas (v1.0 = 2026-06-19/20 | v1.1→v1.3 + super admin = 2026-06-23)
 
-### Backend agregado
-- Tabla `mobile_devices` (migration `2026_06_19_120000`)
-- `POST /api/v1/mobile/register-device` + `unregister-device` (auth + tenant + throttle 20/min)
-- `ExpoPushSender` (HTTP a `exp.host/--/api/v2/push/send`)
-- `PushDispatcher` — fan-out unificado web + móvil
-- `OrderService::crear` ahora usa `PushDispatcher` con `data.route` para deep-link
-- **SEV-11 fix**: 409 cross-user en lugar de reasignación silenciosa
-- `MobileDeviceRegistrationTest` (6 casos cubren registro, idempotencia, cross-user, unregister, auth, validación)
+**v1.0 — Núcleo (en prod backend desde 2026-06-19)**
+- Login con 2FA condicional · Dashboard · Cola pedidos en vivo (polling 10s + campana)
+- Detalle pedido: flujo completo 6 estados + cancelar · Métricas 30 días
+- Multi-sucursal switcher · Logout (desregistra push + Keychain)
 
-### Docs nuevos en esta sesión
-- [`docs/features/app-movil-clicktoeat.md`](features/app-movil-clicktoeat.md) — plan + estado + decisiones
-- [`docs/api/mobile.md`](api/mobile.md) — endpoints
-- [`docs/architecture/push-dispatcher.md`](architecture/push-dispatcher.md) — patrón fan-out
-- [`docs/security/sev-11-mobile-device-token-reassignment.md`](security/sev-11-mobile-device-token-reassignment.md)
-- [`docs/runbook/arrancar-app-movil.md`](runbook/arrancar-app-movil.md) — dev / EAS / TestFlight
-- `docs/database/schema.md` — sección `mobile_devices`
+**v1.1 — Catálogo + operación (2026-06-23)**
+- Productos: lista + búsqueda + toggle disponibilidad (optimistic) + editar precio/promo
+- Categorías: lista + crear + toggle · Horarios: editor lun-dom + cerrado_temporal
+- Buscador global (tab dedicado) · Notificaciones in-app (polling 30s + marcar leídas)
+
+**v1.2 — Operación completa (2026-06-23)**
+- Inventario: lista bajo stock + detalle + ajuste (entrada/ajuste/merma) + movimientos
+- Compras a proveedor (lectura) · Cupones (toggle optimistic) · Reviews (moderación)
+- Staff (lectura) · Branding (info local + color picker + programa lealtad)
+
+**v1.3 — Avanzado (2026-06-23)**
+- Tickets: lista + crear (asunto, mensaje, categoría, prioridad)
+- Audit log (feature-gated 402 con CTA al panel web)
+
+**Super admin (2026-06-23, gated `rol === 'super_admin'`)**
+- Locales: lista + suspender/reactivar · SaaS metrics (MRR, ARR, churn, conv)
+- Anuncios globales: lista + crear + toggle
+
+### Capa API — `src/features/<dominio>/api.ts` (18 módulos, 2026-06-23)
+audit · auth (useAuthEvents + usePushDeepLink) · categorias · compras · cupones ·
+horarios · inventario · local · locales · notificaciones · pedidos · productos ·
+reviews · search · staff · super · tickets
+
+### Backend agregado (ya en prod desde 2026-06-19/20)
+- Tabla `mobile_devices` + `POST /mobile/register-device` + `unregister-device`
+- `ExpoPushSender` + `PushDispatcher` (fan-out web + móvil)
+- `OrderService::crear` usa `PushDispatcher` con `data.route` para deep-link
+- **SEV-11 fix**: 409 cross-user · `MobileDeviceRegistrationTest` (6 tests)
+
+### Docs de referencia
+- [`docs/features/app-movil-clicktoeat.md`](features/app-movil-clicktoeat.md) — estado completo
+- [`docs/api/mobile.md`](api/mobile.md) — endpoints register/unregister
+- [`docs/architecture/push-dispatcher.md`](architecture/push-dispatcher.md) — fan-out
+- [`docs/runbook/arrancar-app-movil.md`](runbook/arrancar-app-movil.md) — dev/EAS/TestFlight
+- [`docs/runbook/cierre-sesion-2026-06-23.md`](runbook/cierre-sesion-2026-06-23.md) — detalle sesión
 
 ### Lo que NO se construyó (decisión consciente)
-- Productos: crear desde cero con extras/toppings + upload imagen
-- POS con offline + idempotency
-- Recetas (UI de árbol ingrediente↔producto)
-- Newsletter, email templates editables, cupones globales, webhooks outgoing
-- Centro de aprendizaje
-- Migrar polling 10s → Reverb WebSocket (esperar feedback de batería real)
-- Tracking de repartidor en mapa (futuro)
+- Productos: crear desde cero + extras/toppings + upload imagen (mejor en web)
+- POS con offline + Idempotency-Key · Recetas (árbol ingrediente↔producto)
+- Drill-down compra y drill-down ticket · Newsletter/email templates/webhooks
+- Centro de aprendizaje · Migrar polling → Reverb (evaluar batería real primero)
 
 ## 🟨 Otras features documentadas pero NO implementadas
 
@@ -243,6 +260,11 @@ Estos son planes en `docs/features/` listos para cuando sean necesarios:
 | **Self-service alta de sucursales** | `pos-listas-tours-sucursales-emails-auditoria-2026-06-18.md` | Cliente Premium con cadena lo pida — hoy es asistido por soporte |
 
 ## 📚 Documentación clave para futuras sesiones
+
+### Cronología sesión 2026-06-23 — App móvil v1.1→v1.3 + super admin + features/
+
+- [`docs/runbook/cierre-sesion-2026-06-23.md`](runbook/cierre-sesion-2026-06-23.md) — 22 pantallas nuevas + 18 features/api.ts
+- [`docs/features/app-movil-clicktoeat.md`](features/app-movil-clicktoeat.md) — actualizado: checkmarks v1.1→v1.3
 
 ### Cronología sesión 2026-06-19/20 — App móvil + SEV-11
 
@@ -334,3 +356,23 @@ URLs:
 - Directorio: https://clicktoeat.lumiaaisolutions.com
 - Login: https://clicktoeat.lumiaaisolutions.com/login
 - API docs: https://clicktoeat-api.lumiaaisolutions.com/api/documentation
+
+## 🎨 Logo — cambio 2026-06-23
+
+El mark del logo ya **no tiene fondo oscuro** (`#1F2937`). Es transparente con:
+- Cursor naranja `#F26A1F`
+- Tenedor tinta `#1F2937`
+
+Archivos cambiados:
+- `apps/web/src/components/ui/Logo.tsx` — quitado `<rect>`, `fg` default cambiado a `#1F2937`
+- `apps/web/public/favicon.svg` — sin rect de fondo
+- `apps/web/public/apple-icon.svg` — sin rect de fondo
+- `apps/web/src/components/ui/BrandLoader.tsx` — halo en naranja
+- `apps/mobile/assets/images/icon.png` — regenerado sin fondo oscuro (fondo crema `#FAFAF7`)
+- `apps/mobile/assets/images/splash-icon.png` — regenerado
+- `apps/mobile/assets/images/android-icon-foreground.png` — regenerado transparente
+- `apps/mobile/assets/images/favicon.png` — regenerado
+
+Spec completa: [`docs/frontend/brand-logo.md`](frontend/brand-logo.md).
+
+Para usar el logo sobre fondo oscuro: `<Logo fg="#fff" />` o `<Logo fg="#FAFAF7" />`.

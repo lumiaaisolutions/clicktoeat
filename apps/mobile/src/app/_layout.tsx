@@ -6,6 +6,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuth } from '@/store/auth';
 import { initAudio } from '@/core/audio';
+import { useAuthEvents } from '@/features/auth/useAuthEvents';
+import { usePushDeepLink } from '@/features/auth/usePushDeepLink';
 import '../global.css';
 
 const queryClient = new QueryClient({
@@ -22,6 +24,9 @@ export default function RootLayout() {
   const bootstrap = useAuth((s) => s.bootstrap);
   const bootstrapping = useAuth((s) => s.bootstrapping);
   const user = useAuth((s) => s.user);
+
+  useAuthEvents();
+  usePushDeepLink();
 
   useEffect(() => {
     bootstrap();

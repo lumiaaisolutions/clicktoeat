@@ -47,7 +47,7 @@ export function BrandLoader({ compact = false }: { compact?: boolean }) {
             animate={{ scale: [1, 1.6, 1.6], opacity: [0.35, 0, 0] }}
             transition={{ duration: 2, repeat: Infinity, ease: 'easeOut' }}
             className="absolute inset-0 rounded-2xl"
-            style={{ background: '#0B0B0F' }}
+            style={{ background: '#F26A1F' }}
           />
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}

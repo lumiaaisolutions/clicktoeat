@@ -1,7 +1,6 @@
 # Pendientes — lista única de verdad
 
-> Estado al **2026-06-22 cierre de sesión final2** (post-Fase 6 gastos
-> + branding refresh).
+> Estado al **2026-06-23** (post app móvil v1.1→v1.3 + super admin + features/api).
 > Esta es la fuente única de verdad sobre qué falta hacer. Si está acá,
 > está pendiente. Si NO está acá, ya está hecho.
 
@@ -228,6 +227,31 @@ limpio). Lo que sigue es solo lo que el código no puede hacer.
 
 Reporte completo: [`docs/security/auditoria-integral-2026-06-19.md`](security/auditoria-integral-2026-06-19.md).
 
+## 💚 Sesión 2026-06-23 — App móvil completada (pendiente commit)
+
+Trabajo local sin deployar. Backend no tocado. 0 cambios en prod.
+
+### App móvil — v1.1 → v1.3 + super admin + capa features/
+
+- ✅ 18 módulos `src/features/<dominio>/api.ts` (capa API por dominio)
+- ✅ 2 hooks de efectos: `useAuthEvents` (401→logout) + `usePushDeepLink` (notif→deep-link)
+- ✅ Pantallas v1.1: Productos (lista+editar) · Categorías · Horarios · Buscador · Notificaciones
+- ✅ Pantallas v1.2: Inventario (lista+detalle+ajuste) · Compras · Cupones · Reviews · Staff · Branding
+- ✅ Pantallas v1.3: Tickets (lista+crear) · Audit log (gated 402)
+- ✅ Super admin (gated `super_admin`): Locales · SaaS metrics · Anuncios
+- ✅ Mejoras: `_layout.tsx` (menú "Más" 14 secciones) · `settings.tsx` (5 secciones)
+- ✅ Typecheck limpio en 66+ archivos TypeScript
+
+Docs actualizados:
+- [`docs/features/app-movil-clicktoeat.md`](features/app-movil-clicktoeat.md) (checkmarks v1.1→v1.3)
+- [`docs/runbook/cierre-sesion-2026-06-23.md`](runbook/cierre-sesion-2026-06-23.md) (nuevo)
+- [`docs/CONTINUAR.md`](../CONTINUAR.md) (snapshot 2026-06-23)
+- [`docs/PENDIENTES.md`](../PENDIENTES.md) (este archivo)
+
+**Próximo paso**: `git add apps/mobile/ docs/ && git commit && git push origin main`
+
+---
+
 ## 💚 Sesión 2026-06-22 (continuación) — TODO desplegado en prod
 
 Trabajo posterior al cierre original de hoy. Commit `a809f0c` + push +
@@ -258,12 +282,14 @@ Docs creadas/actualizadas:
 
 ### 🟡 Pendiente local (no urgente, no en prod)
 
-- **`apps/mobile/` sin commitear**: la app Expo SDK 56 sigue en local
-  con cambios sin `git add` (8 archivos modificados + carpetas nuevas
-  en `(admin)/`). También sin commitear: `docs/api/mobile.md`,
-  `docs/architecture/push-dispatcher.md`, `docs/runbook/arrancar-app-movil.md`,
-  `docs/security/sev-11-mobile-device-token-reassignment.md`,
-  `docs/README.md` (modificación), `docs/features/app-movil-clicktoeat.md`.
+- **`apps/mobile/` sin commitear**: la app completa (v1.0→v1.3 + super admin)
+  sigue en local. Sesión 2026-06-23 añadió 22 pantallas nuevas + 18 módulos
+  `features/api.ts`. Commit recomendado:
+  ```bash
+  git add apps/mobile/ docs/
+  git commit -m "feat(mobile): pantallas v1.1→v1.3 + super admin + features/api"
+  git push origin main
+  ```
   El backend de push fan-out YA está en prod (commit `bffb908`).
   La app móvil necesita su propio commit + decisión cuándo publicar a stores.
 

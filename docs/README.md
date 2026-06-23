@@ -30,6 +30,7 @@ Documentación viva del proyecto. **Regla**: cada tema vive en su propio `.md` d
 - [Multi-tenancy](architecture/multi-tenancy.md) — cómo se aísla cada local en una sola BD.
 - [Auth y roles](architecture/auth-roles.md) — Sanctum, abilities, super_admin / owner / staff.
 - [Ciclo de petición](architecture/request-lifecycle.md) — middleware, tenant scope, policies.
+- [PushDispatcher](architecture/push-dispatcher.md) — fan-out a Web Push (PWA) + Expo Push (app móvil) en una sola llamada.
 
 ### Base de datos
 - [Esquema (todas las tablas)](database/schema.md)
@@ -45,6 +46,7 @@ Documentación viva del proyecto. **Regla**: cada tema vive en su propio `.md` d
 - [Endpoints de autenticación](api/auth.md)
 - [Endpoints tenant-scoped](api/tenant.md)
 - [Endpoints super_admin](api/admin.md)
+- [Endpoints app móvil](api/mobile.md) — `/mobile/register-device` + push
 - [Errores y códigos HTTP](api/errors.md)
 - [Rate limiting](api/rate-limits.md)
 - [Form Requests (validación)](api/form-requests.md)
@@ -76,6 +78,7 @@ Documentación viva del proyecto. **Regla**: cada tema vive en su propio `.md` d
 - [**Carrito abandonado** — recuperación por email](features/carrito-abandonado.md)
 - [**Emails transaccionales** — pedido / trial / carrito / resumen semanal](features/emails-transaccionales.md)
 - [**Multi-sucursal** — detalle de implementación](features/multi-sucursal-detalle.md)
+- [**App móvil iOS+Android** — plan, estado, decisiones](features/app-movil-clicktoeat.md) — Expo SDK 56, 66 archivos TS, paridad con panel web
 
 ### Modelos
 - [Local](models/local.md)
@@ -103,6 +106,7 @@ Documentación viva del proyecto. **Regla**: cada tema vive en su propio `.md` d
 - [Patrones de scroll-animations](frontend/scroll-animations.md) — viewport, parallax, scrubbing, tilt 3D, counter
 - [Sistema de loaders](frontend/loaders.md) — InitialLoader, RouteTransition, app/loading.tsx
 - [Sistema de iconos](frontend/icon-system.md) — Icon component inline (estilo Lucide, sin lucide-react)
+- [Sistema de logo / marca](frontend/brand-logo.md) — Logo.tsx, favicon, apple-icon, assets móvil, reglas de uso
 - [Tipografía](frontend/typography.md) — Instrument Serif / Hanken Grotesk / Bricolage / Geist y reglas de uso
 - [AdminPageHeader (homologación visual)](frontend/admin-page-header.md) — header reusable estilo branding aplicado a todos los módulos
 - [Tour + Centro de Ayuda](frontend/help-tour.md) — sistema de ayuda contextual con highlights y tooltips
@@ -165,11 +169,13 @@ Documentación viva del proyecto. **Regla**: cada tema vive en su propio `.md` d
 - [Configurar MAIL con Hostinger Email](runbook/setup-mail-hostinger.md)
 - [Migrar uploads de filesystem a S3/B2](runbook/migrar-uploads-a-s3-b2.md)
 - [Reemplazar polling con Reverb (tiempo real)](runbook/integrar-reverb.md)
+- [Arrancar y desplegar la app móvil](runbook/arrancar-app-movil.md) — dev, EAS, TestFlight, OTA
 - [**Configurar Stripe** — productos, precios, webhook, portal](runbook/configurar-stripe.md)
 - [**Cambiar precio de un plan** — procedimiento ops](runbook/cambiar-precio-plan.md)
 - [**Recuperar uploads borrados** por deploy](runbook/recuperar-uploads-perdidos.md)
 - [Postmortems — índice + template](runbook/postmortems/README.md)
 - [Drills — índice + template](runbook/drills/README.md)
+- [Cierre sesión 2026-06-23](runbook/cierre-sesion-2026-06-23.md) — app móvil v1.1→v1.3 + super admin + features/api
 
 ### Security
 - [Overview](security/README.md)
@@ -177,6 +183,7 @@ Documentación viva del proyecto. **Regla**: cada tema vive en su propio `.md` d
 - [Inventario de datos personales (PII)](security/data-inventory.md)
 - [Incident response](security/incident-response.md)
 - [Security checklist pre-deploy](security/security-checklist.md)
+- [SEV-11 — Mobile device token reassignment](security/sev-11-mobile-device-token-reassignment.md) — fix del registro de push móvil
 
 ### Guías para owners (no técnicas)
 - [Overview](user-guides/README.md)

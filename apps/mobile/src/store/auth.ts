@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { api } from '@/core/api';
 import { tokenStore } from '@/core/secure-store';
+import { registerAndSyncDevice, unregisterDeviceFromBackend } from '@/core/push';
 import type { AuthUser, MeResponse, LoginResponse } from '@/lib/types';
 
 interface AuthState {
@@ -15,6 +16,7 @@ interface AuthState {
     otp?: string,
   ) => Promise<{ twoFactorRequired?: boolean }>;
   logout: () => Promise<void>;
+  refreshMe: () => Promise<void>;
 }
 
 export const useAuth = create<AuthState>((set) => ({
@@ -31,6 +33,9 @@ export const useAuth = create<AuthState>((set) => ({
       }
       const { data } = await api.get<MeResponse>('/auth/me');
       set({ user: data.user, bootstrapping: false });
+      // Sesión reanudada — re-registramos el push token (puede haber rotado
+      // entre instalaciones). Fire-and-forget.
+      void registerAndSyncDevice();
     } catch {
       await tokenStore.clear();
       set({ user: null, bootstrapping: false });
@@ -52,6 +57,10 @@ export const useAuth = create<AuthState>((set) => ({
       await tokenStore.set(data.token);
       const me = await api.get<MeResponse>('/auth/me');
       set({ user: me.data.user });
+      // Registro de push tras login. Fire-and-forget — perder push no
+      // debe romper login (puede fallar por permisos denegados, no projectId
+      // en dev, etc).
+      void registerAndSyncDevice();
       return {};
     } finally {
       set({ loading: false });
@@ -59,6 +68,9 @@ export const useAuth = create<AuthState>((set) => ({
   },
 
   async logout() {
+    // Desregistramos el device ANTES de borrar el token — el endpoint
+    // requiere auth y necesita el bearer válido para encontrar la fila.
+    await unregisterDeviceFromBackend();
     try {
       await api.post('/auth/logout');
     } catch {
@@ -66,5 +78,14 @@ export const useAuth = create<AuthState>((set) => ({
     }
     await tokenStore.clear();
     set({ user: null });
+  },
+
+  async refreshMe() {
+    try {
+      const { data } = await api.get<MeResponse>('/auth/me');
+      set({ user: data.user });
+    } catch {
+      /* no-op */
+    }
   },
 }));

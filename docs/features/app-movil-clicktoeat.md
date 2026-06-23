@@ -4,6 +4,16 @@
 > Bootstrap inicial bajo `apps/mobile/`. Objetivo: paridad funcional con
 > el panel web (`apps/web/`) en iOS + Android desde un único codebase.
 
+## Decisiones aplicadas (2026-06-20)
+
+| Decisión | Elección | Por qué |
+|---|---|---|
+| Web push vs móvil | **Conviven (parallel)** | El `PushDispatcher` hace fan-out a ambos. Cero riesgo de regresión para owners que ya tienen el PWA en el navegador. |
+| Realtime en v1.0 | **Polling 10s (no Reverb todavía)** | Menos riesgo, menos infra. Reverb se evalúa en v1.1 cuando ya haya feedback de batería real en kioscos. |
+| v1.1 arranque | **Productos quick-toggle** (disponibilidad + precio) | 1 día de trabajo, valor inmediato para el owner. El catálogo completo viene en v1.2. |
+| OTA updates | **Activado** (`expo-updates` + `runtimeVersion: appVersion`) | Empujar fixes JS sin pasar por App Store ahorra ~3 días de espera por release. |
+| Push token | **Único por user_id + token** (SEV-11) | El token Expo no es secreto; reasignación silenciosa permitía silenciar al owner real. Backend responde 409 si otro user reclama el mismo token. |
+
 ## Decisión de stack
 
 **React Native + Expo (SDK 51+) con Expo Router + NativeWind + Zustand**.
@@ -247,13 +257,17 @@ Costos:
 - [x] Plan documentado (este archivo)
 - [x] Bootstrap Expo SDK 56 + Expo Router en `apps/mobile/`
 - [x] NativeWind v4 + Tailwind config + global.css
-- [x] Capa Core: `api.ts` (axios + bearer + 401/402 interceptor),
+- [x] Capa Core: `api.ts` (axios + bearer + 401/402 interceptor + bus de eventos),
       `secure-store.ts` (token en Keychain/EncryptedSharedPreferences),
-      `push.ts` (registro Expo push + canal Android),
+      `push.ts` (registro Expo push + canal Android + `registerAndSyncDevice` +
+      `unregisterDeviceFromBackend`),
       `audio.ts` (campana con `playsInSilentMode: true`)
 - [x] Design System: tokens (`#FAFAF7` / `#FF2D2D` / `#0B0B0F`),
       componentes `Button`, `Input`, `Card`, `EstadoBadge`
-- [x] Store de auth con bootstrap + login (incluye 2FA) + logout
+- [x] Store de auth con bootstrap + login (incluye 2FA) + logout + `refreshMe`,
+      registra/desregistra push automáticamente
+- [x] Hook `useAuthEvents` — al 401 hace logout automático y `Stack.Protected`
+      redirige a /login
 - [x] Tipos espejados de `apps/web/src/lib/types.ts`
 - [x] Router root con `Stack.Protected guard={isAuthed}` (patrón SDK 56)
 - [x] Pantalla **Login** con 2FA condicional
@@ -261,31 +275,77 @@ Costos:
 - [x] **Pedidos en vivo** con polling 10s + keep-awake + sonido al llegar nuevo + haptics
 - [x] **Detalle de pedido** con flujo de estados (confirmar → preparando → listo → en_camino → entregado) + cancelar
 - [x] **Métricas** (30 días, top productos, ticket promedio)
-- [x] **Ajustes** con logout
+- [x] **Ajustes** con logout + botón **Cambiar de sucursal**
+- [x] **Switch-local** screen: `GET /me/locales` + `POST /me/switch-local/{id}`,
+      invalida toda la caché TanStack + refetch `me`
+- [x] EAS config (`eas.json` con perfiles development / preview / production)
+- [x] OTA Updates activado (`expo-updates` + `runtimeVersion: appVersion` +
+      checkAutomatically ON_LOAD)
+- [x] Scripts npm: `build:dev:ios`, `build:dev:android`, `build:preview`,
+      `build:prod`, `ota:preview`, `ota:prod`
 - [x] Backend: migration `mobile_devices`, modelo `MobileDevice`,
-      `RegisterMobileDeviceRequest`, `MobileDeviceController` (register/unregister),
+      `RegisterMobileDeviceRequest`, `MobileDeviceController` (register/unregister
+      con SEV-11: 409 al cross-user en lugar de reasignación silenciosa),
       rutas en `routes/api.php` bajo `auth:sanctum + tenant`
 - [x] Backend: `ExpoPushSender` (HTTP a `exp.host/--/api/v2/push/send`, manejo de
       `DeviceNotRegistered`) + `PushDispatcher` (fan-out web + mobile)
+- [x] Backend: `OrderService::crear` ahora usa `PushDispatcher` →
+      pedido nuevo dispara push web Y móvil simultáneamente, con
+      `data: { pedido_id, codigo, route: '/(admin)/pedidos/{id}' }` para
+      deep-link al detalle desde la notif
 - [x] Backend: test multi-tenant `MobileDeviceRegistrationTest`
-      (registro, re-registro, reasignación user, isolation de unregister,
+      (registro, re-registro, 409 cross-user, isolation de unregister,
       auth requerida, platform validada)
 - [x] TypeScript estricto: `npm run typecheck` pasa limpio
 
-### Pendiente para llegar a paridad completa
-- [ ] Configurar EAS (`eas.json`, `projectId`) y registrar `expoConfig.extra.eas.projectId`
-- [ ] Asset `assets/sounds/bell.mp3` (ahora hay placeholder no-op)
-- [ ] Asset `assets/fonts/BricolageGrotesque-*.ttf` + `expo-font` loader
-- [ ] App icon + splash screen con identidad ClickToEat
-- [ ] Primera **dev build** (`eas build --profile development`) y prueba en device físico
-- [ ] Hook `useAuthEvents` que escuche `apiEvents` y haga logout al 401
-- [ ] Pantalla **Productos** (lista + toggle disponibilidad + editar precio + upload imagen)
-- [ ] Pantalla **Categorías** (lista + reorder)
-- [ ] Pantalla **Notificaciones** in-app (`/notificaciones`)
-- [ ] Pantalla **Multi-sucursal switcher** (`/me/locales` + `/me/switch-local/{id}`)
-- [ ] Cambiar el `WhatsAppLinkBuilder` en el web también debe espejarse en `src/lib/whatsapp.ts`
-- [ ] Migrar polling → Reverb WebSocket en v1.1
-- [ ] Llamar al `PushDispatcher` desde `OrderService::crear` (ya hay
-      WhatsAppLinkBuilder + WebPushSender; falta cambiar a `app(PushDispatcher::class)`)
-- [ ] Submit a App Store + Google Play (cuentas pagadas)
-- [ ] Subir privacy policy en App Store Connect (reusar `apps/web/.../privacidad`)
+### Pendiente — solo TU acción (no requiere código)
+- [ ] `cd apps/mobile && npx eas init` — genera `projectId` en `app.json` →
+      sin esto el push no funciona en build de prod
+- [ ] **Apple Developer** ($99/año) cuando vayas a TestFlight
+- [ ] **Google Play** ($25 one-time) cuando vayas a internal testing
+- [ ] Asset `assets/sounds/bell.mp3` (~0.5s, mono) — sin esto la campana es no-op
+- [ ] Assets de marca: app icon, splash, fuentes Bricolage Grotesque
+- [ ] Privacy policy URL para App Store Connect (reusar `clicktoeat.lumiaaisolutions.com/privacidad`)
+
+### Construido — v1.0 + v1.1 + v1.2 + v1.3 + super admin parcial (2026-06-20)
+- [x] **Deep-link desde notif** — `usePushDeepLink` lee `data.route` y navega
+- [x] **Notificaciones in-app** (`GET /notificaciones`, marcar leídas)
+- [x] **Productos quick-toggle** — lista + switch disponibilidad + edit precio/descuento/promo
+- [x] **Categorías** — lista + crear + toggle activo
+- [x] **Horarios** — editor por día con cerrado_temporal
+- [x] **Buscador global** (`/search`) en su propio tab
+- [x] **Inventario** — lista con badge bajo stock + detalle + ajuste (entrada/ajuste/merma) + movimientos
+- [x] **Compras a proveedor** — lista (lectura)
+- [x] **Cupones** — lista + toggle activo
+- [x] **Reviews** — moderación (toggle aprobado + borrar)
+- [x] **Staff** — lista con rol y permisos
+- [x] **Branding** — nombre, tagline, WhatsApp, teléfono, dirección, color primario, lealtad
+- [x] **Tickets de soporte** — lista + crear (asunto, mensaje, categoría, prioridad)
+- [x] **Audit log** — feature-gated 402 con CTA al panel web
+- [x] **Super admin** (gated por `rol === 'super_admin'`) — locales (suspender/reactivar) +
+      SaaS metrics (MRR, ARR, churn, conv, distribución) + anuncios globales
+- [x] Tabs limpios (Inicio · Pedidos · Buscar · Más) + menú "Más" con 14 secciones agrupadas
+- [x] TypeScript estricto: `npm run typecheck` pasa limpio (66 archivos)
+
+### Pendiente — código que requiere asset o decisión adicional
+- [ ] **Productos: crear desde cero + editor de extras/toppings** — UI compleja, mejor en panel web por ahora
+- [ ] **Productos: upload de imagen** — requiere `expo-image-picker` + `POST /uploads/image` (multipart)
+- [ ] **POS** — crear pedido en sucursal con `Idempotency-Key` + selección de productos
+- [ ] **Recetas** — asociar ingredientes a productos (UI de árbol)
+- [ ] **Detalle de Compra** (drill-down con líneas)
+- [ ] **Detalle de Ticket** (conversación + reply)
+- [ ] **Detalle de Local super admin** (editar billing manual, pago_externo)
+- [ ] **Multi-sucursal del super admin** (asignar locales a usuarios)
+- [ ] **Newsletter, email templates, cupones globales** — UI de markdown/HTML, mejor en panel web
+- [ ] **Webhooks outgoing** (Premium) — UI niche, mejor en panel web
+- [ ] **Programa de referidos**
+- [ ] **Centro de aprendizaje** (animaciones del web no aplican igual en mobile)
+- [ ] **Migrar polling 10s → Reverb WebSocket** en v1.1
+- [ ] Espejar cambios futuros del `WhatsAppLinkBuilder` (PHP) en `src/lib/whatsapp.ts`
+
+### Pendiente — infra
+- [ ] Migrar polling 10s → **Reverb WebSocket** (canal `local.{id}.pedidos`) en v1.1
+- [ ] Espejar cambios futuros del `WhatsAppLinkBuilder` (PHP) en `src/lib/whatsapp.ts`
+- [ ] Submit a App Store + Google Play
+- [ ] Configurar `EXPO_PUBLIC_API_URL` por perfil en `eas.json` con tu IP LAN
+      para builds dev (placeholder en `192.168.1.10`)

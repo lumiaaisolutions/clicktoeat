@@ -44,6 +44,7 @@
       "expo-router",
       "expo-secure-store",
       "expo-notifications",
+      "expo-updates",
       [
         "expo-splash-screen",
         {
@@ -56,6 +57,14 @@
       ],
       "expo-audio"
     ],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "enabled": true,
+      "fallbackToCacheTimeout": 0,
+      "checkAutomatically": "ON_LOAD"
+    },
     "extra": {
       "apiUrl": "https://clicktoeat-api.lumiaaisolutions.com/api/v1"
     },

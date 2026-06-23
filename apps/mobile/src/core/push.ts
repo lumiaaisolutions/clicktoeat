@@ -72,3 +72,41 @@ export async function syncDeviceWithBackend(expoToken: string): Promise<void> {
     throw err;
   }
 }
+
+let currentExpoToken: string | null = null;
+
+/**
+ * Registra el dispositivo en backend y guarda el token en memoria para poder
+ * desregistrarlo al cerrar sesión. Falla silenciosamente — perder push no
+ * debe romper el login.
+ */
+export async function registerAndSyncDevice(): Promise<string | null> {
+  try {
+    const token = await registerForPushAsync();
+    if (!token) return null;
+    await syncDeviceWithBackend(token);
+    currentExpoToken = token;
+    return token;
+  } catch (err) {
+    console.warn('[push] registerAndSyncDevice failed:', err);
+    return null;
+  }
+}
+
+/**
+ * Llamar antes del logout para que el backend deje de mandar push a este
+ * dispositivo. No bloquea logout si falla — el token se renueva con el
+ * próximo login de todas formas.
+ */
+export async function unregisterDeviceFromBackend(): Promise<void> {
+  if (!currentExpoToken) return;
+  try {
+    await api.post('/mobile/unregister-device', {
+      expo_push_token: currentExpoToken,
+    });
+  } catch {
+    /* no-op */
+  } finally {
+    currentExpoToken = null;
+  }
+}
