@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { api } from '@/lib/api';
+import { api, downloadFile } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
 import { Field, Select, Switch, Textarea } from '@/components/ui/FormField';
@@ -115,7 +115,25 @@ export default function GastosPage() {
         title="Lleva el control"
         titleAccent="de tus gastos."
         description="Registra luz, agua, gas, renta y demás gastos operativos. Mira el total mensual y compáralo con el mes anterior."
-        actions={<Button onClick={() => setOpen('new')}><Icon name="plus" size={14} className="mr-1.5" />Registrar gasto</Button>}
+        actions={
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              variant="secondary"
+              onClick={async () => {
+                try {
+                  const params: Record<string, string> = { mes };
+                  if (catFiltro) params.categoria = catFiltro;
+                  await downloadFile('/gastos/export', params);
+                } catch {
+                  toast.error('No se pudo descargar el CSV');
+                }
+              }}
+            >
+              <Icon name="download" size={14} className="mr-1.5" />CSV
+            </Button>
+            <Button onClick={() => setOpen('new')}><Icon name="plus" size={14} className="mr-1.5" />Registrar gasto</Button>
+          </div>
+        }
       />
 
       {/* Resumen del mes */}
@@ -280,7 +298,41 @@ function GastoModal({
   const [fecha, setFecha]         = useState(gasto?.fecha ?? new Date().toISOString().slice(0, 10));
   const [recurrente, setRecurrente] = useState(gasto?.recurrente ?? false);
   const [notas, setNotas]         = useState(gasto?.notas ?? '');
+  const [comprobanteUrl, setComprobanteUrl] = useState<string | null>(gasto?.comprobante_url ?? null);
   const [busy, setBusy]           = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const subirComprobante = async (file: File) => {
+    if (!gasto) {
+      toast.error('Primero guarda el gasto y luego adjunta el comprobante.');
+      return;
+    }
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('comprobante', file);
+      const r = await api.post<{ data: Gasto }>(`/gastos/${gasto.id}/comprobante`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setComprobanteUrl(r.data.data.comprobante_url);
+      toast.success('Comprobante subido');
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? 'Error al subir');
+    } finally { setUploading(false); }
+  };
+
+  const borrarComprobante = async () => {
+    if (!gasto) return;
+    if (!confirm('¿Quitar el comprobante?')) return;
+    setUploading(true);
+    try {
+      await api.delete(`/gastos/${gasto.id}/comprobante`);
+      setComprobanteUrl(null);
+      toast.success('Comprobante eliminado');
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? 'Error al borrar');
+    } finally { setUploading(false); }
+  };
 
   const save = async () => {
     setBusy(true);
@@ -369,6 +421,47 @@ function GastoModal({
         value={notas}
         onChange={(e) => setNotas(e.target.value)}
       />
+
+      {/* Comprobante — disponible una vez que el gasto existe */}
+      <div className="mb-3">
+        <label className="block text-sm font-medium mb-1">Comprobante (opcional)</label>
+        {!gasto ? (
+          <p className="text-xs text-muted">Guarda el gasto primero, luego podrás adjuntar la foto o el PDF del recibo.</p>
+        ) : comprobanteUrl ? (
+          <div className="flex items-center gap-3 rounded-xl border border-line p-2 bg-bg/40">
+            {/^https?:.+\.(png|jpe?g|webp)$/i.test(comprobanteUrl) ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={comprobanteUrl} alt="Comprobante" className="w-14 h-14 object-cover rounded-lg border border-line" />
+            ) : (
+              <span className="w-14 h-14 grid place-items-center rounded-lg border border-line bg-white text-2xl">📄</span>
+            )}
+            <div className="flex-1 min-w-0">
+              <a href={comprobanteUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium underline truncate block">
+                Ver comprobante
+              </a>
+              <p className="text-xs text-muted">Click para abrir en una pestaña nueva.</p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={borrarComprobante} disabled={uploading} className="text-red-600">
+              Quitar
+            </Button>
+          </div>
+        ) : (
+          <label className="block">
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              disabled={uploading}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void subirComprobante(f);
+                e.target.value = '';
+              }}
+              className="block w-full text-sm file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-ink file:text-white file:cursor-pointer file:font-medium hover:file:bg-ink/80 disabled:opacity-50"
+            />
+            <p className="text-xs text-muted mt-1">Imagen JPG/PNG/WEBP o PDF, máx 5 MB.</p>
+          </label>
+        )}
+      </div>
 
       <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-line">
         <Button onClick={save} loading={busy} disabled={!concepto || !montoMxn}>

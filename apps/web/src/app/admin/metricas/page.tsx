@@ -24,12 +24,26 @@ const PAGO_LABEL: Record<string, string> = {
   tarjeta_tpv: 'Tarjeta TPV', transferencia: 'Transferencia',
 };
 
+interface UtilidadSerie {
+  mes: string; label: string;
+  ventas_mxn: number; gastos_mxn: number; utilidad_mxn: number; margen_pct: number | null;
+}
+interface UtilidadResponse {
+  meses: number;
+  serie: UtilidadSerie[];
+  total_ventas: number;
+  total_gastos: number;
+  total_utilidad: number;
+  margen_promedio: number | null;
+}
+
 export default function MetricasPage() {
   const [data, setData] = useState<MetricasResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [preset, setPreset] = useState<Preset>('30d');
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
+  const [utilidad, setUtilidad] = useState<UtilidadResponse | null>(null);
 
   const fetch = async () => {
     setLoading(true);
@@ -37,8 +51,12 @@ export default function MetricasPage() {
       const params = preset === 'custom'
         ? { desde: desde || undefined, hasta: hasta || undefined }
         : { preset };
-      const { data: r } = await api.get<{ data: MetricasResponse }>('/metricas', { params });
+      const [{ data: r }, { data: u }] = await Promise.all([
+        api.get<{ data: MetricasResponse }>('/metricas', { params }),
+        api.get<{ data: UtilidadResponse }>('/metricas/utilidad', { params: { meses: 6 } }),
+      ]);
       setData(r.data);
+      setUtilidad(u.data);
     } finally {
       setLoading(false);
     }
@@ -118,6 +136,31 @@ export default function MetricasPage() {
             <h2 className="ce-display font-bold mb-3">Ventas por día</h2>
             <SerieChart serie={data.serie_diaria} />
           </section>
+
+          {/* Utilidad neta — Ventas vs Gastos por mes (últimos 6) */}
+          {utilidad && (
+            <section className="rounded-2xl border border-line bg-white p-4 mb-4">
+              <div className="flex items-baseline justify-between gap-3 mb-3 flex-wrap">
+                <div>
+                  <h2 className="ce-display font-bold">Utilidad neta</h2>
+                  <p className="text-xs text-muted">Ventas menos gastos operativos · últimos {utilidad.meses} meses</p>
+                </div>
+                <div className="text-right">
+                  <p className={cn('ce-display text-2xl font-bold tabular-nums', utilidad.total_utilidad >= 0 ? 'text-emerald-700' : 'text-red-600')}>
+                    {formatMXN(utilidad.total_utilidad)}
+                  </p>
+                  {utilidad.margen_promedio !== null && (
+                    <p className="text-xs text-muted">{utilidad.margen_promedio}% margen prom.</p>
+                  )}
+                </div>
+              </div>
+              <UtilidadChart serie={utilidad.serie} />
+              <div className="mt-3 flex items-center gap-4 text-xs flex-wrap">
+                <LegendDot color="#10B981" label={`Ventas — ${formatMXN(utilidad.total_ventas)}`} />
+                <LegendDot color="#F26A1F" label={`Gastos — ${formatMXN(utilidad.total_gastos)}`} />
+              </div>
+            </section>
+          )}
 
           {/* Heatmap día × hora */}
           {data.heatmap && (
@@ -398,5 +441,90 @@ function LowProductos({ items }: { items: NonNullable<MetricasResponse['low_prod
         </li>
       ))}
     </ul>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────── */
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className="w-3 h-3 rounded-full" style={{ background: color }} />
+      <span>{label}</span>
+    </span>
+  );
+}
+
+function UtilidadChart({ serie }: { serie: UtilidadSerie[] }) {
+  if (serie.length === 0) {
+    return <p className="text-sm text-muted py-6 text-center">Sin datos.</p>;
+  }
+
+  const maxV = Math.max(...serie.map((s) => Math.max(s.ventas_mxn, s.gastos_mxn)), 1);
+  const W = 600, H = 200, padX = 36, padY = 14;
+  const innerW = W - padX * 2;
+  const innerH = H - padY * 2;
+
+  const xFor = (i: number) => padX + (i / Math.max(serie.length - 1, 1)) * innerW;
+  const yFor = (v: number) => padY + innerH - (v / maxV) * innerH;
+
+  const lineFor = (key: 'ventas_mxn' | 'gastos_mxn') => serie
+    .map((s, i) => `${i === 0 ? 'M' : 'L'} ${xFor(i)} ${yFor(s[key])}`)
+    .join(' ');
+
+  return (
+    <div className="overflow-x-auto -mx-2 px-2">
+      <svg viewBox={`0 0 ${W} ${H + 30}`} className="w-full min-w-[500px] h-auto">
+        {[0, 0.25, 0.5, 0.75, 1].map((t) => (
+          <line key={t}
+            x1={padX} x2={padX + innerW}
+            y1={padY + innerH * (1 - t)} y2={padY + innerH * (1 - t)}
+            stroke="rgba(0,0,0,0.06)" strokeDasharray="2 4" />
+        ))}
+
+        <path d={lineFor('ventas_mxn')} fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={lineFor('gastos_mxn')} fill="none" stroke="#F26A1F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+
+        {serie.map((s, i) => (
+          <g key={s.mes}>
+            <circle cx={xFor(i)} cy={yFor(s.ventas_mxn)} r="3.5" fill="white" stroke="#10B981" strokeWidth="2" />
+            <circle cx={xFor(i)} cy={yFor(s.gastos_mxn)} r="3.5" fill="white" stroke="#F26A1F" strokeWidth="2" />
+          </g>
+        ))}
+
+        {serie.map((s, i) => (
+          <text key={s.mes} x={xFor(i)} y={H + 16} textAnchor="middle" fontSize="10" fill="rgba(0,0,0,0.55)" className="capitalize">
+            {s.label}
+          </text>
+        ))}
+      </svg>
+
+      <table className="w-full text-xs mt-3">
+        <thead>
+          <tr className="text-muted">
+            <th className="text-left font-medium py-1">Mes</th>
+            <th className="text-right font-medium py-1">Ventas</th>
+            <th className="text-right font-medium py-1">Gastos</th>
+            <th className="text-right font-medium py-1">Utilidad</th>
+            <th className="text-right font-medium py-1">Margen</th>
+          </tr>
+        </thead>
+        <tbody>
+          {serie.map((s) => (
+            <tr key={s.mes} className="border-t border-line/40">
+              <td className="py-1.5 capitalize">{s.label}</td>
+              <td className="py-1.5 text-right tabular-nums">{formatMXN(s.ventas_mxn)}</td>
+              <td className="py-1.5 text-right tabular-nums">{formatMXN(s.gastos_mxn)}</td>
+              <td className={cn('py-1.5 text-right tabular-nums font-semibold', s.utilidad_mxn >= 0 ? 'text-emerald-700' : 'text-red-600')}>
+                {formatMXN(s.utilidad_mxn)}
+              </td>
+              <td className="py-1.5 text-right tabular-nums text-muted">
+                {s.margen_pct === null ? '—' : `${s.margen_pct}%`}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

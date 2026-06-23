@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Gastos\StoreGastoRequest;
 use App\Http\Requests\Gastos\UpdateGastoRequest;
+use App\Http\Requests\Gastos\UploadComprobanteRequest;
 use App\Models\Gasto;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -12,6 +13,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 /**
  * Gastos operativos del local — control de OPEX (luz, agua, gas, renta, etc.).
@@ -88,6 +91,115 @@ class GastoController extends Controller
         $this->authorize('delete', $gasto);
         $gasto->delete();
         return response()->json(null, 204);
+    }
+
+    /**
+     * Exporta los gastos filtrados a CSV (UTF-8 BOM para que Excel los
+     * abra con acentos OK). Same filters que `index`.
+     */
+    public function exportCsv(Request $req): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $this->authorize('viewAny', Gasto::class);
+
+        $q = Gasto::query()->orderByDesc('fecha')->orderByDesc('id');
+
+        if ($req->filled('categoria')) {
+            $q->where('categoria', $req->string('categoria'));
+        }
+        if ($req->filled('mes')) {
+            $mes = $req->string('mes');
+            $q->where('fecha', '>=', $mes.'-01')
+              ->where('fecha', '<=', Carbon::parse($mes.'-01')->endOfMonth()->toDateString());
+        }
+        if ($req->filled('desde')) {
+            $q->whereDate('fecha', '>=', $req->date('desde'));
+        }
+        if ($req->filled('hasta')) {
+            $q->whereDate('fecha', '<=', $req->date('hasta'));
+        }
+
+        $mes = $req->string('mes')->toString() ?: now()->format('Y-m');
+        $filename = 'gastos-'.$mes.'.csv';
+
+        return response()->streamDownload(function () use ($q) {
+            $out = fopen('php://output', 'w');
+            // UTF-8 BOM para Excel
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['Fecha', 'Categoría', 'Concepto', 'Monto MXN', 'Recurrente', 'Notas', 'Comprobante']);
+
+            $q->chunk(500, function ($rows) use ($out) {
+                foreach ($rows as $g) {
+                    fputcsv($out, [
+                        $g->fecha->format('Y-m-d'),
+                        $g->categoria,
+                        $g->concepto,
+                        number_format($g->monto_centavos / 100, 2, '.', ''),
+                        $g->recurrente ? 'sí' : 'no',
+                        $g->notas ?? '',
+                        $g->comprobante_url ?? '',
+                    ]);
+                }
+            });
+
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    /**
+     * Sube (o reemplaza) el comprobante de un gasto. Acepta imagen o PDF.
+     */
+    public function subirComprobante(UploadComprobanteRequest $req, Gasto $gasto): JsonResponse
+    {
+        $disk = Storage::disk('public');
+
+        // Borra el anterior si existía (idempotente por reemplazo).
+        if ($gasto->comprobante_url) {
+            $rel = $this->extractRelative($gasto->comprobante_url);
+            if ($rel) {
+                $disk->delete($rel);
+            }
+        }
+
+        $file = $req->file('comprobante');
+        $ext  = strtolower($file->getClientOriginalExtension() ?: $file->extension());
+        $name = 'gasto-'.$gasto->id.'-'.Str::lower(Str::random(8)).'.'.$ext;
+        $path = $file->storeAs('uploads/comprobantes', $name, 'public');
+
+        $gasto->update(['comprobante_url' => $disk->url($path)]);
+
+        return response()->json(['data' => $gasto->fresh()]);
+    }
+
+    /**
+     * Borra el comprobante adjunto (deja el gasto, pero limpia el archivo).
+     */
+    public function eliminarComprobante(Gasto $gasto): JsonResponse
+    {
+        $this->authorize('update', $gasto);
+
+        if ($gasto->comprobante_url) {
+            $rel = $this->extractRelative($gasto->comprobante_url);
+            if ($rel) {
+                Storage::disk('public')->delete($rel);
+            }
+            $gasto->update(['comprobante_url' => null]);
+        }
+
+        return response()->json(null, 204);
+    }
+
+    /**
+     * De una URL pública (`https://.../storage/uploads/comprobantes/x.png`)
+     * extrae el path relativo al disk `public` (`uploads/comprobantes/x.png`).
+     * Tolerante a cambios de host (sólo busca a partir de "/storage/").
+     */
+    private function extractRelative(string $url): ?string
+    {
+        $marker = '/storage/';
+        $pos = strpos($url, $marker);
+        return $pos === false ? null : substr($url, $pos + strlen($marker));
     }
 
     /**

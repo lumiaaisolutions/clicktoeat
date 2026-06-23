@@ -6,6 +6,8 @@ use App\Models\Gasto;
 use App\Models\Local;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -138,6 +140,179 @@ class GastoTest extends TestCase
 
         $this->deleteJson("/api/v1/gastos/{$gasto->id}")->assertNoContent();
         $this->assertSoftDeleted('gastos', ['id' => $gasto->id]);
+    }
+
+    /** @test */
+    public function owner_sube_comprobante_imagen_al_gasto(): void
+    {
+        Storage::fake('public');
+        $gasto = Gasto::factory()->create(['local_id' => $this->local->id]);
+
+        Sanctum::actingAs($this->owner, ['*']);
+
+        $resp = $this->postJson("/api/v1/gastos/{$gasto->id}/comprobante", [
+            'comprobante' => UploadedFile::fake()->image('factura.jpg', 800, 600),
+        ])->assertOk();
+
+        $url = $resp->json('data.comprobante_url');
+        $this->assertNotNull($url);
+        $this->assertStringContainsString('/storage/uploads/comprobantes/gasto-'.$gasto->id.'-', $url);
+
+        // Verifica que el archivo realmente quedó en el disk fake.
+        $files = Storage::disk('public')->files('uploads/comprobantes');
+        $this->assertCount(1, $files);
+    }
+
+    /** @test */
+    public function owner_sube_comprobante_pdf_al_gasto(): void
+    {
+        Storage::fake('public');
+        $gasto = Gasto::factory()->create(['local_id' => $this->local->id]);
+
+        Sanctum::actingAs($this->owner, ['*']);
+
+        $this->postJson("/api/v1/gastos/{$gasto->id}/comprobante", [
+            'comprobante' => UploadedFile::fake()->create('factura.pdf', 200, 'application/pdf'),
+        ])->assertOk();
+
+        $this->assertCount(1, Storage::disk('public')->files('uploads/comprobantes'));
+    }
+
+    /** @test */
+    public function comprobante_rechaza_extensiones_invalidas(): void
+    {
+        Storage::fake('public');
+        $gasto = Gasto::factory()->create(['local_id' => $this->local->id]);
+
+        Sanctum::actingAs($this->owner, ['*']);
+
+        $this->postJson("/api/v1/gastos/{$gasto->id}/comprobante", [
+            'comprobante' => UploadedFile::fake()->create('virus.exe', 10),
+        ])->assertUnprocessable()
+          ->assertJsonValidationErrors('comprobante');
+    }
+
+    /** @test */
+    public function comprobante_rechaza_archivo_demasiado_grande(): void
+    {
+        Storage::fake('public');
+        $gasto = Gasto::factory()->create(['local_id' => $this->local->id]);
+
+        Sanctum::actingAs($this->owner, ['*']);
+
+        $this->postJson("/api/v1/gastos/{$gasto->id}/comprobante", [
+            // 6 MB > 5 MB de límite
+            'comprobante' => UploadedFile::fake()->create('huge.pdf', 6 * 1024),
+        ])->assertUnprocessable();
+    }
+
+    /** @test */
+    public function staff_no_puede_subir_comprobante(): void
+    {
+        Storage::fake('public');
+        $gasto = Gasto::factory()->create(['local_id' => $this->local->id]);
+        $staff = User::factory()->staff($this->local)->create();
+
+        Sanctum::actingAs($staff, ['*']);
+
+        $this->postJson("/api/v1/gastos/{$gasto->id}/comprobante", [
+            'comprobante' => UploadedFile::fake()->image('factura.jpg'),
+        ])->assertForbidden();
+    }
+
+    /** @test */
+    public function owner_borra_comprobante(): void
+    {
+        Storage::fake('public');
+        $gasto = Gasto::factory()->create(['local_id' => $this->local->id]);
+
+        Sanctum::actingAs($this->owner, ['*']);
+
+        // Sube
+        $this->postJson("/api/v1/gastos/{$gasto->id}/comprobante", [
+            'comprobante' => UploadedFile::fake()->image('factura.jpg'),
+        ])->assertOk();
+        $this->assertCount(1, Storage::disk('public')->files('uploads/comprobantes'));
+
+        // Borra
+        $this->deleteJson("/api/v1/gastos/{$gasto->id}/comprobante")
+            ->assertNoContent();
+
+        $this->assertNull($gasto->fresh()->comprobante_url);
+        $this->assertCount(0, Storage::disk('public')->files('uploads/comprobantes'));
+    }
+
+    /** @test */
+    public function subir_segundo_comprobante_reemplaza_el_anterior(): void
+    {
+        Storage::fake('public');
+        $gasto = Gasto::factory()->create(['local_id' => $this->local->id]);
+
+        Sanctum::actingAs($this->owner, ['*']);
+
+        $this->postJson("/api/v1/gastos/{$gasto->id}/comprobante", [
+            'comprobante' => UploadedFile::fake()->image('uno.jpg'),
+        ])->assertOk();
+
+        $this->postJson("/api/v1/gastos/{$gasto->id}/comprobante", [
+            'comprobante' => UploadedFile::fake()->image('dos.jpg'),
+        ])->assertOk();
+
+        // Tras el reemplazo solo queda el segundo
+        $this->assertCount(1, Storage::disk('public')->files('uploads/comprobantes'));
+    }
+
+    /** @test */
+    public function export_csv_devuelve_filas_filtradas_con_bom(): void
+    {
+        Gasto::factory()->create([
+            'local_id' => $this->local->id,
+            'categoria' => 'luz',
+            'concepto'  => 'CFE',
+            'monto_centavos' => 50000,
+            'fecha' => now()->startOfMonth()->addDay(),
+            'recurrente' => true,
+            'notas' => null,
+        ]);
+        Gasto::factory()->create([
+            'local_id' => $this->local->id,
+            'categoria' => 'agua',
+            'concepto'  => 'CONAGUA',
+            'monto_centavos' => 30000,
+            'fecha' => now()->startOfMonth()->addDays(2),
+        ]);
+
+        Sanctum::actingAs($this->owner, ['*']);
+
+        $resp = $this->get('/api/v1/gastos/export?mes='.now()->format('Y-m'))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+
+        $body = $resp->streamedContent();
+
+        // BOM UTF-8 al inicio
+        $this->assertStringStartsWith("\xEF\xBB\xBF", $body);
+        // El header de la columna 4 tiene espacio → fputcsv lo escapa con quotes.
+        $this->assertStringContainsString('Fecha,Categoría,Concepto,"Monto MXN",Recurrente,Notas,Comprobante', $body);
+        $this->assertStringContainsString('luz,CFE,500.00', $body);
+        $this->assertStringContainsString('agua,CONAGUA,300.00', $body);
+    }
+
+    /** @test */
+    public function export_csv_filtra_por_categoria(): void
+    {
+        Gasto::factory()->create(['local_id' => $this->local->id, 'categoria' => 'luz']);
+        Gasto::factory()->create(['local_id' => $this->local->id, 'categoria' => 'agua']);
+        Gasto::factory()->create(['local_id' => $this->local->id, 'categoria' => 'agua']);
+
+        Sanctum::actingAs($this->owner, ['*']);
+
+        $body = $this->get('/api/v1/gastos/export?categoria=agua')
+            ->assertOk()
+            ->streamedContent();
+
+        $this->assertStringNotContainsString(',luz,', $body);
+        $this->assertSame(2, substr_count($body, ',agua,'));
     }
 
     /** @test */

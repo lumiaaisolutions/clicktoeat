@@ -118,6 +118,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->call(function () {
             \App\Services\Notifications\ResumenSemanalDispatcher::dispatchAll();
         })->weekly()->sundays()->at('20:00')->name('resumen-semanal')->onOneServer();
+
+        // ─── Gastos recurrentes vencidos (F101) — diario 09:30 ─────────
+        // Notifica al owner si un gasto recurrente lleva >35 días sin
+        // nuevo registro (ej. renta de junio que no se ha capturado).
+        $schedule->command('gastos:check-recurrentes')
+            ->daily()->at('09:30')->name('gastos-check-recurrentes')->onOneServer();
     })
     ->withExceptions(function (Exceptions $exceptions) {
         // Reporta excepciones a Sentry si DSN está configurado.

@@ -229,6 +229,7 @@ Route::middleware('throttle:60,1')->group(function () {
         // Métricas / reportes — gated por plan
         Route::middleware('feature:metricas_basicas')->group(function () {
             Route::get('metricas',         [MetricasController::class, 'index']);
+            Route::get('metricas/utilidad',[MetricasController::class, 'utilidad']);
         });
 
         // Audit log del local (sólo owner) — gated por plan (Premium)
@@ -247,7 +248,10 @@ Route::middleware('throttle:60,1')->group(function () {
 
         // F101 — Gastos operativos (luz, agua, gas, renta, etc.)
         // Distinto de `compras` (inventario de insumos). Esto es OPEX puro.
-        Route::get('gastos/resumen', [\App\Http\Controllers\Api\GastoController::class, 'resumen']);
+        Route::get('gastos/resumen',  [\App\Http\Controllers\Api\GastoController::class, 'resumen']);
+        Route::get('gastos/export',   [\App\Http\Controllers\Api\GastoController::class, 'exportCsv']);
+        Route::post('gastos/{gasto}/comprobante',   [\App\Http\Controllers\Api\GastoController::class, 'subirComprobante']);
+        Route::delete('gastos/{gasto}/comprobante', [\App\Http\Controllers\Api\GastoController::class, 'eliminarComprobante']);
         Route::apiResource('gastos',  \App\Http\Controllers\Api\GastoController::class);
 
         // F100 — Reviews/calificaciones del local (moderación owner)

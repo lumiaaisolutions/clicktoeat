@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   motion,
   AnimatePresence,
@@ -393,7 +394,14 @@ function Hero({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <Logo variant="lockup" size={36} />
+            <Image
+              src="/logo.png"
+              alt="ClickToEat"
+              width={224}
+              height={203}
+              priority
+              className="h-24 sm:h-28 w-auto select-none drop-shadow-sm"
+            />
           </motion.div>
 
           <motion.p
