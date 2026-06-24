@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   motion,
   AnimatePresence,
@@ -339,8 +338,8 @@ function ComingSoonAppSection() {
               <div className="w-full h-full rounded-[28px] bg-white overflow-hidden relative">
                 <div className="w-20 h-4 bg-zinc-900 absolute top-2 left-1/2 -translate-x-1/2 rounded-full" />
                 <div className="pt-8 px-3 text-ink">
-                  <div className="w-10 h-10 rounded-xl bg-ink grid place-items-center mb-2">
-                    <Icon name="utensils" size={18} className="text-white" />
+                  <div className="mb-2">
+                    <Logo variant="mark" size={40} />
                   </div>
                   <p className="ce-display text-[11px] font-bold leading-tight">ClickToEat</p>
                   <p className="text-[8px] text-muted">Tu local en vivo</p>
@@ -394,14 +393,7 @@ function Hero({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <Image
-              src="/logo.png"
-              alt="ClickToEat"
-              width={224}
-              height={203}
-              priority
-              className="h-24 sm:h-28 w-auto select-none drop-shadow-sm"
-            />
+            <Logo variant="lockup" size={52} />
           </motion.div>
 
           <motion.p
