@@ -1,6 +1,6 @@
 # Pendientes — lista única de verdad
 
-> Estado al **2026-06-23** (post app móvil v1.1→v1.3 + super admin + features/api).
+> Estado al **2026-06-24** (post cierre documental + 2 deploys: app móvil commiteada + logo SVG directorio).
 > Esta es la fuente única de verdad sobre qué falta hacer. Si está acá,
 > está pendiente. Si NO está acá, ya está hecho.
 
@@ -282,16 +282,12 @@ Docs creadas/actualizadas:
 
 ### 🟡 Pendiente local (no urgente, no en prod)
 
-- **`apps/mobile/` sin commitear**: la app completa (v1.0→v1.3 + super admin)
-  sigue en local. Sesión 2026-06-23 añadió 22 pantallas nuevas + 18 módulos
-  `features/api.ts`. Commit recomendado:
-  ```bash
-  git add apps/mobile/ docs/
-  git commit -m "feat(mobile): pantallas v1.1→v1.3 + super admin + features/api"
-  git push origin main
-  ```
-  El backend de push fan-out YA está en prod (commit `bffb908`).
-  La app móvil necesita su propio commit + decisión cuándo publicar a stores.
+- ~~**`apps/mobile/` sin commitear**~~ ✅ **Commiteado 2026-06-24** — commit `7485de4` en
+  `origin/main`. El código de la app móvil ya está en GitHub. Lo que falta
+  es publicar a App Store / Google Play (ver §App móvil — solo TU acción).
+
+- **Directorio logo** ✅ — `217c4c4` reemplaza `logo.png` PNG por `<Logo>` SVG.
+  Deploy 2026-06-24 verificado 200.
 
 - **TRIAL_MANUAL_DAYS=15 en prod `.env`**: memoria del proyecto menciona
   que ClickToBarber lo necesita. Verificar si aplica a ClickToEat y si

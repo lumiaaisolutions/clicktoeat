@@ -1,8 +1,8 @@
 # Cómo continuar el proyecto en otra sesión
 
-> **Snapshot al 2026-06-23** (post app móvil completa v1.1→v1.3 + super
-> admin + capa features/api + logo transparente). Si abres el proyecto en
-> una sesión nueva, lee este archivo primero.
+> **Snapshot al 2026-06-24** (post cierre documental + 2 deploys: app móvil
+> v1.1→v1.3 + logo SVG en directorio). Si abres el proyecto en una sesión
+> nueva, lee este archivo primero.
 
 ## Estado del sistema
 
@@ -36,9 +36,9 @@ curl -I https://clicktoeat-api.lumiaaisolutions.com/up  # 200 + 5 headers de seg
   comprobantes + CSV + utilidad + cron + bug SEV-19).
 - TypeScript estricto OK, Next.js build OK (`/admin/gastos` 10.5 kB,
   `/admin/metricas` 7.6 kB, `/login` 3.3 kB).
-- **App móvil** (Expo SDK 56): typecheck limpio en 66+ archivos TS.
-  **Pendiente de commit** — ver sección §App móvil abajo.
-- **Todos los commits del 2026-06-22 pusheados a GitHub**.
+- **App móvil** (Expo SDK 56): ✅ commiteada (`7485de4`) y en GitHub.
+- **Logo SVG** en directorio home: ✅ commiteado (`217c4c4`) y deployado.
+- **Todos los commits hasta 2026-06-24 pusheados a GitHub**.
 - **API + Web deployadas a prod el 2026-06-22** (último commit `a809f0c`).
   Migración `gastos` aplicada, comando `gastos:check-recurrentes`
   registrado en scheduler, todos los endpoints respondiendo 401 con auth
@@ -260,6 +260,10 @@ Estos son planes en `docs/features/` listos para cuando sean necesarios:
 | **Self-service alta de sucursales** | `pos-listas-tours-sucursales-emails-auditoria-2026-06-18.md` | Cliente Premium con cadena lo pida — hoy es asistido por soporte |
 
 ## 📚 Documentación clave para futuras sesiones
+
+### Cronología sesión 2026-06-24 — Cierre documental + 2 deploys
+
+- [`docs/runbook/cierre-sesion-2026-06-24.md`](runbook/cierre-sesion-2026-06-24.md) — commit app móvil + fix directorio logo SVG
 
 ### Cronología sesión 2026-06-23 — App móvil v1.1→v1.3 + super admin + features/
 
