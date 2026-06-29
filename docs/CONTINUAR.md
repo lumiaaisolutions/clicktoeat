@@ -1,8 +1,7 @@
 # Cómo continuar el proyecto en otra sesión
 
-> **Snapshot al 2026-06-24** (post cierre documental + 2 deploys: app móvil
-> v1.1→v1.3 + logo SVG en directorio). Si abres el proyecto en una sesión
-> nueva, lee este archivo primero.
+> **Snapshot al 2026-06-25** (post diagnóstico chunk mismatch + hallazgo
+> `sharp`). Si abres el proyecto en una sesión nueva, lee este archivo primero.
 
 ## Estado del sistema
 
@@ -17,7 +16,7 @@ pendiente de commit y `npx eas init`.
 
 | Capa | URL | Estado |
 |------|-----|--------|
-| Frontend | https://clicktoeat.lumiaaisolutions.com | 🟢 Up (bundle 2026-06-22 con gastos + naranja) |
+| Frontend | https://clicktoeat.lumiaaisolutions.com | 🟢 Up (bundle 2026-06-24, BUILD_ID `gbLDmVf59_a6OF8WaQ0h5`) |
 | API | https://clicktoeat-api.lumiaaisolutions.com | 🟢 Up con audit + Fase 6 gastos aplicado |
 | BD | MySQL managed en VPS Hostinger | 🟢 Up + migración `gastos` aplicada |
 | Stripe | LIVE mode, `acct_1TPnLARxHYFQWlid` | 🟢 Charges enabled |
@@ -260,6 +259,10 @@ Estos son planes en `docs/features/` listos para cuando sean necesarios:
 | **Self-service alta de sucursales** | `pos-listas-tours-sucursales-emails-auditoria-2026-06-18.md` | Cliente Premium con cadena lo pida — hoy es asistido por soporte |
 
 ## 📚 Documentación clave para futuras sesiones
+
+### Cronología sesión 2026-06-25 — Diagnóstico chunk mismatch
+
+- [`docs/runbook/cierre-sesion-2026-06-25.md`](runbook/cierre-sesion-2026-06-25.md) — blank page por browser cache + hallazgo `sharp`
 
 ### Cronología sesión 2026-06-24 — Cierre documental + 2 deploys
 

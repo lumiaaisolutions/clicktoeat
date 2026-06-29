@@ -1,6 +1,6 @@
 # Pendientes — lista única de verdad
 
-> Estado al **2026-06-24** (post cierre documental + 2 deploys: app móvil commiteada + logo SVG directorio).
+> Estado al **2026-06-25** (post diagnóstico chunk mismatch — sin cambios en prod).
 > Esta es la fuente única de verdad sobre qué falta hacer. Si está acá,
 > está pendiente. Si NO está acá, ya está hecho.
 
@@ -360,6 +360,27 @@ construir sin demanda).
 - **Esfuerzo**: 3-4 días
 
 ## 🔵 Configuración opcional (no urgente)
+
+### Instalar `sharp` en el servidor (image optimization)
+
+- **Por qué**: `stderr.log` del servidor muestra `'sharp' is required in
+  standalone mode for image optimization`. Sin `sharp`, `next/image` usa
+  resize por software (más lento). No causa errores visibles al usuario.
+- **Impacto**: bajo — afecta solo a páginas con `next/image` optimization.
+  Las imágenes sirven, pero sin resize automático eficiente.
+- **Cómo**:
+  ```bash
+  ssh -i ~/.ssh/hostinger_clicktoeat -p 65002 u221820910@86.38.202.72
+  node --version  # verificar compatibilidad
+  cd ~/domains/clicktoeat.lumiaaisolutions.com/nodejs
+  npm install sharp
+  touch tmp/restart.txt
+  ```
+- **Alternativa**: si `npm install sharp` falla por versión de Node/glibc
+  del VPS, agregar `images: { unoptimized: true }` en `next.config.mjs`
+  para silenciar el warning (las imágenes sirven sin optimización).
+- **Tiempo**: 5 min.
+- **Doc diagnóstico**: [`docs/runbook/cierre-sesion-2026-06-25.md`](runbook/cierre-sesion-2026-06-25.md)
 
 ### Activar QUEUE_CONNECTION=database
 - **Doc**: `docs/runbook/activar-queue-database.md`
