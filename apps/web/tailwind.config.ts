@@ -19,12 +19,16 @@ const config: Config = {
         mono:    ['"Geist Mono"', 'ui-monospace', 'monospace'],
       },
       colors: {
-        ink:     'var(--ce-ink,     #0B0B0F)',
-        bg:      'var(--ce-bg,      #FAFAF7)',
-        line:    'var(--ce-line,    #E8E8E2)',
-        muted:   'var(--ce-muted,   #6B6B6B)',
-        surface: 'var(--ce-surface, #FFFFFF)',
-        accent:  'var(--ce-accent,  #F26A1F)',
+        // Triplets RGB para que Tailwind genere modificadores de opacidad
+        // (text-ink/40, ring-accent/20…). Los hex --ce-* siguen existiendo
+        // para estilos inline; ambos se definen en globals.css y el branding
+        // por tenant inyecta los dos.
+        ink:     'rgb(var(--ce-ink-rgb,     11 11 15) / <alpha-value>)',
+        bg:      'rgb(var(--ce-bg-rgb,      250 250 247) / <alpha-value>)',
+        line:    'rgb(var(--ce-line-rgb,    232 232 226) / <alpha-value>)',
+        muted:   'rgb(var(--ce-muted-rgb,   107 107 107) / <alpha-value>)',
+        surface: 'rgb(var(--ce-surface-rgb, 255 255 255) / <alpha-value>)',
+        accent:  'rgb(var(--ce-accent-rgb,  242 106 31) / <alpha-value>)',
       },
       borderRadius: {
         xl:  '14px',

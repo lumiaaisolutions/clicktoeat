@@ -31,6 +31,15 @@ type Branding  = MenuResponse['data']['branding'];
 type Categoria = MenuResponse['data']['categorias'][number];
 type Producto  = MenuProducto;
 
+/** "#F26A1F" → "242 106 31" para rgb(var(...) / alpha) de Tailwind. */
+function hexToRgbTriplet(hex: string): string {
+  const h = (hex ?? '').replace('#', '');
+  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+  if (full.length !== 6 || Number.isNaN(parseInt(full, 16))) return '242 106 31';
+  const n = parseInt(full, 16);
+  return `${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255}`;
+}
+
 interface Props { menu: MenuResponse['data']; }
 
 export function LandingClient({ menu }: Props) {
@@ -91,6 +100,8 @@ export function LandingClient({ menu }: Props) {
       className={cn('ce-warm min-h-screen', dark && 'ce-dark')}
       style={{
         ['--ce-accent' as any]: branding.colorPrimario,
+        // Triplet RGB para las clases Tailwind con opacidad (accent/10…)
+        ['--ce-accent-rgb' as any]: hexToRgbTriplet(branding.colorPrimario),
         ['--ce-display-font' as any]: branding.tipografia ? `"${branding.tipografia}"` : undefined,
         ['--ce-btn-primary' as any]:   branding.colorOverrides?.boton_primario   ?? branding.colorPrimario,
         ['--ce-btn-secondary' as any]: branding.colorOverrides?.boton_secundario ?? branding.colorSecundario,
