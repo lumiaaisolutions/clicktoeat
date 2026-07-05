@@ -42,9 +42,11 @@ class SignupController extends Controller
         // Token con abilities mínimos para alta de plan
         $token = $user->createToken('signup-prospect', ['*'])->plainTextToken;
 
+        // SEV-2 — la sesión web viaja en cookie HttpOnly; el token del JSON
+        // queda como respaldo transitorio en memoria (registro → elegir plan).
         return response()->json([
             'user'  => $user->only(['id', 'nombre', 'email', 'rol']),
             'token' => $token,
-        ], 201);
+        ], 201)->withCookie(\App\Support\AuthCookie::make($token));
     }
 }

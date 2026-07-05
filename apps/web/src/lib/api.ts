@@ -1,12 +1,20 @@
 import axios, { AxiosError, AxiosInstance } from 'axios';
 
-const baseURL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:8080/api/v1';
+// localhost (no 127.0.0.1) para que la cookie de auth sea same-site en dev
+const baseURL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080/api/v1';
 
 const TOKEN_KEY = 'clickeat:token';
 
+/**
+ * SEV-2 — el token vive SOLO en memoria (y en la cookie HttpOnly que setea
+ * el backend). Nunca se persiste en localStorage: un XSS ya no puede
+ * exfiltrarlo. La cookie viaja sola vía withCredentials.
+ */
+let memToken: string | null = null;
+
 export const api: AxiosInstance = axios.create({
   baseURL,
-  withCredentials: false,
+  withCredentials: true,
   headers: {
     Accept: 'application/json',
     'X-Requested-With': 'XMLHttpRequest',
@@ -15,10 +23,12 @@ export const api: AxiosInstance = axios.create({
 });
 
 if (typeof window !== 'undefined') {
+  // Limpieza one-time de tokens legacy persistidos antes del cierre de SEV-2
+  try { window.localStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ }
+
   api.interceptors.request.use((config) => {
-    const token = window.localStorage.getItem(TOKEN_KEY);
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (memToken) {
+      config.headers.Authorization = `Bearer ${memToken}`;
     }
     return config;
   });
@@ -27,7 +37,7 @@ if (typeof window !== 'undefined') {
     (response) => response,
     (error: AxiosError) => {
       if (error.response?.status === 401) {
-        window.localStorage.removeItem(TOKEN_KEY);
+        memToken = null;
       }
       if (error.response?.status === 402) {
         const body = error.response.data as any;
@@ -41,9 +51,9 @@ if (typeof window !== 'undefined') {
 }
 
 export const tokenStore = {
-  get:   () => (typeof window === 'undefined' ? null : window.localStorage.getItem(TOKEN_KEY)),
-  set:   (t: string) => window.localStorage.setItem(TOKEN_KEY, t),
-  clear: () => window.localStorage.removeItem(TOKEN_KEY),
+  get:   () => memToken,
+  set:   (t: string) => { memToken = t; },
+  clear: () => { memToken = null; },
 };
 
 /**
@@ -56,7 +66,11 @@ export async function downloadFile(path: string, params?: Record<string, string>
   const qs  = params && Object.keys(params).length ? '?' + new URLSearchParams(params).toString() : '';
   const url = `${baseURL}${path}${qs}`;
   const tok = tokenStore.get();
-  const res = await fetch(url, { headers: tok ? { Authorization: `Bearer ${tok}` } : {} });
+  // La cookie HttpOnly autentica sola; el bearer en memoria es respaldo.
+  const res = await fetch(url, {
+    credentials: 'include',
+    headers: tok ? { Authorization: `Bearer ${tok}` } : {},
+  });
   if (!res.ok) throw new Error(`Descarga falló (${res.status})`);
   const blob = await res.blob();
   const disposition = res.headers.get('Content-Disposition') ?? '';

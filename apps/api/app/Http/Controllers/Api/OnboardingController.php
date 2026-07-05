@@ -218,12 +218,14 @@ class OnboardingController extends Controller
                 ->send(new \App\Mail\WelcomeMail($token->local->fresh(), $owner));
         }, report: false);
 
+        // SEV-2 — la sesión web viaja en cookie HttpOnly; el token del JSON
+        // es respaldo transitorio (setTokenAndHydrate) para esta misma página.
         return response()->json([
             'token'   => $sanctum,
             'user'    => $owner->only(['id', 'nombre', 'email', 'rol', 'local_id']),
             'local'   => $token->local->only(['id', 'nombre', 'slug']),
             'next'    => '/admin',
-        ]);
+        ])->withCookie(\App\Support\AuthCookie::make($sanctum));
     }
 
     /**

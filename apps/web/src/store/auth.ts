@@ -71,7 +71,8 @@ export const useAuth = create<AuthState>()(
       },
 
       async hydrate() {
-        if (!tokenStore.get()) return;
+        // SEV-2: la sesión vive en una cookie HttpOnly que JS no puede leer —
+        // siempre intentamos /auth/me; un 401 simplemente deja el estado limpio.
         try {
           const { data } = await api.get<MePayload>('/auth/me');
           set({ user: data.user });

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { api, tokenStore } from '@/lib/api';
+import { api } from '@/lib/api';
 import { Logo } from '@/components/ui/Logo';
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/lib/utils';
@@ -42,8 +42,9 @@ export default function ElegirPlanPage() {
   const [busy,     setBusy]     = useState<string | null>(null);
 
   useEffect(() => {
-    // Si no hay token, no llegó por signup → mandar a /registro
-    if (!tokenStore.get()) { router.replace('/registro'); return; }
+    // Si no hay sesión (cookie HttpOnly), no llegó por signup → /registro.
+    // SEV-2: validamos contra /auth/me — el token en memoria no sobrevive recargas.
+    api.get('/auth/me').catch(() => router.replace('/registro'));
     api.get<{ data: Plan[] }>('/billing/plans')
       .then(({ data }) => setPlans(data.data))
       .catch(() => setPlans([]));

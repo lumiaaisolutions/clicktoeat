@@ -151,22 +151,10 @@ class AuthController extends Controller
         $token  = $user->createToken($device, $this->abilitiesFor($user))->plainTextToken;
 
         // SEV-2 — además del JSON token (para mobile/API externa), setamos
-        // una cookie HttpOnly+Secure+SameSite=Lax. El frontend web puede
-        // empezar a depender de la cookie en lugar de leer el token desde
-        // JS (cierra el vector XSS → ATO). Mientras tanto ambos caminos
-        // funcionan — el frontend actual sigue leyendo el JSON.
-        // TTL alineado con `config/sanctum.php:expiration` (7 días).
-        $cookie = cookie(
-            'cte_token',                // name
-            $token,                     // value
-            60 * 24 * 7,                // minutes (7 días)
-            '/',                        // path
-            null,                       // domain
-            app()->isProduction(),      // secure
-            true,                       // httpOnly
-            false,                      // raw
-            'Lax',                      // sameSite
-        );
+        // la cookie HttpOnly+Secure+SameSite=Lax vía AuthCookie (única
+        // fuente de flags/dominio/TTL). El frontend web depende de la
+        // cookie — el token del JSON es solo para mobile y API externa.
+        $cookie = \App\Support\AuthCookie::make($token);
 
         return response()
             ->json([
@@ -243,11 +231,11 @@ class AuthController extends Controller
     {
         $request->user()->currentAccessToken()->delete();
 
-        // SEV-2 — limpiamos también la cookie HttpOnly. forget(name) emite
+        // SEV-2 — limpiamos también la cookie HttpOnly. forget() emite
         // un Set-Cookie con expiración en el pasado.
         return response()
             ->json(null, 204)
-            ->withCookie(\Illuminate\Support\Facades\Cookie::forget('cte_token', '/'));
+            ->withCookie(\App\Support\AuthCookie::forget());
     }
 
     protected function abilitiesFor(User $user): array
