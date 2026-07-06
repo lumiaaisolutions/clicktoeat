@@ -88,6 +88,30 @@ class UploadImageTest extends TestCase
     }
 
     /** @test */
+    public function acepta_avif_real(): void
+    {
+        // Regresión: la regla built-in `image` de Laravel no reconoce AVIF
+        // (whitelist hardcodeada sin avif) y rechazaba archivos AVIF reales
+        // aunque `mimetypes` sí los permitiera — un banner AVIF real fallaba
+        // con 422 pese a que el mensaje de error decía soportarlo.
+        Sanctum::actingAs($this->owner, ['*']);
+
+        $im   = imagecreatetruecolor(10, 10);
+        $path = tempnam(sys_get_temp_dir(), 'avif').'.avif';
+        imageavif($im, $path);
+        imagedestroy($im);
+
+        $file = new UploadedFile($path, 'banner.avif', 'image/avif', null, true);
+
+        $this->postJson('/api/v1/uploads/image', [
+            'image'  => $file,
+            'folder' => 'banners',
+        ])->assertCreated();
+
+        @unlink($path);
+    }
+
+    /** @test */
     public function rechaza_imagen_que_excede_5_MB(): void
     {
         Sanctum::actingAs($this->owner, ['*']);

@@ -17,7 +17,13 @@ class StoreImageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'image'  => ['required', 'file', 'image', 'mimetypes:image/jpeg,image/png,image/webp,image/avif', 'max:5120'],
+            // La regla built-in `image` de Laravel rechaza AVIF (su whitelist
+            // interna está hardcodeada a jpg/jpeg/png/gif/bmp/svg/webp y nunca
+            // se actualizó) — combinarla con `mimetypes` (que sí reconoce AVIF
+            // via content-sniffing) hacía que cualquier AVIF real fallara aquí
+            // aunque el mensaje de error prometiera soportarlo. `mimetypes` ya
+            // cubre lo que `image` verificaba, con la whitelist correcta.
+            'image'  => ['required', 'file', 'mimetypes:image/jpeg,image/png,image/webp,image/avif', 'max:5120'],
             'folder' => ['nullable', Rule::in(['productos', 'locales', 'banners', 'logos'])],
         ];
     }
@@ -31,7 +37,6 @@ class StoreImageRequest extends FormRequest
             'image.max'      => 'La imagen supera el tamaño permitido por el servidor. Reduce el archivo a menos de 5 MB.',
             'image.uploaded' => 'La imagen excede el límite del servidor (upload_max_filesize). Sube una imagen más pequeña.',
             'image.required' => 'Selecciona una imagen para subir.',
-            'image.image'    => 'El archivo debe ser una imagen (JPG, PNG, WebP o AVIF).',
             'image.mimetypes'=> 'Formato no soportado. Usa JPG, PNG, WebP o AVIF.',
         ];
     }

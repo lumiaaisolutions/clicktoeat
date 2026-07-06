@@ -154,8 +154,11 @@ class OnboardingController extends Controller
     public function uploadImagen(Request $req, \App\Services\Images\ImageUploader $uploader): JsonResponse
     {
         $this->resolveToken($req);  // valida token
+        // Misma regla que StoreImageRequest (Upload/branding) — `image` de
+        // Laravel no reconoce AVIF (whitelist hardcodeada sin avif), así que
+        // usamos `mimetypes` con content-sniffing real en su lugar.
         $req->validate([
-            'image'  => ['required', 'image', 'max:5120'],     // 5 MB
+            'image'  => ['required', 'file', 'mimetypes:image/jpeg,image/png,image/webp,image/avif', 'max:5120'],     // 5 MB
             'folder' => ['nullable', 'string', 'in:logos,banners,locales'],
         ]);
         $result = $uploader->upload(
