@@ -7,9 +7,11 @@ use App\Http\Requests\StartCheckoutRequest;
 use App\Models\OnboardingToken;
 use App\Models\Plan;
 use App\Models\Local;
+use App\Models\User;
 use App\Services\Billing\StripeClientFactory;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
 use Throwable;
@@ -112,6 +114,21 @@ class BillingController extends Controller
             $payload['customer_email'] = $email;
         }
 
+        // Si quien inicia el checkout YA tiene sesión (p.ej. vino de
+        // /registro y ya existe como User sin Local todavía, vía
+        // CookieToBearer + Sanctum), atamos la Session a esa cuenta con
+        // client_reference_id. Sin esto, `session()`/el webhook creaban un
+        // Local huérfano y el wizard forzaba "crear cuenta" de nuevo aunque
+        // el usuario ya existiera — causó un incidente real en prod (3
+        // locales duplicados). Mismo patrón que `activateExisting()` usa
+        // para "local:N", aquí con "user:N" para el caso sin Local aún.
+        $authUser = $req->user();
+        if ($authUser) {
+            $payload['client_reference_id'] = $authUser->local_id
+                ? 'local:'.$authUser->local_id
+                : 'user:'.$authUser->id;
+        }
+
         try {
             $session = $this->stripeFactory->make()->checkout->sessions->create($payload);
         } catch (\Stripe\Exception\ApiErrorException $e) {
@@ -173,39 +190,75 @@ class BillingController extends Controller
         $trialEndsAt   = $subscription?->trial_end ? \Carbon\Carbon::createFromTimestamp($subscription->trial_end) : now()->addDays(config('stripe.trial_days', 14));
         $currentPeriod = $subscription?->current_period_end ? \Carbon\Carbon::createFromTimestamp($subscription->current_period_end) : null;
 
-        // Idempotencia: si el webhook ya creó el local, lo reusamos.
-        $local = Local::query()
-            ->where('stripe_customer_id', $session->customer)
-            ->orWhere('stripe_subscription_id', $subscription?->id)
-            ->first();
+        // client_reference_id (seteado por checkout()/activateExisting() cuando
+        // hay sesión) — "local:N" ata a un local existente, "user:N" ata a un
+        // usuario ya registrado (vía /registro) que todavía no tiene local.
+        $existingLocalId = null;
+        $existingUserId  = null;
+        $clientRef = $session->client_reference_id ?? null;
+        if ($clientRef && str_starts_with($clientRef, 'local:')) {
+            $existingLocalId = (int) substr($clientRef, 6);
+        } elseif ($clientRef && str_starts_with($clientRef, 'user:')) {
+            $existingUserId = (int) substr($clientRef, 5);
+        }
+
+        // Idempotencia: si el webhook ya creó/vinculó el local, lo reusamos.
+        $local = $existingLocalId ? Local::query()->find($existingLocalId) : null;
+        if (! $local) {
+            $local = Local::query()
+                ->where('stripe_customer_id', $session->customer)
+                ->orWhere('stripe_subscription_id', $subscription?->id)
+                ->first();
+        }
 
         if (! $local) {
-            $local = Local::create([
-                'nombre'                  => 'Mi local',
-                'slug'                    => 'pendiente-'.Str::random(10),
-                'whatsapp'                => '',
-                'color_primario'          => '#FF2D2D',
-                'color_secundario'        => '#0B0B0F',
-                'color_fondo'             => '#FAFAF7',
-                'tipografia'              => 'Geist',
-                'plan_id'                 => $plan->id,
-                'plan_status'             => $subscription?->status ?? 'trialing',
-                'stripe_customer_id'      => $session->customer,
-                'stripe_subscription_id'  => $subscription?->id,
-                'trial_ends_at'           => $trialEndsAt,
-                'current_period_ends_at'  => $currentPeriod,
-                'activo'                  => true,
-            ]);
+            $local = DB::transaction(function () use ($plan, $session, $subscription, $trialEndsAt, $currentPeriod, $existingUserId) {
+                $local = Local::create([
+                    'nombre'                  => 'Mi local',
+                    'slug'                    => 'pendiente-'.Str::random(10),
+                    'whatsapp'                => '',
+                    'color_primario'          => '#FF2D2D',
+                    'color_secundario'        => '#0B0B0F',
+                    'color_fondo'             => '#FAFAF7',
+                    'tipografia'              => 'Geist',
+                    'plan_id'                 => $plan->id,
+                    'plan_status'             => $subscription?->status ?? 'trialing',
+                    'stripe_customer_id'      => $session->customer,
+                    'stripe_subscription_id'  => $subscription?->id,
+                    'trial_ends_at'           => $trialEndsAt,
+                    'current_period_ends_at'  => $currentPeriod,
+                    'activo'                  => true,
+                ]);
+
+                // Vincula el Local nuevo al usuario que ya existía (prospecto
+                // de /registro) — sin esto el wizard forzaba "crear cuenta"
+                // de nuevo aunque el owner ya existiera.
+                if ($existingUserId) {
+                    $user = User::find($existingUserId);
+                    if ($user && ! $user->local_id) {
+                        $user->update(['local_id' => $local->id]);
+                        $local->update(['owner_id' => $user->id]);
+                    }
+                }
+
+                return $local;
+            });
         }
 
         // Emitir token de onboarding (TTL 24h)
         $token = OnboardingToken::issueFor($local);
+        $owner = $local->owner_id ? User::find($local->owner_id) : null;
 
         return response()->json([
             'onboarding_token' => $token->value,
             'local_id'         => $local->id,
             'plan_slug'        => $plan->slug,
             'trial_ends_at'    => $local->trial_ends_at?->toIso8601String(),
+            // El wizard usa esto para saltar el paso "Tu cuenta" — el owner
+            // ya existe (vino de /registro), no hay que crear uno nuevo.
+            'already_linked'   => (bool) $owner,
+            'owner_nombre'     => $owner?->nombre,
+            'owner_email'      => $owner?->email,
         ]);
     }
 
@@ -216,9 +269,12 @@ class BillingController extends Controller
      * subscription al local existente sin crear uno nuevo.
      *
      * Usado por el botón "Agregar tarjeta y activar" del page /admin/billing
-     * cuando el local todavía no tiene `stripe_customer_id`.
+     * cuando el local todavía no tiene `stripe_customer_id`, y también por
+     * "Ver planes"/"Cambiar a este plan" cuando el owner ya está autenticado
+     * — evita el bug de crear un Local huérfano duplicado vía el checkout
+     * público (`checkout()`), que no sabe a qué local pertenece la sesión.
      */
-    public function activateExisting(TenantContext $ctx): JsonResponse
+    public function activateExisting(\Illuminate\Http\Request $req, TenantContext $ctx): JsonResponse
     {
         $local = $ctx->local();
         if (! $local) {
@@ -230,7 +286,15 @@ class BillingController extends Controller
                 'code'    => 'ALREADY_HAS_CUSTOMER',
             ], 409);
         }
-        $plan = $local->plan;
+
+        $planSlug = $req->validate([
+            'plan_slug' => ['sometimes', 'nullable', 'string', 'in:essential,professional,premium'],
+        ])['plan_slug'] ?? null;
+
+        // Permite elegir/cambiar de plan aunque el local aún no tenga uno
+        // asignado (plan_id null) — sin esto, un owner sin plan_id no podía
+        // usar este endpoint y el frontend caía de vuelta al checkout público.
+        $plan = $planSlug ? Plan::where('slug', $planSlug)->where('activo', true)->first() : $local->plan;
         if (! $plan || empty($plan->stripe_price_id)) {
             return response()->json([
                 'message' => 'El plan del local no tiene precio configurado en Stripe.',

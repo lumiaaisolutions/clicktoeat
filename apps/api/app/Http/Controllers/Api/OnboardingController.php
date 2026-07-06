@@ -28,14 +28,38 @@ class OnboardingController extends Controller
     public function password(Request $req): JsonResponse
     {
         $token = $this->resolveToken($req);
+        $local = $token->local;
 
+        // Si `BillingController::session()` ya vinculó este local a un
+        // usuario existente (flujo /registro → checkout con
+        // client_reference_id=user:N), no hay nada que crear/validar — el
+        // owner ya existe. Sin este check, un usuario que navega "Atrás" al
+        // paso ya saltado por el frontend chocaba con Rule::unique(email) y
+        // quedaba atorado repitiendo el checkout (incidente real en prod).
+        if ($local->owner_id) {
+            $owner = User::find($local->owner_id);
+            if ($owner) {
+                $token->markStepCompleted('password');
+
+                return response()->json([
+                    'completed_steps' => $token->completed_steps,
+                    'user_id'         => $owner->id,
+                ]);
+            }
+        }
+
+        // Mensaje específico — el genérico de Laravel ("The given data was
+        // invalid.") no le decía al usuario que el problema era un email ya
+        // registrado, ni que debía iniciar sesión en vez de reintentar el
+        // checkout (eso fue justo lo que causó los locales huérfanos
+        // duplicados del incidente 2026-07-06).
         $data = $req->validate([
             'nombre'                => ['required', 'string', 'max:120'],
             'email'                 => ['required', 'email', 'max:160', Rule::unique('users', 'email')],
             'password'              => ['required', 'string', 'min:8', 'confirmed'],
+        ], [
+            'email.unique' => 'Ese correo ya tiene una cuenta. Inicia sesión en su lugar en vez de crear una nueva.',
         ]);
-
-        $local = $token->local;
 
         // Crear owner. Si ya existía un owner asociado al local (raro), lo dejamos.
         $owner = User::where('local_id', $local->id)->where('rol', 'owner')->first();

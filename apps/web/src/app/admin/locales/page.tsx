@@ -365,6 +365,12 @@ function computeBillingBadge(l: LocalAdmin): { label: string; tone: string; icon
   }
 }
 
+function trialDaysLeft(trialEndsAt: string | null | undefined): number | null {
+  if (!trialEndsAt) return null;
+  const ms = new Date(trialEndsAt).getTime() - Date.now();
+  return Math.ceil(ms / (1000 * 60 * 60 * 24));
+}
+
 /* ─────────── Modal: cambiar facturación manualmente ─────────── */
 interface PlanOption {
   id: number;
@@ -419,7 +425,8 @@ function BillingModal({
       toast.success('Facturación actualizada');
       onSaved();
     } catch (err: any) {
-      toast.error(err?.response?.data?.message ?? 'No se pudo guardar');
+      const msg = err?.response?.data?.errors?.plan_id?.[0] ?? err?.response?.data?.message ?? 'No se pudo guardar';
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
@@ -525,6 +532,15 @@ function BillingModal({
           <p className="text-xs text-muted mt-2">
             Si marcas <strong>al corriente</strong> sin Stripe activo, el local accede al panel sin restricciones.
           </p>
+          {planStatus === 'trialing' && (
+            <p className="text-xs mt-2 font-medium text-amber-700">
+              {trialDaysLeft(local.trial_ends_at) === null
+                ? 'Sin fecha de fin de prueba — se asignarán 14 días al guardar.'
+                : trialDaysLeft(local.trial_ends_at)! <= 0
+                  ? 'El período de prueba ya venció.'
+                  : `Quedan ${trialDaysLeft(local.trial_ends_at)} día${trialDaysLeft(local.trial_ends_at) === 1 ? '' : 's'} de prueba (termina el ${new Date(local.trial_ends_at!).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })}).`}
+            </p>
+          )}
         </div>
 
         <div className="flex gap-2 justify-end pt-3 border-t border-line">

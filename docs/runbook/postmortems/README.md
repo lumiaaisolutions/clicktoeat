@@ -35,7 +35,7 @@ Ejemplo: `2026-07-15-mysql-disk-full.md`
 
 ## Lista de postmortems
 
-_Vacío — al primer incidente, listarlo aquí en orden cronológico inverso (más reciente arriba)._
+- [2026-07-06 — Locales huérfanos duplicados con suscripción Stripe real](2026-07-06-locales-huerfanos-stripe.md) 🟠 SEV-2
 
 ## Métricas agregadas
 

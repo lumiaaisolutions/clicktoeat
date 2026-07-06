@@ -40,11 +40,17 @@ export default function ElegirPlanPage() {
   const router = useRouter();
   const [plans,    setPlans]    = useState<Plan[] | null>(null);
   const [busy,     setBusy]     = useState<string | null>(null);
+  // Si quien elige el plan ya es dueño de un local existente (p.ej. vino de
+  // "Ver planes" en /admin/billing con un local sin plan_id), el checkout
+  // debe atarse a ESE local — el checkout público crea uno huérfano nuevo.
+  const [hasExistingLocal, setHasExistingLocal] = useState(false);
 
   useEffect(() => {
     // Si no hay sesión (cookie HttpOnly), no llegó por signup → /registro.
     // SEV-2: validamos contra /auth/me — el token en memoria no sobrevive recargas.
-    api.get('/auth/me').catch(() => router.replace('/registro'));
+    api.get<{ user: { local_id: number | null } }>('/auth/me')
+      .then(({ data }) => setHasExistingLocal(!!data.user?.local_id))
+      .catch(() => router.replace('/registro'));
     api.get<{ data: Plan[] }>('/billing/plans')
       .then(({ data }) => setPlans(data.data))
       .catch(() => setPlans([]));
@@ -53,9 +59,9 @@ export default function ElegirPlanPage() {
   const elegir = async (plan: Plan) => {
     setBusy(plan.slug);
     try {
-      const { data } = await api.post<{ session_url?: string; url?: string }>('/billing/checkout', {
-        plan_slug: plan.slug,
-      });
+      const { data } = hasExistingLocal
+        ? await api.post<{ session_url?: string; url?: string }>('/billing/activate-existing', { plan_slug: plan.slug })
+        : await api.post<{ session_url?: string; url?: string }>('/billing/checkout', { plan_slug: plan.slug });
       const url = data?.session_url ?? data?.url;
       if (!url) {
         alert('No recibimos URL de pago. Intenta de nuevo en un momento.');

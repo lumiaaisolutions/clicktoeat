@@ -63,8 +63,13 @@ export function OnboardingClient() {
 
   const [token,   setToken]   = useState<string | null>(null);
   const [stepIdx, setStepIdx] = useState(0);
+  const [minStepIdx, setMinStepIdx] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState<string | null>(null);
+  // Cuando el 422 viene de email duplicado, ofrecemos un link a login en vez
+  // de solo mostrar el mensaje — repetir el checkout con el mismo email
+  // duplicaba locales huérfanos (incidente 2026-07-06).
+  const [emailTaken, setEmailTaken] = useState(false);
   const [exchanging, setExchanging] = useState(true);
   const [data,    setData]    = useState<OnboardingData>(emptyData);
 
@@ -79,11 +84,29 @@ export function OnboardingClient() {
     let cancelled = false;
     const pollOnce = async () => {
       try {
-        const res = await axios.get<{ onboarding_token: string }>(
-          `${apiBase}/billing/session/${encodeURIComponent(sessionId)}`,
-        );
+        const res = await axios.get<{
+          onboarding_token: string;
+          already_linked?: boolean;
+          owner_nombre?: string;
+          owner_email?: string;
+        }>(`${apiBase}/billing/session/${encodeURIComponent(sessionId)}`);
         if (cancelled) return;
         setToken(res.data.onboarding_token);
+        // El owner ya existe (venía de /registro) — el checkout se ligó a su
+        // cuenta via client_reference_id. Saltamos "Tu cuenta": crearla de
+        // nuevo pisaba/duplicaba la cuenta ya creada.
+        if (res.data.already_linked) {
+          setData((d) => ({
+            ...d,
+            password: {
+              ...d.password,
+              nombre: res.data.owner_nombre ?? d.password.nombre,
+              email:  res.data.owner_email  ?? d.password.email,
+            },
+          }));
+          setMinStepIdx(1);
+          setStepIdx(1);
+        }
         setExchanging(false);
       } catch (e: any) {
         if (cancelled) return;
@@ -122,7 +145,7 @@ export function OnboardingClient() {
       return;
     }
 
-    setLoading(true); setError(null);
+    setLoading(true); setError(null); setEmailTaken(false);
     try {
       const payload = buildPayloadForStep(step, data);
       await axios.post(`${apiBase}/onboarding/${step}`, payload, {
@@ -130,7 +153,13 @@ export function OnboardingClient() {
       });
       setStepIdx((i) => i + 1);
     } catch (e: any) {
-      setError(e.response?.data?.message ?? 'Algo falló. Revisa los datos.');
+      // Preferimos el mensaje específico del campo (ej. "email ya
+      // registrado") sobre el genérico de Laravel ("The given data was
+      // invalid."), que no le decía nada accionable al usuario.
+      const fieldErrors = e.response?.data?.errors as Record<string, string[]> | undefined;
+      const fieldMsg = fieldErrors ? Object.values(fieldErrors)[0]?.[0] : undefined;
+      setError(fieldMsg ?? e.response?.data?.message ?? 'Algo falló. Revisa los datos.');
+      setEmailTaken(!!fieldErrors?.email);
     } finally {
       setLoading(false);
     }
@@ -153,7 +182,7 @@ export function OnboardingClient() {
     }
   }
 
-  const goBack = () => { setError(null); setStepIdx((i) => Math.max(0, i - 1)); };
+  const goBack = () => { setError(null); setStepIdx((i) => Math.max(minStepIdx, i - 1)); };
   const jumpToStep = (target: StepName) => {
     const idx = STEPS.indexOf(target);
     if (idx >= 0) { setError(null); setStepIdx(idx); }
@@ -176,7 +205,7 @@ export function OnboardingClient() {
         <ProgressBar stepIdx={stepIdx} total={STEPS.length} />
 
         <div className="mt-8 flex items-start gap-3 flex-wrap">
-          {stepIdx > 0 && step !== 'finalizar' && (
+          {stepIdx > minStepIdx && step !== 'finalizar' && (
             <button
               type="button"
               onClick={goBack}
@@ -199,6 +228,12 @@ export function OnboardingClient() {
         {error && (
           <div className="mt-5 rounded-2xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
             {error}
+            {emailTaken && (
+              <>
+                {' '}
+                <a href="/login" className="font-semibold underline">Inicia sesión aquí</a>.
+              </>
+            )}
           </div>
         )}
 
@@ -215,7 +250,7 @@ export function OnboardingClient() {
             {step === 'local'     && <LocalStep     data={data.local}    onChange={(p) => updateData('local', p)}    onSubmit={nextStep} loading={loading} />}
             {step === 'branding'  && <BrandingStep  data={data.branding} onChange={(p) => updateData('branding', p)} onSubmit={nextStep} onSkip={() => setStepIdx((i) => i + 1)} loading={loading} token={token} />}
             {step === 'contacto'  && <ContactoStep  data={data.contacto} onChange={(p) => updateData('contacto', p)} onSubmit={nextStep} loading={loading} />}
-            {step === 'resumen'   && <ResumenStep   data={data} onEdit={jumpToStep} onConfirm={nextStep} loading={loading} />}
+            {step === 'resumen'   && <ResumenStep   data={data} onEdit={jumpToStep} onConfirm={nextStep} loading={loading} canEditAccount={minStepIdx === 0} />}
             {step === 'finalizar' && <FinalizarStep loading={loading} onSubmit={finalize} />}
           </motion.div>
         </AnimatePresence>
@@ -461,17 +496,21 @@ function ContactoStep({ data, onChange, onSubmit, loading }: {
 
 /* ─────────────── Step 5: Resumen — el user revisa todo ─────────────── */
 
-function ResumenStep({ data, onEdit, onConfirm, loading }: {
+function ResumenStep({ data, onEdit, onConfirm, loading, canEditAccount }: {
   data: OnboardingData;
   onEdit: (s: StepName) => void;
   onConfirm: () => void;
   loading: boolean;
+  // false cuando el local ya vino vinculado a una cuenta existente (checkout
+  // atado via client_reference_id) — reabrir "Tu cuenta" ahí solo confunde,
+  // el owner ya existe y no hay nada que editar en ese paso.
+  canEditAccount: boolean;
 }) {
   const slug = data.local.slug || slugify(data.local.nombre);
 
   return (
     <div className="space-y-3">
-      <ResumenCard title="Tu cuenta" onEdit={() => onEdit('password')}>
+      <ResumenCard title="Tu cuenta" onEdit={canEditAccount ? () => onEdit('password') : undefined}>
         <Row label="Nombre" value={data.password.nombre || '—'} />
         <Row label="Correo" value={data.password.email || '—'} />
       </ResumenCard>
@@ -523,12 +562,12 @@ function ResumenStep({ data, onEdit, onConfirm, loading }: {
   );
 }
 
-function ResumenCard({ title, onEdit, children }: { title: string; onEdit: () => void; children: React.ReactNode }) {
+function ResumenCard({ title, onEdit, children }: { title: string; onEdit?: () => void; children: React.ReactNode }) {
   return (
     <section className="rounded-3xl border border-line bg-white p-5">
       <div className="flex items-center justify-between mb-3">
         <h3 className="ce-display font-bold text-base">{title}</h3>
-        <button type="button" onClick={onEdit} className="text-xs font-semibold text-ink/70 hover:text-ink underline">Editar</button>
+        {onEdit && <button type="button" onClick={onEdit} className="text-xs font-semibold text-ink/70 hover:text-ink underline">Editar</button>}
       </div>
       <div className="space-y-2">{children}</div>
     </section>

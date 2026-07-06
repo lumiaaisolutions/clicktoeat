@@ -45,16 +45,21 @@ class WebhookHandler
 
         // F100g — Soporte para "activate-existing": si el checkout viene con
         // `client_reference_id = local:N` (o metadata `existing_local_id`),
-        // vinculamos a ese local SIN crear uno nuevo.
+        // vinculamos a ese local SIN crear uno nuevo. `user:N` es el caso
+        // análogo para un usuario ya registrado (/registro) que aún no
+        // tiene local — evita locales huérfanos duplicados.
         $existingLocalId = null;
+        $existingUserId  = null;
         $clientRef = $session->client_reference_id ?? null;
         if ($clientRef && str_starts_with($clientRef, 'local:')) {
             $existingLocalId = (int) substr($clientRef, 6);
+        } elseif ($clientRef && str_starts_with($clientRef, 'user:')) {
+            $existingUserId = (int) substr($clientRef, 5);
         } elseif (! empty($session->metadata['existing_local_id'])) {
             $existingLocalId = (int) $session->metadata['existing_local_id'];
         }
 
-        DB::transaction(function () use ($customerId, $subscriptionId, $plan, $record, $existingLocalId) {
+        DB::transaction(function () use ($customerId, $subscriptionId, $plan, $record, $existingLocalId, $existingUserId) {
             $local = null;
 
             if ($existingLocalId) {
@@ -86,12 +91,24 @@ class WebhookHandler
                     'trial_ends_at'          => now()->addDays(config('stripe.trial_days', 14)),
                     'activo'                 => true,
                 ]);
+
+                if ($existingUserId) {
+                    $user = \App\Models\User::find($existingUserId);
+                    if ($user && ! $user->local_id) {
+                        $user->update(['local_id' => $local->id]);
+                        $local->update(['owner_id' => $user->id]);
+                    }
+                }
             } else {
                 $local->fill([
                     'stripe_customer_id'     => $customerId,
                     'stripe_subscription_id' => $subscriptionId,
                 ]);
-                if ($plan && ! $local->plan_id) {
+                // El plan_slug del metadata es el que el usuario eligió EN ESTE
+                // checkout — debe ganar siempre, no solo cuando el local no
+                // tenía plan_id (si no, un cambio de plan vía activate-existing
+                // se quedaba con el plan_id viejo).
+                if ($plan) {
                     $local->plan_id = $plan->id;
                 }
                 $local->save();

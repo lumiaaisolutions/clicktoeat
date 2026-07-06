@@ -192,6 +192,20 @@ class LocalController extends Controller
             'current_period_ends_at'  => ['sometimes', 'nullable', 'date'],
         ]);
 
+        // Integridad plan_id/plan_status: un plan_status "en vivo" sin plan_id
+        // deja al owner sin poder ver su suscripción en /admin/billing
+        // (AuthController::me() solo expone `plan` si `local.plan_id` existe)
+        // mientras este panel sigue mostrando el estado como asignado. Esto
+        // causó un incidente real en prod (local en trial invisible para su
+        // dueño). Ver docs/runbook/postmortems/2026-07-06-locales-huerfanos-stripe.md.
+        $resultingPlanId = array_key_exists('plan_id', $data) ? $data['plan_id'] : $local->plan_id;
+        $resultingStatus = $data['plan_status'] ?? $local->plan_status;
+        if (in_array($resultingStatus, ['trialing', 'active', 'past_due'], true) && ! $resultingPlanId) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'plan_id' => ['Asigna un plan antes de marcar este estado de suscripción.'],
+            ]);
+        }
+
         // F100g — Si el super_admin marca el local como `trialing` SIN
         // proporcionar `trial_ends_at`, auto-setear a 14 días desde hoy.
         // Sin esto, el frontend mostraba "Tu trial termina en  días"

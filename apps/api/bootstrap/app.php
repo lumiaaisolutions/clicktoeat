@@ -124,6 +124,13 @@ return Application::configure(basePath: dirname(__DIR__))
         // nuevo registro (ej. renta de junio que no se ha capturado).
         $schedule->command('gastos:check-recurrentes')
             ->daily()->at('09:30')->name('gastos-check-recurrentes')->onOneServer();
+
+        // ─── Locales huérfanos con Stripe activo — red de seguridad ────
+        // Post-incidente 2026-07-06 (locales con checkout completado en
+        // Stripe pero sin owner_id vinculado). Ver
+        // docs/runbook/postmortems/2026-07-06-locales-huerfanos-stripe.md.
+        $schedule->command('locales:detect-orphan-stripe')
+            ->daily()->at('11:00')->name('detect-orphan-stripe-locales')->onOneServer();
     })
     ->withExceptions(function (Exceptions $exceptions) {
         // Reporta excepciones a Sentry si DSN está configurado.

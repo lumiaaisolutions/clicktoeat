@@ -44,8 +44,8 @@ export default function BillingPage() {
   // El local "tiene Stripe" cuando ya pasó por checkout y existe customer.
   // Para locales en trial manual seteados por super_admin, no hay Stripe
   // customer → el portal NO funciona y hay que abrir un Checkout específico
-  // para el local existente (no usar /onboarding/elegir-plan, que crea otro
-  // local nuevo desde cero).
+  // atado a este local (`/billing/activate-existing`, vía client_reference_id)
+  // en vez del checkout público, que crearía un local huérfano nuevo.
   const tieneStripe = !!plan?.has_stripe_customer;
 
   async function openPortal() {
@@ -206,7 +206,7 @@ export default function BillingPage() {
           </div>
 
           {/* F88 — sección de upgrade visible (auto-scroll si viene ?upgrade=...) */}
-          <UpgradeSection currentPlanSlug={plan?.slug ?? ''} />
+          <UpgradeSection currentPlanSlug={plan?.slug ?? ''} tieneStripe={tieneStripe} />
 
           {/* Footer info + cancelar */}
           <div className="flex items-center justify-between flex-wrap gap-2">
@@ -230,7 +230,7 @@ interface AvailablePlan {
   available_for_purchase: boolean;
 }
 
-function UpgradeSection({ currentPlanSlug }: { currentPlanSlug: string }) {
+function UpgradeSection({ currentPlanSlug, tieneStripe }: { currentPlanSlug: string; tieneStripe: boolean }) {
   const [plans, setPlans] = useState<AvailablePlan[] | null>(null);
   const [busy,  setBusy]  = useState<string | null>(null);
 
@@ -256,7 +256,19 @@ function UpgradeSection({ currentPlanSlug }: { currentPlanSlug: string }) {
   const cambiar = async (slug: string) => {
     setBusy(slug);
     try {
-      const { data } = await api.post<{ session_url?: string; url?: string }>('/billing/checkout', { plan_slug: slug });
+      // Este local YA es propietario de una Stripe subscription — cambiar de
+      // plan debe hacerse sobre ESA subscription (portal), nunca abriendo un
+      // checkout nuevo: eso crearía una segunda subscription/local huérfano
+      // en vez de actualizar la existente (incidente real: 3 locales
+      // duplicados con trial de Stripe cobrando cada uno por separado).
+      if (tieneStripe) {
+        const { data } = await api.get<{ url: string }>('/billing/portal');
+        window.location.href = data.url;
+        return;
+      }
+      // Sin Stripe customer todavía: activamos el local existente vía
+      // client_reference_id (no el checkout público, que no ata al local).
+      const { data } = await api.post<{ session_url?: string; url?: string }>('/billing/activate-existing', { plan_slug: slug });
       const url = data?.session_url ?? data?.url;
       if (!url) {
         alert('No recibimos URL de pago. Intenta de nuevo en un momento.');
