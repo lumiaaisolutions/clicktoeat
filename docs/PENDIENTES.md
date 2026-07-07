@@ -1,8 +1,27 @@
 # Pendientes — lista única de verdad
 
-> Estado al **2026-06-25** (post diagnóstico chunk mismatch — sin cambios en prod).
-> Esta es la fuente única de verdad sobre qué falta hacer. Si está acá,
-> está pendiente. Si NO está acá, ya está hecho.
+> Estado al **2026-07-06**. Esta es la fuente única de verdad sobre qué
+> falta hacer. Si está acá, está pendiente. Si NO está acá, ya está hecho.
+
+## 🔴 Sesión 2026-07-06 — 2 incidentes de producción cerrados hoy
+
+Ver postmortems completos:
+[`2026-07-06-locales-huerfanos-stripe.md`](runbook/postmortems/2026-07-06-locales-huerfanos-stripe.md) y
+[`2026-07-06-trial-expiry-not-enforced.md`](runbook/postmortems/2026-07-06-trial-expiry-not-enforced.md).
+
+**Resuelto y desplegado en prod hoy:**
+- ✅ Locales huérfanos duplicados por checkout de Stripe sin `client_reference_id`.
+- ✅ AVIF rechazado al subir logo/banner (regla `image` de Laravel sin soporte AVIF).
+- ✅ Validación cruzada `plan_id`/`plan_status` en `updateBilling` (super admin).
+- ✅ **Gating de plan ya no depende solo del cron diario** — `hasActivePlan()` chequea `trial_ends_at` en tiempo real.
+- ✅ Cron maestro `schedule:run` de ClickToEat — **nunca había corrido en prod** (ver abajo, corregía una afirmación falsa del propio `docs/CONTINUAR.md`). Corregido con scripts `.sh` en `~/cron-scripts/`, confirmado corriendo cada minuto.
+- ✅ Crons directos `audit-logs:purge` y `locales:purge` — tenían el mismo bug de sintaxis, corregidos igual.
+
+**Pendiente, abierto:**
+1. **Revisar si ClickToDo/ClickToBarber/ClickToShop tienen el mismo bug de cron sin shell.** Sus crons de `schedule:run` usan el mismo patrón `cd X && comando` que falló aquí — no se revisaron en esta sesión (son otros proyectos). Si sufren el mismo problema, sus schedulers tampoco estarían corriendo.
+2. **Alerta**: "locales con `trial_ends_at` vencido hace >24h y `plan_status` aún `trialing`" — detectaría este tipo de problema aunque un cron vuelva a romperse. No implementada.
+3. **Mensaje específico en español** cuando falla la validación de "Tu cuenta" en el wizard de onboarding por otros motivos (ya se arregló el caso de email duplicado).
+4. Base CRUD (crear pedidos/productos) **no tiene ningún gate server-side de "plan activo"** — solo features premium específicas (`inventario`, `compras`, etc. vía middleware `feature:X`) y el bloqueo del frontend (`PlanInactiveScreen`). Un cliente con la API directa (no el navegador) podría seguir operando aunque su plan esté `incomplete`/`canceled`. No abordado hoy — requiere diseño cuidadoso de un middleware nuevo aplicado ampliamente sin romper flujos legítimos.
 
 ## 🚨 URGENTE — borrar tokens expuestos en chat
 
@@ -141,17 +160,13 @@ SSH para el remote.
   5. `/admin/billing` → cancelas antes del día 14 → cargo = $0
 - **Tiempo**: 15 min.
 
-### 8. (Opcional) Validar el cron `trials:expire-manual` en prod
-- **Por qué**: confirmar que el nuevo cron corre diario 10:30am.
-- **Cómo**: el cron maestro `* * * * * php artisan schedule:run` ya existe
-  en hPanel. Para verificación manual:
-  ```bash
-  ssh -i ~/.ssh/id_ed25519 -p 65002 u221820910@86.38.202.72
-  cd domains/clicktoeat-api.lumiaaisolutions.com/public_html
-  php artisan schedule:list   # debería listar expire-manual-trials a las 10:30
-  php artisan trials:expire-manual   # corrida manual de prueba
-  ```
-- **Tiempo**: 3 min.
+### 8. ~~Validar el cron `trials:expire-manual` en prod~~ ✅ Resuelto 2026-07-06
+- **Esta afirmación era falsa**: el cron maestro `schedule:run` NO existía
+  funcionando en hPanel (el ejecutor de cron de esta cuenta no pasa comandos
+  por una shell real). Nunca corrió, así que `trials:expire-manual` tampoco
+  — ver [`docs/runbook/postmortems/2026-07-06-trial-expiry-not-enforced.md`](runbook/postmortems/2026-07-06-trial-expiry-not-enforced.md).
+  Corregido moviendo la lógica a scripts `.sh` en `~/cron-scripts/` —
+  confirmado corriendo cada minuto.
 
 ## 📱 App móvil ClickToEat — solo TU acción
 
@@ -411,6 +426,36 @@ construir sin demanda).
 - 2 crons activos: nudge emails + **expirar trials manuales**
 - **194/194 phpunit verde**
 - **Stripe respeta trial_end al activar** local existente (no cobra inmediato)
+
+## 🤖 Bot IA n8n + Ollama — pendiente completar (2026-07-01)
+
+Workflow de recomendaciones ya operativo. Faltan dos piezas:
+
+### 1. Flujo de registro del pedido en n8n
+
+Cuando el cliente confirme, agregar después del Basic LLM Chain:
+
+```
+IF — texto contiene "pedido_listo": true
+  ↓ SÍ
+Code node:
+  const match = $input.first().json.text.match(/\{[\s\S]*"pedido_listo"[\s\S]*\}/);
+  return [{ json: JSON.parse(match[0]) }];
+  ↓
+HTTP Request → POST https://clicktoeat-api.lumiaaisolutions.com/api/v1/pedidos
+  ↓
+Respond → confirmación + link WhatsApp
+```
+
+También actualizar el prompt para que el JSON final incluya `producto_id` (no solo `producto_nombre`).
+
+### 2. Chat widget React en el frontend
+
+Componente `apps/web/src/components/public/ChatBot.tsx` en la página `/{slug}`:
+- Conoce el `slug` de la URL (ya disponible)
+- Pide teléfono al cliente al inicio
+- POST al webhook: `{ session_id, local_slug, cliente_telefono }`
+- Renderiza respuesta de Ollama en burbujas de chat
 
 ## 🔚 Próxima sesión: por dónde retomar
 

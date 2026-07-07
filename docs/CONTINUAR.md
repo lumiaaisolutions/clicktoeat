@@ -1,7 +1,38 @@
 # Cómo continuar el proyecto en otra sesión
 
-> **Snapshot al 2026-06-25** (post diagnóstico chunk mismatch + hallazgo
-> `sharp`). Si abres el proyecto en una sesión nueva, lee este archivo primero.
+> **Snapshot al 2026-07-06** (2 incidentes de producción cerrados el mismo día — ver abajo). Si abres el proyecto en una sesión nueva, lee este archivo primero.
+
+## ⚠️ Sesión 2026-07-06 — 2 incidentes de producción cerrados
+
+**Léelo antes de asumir que el cron maestro funciona** — la sección
+"Crons activos en hPanel" de este mismo archivo afirmaba que el cron ya
+estaba configurado; **no lo estaba**. Corregido hoy, ver postmortems:
+
+1. [`docs/runbook/postmortems/2026-07-06-locales-huerfanos-stripe.md`](runbook/postmortems/2026-07-06-locales-huerfanos-stripe.md) —
+   el checkout de Stripe no ataba la sesión del usuario/local actual → un
+   owner repitiendo "Ver planes" creaba locales huérfanos duplicados con
+   suscripciones Stripe reales cobrando por separado. Fix: `client_reference_id`
+   en checkout + validación cruzada `plan_id`/`plan_status` + comando
+   `locales:detect-orphan-stripe` como red de seguridad. También corregido
+   en la misma sesión: AVIF rechazado al subir logo/banner (regla `image`
+   de Laravel sin soporte AVIF).
+2. [`docs/runbook/postmortems/2026-07-06-trial-expiry-not-enforced.md`](runbook/postmortems/2026-07-06-trial-expiry-not-enforced.md) —
+   **el cron maestro `schedule:run` de ClickToEat NUNCA corrió en
+   producción** (el ejecutor de cron de Hostinger no pasa comandos por una
+   shell real; `cd X && comando` fallaba desde el primer token). Como
+   consecuencia, `trials:expire-manual` nunca cerró ningún trial vencido —
+   cualquier local en trial manual seguía con acceso completo indefinidamente
+   sin importar los días de retraso. Fix de fondo: `Local::hasActivePlan()`
+   ahora chequea `trial_ends_at` en tiempo real, sin depender del cron. Fix
+   de infraestructura: los 3 crons de ClickToEat (`schedule:run`,
+   `audit-logs:purge`, `locales:purge`) se movieron a scripts `.sh` en
+   `~/cron-scripts/` en el servidor — confirmado corriendo cada minuto
+   (`storage/logs/cron.log` con salida real).
+
+**Pendiente para otra sesión**: ClickToDo/ClickToBarber/ClickToShop usan el
+mismo patrón de cron (`cd X && comando`) que falló aquí — no se revisaron
+(fuera de alcance de esta sesión), pero si sufren el mismo bug, sus
+schedulers tampoco estarían corriendo.
 
 ## Estado del sistema
 
@@ -131,7 +162,16 @@ que `BillingController::activateExisting` ahora pasa correctamente.
 | Carrito abandonado | Cada 15 min | Inline |
 | Resumen semanal owners | Domingos 8:00 PM | Inline |
 
-El cron maestro `* * * * * php artisan schedule:run` ya está en hPanel — los nuevos schedules se ejecutan automáticamente sin acción manual.
+**Corregido 2026-07-06** (ver postmortem `2026-07-06-trial-expiry-not-enforced.md`):
+el cron maestro `schedule:run` afirmado aquí como "ya en hPanel" en realidad
+**nunca corrió** — el ejecutor de cron de Hostinger no pasa comandos por una
+shell real, así que `cd X && comando` fallaba silenciosamente. Los 3 crons de
+esta tabla (schedule:run + los 2 directos de audit-logs/locales) ahora
+invocan scripts `.sh` en `~/cron-scripts/` en el servidor (sin `&&`/`>>` en
+el campo del cron) — **confirmado corriendo** (`storage/logs/cron.log` con
+salida real cada minuto). Antes de confiar en que un cron "ya está
+configurado", verificar con `hosting_getCronJobOutputV1` + revisar que el
+log realmente crece, no solo que el job aparece en la lista.
 
 ## Módulos implementados (lista completa al 2026-06-18)
 
@@ -259,6 +299,11 @@ Estos son planes en `docs/features/` listos para cuando sean necesarios:
 | **Self-service alta de sucursales** | `pos-listas-tours-sucursales-emails-auditoria-2026-06-18.md` | Cliente Premium con cadena lo pida — hoy es asistido por soporte |
 
 ## 📚 Documentación clave para futuras sesiones
+
+### Cronología sesión 2026-06-30 — Bot IA n8n + Ollama
+
+- [`docs/runbook/cierre-sesion-2026-06-30.md`](runbook/cierre-sesion-2026-06-30.md) — workflow completo, queries SQL, prompt Ollama, resultado verificado con Denisse / postres-stitch
+- [`docs/features/ia-features.md`](features/ia-features.md) — actualizado con estado operativo del bot
 
 ### Cronología sesión 2026-06-25 — Diagnóstico chunk mismatch
 

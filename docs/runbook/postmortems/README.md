@@ -35,6 +35,7 @@ Ejemplo: `2026-07-15-mysql-disk-full.md`
 
 ## Lista de postmortems
 
+- [2026-07-06 — Trials vencidos con acceso ilimitado (gating dependía 100% de un cron roto)](2026-07-06-trial-expiry-not-enforced.md) 🔴 SEV-1
 - [2026-07-06 — Locales huérfanos duplicados con suscripción Stripe real](2026-07-06-locales-huerfanos-stripe.md) 🟠 SEV-2
 
 ## Métricas agregadas
