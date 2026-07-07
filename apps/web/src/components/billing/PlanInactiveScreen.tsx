@@ -10,12 +10,14 @@ const LABEL: Record<string, string> = {
   incomplete: 'Suscripción incompleta',
   past_due:   'Pago pendiente',
   canceled:   'Suscripción cancelada',
+  trialing:   'Tu prueba gratuita terminó',
 };
 
 const COPY: Record<string, string> = {
   incomplete: 'Tu suscripción aún no se completó. Termina el pago para activar tu local.',
   past_due:   'Tu último cobro falló y se acabó el periodo de gracia. Actualiza tu método de pago para seguir operando.',
   canceled:   'Tu suscripción ya no está activa. Reactívala para volver a recibir pedidos.',
+  trialing:   'Tu período de prueba ya terminó. Agrega tu método de pago para seguir operando sin interrupciones.',
 };
 
 /**
@@ -105,5 +107,9 @@ export function isPlanBlocking(plan: ReturnType<typeof usePlan.getState>['plan']
   if (plan.is_active) return false;
   // Solo bloqueamos si efectivamente el local salió del SaaS.
   // (plan.status canceled con period futuro ya está marcado is_active=true por el backend).
-  return ['incomplete', 'past_due', 'canceled'].includes(plan.status);
+  // 'trialing' con is_active=false significa que el trial ya venció según
+  // `Local::hasActivePlan()` (chequeo de trial_ends_at en tiempo real) pero
+  // `plan_status` en BD todavía no se actualizó a 'incomplete' — no depender
+  // de que el cron `trials:expire-manual` ya haya corrido para bloquear.
+  return ['incomplete', 'past_due', 'canceled', 'trialing'].includes(plan.status);
 }

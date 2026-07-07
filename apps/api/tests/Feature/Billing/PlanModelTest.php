@@ -26,6 +26,26 @@ class PlanModelTest extends TestCase
         $this->assertTrue($active->hasActivePlan());
     }
 
+    public function test_trialing_con_trial_ends_at_vencido_NO_esta_activo(): void
+    {
+        // Red de seguridad post 2026-07-06: si el cron `trials:expire-manual`
+        // no corre, plan_status se queda en 'trialing' para siempre — este
+        // chequeo en tiempo real de trial_ends_at debe bloquear igual.
+        $local = Local::factory()->withPlan('essential', 'trialing')->create();
+        $local->update(['trial_ends_at' => now()->subDay()]);
+        $this->assertFalse($local->fresh()->hasActivePlan());
+    }
+
+    public function test_trialing_sin_trial_ends_at_sigue_activo(): void
+    {
+        // Legacy safety: nunca debería pasar en la práctica (auto-heal en
+        // AuthController::me() y en updateBilling), pero si ocurre no debe
+        // bloquear a ciegas sin fecha de referencia.
+        $local = Local::factory()->withPlan('essential', 'trialing')->create();
+        $local->update(['trial_ends_at' => null]);
+        $this->assertTrue($local->fresh()->hasActivePlan());
+    }
+
     public function test_canceled_con_periodo_vigente_sigue_activo(): void
     {
         $local = Local::factory()->withPlan('essential', 'canceled')->create();

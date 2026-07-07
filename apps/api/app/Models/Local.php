@@ -91,7 +91,18 @@ class Local extends Model
         if (! $this->plan_id) {
             return false;
         }
-        if (in_array($this->plan_status, ['trialing', 'active'], true)) {
+        if ($this->plan_status === 'trialing') {
+            // No confiar únicamente en el cron diario `trials:expire-manual`
+            // para cerrar el trial vencido — un trial en Stripe se cierra
+            // solo por webhook, pero uno manual (asignado por super_admin
+            // sin Stripe) depende 100% de ese cron. Si el cron no corre (nos
+            // pasó en prod — ver postmortem 2026-07-06-trial-expiry-not-enforced),
+            // `plan_status` se queda en 'trialing' para siempre y el local
+            // sigue con acceso completo sin límite. Chequear `trial_ends_at`
+            // aquí hace que el bloqueo funcione aunque el cron falle.
+            return $this->trial_ends_at === null || $this->trial_ends_at->isFuture();
+        }
+        if ($this->plan_status === 'active') {
             return true;
         }
         if ($this->plan_status === 'canceled' && $this->current_period_ends_at?->isFuture()) {
