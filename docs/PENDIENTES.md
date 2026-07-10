@@ -229,10 +229,12 @@ limpio). Lo que sigue es solo lo que el código no puede hacer.
 
 ### 🔵 Bloque azul — Plan ejecutable, sin código
 
-- **SEV-2 — token localStorage → cookie HttpOnly**:
-  Spec completo + diseño + plan de despliegue + trade-offs en
-  [`docs/decisions/ADR-010-token-localStorage-to-httponly-cookie.md`](decisions/ADR-010-token-localStorage-to-httponly-cookie.md).
-  Sprint dedicado de 5-7 días. **Es el último hallazgo crítico abierto.**
+- ~~**SEV-2 — token localStorage → cookie HttpOnly**~~ ✅ **CERRADO
+  2026-07-06** — implementado y desplegado portando el patrón probado en
+  ClickToShop (AuthCookie + cookie en login/signup/onboarding + frontend
+  sin localStorage + SESSION_DOMAIN en prod). Detalle:
+  [`runbook/cierre-sesion-2026-07-06.md`](runbook/cierre-sesion-2026-07-06.md).
+  El ADR-010 queda como registro del diseño original.
 
 - **WAF + CDN Cloudflare**: arquitectura defensiva. Necesita decisión de
   plan CF (Free vs Pro). 2-3 días de implementación.
