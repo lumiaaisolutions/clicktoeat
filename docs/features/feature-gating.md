@@ -84,6 +84,15 @@ final class Features
 }
 ```
 
+> **`hasActivePlan()` actualizado 2026-07-06**: para `plan_status='trialing'`
+> ahora compara `trial_ends_at` contra el reloj en vez de asumir "trialing =
+> activo" a ciegas — ver el snippet completo y el porqué en
+> [`saas-billing.md`](./saas-billing.md#modelos-eloquent) y el postmortem
+> [`trial-expiry-not-enforced.md`](../runbook/postmortems/2026-07-06-trial-expiry-not-enforced.md).
+> Esto afecta a `Features::has()` y a todo lo que dependa de
+> `hasActivePlan()` (incluido este middleware) — un trial vencido ahora se
+> trata como inactivo aunque `plan_status` en BD todavía diga `trialing`.
+
 ### Middleware `RequiresFeature`
 
 Protege rutas completas:
@@ -445,6 +454,20 @@ public function test_premium_accede_a_todo(): void
 ### Frontend
 
 Unit tests del store `usePlan.has(...)` y del `<LockedFeature>` con react-testing-library.
+
+## Limitación conocida — sin gate server-side genérico de "plan activo"
+
+El middleware `feature:X` solo protege rutas de features premium específicas
+(`inventario`, `compras`, `metricas_*`, `audit_log`, `notificaciones`,
+`api_webhooks`, `recetas`) — **no existe ningún middleware aplicado
+ampliamente que bloquee CRUD base** (crear pedidos, productos, etc.) cuando
+`plan_status` es `incomplete`/`past_due`/`canceled`. El único bloqueo real
+para esos casos es `PlanInactiveScreen` en el frontend (ver
+`apps/web/src/components/billing/PlanInactiveScreen.tsx`). Un cliente
+pegándole a la API directo (sin pasar por el navegador) con una cuenta sin
+plan activo podría seguir operando. Detectado 2026-07-06, no resuelto —
+requiere diseño cuidadoso de un middleware nuevo aplicado a las rutas base
+sin romper flujos legítimos (ver `docs/PENDIENTES.md`).
 
 ## Errores que devuelve la API
 

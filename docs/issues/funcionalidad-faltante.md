@@ -12,7 +12,7 @@
 - ✅ **Restore desde soft-delete** — filtros `?trashed=only|with` + endpoints `POST /productos/{id}/restore`, `/pedidos/{id}/restore`, `/compras/{id}/restore`, `/admin/locales/{id}/restore`.
 
 Pendiente operativo derivado:
-- ✅ Cron de limpieza para `idempotency_keys` / `audit_logs` / `sessions` / `sanctum` / `failed_jobs` / `notificaciones` → **Laravel Scheduler implementado** en `bootstrap/app.php`. Sólo falta agregar `* * * * * php artisan schedule:run` al cron de hPanel. Ver [`runbook/setup-cron-scheduler.md`](../runbook/setup-cron-scheduler.md).
+- ✅ Cron de limpieza para `idempotency_keys` / `audit_logs` / `sessions` / `sanctum` / `failed_jobs` / `notificaciones` → **Laravel Scheduler implementado** en `bootstrap/app.php` **y cron de hPanel verificado corriendo desde 2026-07-06** (el intento anterior de agregarlo nunca funcionó — ver [`runbook/postmortems/2026-07-06-trial-expiry-not-enforced.md`](../runbook/postmortems/2026-07-06-trial-expiry-not-enforced.md)). Procedimiento correcto en [`runbook/setup-cron-scheduler.md`](../runbook/setup-cron-scheduler.md).
 - ✅ Frontend `/forgot-password` + `/reset-password` con enlace desde `/login`.
 - ✅ Frontend `/admin/staff` con CRUD completo.
 - ✅ Frontend `/admin/audit-log` con tabla paginada + filtros + diff expandible.

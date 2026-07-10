@@ -65,11 +65,19 @@ incorrecto: "elige plan" → checkout crea otro local → confusión.
 `apps/api/app/Http/Controllers/Api/BillingController.php`:
 
 ```php
-public function activateExisting(TenantContext $ctx): JsonResponse {
+public function activateExisting(Request $req, TenantContext $ctx): JsonResponse {
     $local = $ctx->local();
     // Si ya tiene customer → debería usar el portal, no esto
     if (!empty($local->stripe_customer_id)) abort(409);
-    $plan = $local->plan;
+
+    // Actualizado 2026-07-06: acepta plan_slug opcional — antes SOLO podía
+    // "reactivar" el plan ya asignado (`$local->plan`), así que un owner sin
+    // plan_id (o que quería elegir uno distinto al asignado) no podía usar
+    // este endpoint y el frontend caía de vuelta al checkout público (la
+    // causa del incidente de locales huérfanos, ver
+    // postmortems/2026-07-06-locales-huerfanos-stripe.md).
+    $planSlug = $req->validate(['plan_slug' => ['sometimes','nullable','string']])['plan_slug'] ?? null;
+    $plan = $planSlug ? Plan::where('slug', $planSlug)->where('activo', true)->first() : $local->plan;
 
     $session = $stripe->checkout->sessions->create([
         'mode'                       => 'subscription',
@@ -126,6 +134,17 @@ duplicación.
   `POST /billing/activate-existing` y redirige a `session_url`.
 - Mantiene el copy "Agregar tarjeta y activar" para distinguir
   visualmente de "Cambiar plan / método de pago" (caso con customer).
+
+> **Actualizado 2026-07-06**: `UpgradeSection.cambiar()` (sección "Cambiar
+> de plan" en la misma página) llamaba directo a `POST /billing/checkout`
+> — el endpoint público, sin `client_reference_id` — sin importar si el
+> local ya tenía `stripe_customer_id`. Eso podía crear una **segunda**
+> subscription/local huérfano en vez de actualizar la existente. Ahora
+> revisa `tieneStripe`: si ya tiene customer, abre el Customer Portal
+> (`GET /billing/portal`, gestiona la subscription existente); si no,
+> usa `POST /billing/activate-existing` con el `plan_slug` elegido.
+> Mismo fix aplicado en `/onboarding/elegir-plan` para el botón "Ver
+> planes" de un owner ya autenticado con local existente.
 
 ## Flujo end-to-end del owner
 

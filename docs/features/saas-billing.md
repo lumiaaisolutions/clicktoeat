@@ -122,16 +122,37 @@ class Local extends Model
     }
 
     public function hasActivePlan(): bool {
+        if ($this->pago_externo) return true;   // paga fuera de Stripe (efectivo/transferencia)
         if (! $this->plan_id) return false;
-        if (in_array($this->plan_status, ['trialing', 'active'], true)) return true;
+
+        if ($this->plan_status === 'trialing') {
+            // Actualizado 2026-07-06 (postmortem trial-expiry-not-enforced):
+            // antes esto era `in_array(status, ['trialing','active'])` sin
+            // mirar trial_ends_at, y dependía 100% de que el cron diario
+            // `trials:expire-manual` cerrara el trial vencido. Si ese cron
+            // no corre, un trial manual (sin Stripe) queda 'trialing' para
+            // siempre con acceso completo. Ahora se compara trial_ends_at
+            // en tiempo real como respaldo — el cron sigue existiendo para
+            // dejar plan_status consistente en BD, pero deja de ser el
+            // único punto de falla.
+            return $this->trial_ends_at === null || $this->trial_ends_at->isFuture();
+        }
+        if ($this->plan_status === 'active') return true;
         // Canceled pero todavía dentro del periodo pagado
         if ($this->plan_status === 'canceled' && $this->current_period_ends_at?->isFuture()) {
             return true;
+        }
+        if ($this->plan_status === 'past_due') {
+            $graceDays = (int) config('stripe.grace_days_past_due', 3);
+            $cutoff = $this->current_period_ends_at?->copy()->addDays($graceDays);
+            return $cutoff?->isFuture() ?? false;
         }
         return false;
     }
 }
 ```
+
+> Ver [`postmortems/2026-07-06-trial-expiry-not-enforced.md`](../runbook/postmortems/2026-07-06-trial-expiry-not-enforced.md) para el incidente completo que motivó el chequeo en tiempo real.
 
 ## API endpoints
 
@@ -167,6 +188,21 @@ public function checkout(StartCheckoutRequest $req): JsonResponse
 ```
 
 **No requiere auth** — el cliente aún no tiene cuenta. La cuenta se crea en `/onboarding` después del checkout.
+
+> **Actualizado 2026-07-06** (postmortem
+> [`locales-huerfanos-stripe.md`](../runbook/postmortems/2026-07-06-locales-huerfanos-stripe.md)):
+> si quien llama `checkout()` **ya tiene sesión** (cookie `cte_token` →
+> Sanctum vía `CookieToBearer`, típicamente un prospecto que pasó por
+> `/registro` antes de elegir plan), ahora se manda `client_reference_id`:
+> `'user:'.$user->id` si el usuario todavía no tiene local, o
+> `'local:'.$user->local_id` si ya tiene uno. Sin esto, un usuario que
+> repetía el checkout (por error o por un flujo roto en el wizard) creaba un
+> **Local huérfano nuevo cada vez**, cada uno con su propia suscripción
+> Stripe real cobrando por separado — pasó en producción con 3 locales
+> duplicados el mismo día. `session()` y `WebhookHandler::onCheckoutCompleted`
+> leen ese `client_reference_id` (mismo patrón que ya usaba
+> `activateExisting()` con `local:N`, ver más abajo) para vincular el Local
+> nuevo al usuario/local existente en vez de crear uno huérfano.
 
 ### `GET /api/v1/billing/session/{session_id}`
 
@@ -274,7 +310,7 @@ Implementados en `App\Services\Billing\WebhookHandler`:
 
 | Evento de Stripe | Acción |
 |------------------|--------|
-| `checkout.session.completed` | Crear Local (si no existe) + setear `plan_status='trialing'` |
+| `checkout.session.completed` | Buscar Local por `client_reference_id` (`local:N`/`user:N`) primero, luego por `stripe_customer_id`/`stripe_subscription_id`; solo si no encuentra ninguno crea un Local nuevo + setea `plan_status='trialing'` |
 | `customer.subscription.created` | Guardar `stripe_subscription_id`, `current_period_ends_at` |
 | `customer.subscription.updated` | Si cambió `items[0].price.id` → actualizar `plan_id`. Si `status` cambió → actualizar `plan_status` |
 | `customer.subscription.trial_will_end` | (3 días antes del fin de trial) — email recordatorio |
@@ -398,3 +434,5 @@ Para el dashboard interno (super_admin):
 - [`feature-gating.md`](./feature-gating.md) — Cómo se desbloquean los módulos
 - [`runbook/configurar-stripe.md`](../runbook/configurar-stripe.md) — Setup paso a paso en Stripe Dashboard
 - [`runbook/cambiar-precio-plan.md`](../runbook/cambiar-precio-plan.md) — Procedimiento ops
+- [`runbook/postmortems/2026-07-06-locales-huerfanos-stripe.md`](../runbook/postmortems/2026-07-06-locales-huerfanos-stripe.md) — checkout sin `client_reference_id` → locales duplicados
+- [`runbook/postmortems/2026-07-06-trial-expiry-not-enforced.md`](../runbook/postmortems/2026-07-06-trial-expiry-not-enforced.md) — gating dependía 100% de un cron roto

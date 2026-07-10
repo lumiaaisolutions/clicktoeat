@@ -96,6 +96,11 @@ Ver [`docs/architecture/multi-tenancy.md`](docs/architecture/multi-tenancy.md) y
 - Si cambias el formato del mensaje WhatsApp en `App\Services\WhatsApp\WhatsAppLinkBuilder`, **debes** actualizar el espejo TS en `apps/web/src/lib/whatsapp.ts` (y viceversa). Test cubre el formato del backend; el del frontend está pendiente.
 - `detalle_pedidos` es **snapshot** de `producto_nombre`/`precio_unitario`/`extras_seleccionados` — no recalcules contra el producto vivo (rompe el histórico). Ver [`ADR-004`](docs/decisions/ADR-004-snapshot-en-detalle-pedidos.md).
 
+### Billing / Stripe / planes
+
+- ❌ **Nunca** crees una Stripe Checkout Session sin `client_reference_id` cuando quien la inicia ya tiene sesión (usuario o local existente). Sin eso, `session()`/el webhook no pueden vincular el resultado y crean un **Local huérfano duplicado** con su propia suscripción Stripe real cobrando por separado (incidente real, jun/jul 2026 — ver [`docs/runbook/postmortems/2026-07-06-locales-huerfanos-stripe.md`](docs/runbook/postmortems/2026-07-06-locales-huerfanos-stripe.md)). Patrón: `'local:'.$id` o `'user:'.$id`.
+- ❌ **Nunca** leas `plan_status` directo para decidir si un local "tiene plan activo". Usa siempre `Local::hasActivePlan()` — es la única función que además compara `trial_ends_at` en tiempo real; el cron diario (`trials:expire-manual`) es un respaldo async, no la fuente de verdad (ver [`docs/runbook/postmortems/2026-07-06-trial-expiry-not-enforced.md`](docs/runbook/postmortems/2026-07-06-trial-expiry-not-enforced.md)).
+
 ### Migraciones
 - Tests corren con **sqlite in-memory**. Si tu migración toca `enum`, `change()` de columna o usa SQL raw específico de MySQL, **protege** con guard:
   ```php
@@ -128,6 +133,7 @@ las limitaciones de un plan Shared. Asume lo siguiente:
 
 - ❌ **No hay Docker en prod.** El `docker-compose.yml` es para dev local únicamente.
 - ❌ **No hay sudo real** (estás enjaulado). Crons se gestionan desde **hPanel → Trabajos Cron**, no `crontab -e` ni `/etc/cron.d`.
+- ⚠️ **El ejecutor de cron de hPanel no pasa el comando por una shell real** — `cd X && comando`, `>>`, comillas anidadas, todo eso falla o se comporta raro (confirmado jul 2026, ver [`docs/runbook/setup-cron-scheduler.md`](docs/runbook/setup-cron-scheduler.md)). Cualquier cron con lógica no trivial va en un script `.sh` en el servidor (`chmod +x`); el campo "Comando" del cron es solo la ruta a ese script. Y **verificar que el log realmente crece**, no solo que el cron aparece en la lista de hPanel — puede estar "creado" sin ejecutar nada.
 - ❌ **No hay `apt`/`yum`** ni acceso a `/etc/`. Herramientas extras → binarios standalone en `~/bin/` (rclone, etc.).
 - ❌ **No ves procesos del host** (`ps aux`, `ss`, `netstat` solo muestran lo tuyo).
 - ❌ **El usuario MySQL no tiene `SUPER`, `RELOAD`, `--routines`, `--triggers`**. `mysqldump` debe usar `--no-tablespaces`, sin routines/triggers.

@@ -300,6 +300,13 @@ Estos son planes en `docs/features/` listos para cuando sean necesarios:
 
 ## 📚 Documentación clave para futuras sesiones
 
+### Cronología sesión 2026-07-10 — 2 incidentes de producción del 2026-07-06
+
+- [`docs/runbook/cierre-sesion-2026-07-10.md`](runbook/cierre-sesion-2026-07-10.md) — cierre completo: locales huérfanos con Stripe duplicado + trials vencidos con acceso ilimitado por cron roto, causa raíz, fix, verificación
+- [`docs/runbook/postmortems/2026-07-06-locales-huerfanos-stripe.md`](runbook/postmortems/2026-07-06-locales-huerfanos-stripe.md)
+- [`docs/runbook/postmortems/2026-07-06-trial-expiry-not-enforced.md`](runbook/postmortems/2026-07-06-trial-expiry-not-enforced.md)
+- [`docs/runbook/setup-cron-scheduler.md`](runbook/setup-cron-scheduler.md) — procedimiento de cron corregido (el ejecutor de Hostinger no usa shell)
+
 ### Cronología sesión 2026-06-30 — Bot IA n8n + Ollama
 
 - [`docs/runbook/cierre-sesion-2026-06-30.md`](runbook/cierre-sesion-2026-06-30.md) — workflow completo, queries SQL, prompt Ollama, resultado verificado con Denisse / postres-stitch

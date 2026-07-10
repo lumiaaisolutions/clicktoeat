@@ -73,6 +73,21 @@ El estado se eleva al componente padre `OnboardingClient`. Cada step recibe
 `data[seccion]` + `onChange` para hidratar/persistir. El backend recibe el
 mismo payload que antes en cada step — el cambio es 100% UX.
 
+> **Actualizado 2026-07-06**: el paso `password` ("Tu cuenta") ahora puede
+> saltarse. Si `GET /billing/session/{id}` responde `already_linked: true`
+> (el checkout de Stripe se ató a un usuario ya existente vía
+> `client_reference_id` — ver
+> [`billing-activate-existing-2026-06-18d.md`](billing-activate-existing-2026-06-18d.md)
+> y el postmortem
+> [`locales-huerfanos-stripe.md`](../runbook/postmortems/2026-07-06-locales-huerfanos-stripe.md)),
+> el wizard arranca en `stepIdx = 1` con `minStepIdx = 1` — el botón
+> "Atrás" y la tarjeta "Editar" de `password` en el resumen quedan
+> deshabilitados para ese caso, y el backend (`OnboardingController::password`)
+> tolera un reenvío sin crear/duplicar el owner si de todos modos se
+> alcanza ese paso. Antes, este paso se mostraba siempre — un usuario que
+> ya tenía cuenta (vino de `/registro`) chocaba con el email duplicado y
+> quedaba atorado repitiendo el checkout completo.
+
 ## Archivos modificados
 
 - `apps/web/src/app/onboarding/OnboardingClient.tsx` (reescrito completo)

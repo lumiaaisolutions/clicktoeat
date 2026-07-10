@@ -14,10 +14,21 @@ Auth: `auth:sanctum` + `tenant`. Policy: `ProductoPolicy::uploadImage` (sólo ow
 
 | Campo   | Tipo     | Validación                                      |
 |---------|----------|-------------------------------------------------|
-| `image` | file     | `required image` mimetypes `jpeg|png|webp|avif`, max **5120 KB** |
+| `image` | file     | `required file mimetypes:jpeg,png,webp,avif`, max **5120 KB** |
 | `folder`| string   | `nullable in:productos,locales,banners,logos` (default `productos`) |
 
 `StoreImageRequest` traduce errores al español (`messages()`) y loguea contexto en `failedValidation` para debug de límites de PHP (`upload_max_filesize`).
+
+> **Fix 2026-07-06**: la validación combinaba la regla built-in `image` de
+> Laravel (whitelist hardcodeada `jpg/jpeg/png/gif/bmp/svg/webp`, **sin
+> AVIF**) junto con `mimetypes:...,image/avif` en el mismo campo — bastaba
+> que la regla `image` fallara para rechazar cualquier AVIF real con 422,
+> aunque el mensaje de error prometiera soportarlo. Reportado como "no puedo
+> subir mi banner". Se quitó la regla `image` (redundante — `mimetypes` ya
+> cubre lo mismo con la whitelist correcta) en `StoreImageRequest` y en
+> `OnboardingController::uploadImagen` (que ni siquiera declaraba AVIF).
+> Test de regresión con un AVIF real generado vía GD en
+> `tests/Feature/UploadImageTest.php::acepta_avif_real`.
 
 ### 201
 ```json

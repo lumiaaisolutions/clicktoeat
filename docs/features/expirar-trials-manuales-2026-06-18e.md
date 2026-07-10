@@ -1,5 +1,17 @@
 # Cierre del ciclo: expira trials manuales — 2026-06-18 (tarde 4)
 
+> ⚠️ **Corrección 2026-07-06**: la sección "Configurar el cron en hPanel"
+> de este documento afirmaba que el cron maestro `schedule:run` "ya
+> ejecuta... configurado en sesiones previas" — **esto era falso**. El
+> cron nunca corrió en producción (el ejecutor de cron de esta cuenta de
+> Hostinger no pasa comandos por una shell real). Como consecuencia,
+> `trials:expire-manual` nunca se ejecutó y ningún trial manual se cerró
+> jamás. Corregido y verificado funcionando el 2026-07-06 — ver
+> [`postmortems/2026-07-06-trial-expiry-not-enforced.md`](../runbook/postmortems/2026-07-06-trial-expiry-not-enforced.md)
+> para el diagnóstico completo y el fix (además, se agregó un chequeo de
+> `trial_ends_at` en tiempo real en `hasActivePlan()` para que el gating
+> no vuelva a depender 100% de que este cron corra).
+
 Audit honesto del flujo trial → expiración → bloqueo, y cierre del hueco.
 
 ## Estado del sistema antes de este fix
@@ -106,10 +118,12 @@ pueda agregar tarjeta o cerrar sesión)
 
 ## Configurar el cron en hPanel (acción del owner)
 
-El comando ya queda registrado en el scheduler. El cron de hPanel ya
-ejecuta `php artisan schedule:run` cada minuto (configurado en sesiones
-previas) — así que **NO hay que hacer nada manual**. El comando empezará
-a correr automáticamente desde mañana 10:30 am.
+El comando ya queda registrado en el scheduler (`bootstrap/app.php`). Eso
+por sí solo **no basta** — hace falta un cron real en hPanel que dispare
+`php artisan schedule:run` cada minuto. Ver
+[`runbook/setup-cron-scheduler.md`](../runbook/setup-cron-scheduler.md)
+(actualizado 2026-07-06 con el procedimiento verificado: un script `.sh`
+en el servidor, no el comando directo en el campo del cron de hPanel).
 
 Para verificar manualmente cuando quieras:
 

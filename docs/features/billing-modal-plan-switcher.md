@@ -57,3 +57,34 @@ Para un cliente que va a pagar en efectivo:
 
 Resultado: el local accede al panel con las features de ese plan, sin que
 el sistema espere pagos via Stripe.
+
+## Fix 2026-07-06 — validación cruzada `plan_id`/`plan_status`
+
+El selector de "Plan" y el selector de "Estado de la suscripción" eran
+**completamente independientes** — un super_admin podía guardar
+`plan_status: 'trialing'` sin haber tocado el selector de Plan, dejando
+`plan_id: null`. Como `AuthController::me()` construye el bloque `plan`
+del JSON como `null` cuando `local.plan_id` es `null` (sin mirar
+`plan_status`), el resultado era: el super_admin veía el local "En prueba"
+en este modal, mientras el owner del local veía "Sin suscripción activa"
+en `/admin/billing` — mismatch real reportado por un cliente, ver
+[`postmortems/2026-07-06-locales-huerfanos-stripe.md`](../runbook/postmortems/2026-07-06-locales-huerfanos-stripe.md).
+
+`Admin/LocalController::updateBilling()` ahora rechaza con 422 cualquier
+`plan_status` "en vivo" (`trialing`/`active`/`past_due`) que resulte en
+`plan_id` nulo:
+
+```php
+$resultingPlanId = array_key_exists('plan_id', $data) ? $data['plan_id'] : $local->plan_id;
+$resultingStatus = $data['plan_status'] ?? $local->plan_status;
+if (in_array($resultingStatus, ['trialing', 'active', 'past_due'], true) && ! $resultingPlanId) {
+    throw ValidationException::withMessages([
+        'plan_id' => ['Asigna un plan antes de marcar este estado de suscripción.'],
+    ]);
+}
+```
+
+El modal también muestra ahora los **días restantes de trial** (calculados
+desde `local.trial_ends_at`) cuando el estado seleccionado es "En prueba" —
+antes no había ninguna indicación de cuánto trial le quedaba al local desde
+este panel.

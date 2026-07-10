@@ -106,9 +106,15 @@ Lista entregada por quien hizo el deploy productivo:
 
 ## Cron / scheduled tasks
 
-- ❌ Sin `php artisan schedule:run` en cron.
-- Hoy: no hay tareas programadas (`app/Console/Kernel.php` no agenda nada).
-- Si se introducen (limpieza de tokens viejos, cierre de pedidos viejos, etc.) hace falta el cron host.
+- ✅ **Resuelto 2026-07-06.** `bootstrap/app.php` agenda 13 tareas via
+  Laravel Scheduler (limpieza de tokens/sessions/cache, expiración de
+  trials, emails transaccionales, etc. — ver
+  [`runbook/setup-cron-scheduler.md`](../runbook/setup-cron-scheduler.md)).
+  El cron de hPanel que dispara `schedule:run` existía en la lista pero
+  **nunca ejecutó nada** (el ejecutor de cron de esta cuenta no pasa
+  comandos por una shell real) — ningún job corrió jamás hasta que se
+  corrigió y verificó el 2026-07-06. Detalle completo del incidente que
+  esto causó: [`runbook/postmortems/2026-07-06-trial-expiry-not-enforced.md`](../runbook/postmortems/2026-07-06-trial-expiry-not-enforced.md).
 
 ## Queue workers
 
