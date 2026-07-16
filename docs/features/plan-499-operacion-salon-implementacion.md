@@ -53,7 +53,12 @@ Al terminar las 4 etapas (backend+frontend) se hizo un corte honesto de qué fal
 12. Impresión de comandas/tickets, registro de asistencia (clock-in/out) de staff, paridad en app móvil (Expo) — el owner pidió construirlas ahora. Ver notas de alcance realista en cada sección de abajo (paridad móvil completa en una sola sesión tiene límites honestos de calidad/tiempo).
 
 ### Fase 2.5 — Deploy
-Una vez cerradas 2.1–2.4: correr `./scripts/deploy-api.sh` + `./scripts/deploy-web.sh` — autorizado por el owner para ejecutarse sin pedir confirmación adicional al final de esta sesión.
+
+**Completado 2026-07-17.** Commit `16d304d` (129 archivos, 324 tests backend en verde) desplegado a producción:
+- `./scripts/deploy-api.sh` — rsync + `composer install --no-dev` + 16 migraciones nuevas corridas contra MySQL real de producción (todas `CREATE TABLE` o `ADD COLUMN` nullable, ninguna destructiva/`change()`) + cache rebuild + health check `/up` → 200.
+- `./scripts/deploy-web.sh` — build Next.js + tar + restart Passenger + health check → 200.
+- Verificación post-deploy en navegador real: homepage y `/login` cargan correctamente en `https://clicktoeat.lumiaaisolutions.com`, sin errores de consola reales (un `ChunkLoadError` transitorio apareció una sola vez en la carga inicial, coincidiendo con el restart de Passenger — Next.js lo maneja solo con fallback a navegación completa; no reapareció en cargas posteriores).
+- Autorizado por el owner para ejecutarse sin pedir confirmación adicional ("Despliega tú mismo al terminar").
 
 ## Conclusión sobre tip pooling y confirmación legal (2026-07-16)
 
