@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/store/auth';
 import { Icon } from '@/components/ui/Icon';
+import { Logo } from '@/components/ui/Logo';
 
 export default function LoginPage() {
   const login = useAuth((s) => s.login);
@@ -52,14 +52,7 @@ export default function LoginPage() {
 
       <form onSubmit={onSubmit} className="w-full max-w-sm bg-white rounded-3xl border border-line shadow-soft p-6">
         <div className="mb-4 flex justify-center">
-          <Image
-            src="/logo.png"
-            alt="ClickToEat"
-            width={144}
-            height={130}
-            priority
-            className="h-20 w-auto select-none"
-          />
+          <Logo variant="lockup" size={40} />
         </div>
         <h1 className="ce-display text-xl font-bold text-center">Entrar al panel</h1>
         <p className="text-sm text-muted text-center mb-6">Administración del local</p>
