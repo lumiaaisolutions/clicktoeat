@@ -71,6 +71,8 @@ class User extends Authenticatable implements CanResetPassword
         'pedidos', 'pos', 'productos', 'categorias', 'inventario',
         'compras', 'recetas', 'metricas', 'branding', 'qr', 'horarios',
         'audit_log',
+        // F102 — operación de salón: zonas operativas de piso
+        'mesas', 'cocina', 'mesero', 'caja',
     ];
 
     public function local(): BelongsTo

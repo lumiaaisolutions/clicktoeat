@@ -1,6 +1,6 @@
 # Feature — Real-time con Laravel Reverb (skeleton)
 
-> **Estado**: skeleton + docs. NO instalado en producción todavía.
+> **Estado**: superseded por [ADR-013](../decisions/ADR-013-realtime-pusher-protocol-managed.md) (2026-07-14) — se verificó empíricamente contra el VPS real que un puerto propio (Reverb) NO es alcanzable desde afuera (firewall del hosting solo permite 22/80/443). Se usa un servicio administrado compatible con protocolo Pusher en su lugar. El código de evento/canal/frontend de este doc sigue siendo válido (Echo usa el mismo driver `pusher`); lo que cambia es el backend al que apunta.
 > Reemplazará al polling de 30s del `NotificacionesBell` por WebSocket.
 
 ## Por qué Reverb (no Pusher hosted)

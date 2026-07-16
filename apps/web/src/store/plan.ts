@@ -75,4 +75,14 @@ export const Features = {
   STAFF_MULTI:        'staff_multi',
   AUDIT_LOG:          'audit_log',
   RESTORE:            'restore',
+  // F102 — operación de salón (plan Premium), ver ADR-012
+  DINE_IN:                  'dine_in',
+  CAJA_FISICA:              'caja_fisica',
+  TIP_POOLING:              'tip_pooling',
+  RESERVACIONES:            'reservaciones',
+  LOYALTY_TIERS:            'loyalty_tiers',
+  GIFT_CARDS:               'gift_cards',
+  CAMPANAS:                 'campanas',
+  RRHH_TURNOS:              'rrhh_turnos',
+  SUCURSALES_CONSOLIDADAS:  'sucursales_consolidadas',
 } as const;

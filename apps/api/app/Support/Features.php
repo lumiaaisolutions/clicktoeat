@@ -40,6 +40,18 @@ final class Features
     public const POS_OFFLINE        = 'pos_offline';
     public const CENTRO_APRENDIZAJE = 'centro_aprendizaje';
 
+    // F102 — operación de salón (dine-in), ver ADR-012/ADR-013 y
+    // docs/features/plan-499-operacion-salon-implementacion.md
+    public const DINE_IN                  = 'dine_in';
+    public const CAJA_FISICA              = 'caja_fisica';
+    public const TIP_POOLING              = 'tip_pooling';
+    public const RESERVACIONES            = 'reservaciones';
+    public const LOYALTY_TIERS            = 'loyalty_tiers';
+    public const GIFT_CARDS               = 'gift_cards';
+    public const CAMPANAS                 = 'campanas';
+    public const RRHH_TURNOS              = 'rrhh_turnos';
+    public const SUCURSALES_CONSOLIDADAS  = 'sucursales_consolidadas';
+
     /** @return list<string> */
     public static function all(): array
     {

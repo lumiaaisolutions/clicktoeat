@@ -78,6 +78,13 @@ Route::middleware('throttle:60,1')->group(function () {
         Route::get('reviews/token/{token}',         [\App\Http\Controllers\Api\ReviewController::class, 'showByToken']);
         Route::post('reviews/token/{token}',        [\App\Http\Controllers\Api\ReviewController::class, 'submitByToken'])
             ->middleware('throttle:5,1');
+
+        // F102 — Mesa (QR de salón). Gated internamente por Features::DINE_IN.
+        Route::get('mesa/{qrToken}',                [\App\Http\Controllers\Api\Public\MesaController::class, 'show']);
+        Route::post('mesa/{qrToken}/pedidos',       [\App\Http\Controllers\Api\Public\MesaController::class, 'storePedido'])
+            ->middleware(['throttle:public-orders-by-mesa', 'idempotent:24h']);
+        Route::post('mesa/{qrToken}/llamar-mesero', [\App\Http\Controllers\Api\Public\MesaController::class, 'llamarMesero'])
+            ->middleware('throttle:20,1');
     });
 
     // ─── Billing (SaaS) ───────────────────────────────────────────────
@@ -317,6 +324,65 @@ Route::middleware('throttle:60,1')->group(function () {
         // Uploads
         Route::post('uploads/image', [UploadController::class, 'store'])
             ->middleware('throttle:30,1');
+
+        // F102 — Operación de salón (dine-in). Gated por Premium.
+        Route::middleware('feature:dine_in')->group(function () {
+            Route::apiResource('pisos', \App\Http\Controllers\Api\PisoController::class)->except(['show']);
+            Route::apiResource('mesas', \App\Http\Controllers\Api\MesaController::class)->except(['show']);
+
+            Route::get('salon/cocina/pedidos',   [\App\Http\Controllers\Api\SalonController::class, 'pedidosCocina']);
+            Route::get('salon/mesero/pedidos',   [\App\Http\Controllers\Api\SalonController::class, 'pedidosMesero']);
+            Route::get('salon/llamados',         [\App\Http\Controllers\Api\SalonController::class, 'llamadosPendientes']);
+            Route::post('salon/llamados/{llamado}/atender', [\App\Http\Controllers\Api\SalonController::class, 'atenderLlamado']);
+        });
+
+        // F102 — Dinero: cuenta de mesa + caja física. Gated por Premium.
+        Route::middleware('feature:caja_fisica')->group(function () {
+            Route::get('cuentas-mesa',                    [\App\Http\Controllers\Api\CuentaMesaController::class, 'index']);
+            Route::get('cuentas-mesa/{cuenta}',            [\App\Http\Controllers\Api\CuentaMesaController::class, 'show']);
+            Route::post('cuentas-mesa/{cuenta}/pre-cuenta', [\App\Http\Controllers\Api\CuentaMesaController::class, 'preCuenta']);
+            Route::post('cuentas-mesa/{cuenta}/gift-card',  [\App\Http\Controllers\Api\CuentaMesaController::class, 'aplicarGiftCard']);
+            Route::post('cuentas-mesa/{cuenta}/cerrar',    [\App\Http\Controllers\Api\CuentaMesaController::class, 'cerrar']);
+
+            Route::get('cajas',                            [\App\Http\Controllers\Api\CajaController::class, 'index']);
+            Route::post('cajas',                           [\App\Http\Controllers\Api\CajaController::class, 'store']);
+            Route::get('cajas/{caja}',                     [\App\Http\Controllers\Api\CajaController::class, 'show']);
+            Route::post('cajas/{caja}/abrir-corte',        [\App\Http\Controllers\Api\CajaController::class, 'abrirCorte']);
+            Route::post('cortes-caja/{corte}/movimientos', [\App\Http\Controllers\Api\CajaController::class, 'agregarMovimiento']);
+            Route::post('cortes-caja/{corte}/cerrar',      [\App\Http\Controllers\Api\CajaController::class, 'cerrarCorte']);
+        });
+
+        // F102 Etapa C — reporte consolidado de la organización del owner. Ver ADR-014.
+        Route::middleware('feature:sucursales_consolidadas')->group(function () {
+            Route::get('organizations/mine', [\App\Http\Controllers\Api\OrganizationController::class, 'mine']);
+        });
+
+        // F102 Etapa D — reservaciones, loyalty tiers/challenges, gift cards, campañas, turnos.
+        Route::middleware('feature:reservaciones')->group(function () {
+            Route::apiResource('reservaciones', \App\Http\Controllers\Api\ReservacionController::class)->except(['show']);
+        });
+        Route::middleware('feature:loyalty_tiers')->group(function () {
+            Route::apiResource('lealtad-tiers', \App\Http\Controllers\Api\LealtadTierController::class)->except(['show']);
+            Route::apiResource('lealtad-challenges', \App\Http\Controllers\Api\LealtadChallengeController::class)->except(['show']);
+        });
+        Route::middleware('feature:gift_cards')->group(function () {
+            Route::get('gift-cards',  [\App\Http\Controllers\Api\GiftCardController::class, 'index']);
+            Route::post('gift-cards', [\App\Http\Controllers\Api\GiftCardController::class, 'store']);
+        });
+        Route::middleware('feature:campanas')->group(function () {
+            Route::apiResource('campanas', \App\Http\Controllers\Api\CampanaController::class)->except(['show', 'update']);
+            Route::post('campanas/{campana}/enviar', [\App\Http\Controllers\Api\CampanaController::class, 'enviar']);
+        });
+        Route::middleware('feature:rrhh_turnos')->group(function () {
+            Route::apiResource('staff-shifts', \App\Http\Controllers\Api\StaffShiftController::class)->except(['show', 'update']);
+            Route::get('staff-shifts-forecast', [\App\Http\Controllers\Api\StaffShiftController::class, 'forecast']);
+
+            Route::get('asistencias', [\App\Http\Controllers\Api\StaffAttendanceController::class, 'index']);
+            Route::get('asistencias/estado', [\App\Http\Controllers\Api\StaffAttendanceController::class, 'estado']);
+            Route::post('asistencias/entrada', [\App\Http\Controllers\Api\StaffAttendanceController::class, 'entrada']);
+            Route::post('asistencias/salida', [\App\Http\Controllers\Api\StaffAttendanceController::class, 'salida']);
+            Route::delete('asistencias/{asistencia}', [\App\Http\Controllers\Api\StaffAttendanceController::class, 'destroy']);
+        });
     });
 
     // ─── Super admin (global, sin tenant scope) ───────────────────────
@@ -341,6 +407,12 @@ Route::middleware('throttle:60,1')->group(function () {
         Route::get('users/{user}/locales',                 [\App\Http\Controllers\Api\UserLocalesController::class, 'listForUser']);
         Route::post('users/{user}/locales',                [\App\Http\Controllers\Api\UserLocalesController::class, 'attachToUser']);
         Route::delete('users/{user}/locales/{localId}',    [\App\Http\Controllers\Api\UserLocalesController::class, 'detachFromUser']);
+
+        // F102 Etapa C — organizaciones (sucursales consolidadas). Ver ADR-014.
+        Route::get('organizations',                                 [\App\Http\Controllers\Api\Admin\OrganizationController::class, 'index']);
+        Route::post('organizations',                                [\App\Http\Controllers\Api\Admin\OrganizationController::class, 'store']);
+        Route::post('organizations/{organization}/locales',         [\App\Http\Controllers\Api\Admin\OrganizationController::class, 'asignarLocal']);
+        Route::delete('organizations/{organization}/locales/{localId}', [\App\Http\Controllers\Api\Admin\OrganizationController::class, 'desasignarLocal']);
 
         // Gestión de contraseñas de usuarios del local
         Route::get('locales/{local:id}/usuarios',           [PasswordController::class, 'localUsers']);

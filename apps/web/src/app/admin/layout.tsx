@@ -162,6 +162,13 @@ const NAV_OWNER: NavEntry[] = [
   { href: '/admin/punto-venta',  label: 'Venta',       icon: 'cart',    permiso: 'pos',        feature: 'pos' },
   { href: '/admin/pedidos',      label: 'Pedidos',     icon: 'bell',    permiso: 'pedidos' },
   { href: '/admin/metricas',     label: 'Reportes',    icon: 'chart',   permiso: 'metricas',   feature: 'metricas_basicas', requiredPlan: 'professional' },
+  { href: '/admin/asistencia',   label: 'Asistencia',  icon: 'clock',   feature: 'rrhh_turnos', requiredPlan: 'premium' },
+
+  { section: 'Salón' },
+  { href: '/admin/mesas',        label: 'Mesas',       icon: 'map-pin', ownerOnly: true,       feature: 'dine_in',    requiredPlan: 'premium' },
+  { href: '/admin/cocina',       label: 'Cocina',      icon: 'box',     permiso: 'cocina',      feature: 'dine_in',    requiredPlan: 'premium' },
+  { href: '/admin/mesero',       label: 'Mesero',      icon: 'bell',    permiso: 'mesero',      feature: 'dine_in',    requiredPlan: 'premium' },
+  { href: '/admin/caja',         label: 'Caja',        icon: 'wallet',  permiso: 'caja',        feature: 'caja_fisica', requiredPlan: 'premium' },
 
   { section: 'Catálogo' },
   { href: '/admin/productos',    label: 'Productos',   icon: 'package', permiso: 'productos' },
@@ -182,6 +189,14 @@ const NAV_OWNER: NavEntry[] = [
   { href: '/admin/staff',        label: 'Equipo',      icon: 'users',   ownerOnly: true,       feature: 'staff_multi',      requiredPlan: 'professional' },
   { href: '/admin/sucursales',   label: 'Sucursales',  icon: 'store',   ownerOnly: true,       feature: 'multi_sucursal',   requiredPlan: 'premium' },
 
+  { section: 'Crecimiento' },
+  { href: '/admin/reservaciones', label: 'Reservaciones', icon: 'clock',           permiso: 'mesero', feature: 'reservaciones',           requiredPlan: 'premium' },
+  { href: '/admin/lealtad-plus',  label: 'Lealtad+',      icon: 'sparkles',        ownerOnly: true,   feature: 'loyalty_tiers',           requiredPlan: 'premium' },
+  { href: '/admin/gift-cards',    label: 'Gift cards',    icon: 'gift',            ownerOnly: true,   feature: 'gift_cards',              requiredPlan: 'premium' },
+  { href: '/admin/campanas',      label: 'Campañas',      icon: 'message-circle',  ownerOnly: true,   feature: 'campanas',                requiredPlan: 'premium' },
+  { href: '/admin/turnos',        label: 'Turnos',        icon: 'users',           ownerOnly: true,   feature: 'rrhh_turnos',             requiredPlan: 'premium' },
+  { href: '/admin/cadena',        label: 'Cadena',        icon: 'store',           ownerOnly: true,   feature: 'sucursales_consolidadas', requiredPlan: 'premium' },
+
   { section: 'Cuenta' },
   { href: '/admin/billing',      label: 'Suscripción', icon: 'card',    ownerOnly: true },
   { href: '/admin/audit-log',    label: 'Historial',   icon: 'history', permiso: 'audit_log',  feature: 'audit_log',        requiredPlan: 'professional' },
@@ -199,6 +214,7 @@ const NAV_SUPER: NavEntry[] = [
 
   { section: 'Negocios' },
   { href: '/admin/locales',          label: 'Locales',          icon: 'store' },
+  { href: '/admin/organizaciones',   label: 'Organizaciones',   icon: 'store' },
   { href: '/admin/saas-metrics',     label: 'SaaS',             icon: 'chart' },
 
   { section: 'Marketing' },

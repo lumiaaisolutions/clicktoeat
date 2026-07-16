@@ -110,6 +110,16 @@ class PlansSeeder extends Seeder
                     F::WHITE_LABEL,
                     F::POS_OFFLINE,         // POS sigue cobrando sin internet
                     F::SOPORTE_PREMIUM,
+                    // F102 — operación de salón (ADR-012, mismo precio $499)
+                    F::DINE_IN,
+                    F::CAJA_FISICA,
+                    F::TIP_POOLING,
+                    F::RESERVACIONES,
+                    F::LOYALTY_TIERS,
+                    F::GIFT_CARDS,
+                    F::CAMPANAS,
+                    F::RRHH_TURNOS,
+                    F::SUCURSALES_CONSOLIDADAS,
                 ],
             ],
         ];

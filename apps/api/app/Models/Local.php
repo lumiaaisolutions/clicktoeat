@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 /**
  * @property int $id
@@ -35,9 +36,10 @@ class Local extends Model
         'delivery_activo',
         'delivery_fee', 'delivery_min_minutos', 'delivery_radio_km',
         'metodos_pago',
+        'reglas_propina',
         'redes_sociales',
         'activo', 'suspendido', 'cerrado_temporal', 'modulos',
-        'owner_id',
+        'owner_id', 'organization_id',
         // SaaS billing
         'plan_id', 'plan_status',
         'stripe_customer_id', 'stripe_subscription_id',
@@ -52,26 +54,27 @@ class Local extends Model
     protected function casts(): array
     {
         return [
-            'horarios'        => 'array',
-            'zona_entrega'    => 'array',
-            'redes_sociales'  => 'array',
-            'metodos_pago'    => 'array',
+            'horarios' => 'array',
+            'zona_entrega' => 'array',
+            'redes_sociales' => 'array',
+            'metodos_pago' => 'array',
+            'reglas_propina' => 'array',
             'color_overrides' => 'array',
-            'lealtad_activo'  => 'boolean',
-            'modulos'         => 'array',
-            'dark_mode'        => 'boolean',
-            'activo'           => 'boolean',
-            'suspendido'       => 'boolean',
+            'lealtad_activo' => 'boolean',
+            'modulos' => 'array',
+            'dark_mode' => 'boolean',
+            'activo' => 'boolean',
+            'suspendido' => 'boolean',
             'cerrado_temporal' => 'boolean',
-            'delivery_activo'  => 'boolean',
-            'delivery_fee'    => 'decimal:2',
-            'lat'             => 'decimal:7',
-            'lng'             => 'decimal:7',
+            'delivery_activo' => 'boolean',
+            'delivery_fee' => 'decimal:2',
+            'lat' => 'decimal:7',
+            'lng' => 'decimal:7',
             // SaaS billing
-            'trial_ends_at'           => 'datetime',
-            'current_period_ends_at'  => 'datetime',
-            'canceled_at'             => 'datetime',
-            'pago_externo'            => 'boolean',
+            'trial_ends_at' => 'datetime',
+            'current_period_ends_at' => 'datetime',
+            'canceled_at' => 'datetime',
+            'pago_externo' => 'boolean',
         ];
     }
 
@@ -111,8 +114,10 @@ class Local extends Model
         if ($this->plan_status === 'past_due') {
             $graceDays = (int) config('stripe.grace_days_past_due', 3);
             $cutoff = $this->current_period_ends_at?->copy()->addDays($graceDays);
+
             return $cutoff?->isFuture() ?? false;
         }
+
         return false;
     }
 
@@ -129,6 +134,11 @@ class Local extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class);
     }
 
     public function usuarios(): HasMany
@@ -183,18 +193,21 @@ class Local extends Model
     protected static function booted(): void
     {
         static::creating(function (self $local) {
-            if (! empty($local->codigo_referido)) return;
+            if (! empty($local->codigo_referido)) {
+                return;
+            }
             $base = strtoupper(preg_replace('/[^a-zA-Z0-9]/', '', $local->slug ?? ''));
             $base = str_pad(substr($base, 0, 6), 4, 'X');
             for ($i = 0; $i < 5; $i++) {
-                $candidate = $base.'-'.strtoupper(\Illuminate\Support\Str::random(4));
+                $candidate = $base.'-'.strtoupper(Str::random(4));
                 if (! self::query()->where('codigo_referido', $candidate)->exists()) {
                     $local->codigo_referido = $candidate;
+
                     return;
                 }
             }
             // Improbable: fallback a 12 chars puro random
-            $local->codigo_referido = 'REF-'.strtoupper(\Illuminate\Support\Str::random(8));
+            $local->codigo_referido = 'REF-'.strtoupper(Str::random(8));
         });
     }
 }

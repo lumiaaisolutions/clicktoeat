@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
@@ -16,7 +17,7 @@ class Pedido extends Model
     protected $table = 'pedidos';
 
     protected $fillable = [
-        'codigo', 'local_id',
+        'codigo', 'local_id', 'mesa_id', 'cuenta_mesa_id',
         'cliente_nombre', 'cliente_email', 'cliente_telefono', 'lealtad_premio_listo', 'direccion', 'notas',
         'metodo_entrega', 'metodo_pago',
         'subtotal', 'delivery_fee', 'descuento', 'total',
@@ -24,6 +25,8 @@ class Pedido extends Model
         'confirmado_at', 'entregado_at',
         // F25 — cupón aplicado
         'cupon_codigo',
+        // F102 — gift card aplicada
+        'gift_card_codigo',
         // F27 — pedido programado (recoger a las X)
         'programado_para',
     ];
@@ -31,12 +34,12 @@ class Pedido extends Model
     protected function casts(): array
     {
         return [
-            'subtotal'        => 'decimal:2',
-            'delivery_fee'    => 'decimal:2',
-            'descuento'       => 'decimal:2',
-            'total'           => 'decimal:2',
-            'confirmado_at'   => 'datetime',
-            'entregado_at'    => 'datetime',
+            'subtotal' => 'decimal:2',
+            'delivery_fee' => 'decimal:2',
+            'descuento' => 'decimal:2',
+            'total' => 'decimal:2',
+            'confirmado_at' => 'datetime',
+            'entregado_at' => 'datetime',
             'programado_para' => 'datetime',
         ];
     }
@@ -53,5 +56,15 @@ class Pedido extends Model
     public function detalles(): HasMany
     {
         return $this->hasMany(DetallePedido::class);
+    }
+
+    public function mesa(): BelongsTo
+    {
+        return $this->belongsTo(Mesa::class);
+    }
+
+    public function cuentaMesa(): BelongsTo
+    {
+        return $this->belongsTo(CuentaMesa::class, 'cuenta_mesa_id');
     }
 }

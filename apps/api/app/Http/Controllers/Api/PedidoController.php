@@ -211,6 +211,12 @@ class PedidoController extends Controller
             }
         });
 
+        // F102 — realtime para pantallas de cocina/mesero (no-op si no hay
+        // BROADCAST_CONNECTION configurado, ver ADR-013).
+        if ($pedido->mesa_id !== null) {
+            event(new \App\Events\PedidoEstadoActualizado($pedido));
+        }
+
         return new PedidoResource($pedido->load('detalles'));
     }
 

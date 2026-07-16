@@ -5,11 +5,16 @@ namespace App\Http\Controllers\Api\Public;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Pedido\StorePublicPedidoRequest;
 use App\Http\Resources\PedidoResource;
+use App\Models\Cupon;
+use App\Models\GiftCard;
 use App\Models\Local;
+use App\Models\Pedido;
 use App\Services\Inventory\InsufficientStockException;
 use App\Services\Orders\OrderService;
+use App\Services\Salon\GiftCardService;
 use App\Support\HorarioCalculator;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -17,14 +22,15 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 class PedidoController extends Controller
 {
-    public function __construct(protected OrderService $orders) {}
+    public function __construct(protected OrderService $orders, protected GiftCardService $giftCards) {}
 
     private function haversineKm(float $lat1, float $lng1, float $lat2, float $lng2): float
     {
-        $R    = 6371;
+        $R = 6371;
         $dLat = deg2rad($lat2 - $lat1);
         $dLng = deg2rad($lng2 - $lng1);
-        $a    = sin($dLat / 2) ** 2 + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLng / 2) ** 2;
+        $a = sin($dLat / 2) ** 2 + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLng / 2) ** 2;
+
         return $R * 2 * atan2(sqrt($a), sqrt(1 - $a));
     }
 
@@ -33,9 +39,12 @@ class PedidoController extends Controller
      *     path="/public/pedidos/{slug}",
      *     tags={"Pedidos público"},
      *     summary="Crea un pedido para el local identificado por slug.",
+     *
      *     @OA\Parameter(name="slug", in="path", required=true, @OA\Schema(type="string")),
+     *
      *     @OA\RequestBody(required=true, @OA\JsonContent(
      *         required={"cliente","metodo_entrega","metodo_pago","items"},
+     *
      *         @OA\Property(property="cliente", type="object",
      *             @OA\Property(property="nombre", type="string"),
      *             @OA\Property(property="telefono", type="string"),
@@ -52,6 +61,7 @@ class PedidoController extends Controller
      *             @OA\Property(property="extras", type="array", @OA\Items(type="object"))
      *         ))
      *     )),
+     *
      *     @OA\Response(response=201, description="Created"),
      *     @OA\Response(response=409, description="Stock insuficiente"),
      *     @OA\Response(response=422, description="Validación")
@@ -74,7 +84,7 @@ class PedidoController extends Controller
         if ($estado['abierto'] === false) {
             return response()->json([
                 'message' => "{$local->nombre} no está aceptando pedidos: {$estado['mensaje']}.",
-                'estado'  => $estado,
+                'estado' => $estado,
             ], 409);
         }
 
@@ -92,7 +102,7 @@ class PedidoController extends Controller
             $radioKm = $local->delivery_radio_km ?? 5;
             if ($distKm > $radioKm) {
                 return response()->json([
-                    'message' => "Tu dirección está fuera del radio de entrega ({$radioKm} km). Distancia: " . round($distKm, 1) . ' km.',
+                    'message' => "Tu dirección está fuera del radio de entrega ({$radioKm} km). Distancia: ".round($distKm, 1).' km.',
                 ], 422);
             }
         }
@@ -101,7 +111,7 @@ class PedidoController extends Controller
             $pedido = $this->orders->crear($local, $validated);
         } catch (InsufficientStockException $e) {
             return response()->json([
-                'message'  => $e->getMessage(),
+                'message' => $e->getMessage(),
                 'faltantes' => $e->faltantes,
             ], 409);
         }
@@ -111,6 +121,11 @@ class PedidoController extends Controller
         // es válido, el pedido se conserva intacto sin descuento.
         if (! empty($validated['cupon_codigo'])) {
             $this->aplicarCupon($pedido, $local, $validated['cupon_codigo']);
+        }
+
+        // F102 — Aplicar gift card post-creación (revalida saldo server-side).
+        if (! empty($validated['gift_card_codigo'])) {
+            $this->aplicarGiftCard($pedido, $local, $validated['gift_card_codigo']);
         }
 
         // F27 — Programar pedido para más tarde
@@ -131,31 +146,72 @@ class PedidoController extends Controller
      * descuento + nuevo total y marca el uso atómicamente (lock para evitar
      * que dos pedidos simultáneos consuman el último cupo).
      */
-    private function aplicarCupon(\App\Models\Pedido $pedido, $local, string $codigo): void
+    private function aplicarCupon(Pedido $pedido, $local, string $codigo): void
     {
-        \Illuminate\Support\Facades\DB::transaction(function () use ($pedido, $local, $codigo) {
-            $cupon = \App\Models\Cupon::withoutGlobalScopes()
+        DB::transaction(function () use ($pedido, $local, $codigo) {
+            $cupon = Cupon::withoutGlobalScopes()
                 ->where('local_id', $local->id)
                 ->where('codigo', strtoupper(trim($codigo)))
                 ->lockForUpdate()
                 ->first();
 
-            if (! $cupon || ! $cupon->activo) return;
+            if (! $cupon || ! $cupon->activo) {
+                return;
+            }
             $hoy = now()->startOfDay();
-            if ($cupon->fecha_desde && $cupon->fecha_desde->gt($hoy)) return;
-            if ($cupon->fecha_hasta && $cupon->fecha_hasta->lt($hoy)) return;
-            if (! $cupon->tieneCupoDisponible()) return;
+            if ($cupon->fecha_desde && $cupon->fecha_desde->gt($hoy)) {
+                return;
+            }
+            if ($cupon->fecha_hasta && $cupon->fecha_hasta->lt($hoy)) {
+                return;
+            }
+            if (! $cupon->tieneCupoDisponible()) {
+                return;
+            }
 
             $subtotal = (float) $pedido->total;
-            $desc     = $cupon->calcularDescuento($subtotal);
-            if ($desc <= 0) return;
+            $desc = $cupon->calcularDescuento($subtotal);
+            if ($desc <= 0) {
+                return;
+            }
 
             $pedido->update([
                 'cupon_codigo' => $cupon->codigo,
-                'descuento'    => $desc,
-                'total'        => round($subtotal - $desc, 2),
+                'descuento' => $desc,
+                'total' => round($subtotal - $desc, 2),
             ]);
             $cupon->increment('usos_actuales');
         });
+    }
+
+    /**
+     * Revalida la gift card contra el local y, si tiene saldo, redime el
+     * mínimo entre saldo disponible y total restante del pedido (idempotente
+     * por pedido vía `GiftCardService::redimir`).
+     */
+    private function aplicarGiftCard(Pedido $pedido, Local $local, string $codigo): void
+    {
+        $giftCard = GiftCard::withoutGlobalScopes()
+            ->where('local_id', $local->id)
+            ->where('codigo', strtoupper(trim($codigo)))
+            ->where('estado', 'activa')
+            ->first();
+
+        if (! $giftCard) {
+            return;
+        }
+
+        $montoAplicable = min((float) $giftCard->saldo, (float) $pedido->total);
+        if ($montoAplicable <= 0) {
+            return;
+        }
+
+        $this->giftCards->redimir($giftCard, $montoAplicable, $pedido);
+
+        $pedido->update([
+            'gift_card_codigo' => $giftCard->codigo,
+            'descuento' => (float) $pedido->descuento + $montoAplicable,
+            'total' => round((float) $pedido->total - $montoAplicable, 2),
+        ]);
     }
 }

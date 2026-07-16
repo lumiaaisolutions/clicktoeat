@@ -46,6 +46,16 @@ const FEATURE_LABELS: Record<string, string> = {
   auto_pause_stock:   'Pausa automática de productos sin stock',
   pos_offline:        'POS funciona sin internet',
   centro_aprendizaje: 'Centro de aprendizaje con animaciones',
+  // F102 — operación de salón
+  dine_in:                 'Mesas con QR — tus clientes piden desde su mesa',
+  caja_fisica:             'Caja con cortes de turno y cuentas de mesa (split bill)',
+  tip_pooling:             'Reparto automático de propinas por rol',
+  reservaciones:           'Reservaciones de mesa',
+  loyalty_tiers:           'Niveles y retos de lealtad',
+  gift_cards:              'Gift cards para tus clientes',
+  campanas:                'Campañas de email a tus clientes',
+  rrhh_turnos:             'Turnos de tu equipo con forecast de horas pico',
+  sucursales_consolidadas: 'Reporte consolidado de tu cadena de sucursales',
 };
 
 const PLAN_HIGHLIGHT: Record<string, string> = {

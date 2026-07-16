@@ -8,6 +8,18 @@ import { useAuth } from '@/store/auth';
 
 type MenuItem = { route: string; title: string; subtitle?: string };
 
+function salonItems(user: { rol: string; permisos?: string[] } | null): MenuItem[] {
+  const isOwner = user?.rol === 'owner';
+  const items: MenuItem[] = [];
+  if (isOwner || user?.permisos?.includes('cocina')) {
+    items.push({ route: '/(admin)/cocina', title: 'Cocina', subtitle: 'Pedidos de mesa en preparación' });
+  }
+  if (isOwner || user?.permisos?.includes('mesero')) {
+    items.push({ route: '/(admin)/mesero', title: 'Mesero', subtitle: 'Llamados y entregas' });
+  }
+  return items;
+}
+
 const OPERACION: MenuItem[] = [
   { route: '/(admin)/notificaciones', title: 'Notificaciones', subtitle: 'Alertas e historial' },
   { route: '/(admin)/metricas',       title: 'Métricas',       subtitle: 'Ventas, top productos' },
@@ -41,6 +53,7 @@ export default function SettingsScreen() {
   const logout = useAuth((s) => s.logout);
 
   const isSuper = user?.rol === 'super_admin';
+  const salon = salonItems(user);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['left', 'right']}>
@@ -54,6 +67,7 @@ export default function SettingsScreen() {
           </Text>
         </Card>
 
+        {salon.length > 0 ? <Section title="Salón" items={salon} /> : null}
         <Section title="Operación" items={OPERACION} />
         <Section title="Catálogo" items={CATALOGO} />
         <Section title="Inventario" items={INVENTARIO} />

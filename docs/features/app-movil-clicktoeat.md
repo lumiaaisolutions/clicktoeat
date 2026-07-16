@@ -307,6 +307,33 @@ Costos:
 - [ ] Assets de marca: app icon, splash, fuentes Bricolage Grotesque
 - [ ] Privacy policy URL para App Store Connect (reusar `clicktoeat.lumiaaisolutions.com/privacidad`)
 
+### Construido — paridad de salón F102 (2026-07-17)
+- [x] **Cocina** (`(admin)/cocina.tsx`) — pedidos de mesa en preparación (`GET /salon/cocina/pedidos`),
+      polling 10s + `useKeepAwake` + campana/haptics al llegar uno nuevo (mismo patrón de
+      `pedidos/index.tsx`), botón "Confirmar/Empezar a preparar/Marcar listo" vía
+      `PATCH /pedidos/{id}/estado` (reusa `updatePedidoEstado`, sin endpoint nuevo).
+- [x] **Mesero** (`(admin)/mesero.tsx`) — llamados pendientes (`GET /salon/llamados` +
+      `POST /salon/llamados/{id}/atender`) y pedidos listos para entregar
+      (`GET /salon/mesero/pedidos` + `PATCH /pedidos/{id}/estado` con `entregado`), polling 10s.
+- [x] `src/features/salon/api.ts` — capa de API nueva, espejo de
+      `apps/web/src/app/admin/{cocina,mesero}/page.tsx`.
+- [x] `Pedido.mesa`/`mesa_id` agregado a `lib/types.ts` (el tipo no lo tenía; el backend
+      ya lo expone desde el fix de `PedidoResource` en la sesión de F102 en web).
+- [x] Sección "Salón" en el menú "Más" (`settings.tsx`), visible sólo si el usuario es
+      owner o tiene el permiso `cocina`/`mesero` respectivamente — **primera vez que mobile
+      filtra un ítem de menú por `user.permisos`**, no existía ese patrón antes (los demás
+      ítems del menú se muestran a todos sin importar rol/plan). El feature-gate por plan
+      (`feature:dine_in`) sigue siendo sólo server-side (402 → interceptor existente), igual
+      que el resto de mobile.
+- [x] TypeScript estricto + `expo lint`: limpio en los archivos nuevos/editados (los
+      errores/warnings preexistentes en otros archivos del repo no son de esta sesión).
+- [ ] **Alcance realista, no cubierto ahora**: paridad completa del resto de F102
+      (mesas/pisos, caja física, cuentas de mesa/split-bill, reservaciones, gift cards,
+      campañas, turnos/asistencia) queda en el panel web únicamente — cocina/mesero eran
+      lo prioritario por pedido explícito del owner. Sin verificación en dispositivo físico
+      ni en Expo Go en esta sesión (sólo `tsc`/`eslint`) — pendiente de probar en el celular
+      antes de un build de producción.
+
 ### Construido — v1.0 + v1.1 + v1.2 + v1.3 + super admin parcial (2026-06-20)
 - [x] **Deep-link desde notif** — `usePushDeepLink` lee `data.route` y navega
 - [x] **Notificaciones in-app** (`GET /notificaciones`, marcar leídas)

@@ -30,9 +30,10 @@ class OrderService
     /**
      * @param array{
      *   cliente: array{nombre:string, telefono:string, direccion?:?string, notas?:?string},
-     *   metodo_entrega: 'pickup'|'delivery',
+     *   metodo_entrega: 'pickup'|'delivery'|'sucursal',
      *   metodo_pago: 'efectivo'|'tarjeta_entrega'|'transferencia',
      *   items: array<int, array{producto_id:int, cantidad:int, extras?:array, notas?:?string}>,
+     *   mesa_id?: ?int,
      * } $input
      */
     public function crear(Local $local, array $input): Pedido
@@ -68,6 +69,7 @@ class OrderService
         $pedido = DB::transaction(function () use ($local, $input, $lineas, $subtotal, $deliveryFee, $total) {
             $pedido = Pedido::create([
                 'local_id'         => $local->id,
+                'mesa_id'          => $input['mesa_id'] ?? null,
                 'cliente_nombre'   => $input['cliente']['nombre'],
                 'cliente_email'    => $input['cliente']['email']       ?? null,
                 'cliente_telefono' => $input['cliente']['telefono'],

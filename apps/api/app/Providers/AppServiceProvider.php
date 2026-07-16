@@ -57,6 +57,16 @@ class AppServiceProvider extends ServiceProvider
                 Limit::perMinute(20)->by($request->ip()),
             ];
         });
+
+        // F102 — mismo propósito que public-orders-by-tenant, pero la ruta de
+        // mesa usa {qrToken} en vez de {slug} (no hay slug en el path).
+        RateLimiter::for('public-orders-by-mesa', function (Request $request) {
+            $qrToken = $request->route('qrToken') ?? 'unknown';
+            return [
+                Limit::perMinute(100)->by("mesa:{$qrToken}"),
+                Limit::perMinute(20)->by($request->ip()),
+            ];
+        });
     }
 
     /**

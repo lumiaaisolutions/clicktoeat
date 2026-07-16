@@ -37,6 +37,8 @@ export default function AdminTabsLayout() {
       />
 
       {/* Rutas ocultas del tab bar — accesibles desde el menú o por router.push */}
+      <Tabs.Screen name="cocina"         options={{ href: null, title: 'Cocina' }} />
+      <Tabs.Screen name="mesero"         options={{ href: null, title: 'Mesero' }} />
       <Tabs.Screen name="metricas"       options={{ href: null, title: 'Métricas' }} />
       <Tabs.Screen name="notificaciones" options={{ href: null, title: 'Notificaciones' }} />
       <Tabs.Screen name="productos"      options={{ href: null, headerShown: false }} />

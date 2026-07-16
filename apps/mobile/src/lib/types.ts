@@ -122,6 +122,8 @@ export interface Pedido {
   total: number;
   estado: PedidoEstado;
   whatsapp_url: string | null;
+  mesa_id?: number | null;
+  mesa?: { id: number; etiqueta: string } | null;
   detalles?: DetallePedido[];
   confirmado_at: string | null;
   entregado_at: string | null;
