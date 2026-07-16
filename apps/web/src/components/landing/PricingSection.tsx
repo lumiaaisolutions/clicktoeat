@@ -39,7 +39,6 @@ const FEATURE_LABELS: Record<string, string> = {
   restore:            'Recuperar elementos borrados',
   // Premium
   multi_sucursal:     'Administra varias sucursales desde una sola cuenta',
-  white_label:        'Tu marca sin el logo de ClickToEat',
   soporte_premium:    'Soporte prioritario por WhatsApp',
   reviews:            'Calificaciones públicas de tus clientes',
   cupones_programados:'Cupones automáticos por horario (happy hour, 2x1)',

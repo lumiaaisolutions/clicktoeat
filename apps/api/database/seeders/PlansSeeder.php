@@ -107,7 +107,7 @@ class PlansSeeder extends Seeder
                     F::CUPONES_PROGRAMADOS,
                     F::AUTO_PAUSE_STOCK,
                     F::MULTI_SUCURSAL,
-                    F::WHITE_LABEL,
+                    // F::WHITE_LABEL — removida jul 2026, no se va a construir (decisión del owner).
                     F::POS_OFFLINE,         // POS sigue cobrando sin internet
                     F::SOPORTE_PREMIUM,
                     // F102 — operación de salón (ADR-012, mismo precio $499)

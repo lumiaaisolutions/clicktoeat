@@ -494,7 +494,6 @@ const HUMAN: Record<string, string> = {
   audit_log:          'Historial de cambios',
   restore:            'Recuperar elementos borrados',
   multi_sucursal:     'Varias sucursales en una sola cuenta',
-  white_label:        'Tu marca sin el logo de ClickToEat',
   api_webhooks:       'Conexión a tu sistema de cocina o ERP',
   soporte_premium:    'Soporte prioritario por WhatsApp',
 };

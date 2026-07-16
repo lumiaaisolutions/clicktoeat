@@ -29,7 +29,7 @@ final class Features
     public const RESTORE            = 'restore';
     // F88 — exclusivas Premium
     public const MULTI_SUCURSAL     = 'multi_sucursal';
-    public const WHITE_LABEL        = 'white_label';
+    public const WHITE_LABEL        = 'white_label';    // deprecated — no se ofrece más (jul 2026, decisión del owner)
     public const API_WEBHOOKS       = 'api_webhooks';   // deprecated — no se ofrece más
     public const SOPORTE_PREMIUM    = 'soporte_premium';
 
