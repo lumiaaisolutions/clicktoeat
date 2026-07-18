@@ -1,6 +1,7 @@
 # Runbook — Backups automáticos de BD
 
-> **Estado (2026-07-16)**: cron creado en hPanel, apuntando a un comando (`backup:run`) que todavía **no está desplegado** a producción — ver "Pendiente" abajo antes de asumir que ya protege datos reales.
+> **Estado (2026-07-17, verificado en producción)**: el deploy del paquete F102 (`./scripts/deploy-api.sh`, commit `16d304d`) llevó `backup:run` a producción. Verificado por SSH (read-only) el 2026-07-17: el cron corre a diario y `storage/app/backups/` en el VPS real tiene backups consecutivos reales (`backup-2026-07-16_210008.sql.gz`, `backup-2026-07-17_210008.sql.gz`) — ya no es teórico, protege datos reales hoy.
+> **Gap real encontrado en esta verificación**: `scripts/backup-mysql.sh` (offsite a B2) **nunca se subió al servidor** — no existe el archivo ahí, ni hay config de `rclone` (`~/.config/rclone/` no existe). Todo lo protegido hoy es **local-only**: si el VPS completo se pierde, se pierden la BD y sus backups juntos. La sección "Por qué v1 es solo local" de abajo describe esto como decisión intencional del owner — es correcto que sea la decisión, pero quede claro que implica **cero redundancia geográfica**, no solo "sin nube de terceros".
 > **Decisión final (2026-07-16, ver ADR-015)**: el owner rechazó cualquier servicio de terceros/paga para este proyecto (misma decisión que descartó Pusher/Ably para realtime) — **backup local es la solución definitiva de v1, no un paso intermedio esperando credenciales de Backblaze B2**. `scripts/backup-mysql.sh` (con B2) queda documentado como referencia histórica, no como el plan a futuro.
 
 ## Qué existe hoy
@@ -15,10 +16,10 @@ Configurar B2 requiere una cuenta Backblaze real + Application Key, que no se te
 
 ## Pendiente para que esto proteja datos reales
 
-1. **Desplegar** el código de esta sesión a producción (`./scripts/deploy-api.sh`) — el cron ya está corriendo pero hoy falla silenciosamente (`> /dev/null 2>&1`) porque `backup:run` no existe todavía en el servidor. **No se hizo en esta sesión** — desplegar significa llevar a producción TODO lo construido en el paquete de operación de salón (Etapas A-D), una decisión aparte que no se tomó aquí.
-2. Verificar manualmente la primera corrida real después del deploy (`ssh` + correr `php artisan backup:run` a mano una vez, confirmar que el archivo aparece en `storage/app/backups/`).
-3. Si se decide activar offsite: crear cuenta/bucket en Backblaze B2, instalar `rclone` en `~/bin/rclone` (binario standalone, sin `apt`), configurar el remote, crear `~/.config/clicktoeat-backup.env` con las credenciales, y usar `scripts/backup-mysql.sh` en vez de (o además de) `backup:run` — ver cabecera de ese script para el procedimiento completo.
-4. Mensual: `scripts/backup-test.sh --local-only` para confirmar que el dump es restaurable (requiere una BD `_restoretest` pre-creada — el usuario MySQL de Hostinger no puede `CREATE DATABASE`).
+1. ~~Desplegar el código a producción~~ **Hecho 2026-07-17** (`./scripts/deploy-api.sh`, commit `16d304d`).
+2. ~~Verificar manualmente la primera corrida real~~ **Hecho 2026-07-17** — confirmado por SSH que hay dumps reales y crecientes en `storage/app/backups/`.
+3. **Sigue pendiente, no se hizo esta sesión**: si se decide activar offsite pese a la decisión de "solo local": crear cuenta/bucket en Backblaze B2, instalar `rclone` en `~/bin/rclone` (binario standalone, sin `apt`), configurar el remote, crear `~/.config/clicktoeat-backup.env` con las credenciales, y subir `scripts/backup-mysql.sh` al servidor (hoy solo existe en el repo local, nunca se copió al VPS) — ver cabecera de ese script para el procedimiento completo.
+4. **Sigue pendiente**: correr `scripts/backup-test.sh --local-only` para confirmar que el dump es restaurable (requiere una BD `_restoretest` pre-creada — el usuario MySQL de Hostinger no puede `CREATE DATABASE`). Nunca se ha corrido un restore drill real — los backups existen pero no está probado que efectivamente se puedan restaurar.
 
 ## Referencias
 
