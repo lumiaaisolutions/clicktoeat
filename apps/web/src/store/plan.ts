@@ -85,4 +85,6 @@ export const Features = {
   CAMPANAS:                 'campanas',
   RRHH_TURNOS:              'rrhh_turnos',
   SUCURSALES_CONSOLIDADAS:  'sucursales_consolidadas',
+  // F103 — Clicky, asistente de IA del panel (Professional/Premium)
+  CLICKY_ASSISTANT:         'clicky_assistant',
 } as const;

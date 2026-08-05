@@ -197,6 +197,10 @@ Route::middleware('throttle:60,1')->group(function () {
         Route::get('local',    [LocalController::class, 'show']);
         Route::patch('local',  [LocalController::class, 'update']);
 
+        // F103 — Clicky, asistente de IA del panel (Professional/Premium)
+        Route::post('clicky/ask', [\App\Http\Controllers\Api\Admin\ClickyController::class, 'ask'])
+            ->middleware(['feature:clicky_assistant', 'throttle:clicky']);
+
         // Cancellation feedback (F76)
         Route::post('billing/cancel-feedback', [\App\Http\Controllers\Api\CancellationFeedbackController::class, 'store'])
             ->middleware('throttle:5,1');

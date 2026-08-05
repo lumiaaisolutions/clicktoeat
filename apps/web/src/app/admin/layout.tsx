@@ -24,6 +24,7 @@ import { AnuncioBanner } from '@/components/admin/AnuncioBanner';
 import { PlanInactiveScreen, isPlanBlocking } from '@/components/billing/PlanInactiveScreen';
 import { TourOverlay } from '@/components/help/TourOverlay';
 import { AutoTourTrigger } from '@/components/help/AutoTourTrigger';
+import { ClickyWidget } from '@/components/clicky/ClickyWidget';
 import { Logo } from '@/components/ui/Logo';
 import { cn } from '@/lib/utils';
 
@@ -517,6 +518,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <PedidosReadResetter pathname={pathname} />
           <InstallPrompt />
           <PushSubscriber />
+          <ClickyWidget />
         </>
       )}
     </div>

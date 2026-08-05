@@ -37,6 +37,7 @@ class LLMClient
             return match ($provider) {
                 'anthropic' => $this->anthropic($prompt, $apiKey, $opts),
                 'openai'    => $this->openai($prompt, $apiKey, $opts),
+                'gemini'    => $this->gemini($prompt, $apiKey, $opts),
                 default     => throw new RuntimeException("Provider IA no soportado: {$provider}"),
             };
         } catch (Throwable $e) {
@@ -74,6 +75,33 @@ class LLMClient
         ])->throw()->json();
 
         return $res['choices'][0]['message']['content'] ?? '';
+    }
+
+    /**
+     * Gemini (Google Generative Language API). Usado por Clicky — modelo
+     * "flash-lite" a propósito: es el más barato/rápido del catálogo Gemini,
+     * suficiente para respuestas cortas de onboarding (no razonamiento complejo).
+     */
+    private function gemini(string $prompt, string $apiKey, array $opts): string
+    {
+        $model = $opts['model'] ?? config('services.ai.gemini_model', 'gemini-2.0-flash-lite');
+        $body  = ['contents' => [['role' => 'user', 'parts' => [['text' => $prompt]]]]];
+        if (! empty($opts['system'])) {
+            $body['systemInstruction'] = ['parts' => [['text' => $opts['system']]]];
+        }
+        $body['generationConfig'] = [
+            'maxOutputTokens' => $opts['max_tokens']  ?? 220,
+            'temperature'     => $opts['temperature'] ?? 0.4,
+        ];
+
+        $res = \Illuminate\Support\Facades\Http::withHeaders([
+            'content-type' => 'application/json',
+        ])->post(
+            "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}",
+            $body,
+        )->throw()->json();
+
+        return $res['candidates'][0]['content']['parts'][0]['text'] ?? '';
     }
 
     /** Stub plausible para dev/CI sin gastar tokens reales. */

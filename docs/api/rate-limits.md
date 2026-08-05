@@ -25,6 +25,7 @@ El grupo raíz aplica `throttle:60,1`. Rutas específicas añaden límites más 
 | `POST /public/pedidos/{slug}`               | `20,1`             |
 | `POST /uploads/image`                       | `30,1`             |
 | `PATCH /admin/locales/{id}/owner-password`  | `10,1`             |
+| `POST /clicky/ask`                          | limiter `clicky`: 40/día por local (no por IP/usuario) |
 
 Sintaxis `throttle:N,M` = N requests por M minutos.
 

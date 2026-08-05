@@ -52,6 +52,9 @@ final class Features
     public const RRHH_TURNOS              = 'rrhh_turnos';
     public const SUCURSALES_CONSOLIDADAS  = 'sucursales_consolidadas';
 
+    // F103 — Clicky, asistente de IA del panel (guía scripteada + chat Gemini)
+    public const CLICKY_ASSISTANT         = 'clicky_assistant';
+
     /** @return list<string> */
     public static function all(): array
     {

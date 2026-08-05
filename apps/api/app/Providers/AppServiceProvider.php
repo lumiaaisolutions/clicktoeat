@@ -67,6 +67,14 @@ class AppServiceProvider extends ServiceProvider
                 Limit::perMinute(20)->by($request->ip()),
             ];
         });
+
+        // F103 — Clicky (chat Gemini). Tope por LOCAL, no por usuario, para
+        // que no se pueda esquivar creando varias cuentas de staff. Generoso
+        // para uso normal de onboarding, bajo para controlar costo de tokens.
+        RateLimiter::for('clicky', function (Request $request) {
+            $local = app(\App\Support\TenantContext::class)->local();
+            return Limit::perDay(40)->by('clicky:'.($local?->id ?: $request->ip()));
+        });
     }
 
     /**

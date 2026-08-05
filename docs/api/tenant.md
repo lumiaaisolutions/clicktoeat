@@ -21,6 +21,21 @@ Campos permitidos: `nombre`, `tagline`, `logo_url`, `banner_url`, `color_*`, `ti
 
 ---
 
+## Clicky — asistente del panel (F103)
+
+### POST `/clicky/ask`
+Gateado por `feature:clicky_assistant` (Profesional/Premium, 402
+`FEATURE_LOCKED` si no aplica) + `throttle:clicky` (40/día por local).
+Validación: `AskClickyRequest`.
+
+Body: `{ "message": "string, máx 400", "pathname": "string opcional" }`
+
+Respuesta: `{ "data": { "reply": "string" } }`
+
+Detalle completo: [`../features/clicky-assistant.md`](../features/clicky-assistant.md).
+
+---
+
 ## Horarios
 
 ### GET `/local/horarios`

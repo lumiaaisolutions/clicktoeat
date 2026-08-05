@@ -32,6 +32,7 @@ Se definen en `App\Support\Features` como constantes y se persisten en
 | `staff_multi` | `/admin/staff` CRUD (hasta `max_staff`) | — | ✅ (∞) |
 | `audit_log` | `/admin/audit-log` con diff de cambios | — | ✅ |
 | `restore` | Botón restore en soft-deleted | — | ✅ |
+| `clicky_assistant` | Clicky, asistente del panel (F103) | — | ✅ (Profesional y Premium) — ver [`clicky-assistant.md`](./clicky-assistant.md) |
 
 ### Límites cuantitativos
 

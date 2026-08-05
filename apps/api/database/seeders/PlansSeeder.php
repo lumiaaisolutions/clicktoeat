@@ -76,6 +76,7 @@ class PlansSeeder extends Seeder
                     F::CENTRO_APRENDIZAJE,
                     F::CUPONES_PROGRAMADOS,  // happy hour, 2x1 por horario
                     F::AUTO_PAUSE_STOCK,     // pausa producto si se agota ingrediente
+                    F::CLICKY_ASSISTANT,     // F103 — asistente de IA del panel
                 ],
             ],
             // F88 — Premium: para cadenas y locales que necesitan más control
@@ -120,6 +121,7 @@ class PlansSeeder extends Seeder
                     F::CAMPANAS,
                     F::RRHH_TURNOS,
                     F::SUCURSALES_CONSOLIDADAS,
+                    F::CLICKY_ASSISTANT,     // F103 — asistente de IA del panel
                 ],
             ],
         ];

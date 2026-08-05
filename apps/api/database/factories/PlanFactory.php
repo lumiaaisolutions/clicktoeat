@@ -58,7 +58,7 @@ class PlanFactory extends Factory
                 F::BRANDING_BASICO, F::BRANDING_AVANZADO, F::INVENTARIO,
                 F::RECETAS, F::COMPRAS, F::METRICAS_BASICAS, F::METRICAS_AVANZADAS,
                 F::POS, F::QR_PERSONALIZADO, F::NOTIFICACIONES,
-                F::STAFF_MULTI, F::AUDIT_LOG, F::RESTORE,
+                F::STAFF_MULTI, F::AUDIT_LOG, F::RESTORE, F::CLICKY_ASSISTANT,
             ],
             'max_productos'       => null,
             'max_categorias'      => null,
