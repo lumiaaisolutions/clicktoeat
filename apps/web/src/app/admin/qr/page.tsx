@@ -74,6 +74,7 @@ export default function QRPage() {
 
           <div
             id="qr-printable"
+            data-tour="qr-preview"
             className="rounded-3xl shadow-soft overflow-hidden mx-auto print:shadow-none print:border-0"
             style={{
               background: bgPlot,
@@ -120,7 +121,7 @@ export default function QRPage() {
         <aside className="space-y-4 print:hidden">
           <div className="rounded-2xl border border-line bg-white p-4">
             <p className="text-xs uppercase tracking-wider text-muted mb-3">Tema</p>
-            <div className="grid grid-cols-3 gap-2">
+            <div data-tour="qr-tema" className="grid grid-cols-3 gap-2">
               <button
                 onClick={() => setTema('marca')}
                 className={`px-2 py-2 rounded-xl text-xs font-medium border transition ${
@@ -202,15 +203,15 @@ export default function QRPage() {
           <div className="rounded-2xl border border-line bg-white p-4">
             <p className="text-xs uppercase tracking-wider text-muted mb-2">Acciones</p>
             <div className="space-y-2">
-              <Button onClick={handleDownload} className="w-full inline-flex items-center justify-center gap-2">
+              <Button data-tour="qr-descargar" onClick={handleDownload} className="w-full inline-flex items-center justify-center gap-2">
                 <Icon name="download" size={16} />
                 Descargar PNG ({1200}px)
               </Button>
-              <Button variant="secondary" onClick={() => window.print()} className="w-full inline-flex items-center justify-center gap-2">
+              <Button data-tour="qr-imprimir" variant="secondary" onClick={() => window.print()} className="w-full inline-flex items-center justify-center gap-2">
                 <Icon name="qr-code" size={16} />
                 Imprimir
               </Button>
-              <Button variant="secondary" onClick={handleCopy} className="w-full inline-flex items-center justify-center gap-2">
+              <Button data-tour="qr-copiar" variant="secondary" onClick={handleCopy} className="w-full inline-flex items-center justify-center gap-2">
                 <Icon name="copy" size={16} />
                 Copiar link
               </Button>

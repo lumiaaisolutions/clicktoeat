@@ -30,7 +30,7 @@ class LLMClient
         $apiKey   = $this->apiKey   ?: config('services.ai.api_key');
 
         if ($provider === 'mock' || empty($apiKey)) {
-            return $this->mockResponse($prompt);
+            return $opts['fallback'] ?? $this->mockResponse($prompt);
         }
 
         try {
@@ -41,9 +41,13 @@ class LLMClient
                 default     => throw new RuntimeException("Provider IA no soportado: {$provider}"),
             };
         } catch (Throwable $e) {
-            // Si falla la llamada real, devolvemos mock para no romper la UI
-            \Illuminate\Support\Facades\Log::warning("LLM call failed, fallback to mock: {$e->getMessage()}");
-            return $this->mockResponse($prompt);
+            // Si falla la llamada real, caemos a un fallback — nunca al
+            // usuario final le llega un detalle interno (config, API keys).
+            // `opts['fallback']` deja que cada feature defina su propio
+            // mensaje "de cara al cliente"; si no lo pasa, usamos el mock
+            // genérico (pensado para dev/CI, no para producción real).
+            \Illuminate\Support\Facades\Log::warning("LLM call failed, fallback: {$e->getMessage()}");
+            return $opts['fallback'] ?? $this->mockResponse($prompt);
         }
     }
 

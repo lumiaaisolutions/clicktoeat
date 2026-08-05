@@ -55,6 +55,7 @@ export default function InventarioPage() {
         actions={
           <div className="flex gap-2 flex-wrap">
             <Button
+              data-tour="inventario-bajo-stock"
               variant={filterBajo ? 'primary' : 'secondary'}
               onClick={() => setFilterBajo(!filterBajo)}
             >
@@ -78,7 +79,7 @@ export default function InventarioPage() {
             >
               Exportar CSV
             </Button>
-            <Button onClick={() => setCreating(true)}>+ Ingrediente</Button>
+            <Button data-tour="inventario-nuevo" onClick={() => setCreating(true)}>+ Ingrediente</Button>
           </div>
         }
       />
@@ -170,14 +171,15 @@ export default function InventarioPage() {
                     </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">
                       <Link
+                        data-tour="inventario-historial"
                         href={`/admin/inventario/${i.id}/movimientos`}
                         className="inline-flex items-center justify-center px-3 h-8 text-sm rounded-lg hover:bg-line/40"
                       >
                         Historial
                       </Link>
-                      <Button variant="ghost" size="sm" onClick={() => setAjusting(i)}>Ajustar</Button>
-                      <Button variant="ghost" size="sm" onClick={() => setEditing(i)}>Editar</Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(i)}>Borrar</Button>
+                      <Button data-tour="inventario-ajustar" variant="ghost" size="sm" onClick={() => setAjusting(i)}>Ajustar</Button>
+                      <Button data-tour="inventario-editar" variant="ghost" size="sm" onClick={() => setEditing(i)}>Editar</Button>
+                      <Button data-tour="inventario-borrar" variant="ghost" size="sm" onClick={() => handleDelete(i)}>Borrar</Button>
                     </td>
                   </tr>
                 ))}
@@ -261,21 +263,21 @@ function IngredienteModal({
   return (
     <Modal open={open} onClose={onClose} title={ingrediente ? 'Editar ingrediente' : 'Nuevo ingrediente'}>
       <form onSubmit={onSubmit}>
-        <Field label="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} error={errors.nombre} required maxLength={80} />
+        <Field data-tour="inventario-modal-nombre" label="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} error={errors.nombre} required maxLength={80} />
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Stock actual" type="number" step="0.001" value={stock} onChange={(e) => setStock(Number(e.target.value))} error={errors.stock} required />
+          <Field data-tour="inventario-modal-stock" label="Stock actual" type="number" step="0.001" value={stock} onChange={(e) => setStock(Number(e.target.value))} error={errors.stock} required />
           <Select label="Unidad" value={unidad} onChange={(e) => setUnidad(e.target.value as any)} error={errors.unidad}>
             {UNIDADES.map((u) => <option key={u} value={u}>{u}</option>)}
           </Select>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Stock mínimo" type="number" step="0.001" value={stockMin} onChange={(e) => setStockMin(Number(e.target.value))} error={errors.stock_minimo} hint="Para alerta de bajo stock" />
+          <Field data-tour="inventario-modal-minimo" label="Stock mínimo" type="number" step="0.001" value={stockMin} onChange={(e) => setStockMin(Number(e.target.value))} error={errors.stock_minimo} hint="Para alerta de bajo stock" />
           <Field label="Costo unitario (MXN)" type="number" step="0.01" value={costo} onChange={(e) => setCosto(Number(e.target.value))} error={errors.costo_unitario} />
         </div>
         <Switch label="Activo" checked={activo} onChange={setActivo} />
         <div className="flex gap-2 justify-end mt-4">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button type="submit" loading={saving}>Guardar</Button>
+          <Button data-tour="inventario-modal-guardar" type="submit" loading={saving}>Guardar</Button>
         </div>
       </form>
     </Modal>
@@ -331,13 +333,14 @@ function AjusteModal({
           Stock actual: <strong>{ingrediente.stock} {ingrediente.unidad}</strong>
         </p>
 
-        <Select label="Tipo de movimiento" value={tipo} onChange={(e) => setTipo(e.target.value as any)}>
+        <Select data-tour="inventario-ajuste-tipo" label="Tipo de movimiento" value={tipo} onChange={(e) => setTipo(e.target.value as any)}>
           <option value="entrada">Entrada (suma)</option>
           <option value="merma">Merma (resta)</option>
           <option value="ajuste">Ajuste manual</option>
         </Select>
 
         <Field
+          data-tour="inventario-ajuste-cantidad"
           label={`Cantidad en ${ingrediente.unidad}`}
           type="number"
           step="0.001"
@@ -355,7 +358,7 @@ function AjusteModal({
 
         <div className="flex gap-2 justify-end">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button type="submit" loading={saving} disabled={cantidad === 0}>Confirmar</Button>
+          <Button data-tour="inventario-ajuste-confirmar" type="submit" loading={saving} disabled={cantidad === 0}>Confirmar</Button>
         </div>
       </form>
     </Modal>

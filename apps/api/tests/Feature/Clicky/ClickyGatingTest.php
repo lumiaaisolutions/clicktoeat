@@ -56,10 +56,10 @@ class ClickyGatingTest extends TestCase
             ->assertStatus(422);
     }
 
-    public function test_sin_api_key_responde_mock_sin_romper(): void
+    public function test_sin_api_key_responde_fallback_sin_romper(): void
     {
-        // En testing no hay GEMINI_API_KEY configurada — LLMClient debe
-        // caer a su respuesta mock en vez de fallar.
+        // Sin GEMINI_API_KEY, debe caer al fallback propio de Clicky en
+        // vez de fallar o de devolver el mock genérico de LLMClient.
         config(['services.ai.gemini_api_key' => null]);
 
         $local = Local::factory()->withPlan('professional')->create();
@@ -68,6 +68,24 @@ class ClickyGatingTest extends TestCase
 
         $this->postJson('/api/v1/clicky/ask', ['message' => 'hola'])
             ->assertOk()
-            ->assertJsonStructure(['data' => ['reply']]);
+            ->assertJsonStructure(['data' => ['reply']])
+            ->assertJsonPath('data.reply', 'No puedo ayudarte con eso justo ahora 🙈 Prueba con una de las dudas rápidas de arriba, o si sigue sin funcionar escríbenos a soporte.');
+    }
+
+    public function test_fallback_nunca_filtra_detalles_de_configuracion(): void
+    {
+        config(['services.ai.gemini_api_key' => null]);
+
+        $local = Local::factory()->withPlan('professional')->create();
+        $owner = User::factory()->owner($local)->create();
+        Sanctum::actingAs($owner);
+
+        $reply = $this->postJson('/api/v1/clicky/ask', ['message' => 'hola'])
+            ->assertOk()
+            ->json('data.reply');
+
+        $this->assertStringNotContainsStringIgnoringCase('API_KEY', $reply);
+        $this->assertStringNotContainsStringIgnoringCase('provider', $reply);
+        $this->assertStringNotContainsStringIgnoringCase('mock', $reply);
     }
 }

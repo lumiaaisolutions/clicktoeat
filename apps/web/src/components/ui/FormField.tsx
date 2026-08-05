@@ -104,11 +104,12 @@ interface SwitchProps {
   hint?: string;
   checked: boolean;
   onChange: (v: boolean) => void;
+  'data-tour'?: string;
 }
 
-export function Switch({ label, hint, checked, onChange }: SwitchProps) {
+export function Switch({ label, hint, checked, onChange, ...rest }: SwitchProps) {
   return (
-    <label className="flex items-start justify-between gap-3 mb-3 cursor-pointer py-1">
+    <label className="flex items-start justify-between gap-3 mb-3 cursor-pointer py-1" {...rest}>
       <div className="flex-1 min-w-0">
         <span className="block text-sm font-medium">{label}</span>
         {hint && <span className="block text-xs text-muted mt-0.5">{hint}</span>}

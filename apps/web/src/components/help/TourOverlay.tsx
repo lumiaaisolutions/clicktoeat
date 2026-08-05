@@ -110,6 +110,32 @@ function TourStepView({
   // En mobile fuerza center. En desktop respeta el placement del step.
   const placement = isMobile ? 'center' : (step.placement ?? (rect ? 'bottom' : 'center'));
 
+  const interactive = !!(step.interactive && rect && !isMobile);
+
+  // Recorte del backdrop alrededor del target (mismo padding que el
+  // spotlight visual) — deja al elemento real clickeable en pasos
+  // interactivos, y avanza el tour solo cuando el usuario lo clickea.
+  const cutout = interactive && rect
+    ? { top: rect.top - 6, left: rect.left - 6, width: rect.width + 12, height: rect.height + 12 }
+    : null;
+
+  useEffect(() => {
+    if (!cutout) return;
+    function onWindowClick(e: MouseEvent) {
+      const { clientX: x, clientY: y } = e;
+      const inside = x >= cutout!.left && x <= cutout!.left + cutout!.width
+        && y >= cutout!.top && y <= cutout!.top + cutout!.height;
+      if (inside) {
+        // Deja que el handler real del botón corra (abre modal, etc.)
+        // antes de avanzar, para que el siguiente target ya exista.
+        setTimeout(() => onNext(), 150);
+      }
+    }
+    window.addEventListener('click', onWindowClick);
+    return () => window.removeEventListener('click', onWindowClick);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cutout?.top, cutout?.left, cutout?.width, cutout?.height, onNext]);
+
   /**
    * Calcula la posición del tooltip. IMPORTANTE: NO usamos `transform` para
    * centrar porque framer-motion lo sobreescribe con su transform de
@@ -156,20 +182,41 @@ function TourStepView({
 
   const progress = ((index + 1) / total) * 100;
 
+  const backdropStyle: React.CSSProperties = { background: 'rgba(11, 11, 15, 0.62)', backdropFilter: 'blur(3px)' };
+
   return (
     <>
-      {/* Backdrop con blur sutil */}
-      <motion.div
-        key="backdrop"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.25 }}
-        className="fixed inset-0 z-[90]"
-        onClick={onClose}
-        aria-label="Cerrar tour"
-        style={{ background: 'rgba(11, 11, 15, 0.62)', backdropFilter: 'blur(3px)' }}
-      />
+      {/* Backdrop con blur sutil. En pasos interactivos se recorta en 4
+          franjas alrededor del target para dejarlo clickeable de verdad;
+          el resto de la pantalla sigue cerrando el tour al click. */}
+      {cutout ? (
+        <>
+          <motion.div key="bd-top" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}
+            className="fixed z-[90]" onClick={onClose} aria-label="Cerrar tour"
+            style={{ ...backdropStyle, top: 0, left: 0, width: '100vw', height: Math.max(0, cutout.top) }} />
+          <motion.div key="bd-bottom" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}
+            className="fixed z-[90]" onClick={onClose} aria-label="Cerrar tour"
+            style={{ ...backdropStyle, top: cutout.top + cutout.height, left: 0, width: '100vw', height: Math.max(0, window.innerHeight - (cutout.top + cutout.height)) }} />
+          <motion.div key="bd-left" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}
+            className="fixed z-[90]" onClick={onClose} aria-label="Cerrar tour"
+            style={{ ...backdropStyle, top: cutout.top, left: 0, width: Math.max(0, cutout.left), height: cutout.height }} />
+          <motion.div key="bd-right" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}
+            className="fixed z-[90]" onClick={onClose} aria-label="Cerrar tour"
+            style={{ ...backdropStyle, top: cutout.top, left: cutout.left + cutout.width, width: Math.max(0, window.innerWidth - (cutout.left + cutout.width)), height: cutout.height }} />
+        </>
+      ) : (
+        <motion.div
+          key="backdrop"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+          className="fixed inset-0 z-[90]"
+          onClick={onClose}
+          aria-label="Cerrar tour"
+          style={backdropStyle}
+        />
+      )}
 
       {/* Spotlight + halo pulsante sobre el target */}
       {rect && !isMobile && (
@@ -297,6 +344,17 @@ function TourStepView({
           >
             {step.body}
           </motion.p>
+
+          {interactive && (
+            <motion.p
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.3 }}
+              className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mt-3 inline-flex items-center gap-1.5"
+            >
+              👆 Haz click en el botón resaltado para abrirlo de verdad
+            </motion.p>
+          )}
 
           {/* Progress dots */}
           <div className="flex items-center gap-1.5 mt-4">

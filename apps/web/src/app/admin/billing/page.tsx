@@ -117,6 +117,7 @@ export default function BillingPage() {
               </div>
 
               <button
+                data-tour="billing-cta"
                 onClick={openPortal}
                 disabled={opening}
                 className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-ink text-white text-sm font-medium hover:opacity-90 transition tap-target disabled:opacity-60"
@@ -183,7 +184,7 @@ export default function BillingPage() {
 
           {/* Límites + features */}
           <div className="grid sm:grid-cols-2 gap-4">
-            <div className="rounded-3xl border border-line bg-white p-6">
+            <div data-tour="billing-limites" className="rounded-3xl border border-line bg-white p-6">
               <p className="text-xs text-muted font-medium uppercase tracking-wider mb-3">Límites de tu plan</p>
               <dl className="space-y-2 text-sm">
                 <Limit label="Productos" value={plan.limits.productos} />
@@ -192,7 +193,7 @@ export default function BillingPage() {
               </dl>
             </div>
 
-            <div className="rounded-3xl border border-line bg-white p-6">
+            <div data-tour="billing-modulos" className="rounded-3xl border border-line bg-white p-6">
               <p className="text-xs text-muted font-medium uppercase tracking-wider mb-3">Módulos incluidos</p>
               <ul className="grid grid-cols-1 gap-1.5 text-sm">
                 {plan.features.map((f) => (
@@ -206,14 +207,16 @@ export default function BillingPage() {
           </div>
 
           {/* F88 — sección de upgrade visible (auto-scroll si viene ?upgrade=...) */}
-          <UpgradeSection currentPlanSlug={plan?.slug ?? ''} tieneStripe={tieneStripe} />
+          <div data-tour="billing-upgrade">
+            <UpgradeSection currentPlanSlug={plan?.slug ?? ''} tieneStripe={tieneStripe} />
+          </div>
 
           {/* Footer info + cancelar */}
           <div className="flex items-center justify-between flex-wrap gap-2">
             <p className="text-xs text-muted">
               Cancela cuando quieras desde el portal — sin penalización.
             </p>
-            <CancelFeedbackTrigger />
+            <span data-tour="billing-cancelar"><CancelFeedbackTrigger /></span>
           </div>
         </>
       )}

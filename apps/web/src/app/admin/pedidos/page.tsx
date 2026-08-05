@@ -174,6 +174,7 @@ export default function PedidosPage() {
         actions={
           <div data-tour="pedidos-filtros" className="flex gap-2 flex-wrap">
             <select
+              data-tour="pedidos-filtro-estado"
               value={estado}
               onChange={(e) => setEstado(e.target.value as PedidoEstado | '')}
               className="px-3 py-2 border border-line rounded-xl bg-white text-sm"
@@ -216,12 +217,13 @@ export default function PedidosPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {items.map((p) => {
+          {items.map((p, i) => {
             const iniciales = (p.cliente_nombre || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || '·';
             const colorAvatar = ESTADO_AVATAR[p.estado] ?? 'bg-zinc-100 text-zinc-700';
             return (
               <article
                 key={p.id}
+                data-tour={i === 0 ? 'pedido-card' : undefined}
                 className={cn(
                   'group rounded-2xl border border-line bg-white p-4 transition-shadow',
                   trashed !== 'only' && 'cursor-pointer hover:border-ink/30 hover:shadow-soft',
@@ -262,6 +264,7 @@ export default function PedidosPage() {
                   <div className="ml-auto flex gap-1.5 flex-wrap">
                     {trashed !== 'only' && p.estado !== 'entregado' && p.estado !== 'cancelado' && (
                       <button
+                        data-tour={i === 0 ? 'pedido-estado' : undefined}
                         onClick={(e) => { e.stopPropagation(); setOpen(p); }}
                         className="px-2.5 py-1 rounded-full border border-line hover:bg-line/40 inline-flex items-center gap-1"
                         title="Cambiar el estado del pedido"
@@ -272,6 +275,7 @@ export default function PedidosPage() {
                     )}
                     {p.estado === 'entregado' && (
                       <button
+                        data-tour="pedido-calificacion"
                         onClick={(e) => { e.stopPropagation(); abrirLinkCalificacion(p); }}
                         disabled={generandoLink === p.id}
                         className="px-2.5 py-1 rounded-full border border-line hover:bg-amber-50 hover:border-amber-300 inline-flex items-center gap-1 disabled:opacity-60"
@@ -290,6 +294,7 @@ export default function PedidosPage() {
                       </button>
                     )}
                     <button
+                      data-tour={i === 0 ? 'pedido-borrar' : undefined}
                       onClick={(e) => { e.stopPropagation(); setBorrarPedido(p); }}
                       className="px-2.5 py-1 rounded-full border border-red-200 bg-white text-red-600 hover:bg-red-50 inline-flex items-center gap-1"
                       title="Borrar permanentemente (sin restauración)"

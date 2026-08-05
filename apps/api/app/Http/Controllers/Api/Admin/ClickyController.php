@@ -39,6 +39,14 @@ Reglas estrictas:
   lateral (ej. "Productos", "Pedidos", "Inventario", "Cupones", "Código QR").
 PROMPT;
 
+    /**
+     * Cara al usuario cuando Gemini no responde (sin key, cuota agotada,
+     * red caída, etc.) — nunca debe filtrar detalles internos (nombres de
+     * env vars, providers, "modo mock"). Genérico a propósito: no sabemos
+     * la causa real, y no es información que le sirva al dueño del local.
+     */
+    private const FALLBACK_REPLY = 'No puedo ayudarte con eso justo ahora 🙈 Prueba con una de las dudas rápidas de arriba, o si sigue sin funcionar escríbenos a soporte.';
+
     public function ask(AskClickyRequest $req): JsonResponse
     {
         $client = new LLMClient('gemini', config('services.ai.gemini_api_key'));
@@ -53,6 +61,7 @@ PROMPT;
             'system'      => self::SYSTEM_PROMPT,
             'max_tokens'  => 220,
             'temperature' => 0.3,
+            'fallback'    => self::FALLBACK_REPLY,
         ]);
 
         return response()->json(['data' => ['reply' => trim($reply)]]);

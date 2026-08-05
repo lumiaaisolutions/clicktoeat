@@ -116,12 +116,14 @@ export default function ProductosPage() {
 
       <div data-tour="productos-buscar" className="flex gap-2 mb-4 flex-wrap">
         <input
+          data-tour="producto-search-input"
           placeholder="Buscar por nombre…"
           value={q}
           onChange={(e) => { setPage(1); setQ(e.target.value); }}
           className="flex-1 min-w-[200px] px-3 py-2 border border-line rounded-xl bg-white"
         />
         <select
+          data-tour="producto-filtro-categoria"
           value={filterCategoria}
           onChange={(e) => { setPage(1); setFilterCategoria(e.target.value ? Number(e.target.value) : ''); }}
           className="px-3 py-2 border border-line rounded-xl bg-white"
@@ -244,7 +246,7 @@ function ProductRow({
           {p.categoria?.nombre ?? '—'} · {formatMXN(p.precio)}
         </div>
       </div>
-      <button onClick={() => onToggle(p)} className="text-xs px-2 py-1 rounded-full border border-line whitespace-nowrap hidden sm:inline-flex">
+      <button data-tour="producto-toggle-disponible" onClick={() => onToggle(p)} className="text-xs px-2 py-1 rounded-full border border-line whitespace-nowrap hidden sm:inline-flex">
         {p.disponible ? '● Disponible' : '○ Oculto'}
       </button>
       <div className="flex gap-1 shrink-0">
@@ -252,9 +254,9 @@ function ProductRow({
           <Button variant="ghost" size="sm" onClick={() => onRestore(p)}>↺ Restaurar</Button>
         ) : (
           <>
-            <Button variant="ghost" size="sm" onClick={() => onReceta(p)}>Receta</Button>
-            <Button variant="ghost" size="sm" onClick={() => onEdit(p)}>Editar</Button>
-            <Button variant="ghost" size="sm" onClick={() => onDelete(p)}>Borrar</Button>
+            <Button data-tour="producto-receta" variant="ghost" size="sm" onClick={() => onReceta(p)}>Receta</Button>
+            <Button data-tour="producto-editar" variant="ghost" size="sm" onClick={() => onEdit(p)}>Editar</Button>
+            <Button data-tour="producto-borrar" variant="ghost" size="sm" onClick={() => onDelete(p)}>Borrar</Button>
           </>
         )}
       </div>
@@ -392,7 +394,7 @@ function ProductoModal({
   return (
     <Modal open={open} onClose={onClose} title={producto ? 'Editar producto' : 'Nuevo producto'} size="lg">
       <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1">
+        <div className="md:col-span-1" data-tour="producto-modal-imagen">
           <p className="block text-sm font-medium mb-1">Imagen</p>
           <ImageUpload
             value={imagen.url}
@@ -403,25 +405,25 @@ function ProductoModal({
           />
         </div>
         <div className="md:col-span-2">
-          <Field label="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} required error={errors.nombre} maxLength={120} />
+          <Field data-tour="producto-modal-nombre" label="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} required error={errors.nombre} maxLength={120} />
           <Textarea label="Descripción" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} error={errors.descripcion} maxLength={1000} />
           <div className="grid grid-cols-2 gap-3">
-            <Select label="Categoría" value={categoriaId} onChange={(e) => setCategoriaId(Number(e.target.value))} error={errors.categoria_id} required>
+            <Select data-tour="producto-modal-categoria" label="Categoría" value={categoriaId} onChange={(e) => setCategoriaId(Number(e.target.value))} error={errors.categoria_id} required>
               {categorias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
             </Select>
-            <Field label="Precio (MXN)" type="number" step="0.01" value={precio} onChange={(e) => setPrecio(Number(e.target.value))} error={errors.precio} required />
+            <Field data-tour="producto-modal-precio" label="Precio (MXN)" type="number" step="0.01" value={precio} onChange={(e) => setPrecio(Number(e.target.value))} error={errors.precio} required />
           </div>
           <Field label="Tag (opcional)" value={tag} onChange={(e) => setTag(e.target.value)} hint="p.ej. Más pedido, Nuevo, Picante" error={errors.tag} />
-          <Switch label="Disponible" hint="Si se oculta, sigue existiendo pero no se muestra en la landing" checked={disponible} onChange={setDisponible} />
+          <Switch data-tour="producto-modal-disponible" label="Disponible" hint="Si se oculta, sigue existiendo pero no se muestra en la landing" checked={disponible} onChange={setDisponible} />
         </div>
 
-        <div className="md:col-span-3 border-t border-line pt-4">
+        <div className="md:col-span-3 border-t border-line pt-4" data-tour="producto-modal-extras">
           <ExtrasEditor value={extras} onChange={setExtras} />
         </div>
 
         <div className="md:col-span-3 flex justify-end gap-2 pt-2 border-t border-line">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button type="submit" loading={saving}>Guardar</Button>
+          <Button data-tour="producto-modal-guardar" type="submit" loading={saving}>Guardar</Button>
         </div>
       </form>
     </Modal>
@@ -664,7 +666,7 @@ function RecetaModal({
           </ul>
 
           <div className="flex gap-2 flex-wrap">
-            <Button variant="secondary" size="sm" onClick={addIngredienteLine}
+            <Button data-tour="producto-receta-agregar" variant="secondary" size="sm" onClick={addIngredienteLine}
               disabled={ingredientes.length === 0 || recetas.filter(r => r.tipo === 'ingrediente').length >= ingredientes.length}>
               + Ingrediente
             </Button>
@@ -676,7 +678,7 @@ function RecetaModal({
 
           <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-line">
             <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-            <Button onClick={onSave} loading={saving}>Guardar receta</Button>
+            <Button data-tour="producto-receta-guardar" onClick={onSave} loading={saving}>Guardar receta</Button>
           </div>
         </>
       )}

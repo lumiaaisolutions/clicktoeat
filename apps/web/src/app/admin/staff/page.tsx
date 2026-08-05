@@ -107,12 +107,14 @@ export default function StaffPage() {
                       {canEdit ? (
                         <div className="flex gap-2 justify-end">
                           <button
+                            data-tour="staff-editar"
                             onClick={() => setEditing(s)}
                             className="text-sm text-muted hover:text-ink"
                           >
                             Editar
                           </button>
                           <button
+                            data-tour="staff-borrar"
                             onClick={() => handleDelete(s)}
                             className="text-sm text-red-600 hover:text-red-700"
                           >
@@ -293,6 +295,7 @@ function StaffFormModal({ staff, onClose, onSaved }: StaffFormModalProps) {
       <form onSubmit={submit} className="space-y-5 max-h-[78vh] overflow-y-auto pr-1">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field
+            data-tour="staff-modal-nombre"
             label="Nombre"
             required
             value={nombre}
@@ -300,6 +303,7 @@ function StaffFormModal({ staff, onClose, onSaved }: StaffFormModalProps) {
             error={errors.nombre}
           />
           <Field
+            data-tour="staff-modal-email"
             label="Email"
             type="email"
             required
@@ -311,6 +315,7 @@ function StaffFormModal({ staff, onClose, onSaved }: StaffFormModalProps) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field
+            data-tour="staff-modal-password"
             label={editing ? 'Nueva contraseña (opcional)' : 'Contraseña'}
             type="password"
             minLength={8}
@@ -332,7 +337,7 @@ function StaffFormModal({ staff, onClose, onSaved }: StaffFormModalProps) {
         </div>
 
         {/* Rol preset */}
-        <div>
+        <div data-tour="staff-modal-roles">
           <p className="text-sm font-medium mb-2">Rol predefinido</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {ROLES.map((r) => {
@@ -361,7 +366,7 @@ function StaffFormModal({ staff, onClose, onSaved }: StaffFormModalProps) {
         </div>
 
         {/* Checkboxes de módulos */}
-        <div>
+        <div data-tour="staff-modal-permisos">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-medium">Acceso a módulos</p>
             <span className="text-[11px] text-muted">
@@ -406,7 +411,7 @@ function StaffFormModal({ staff, onClose, onSaved }: StaffFormModalProps) {
         </div>
 
         <div className="flex gap-2 pt-2 border-t border-line">
-          <Button type="submit" disabled={loading} className="flex-1">
+          <Button data-tour="staff-modal-guardar" type="submit" disabled={loading} className="flex-1">
             {loading ? 'Guardando…' : editing ? 'Actualizar' : 'Crear empleado'}
           </Button>
           <button

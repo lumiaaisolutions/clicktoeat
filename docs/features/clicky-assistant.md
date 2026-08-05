@@ -77,19 +77,30 @@ el resto de `LLMClient`) — útil para tests/CI sin gastar tokens.
 
 ⚠️ **Verificado en dev (2026-08-05)**: la key entregada llega correctamente
 a la API de Gemini (auth y payload válidos) pero devolvió `429 — quota
-exceeded` en la cuenta de Google asociada. El fallback a mock absorbió el
-error sin romper nada. Si en producción Clicky responde siempre con el
-texto mock genérico, revisar cuota/billing del proyecto de Google Cloud
-dueño de `GEMINI_API_KEY` en https://aistudio.google.com o Google Cloud
-Console — no es un bug del código.
+exceeded` en la cuenta de Google asociada. Si en producción Clicky responde
+siempre con el fallback genérico, revisar cuota/billing del proyecto de
+Google Cloud dueño de `GEMINI_API_KEY` en https://aistudio.google.com o
+Google Cloud Console — no es un bug del código.
+
+**El fallback nunca es el mensaje mock genérico de `LLMClient`** (ese
+texto menciona `ANTHROPIC_API_KEY`/`OPENAI_API_KEY` — un detalle interno
+que no debe llegarle a un usuario real). `ClickyController` pasa su propio
+`opts['fallback']` a `LLMClient::complete()` (soportado ahí mismo desde
+F103) con una respuesta genérica de cara al cliente ("No puedo ayudarte
+con eso justo ahora…"). Cubierto por
+`test_fallback_nunca_filtra_detalles_de_configuracion` en
+`ClickyGatingTest`.
 
 ### Frontend
 
 - `components/clicky/ClickyMascot.tsx` — mascota pixel-art (8-bit) dibujada
-  como grilla CSS (sin imágenes ni SVG suavizado): cuerpo de cursor con
-  colita, 2 tonos planos, ojos que parpadean solos (intervalo aleatorio
-  por ojo, look "chunky" sin easing suave — consistente con el estilo
-  retro). Estado `locked` = paleta gris + candado.
+  como grilla CSS 9x9 (sin imágenes ni SVG suavizado): cuña/triángulo que
+  lee como flecha de cursor, 2 tonos planos, ojos grandes que parpadean
+  solos (intervalo aleatorio, look "chunky" sin easing suave). Grilla
+  deliberadamente simple (pocos píxeles grandes) — a los tamaños de un
+  botón flotante (~40-56px) el detalle fino no se lee; se priorizó
+  silueta clara + ojos legibles sobre fidelidad al cursor de OS real.
+  Estado `locked` = paleta gris + candado.
 - `components/clicky/ClickyWidget.tsx` — botón flotante (`bottom-6 right-5`,
   z-70) + panel de chat. Usa `usePlan(s => s.has(Features.CLICKY_ASSISTANT))`
   para decidir entre chat funcional o card de upsell (mismo patrón que
@@ -103,6 +114,48 @@ Console — no es un bug del código.
   sólo para `user.rol !== 'super_admin'`.
 - `store/plan.ts` — `Features.CLICKY_ASSISTANT` agregado al espejo TS de
   `App\Support\Features`.
+
+## Tours interactivos — el motor "abre los módulos de verdad"
+
+Los tours de `productos`, `categorias`, `pedidos`, `inventario` y `staff`
+ya no son solo narración: caminan el flujo completo (lista → filtros →
+acciones por fila → crear/editar → cada campo del modal → guardar),
+señalando qué hace cada botón y qué sigue después. `qr`, `branding` y
+`billing` se profundizaron también pero se dejaron como narración pura
+(ver por qué, abajo).
+
+Esto se logró agregando `interactive?: boolean` a `TourStep`
+(`components/help/tours.ts`). Cuando un paso interactivo tiene `target`,
+`TourOverlay.tsx` **recorta el backdrop** en 4 franjas alrededor del
+elemento (en vez de taparlo con un overlay a pantalla completa) — el
+botón real queda clickeable. Un listener en `window` detecta el click
+dentro de esa zona y avanza el tour solo 150ms después (deja que el
+`onClick` real del botón corra primero, ej. abrir un modal). Si el
+usuario prefiere no clickear el elemento real y solo usa "Siguiente", el
+paso siguiente simplemente no encuentra su target y se muestra centrado
+— degradación silenciosa, mismo comportamiento que siempre tuvo el motor
+de tours para selectores inexistentes.
+
+**Regla de oro al escribir un tour interactivo**: todo highlight de un
+elemento de la LISTA (fila, filtro, botón "+ Nuevo") debe ir **antes**
+del paso `interactive: true` que abre el modal de crear/editar. Los
+pasos que apuntan a campos DENTRO del modal van después, y el modal
+abierto debe ser el último tramo del tour — si un paso posterior
+necesitara volver a apuntar a algo de la lista, quedaría tapado por el
+modal todavía abierto (no hay lógica que lo cierre automáticamente).
+Por esto `qr`/`billing` no llevan pasos interactivos: su acción
+principal navega FUERA de la app (Stripe checkout, imprimir, descargar
+archivo) — forzar ese click a mitad de un tour sería una sorpresa
+desagradable, no una ayuda.
+
+Cobertura de `data-tour` nueva por módulo — ver los archivos fuente para
+la lista completa de selectors: `app/admin/productos/page.tsx`,
+`categorias/page.tsx`, `pedidos/page.tsx`, `inventario/page.tsx`,
+`staff/page.tsx`, `qr/page.tsx`, `billing/page.tsx`,
+`components/admin/BrandingEditor.tsx` (esta última corrige dos
+selectors — `branding-logo`, `branding-colores` — que el tour ya
+referenciaba pero no existían en el DOM; eran pasos rotos y silenciosos
+desde antes de F103).
 
 ## Cómo agregar una duda nueva
 

@@ -86,12 +86,12 @@ export function ClickyWidget() {
         onClick={() => setOpen((v) => !v)}
         aria-label={hasClicky ? 'Abrir a Clicky, tu asistente del panel' : 'Clicky — función de plan Profesional/Premium'}
         title={hasClicky ? 'Clicky, tu asistente' : 'Clicky (Profesional/Premium)'}
-        className="fixed bottom-6 right-5 z-[70] w-14 h-14 rounded-full bg-white shadow-glass border border-line grid place-items-center hover:scale-105 active:scale-95 transition tap-target"
+        className="fixed bottom-6 right-5 z-[70] w-16 h-16 rounded-full bg-white shadow-glass border border-line grid place-items-center hover:scale-105 active:scale-95 transition tap-target"
         initial={{ opacity: 0, y: 20, scale: 0.8 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.4 }}
       >
-        <ClickyMascot size={34} locked={!hasClicky} />
+        <ClickyMascot size={46} locked={!hasClicky} />
         {!hasClicky && (
           <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-ink text-white grid place-items-center">
             <Icon name="lock" size={11} />
@@ -109,7 +109,7 @@ export function ClickyWidget() {
             className="fixed bottom-24 right-5 z-[70] w-[min(360px,calc(100vw-32px))] max-h-[min(560px,calc(100vh-140px))] bg-white rounded-3xl shadow-glass border border-line flex flex-col overflow-hidden"
           >
             <div className="flex items-center gap-3 px-4 py-3 border-b border-line bg-gradient-to-r from-amber-50 to-white shrink-0">
-              <ClickyMascot size={30} locked={!hasClicky} />
+              <ClickyMascot size={36} locked={!hasClicky} />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold leading-tight">Clicky</p>
                 <p className="text-[11px] text-muted leading-tight">Tu asistente del panel</p>

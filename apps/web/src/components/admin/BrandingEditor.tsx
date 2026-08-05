@@ -160,7 +160,7 @@ export function BrandingEditor({ localId }: { localId?: number } = {}) {
             <Textarea label="Eslogan" value={draft.tagline ?? ''} onChange={(e) => set('tagline', e.target.value)} error={errors.tagline} maxLength={200} hint="Frase corta debajo del nombre de tu local. Ej: 'Cocina de todos los días'." />
           </Section>
 
-          <Section title="Imágenes" icon="storefront" hint="Logo y banner del local. JPG, PNG o WebP — máx 5 MB.">
+          <Section data-tour="branding-logo" title="Imágenes" icon="storefront" hint="Logo y banner del local. JPG, PNG o WebP — máx 5 MB.">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p className="block text-sm font-medium mb-1">Logo</p>
@@ -186,7 +186,7 @@ export function BrandingEditor({ localId }: { localId?: number } = {}) {
           {/* Plantillas removidas — las "Paletas sugeridas" de la sección Colores
               cumplen la misma función con menos duplicación. */}
 
-          <Section title="Colores" icon="qr-code" hint="Paleta de tu marca. Se aplican a la landing en tiempo real. Toca cualquier cuadro de color para elegir el tuyo o escribe el código hex.">
+          <Section data-tour="branding-colores" title="Colores" icon="qr-code" hint="Paleta de tu marca. Se aplican a la landing en tiempo real. Toca cualquier cuadro de color para elegir el tuyo o escribe el código hex.">
             <div className="grid grid-cols-3 gap-3">
               <ColorField label="Primario"   value={draft.color_primario   ?? ''} onChange={(v) => set('color_primario', v)}   error={errors.color_primario}   />
               <ColorField label="Secundario" value={draft.color_secundario ?? ''} onChange={(v) => set('color_secundario', v)} error={errors.color_secundario} />
@@ -515,15 +515,16 @@ export function BrandingEditor({ localId }: { localId?: number } = {}) {
 }
 
 function Section({
-  title, children, icon, hint,
+  title, children, icon, hint, ...rest
 }: {
   title: string;
   children: React.ReactNode;
   icon?: 'sparkles' | 'utensils' | 'storefront' | 'instagram' | 'phone' | 'map-pin' | 'qr-code';
   hint?: string;
+  'data-tour'?: string;
 }) {
   return (
-    <section className="group relative rounded-3xl border border-line bg-white p-5 sm:p-6 hover:border-ink/30 hover:shadow-glass transition-all duration-300">
+    <section {...rest} className="group relative rounded-3xl border border-line bg-white p-5 sm:p-6 hover:border-ink/30 hover:shadow-glass transition-all duration-300">
       {/* Indicador accent rojo top-left que aparece on hover */}
       <span
         aria-hidden

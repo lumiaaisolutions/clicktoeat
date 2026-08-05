@@ -80,7 +80,7 @@ export default function CategoriasPage() {
                 </div>
                 <div className="flex gap-1 mt-3 pt-3 border-t border-line">
                   <Button variant="ghost" size="sm" onClick={() => setEditing(c)} className="flex-1">Editar</Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(c)} className="flex-1">Borrar</Button>
+                  <Button data-tour="categoria-borrar-mobile" variant="ghost" size="sm" onClick={() => handleDelete(c)} className="flex-1">Borrar</Button>
                 </div>
               </div>
             ))}
@@ -121,8 +121,8 @@ export default function CategoriasPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <Button variant="ghost" size="sm" onClick={() => setEditing(c)}>Editar</Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(c)}>Borrar</Button>
+                      <Button data-tour="categoria-editar" variant="ghost" size="sm" onClick={() => setEditing(c)}>Editar</Button>
+                      <Button data-tour="categoria-borrar" variant="ghost" size="sm" onClick={() => handleDelete(c)}>Borrar</Button>
                     </td>
                   </tr>
                 ))}
@@ -200,14 +200,16 @@ function CategoriaModal({
   return (
     <Modal open={open} onClose={onClose} title={categoria ? 'Editar categoría' : 'Nueva categoría'}>
       <form onSubmit={onSubmit} className="space-y-4">
-        <Field label="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} error={errors.nombre} required maxLength={80} />
+        <Field data-tour="categoria-modal-nombre" label="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} error={errors.nombre} required maxLength={80} />
 
-        <IconPicker
-          label="Icono"
-          hint="Aparece junto al nombre en los tabs de la landing pública."
-          value={(icono as IconName | '') || null}
-          onChange={(v) => setIcono(v)}
-        />
+        <div data-tour="categoria-modal-icono">
+          <IconPicker
+            label="Icono"
+            hint="Aparece junto al nombre en los tabs de la landing pública."
+            value={(icono as IconName | '') || null}
+            onChange={(v) => setIcono(v)}
+          />
+        </div>
         {errors.icono && <p className="text-xs text-red-600">{errors.icono}</p>}
 
         <Field label="Orden" type="number" value={orden} onChange={(e) => setOrden(Number(e.target.value))} error={errors.orden} hint="Menor número aparece primero." />
@@ -215,7 +217,7 @@ function CategoriaModal({
 
         <div className="flex gap-2 justify-end pt-2 border-t border-line">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button type="submit" loading={saving}>Guardar</Button>
+          <Button data-tour="categoria-modal-guardar" type="submit" loading={saving}>Guardar</Button>
         </div>
       </form>
     </Modal>
