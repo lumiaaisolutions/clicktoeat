@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { usePlan, Features } from '@/store/plan';
 import { useHelpCenter } from '@/store/helpCenter';
@@ -33,26 +33,45 @@ export function ClickyWidget() {
   const hasClicky = usePlan((s) => s.has(Features.CLICKY_ASSISTANT));
   const planLoaded = usePlan((s) => s.plan !== null);
   const pathname = usePathname();
+  const router = useRouter();
   const openTour = useHelpCenter((s) => s.openTour);
 
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [pendingTour, setPendingTour] = useState<{ slug: string; route: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, open]);
 
+  // Si la duda rápida requería navegar a otro módulo, arranca el tour en
+  // cuanto la ruta nueva termina de montar (deja que AdminPageHeader y los
+  // data-tour de la página aparezcan antes de medir el target).
+  useEffect(() => {
+    if (!pendingTour || pathname !== pendingTour.route) return;
+    const t = setTimeout(() => {
+      openTour(pendingTour.slug);
+      setPendingTour(null);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [pathname, pendingTour, openTour]);
+
   // No renderizar hasta saber el plan (evita parpadeo bloqueado→desbloqueado)
   if (!planLoaded) return null;
 
-  function handleQuickAction(question: string, reply: string, tourSlug: string) {
+  function handleQuickAction(question: string, reply: string, tourSlug: string, route: string) {
     setMessages((m) => [...m, { role: 'user', text: question }, { role: 'clicky', text: reply }]);
     setTimeout(() => {
       setOpen(false);
-      openTour(tourSlug);
+      if (pathname === route) {
+        openTour(tourSlug);
+      } else {
+        setPendingTour({ slug: tourSlug, route });
+        router.push(route);
+      }
     }, 650);
   }
 
@@ -154,7 +173,7 @@ export function ClickyWidget() {
                         <button
                           key={qa.tourSlug}
                           type="button"
-                          onClick={() => handleQuickAction(qa.question, qa.reply, qa.tourSlug)}
+                          onClick={() => handleQuickAction(qa.question, qa.reply, qa.tourSlug, qa.route)}
                           className="text-left text-xs font-medium px-3 py-2 rounded-xl border border-line hover:border-ink/40 hover:bg-line/30 transition flex items-center gap-2 tap-target"
                         >
                           <Icon name={qa.icon} size={14} className="shrink-0 text-muted" />

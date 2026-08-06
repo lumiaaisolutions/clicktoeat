@@ -93,14 +93,13 @@ con eso justo ahora…"). Cubierto por
 
 ### Frontend
 
-- `components/clicky/ClickyMascot.tsx` — mascota pixel-art (8-bit) dibujada
-  como grilla CSS 9x9 (sin imágenes ni SVG suavizado): cuña/triángulo que
-  lee como flecha de cursor, 2 tonos planos, ojos grandes que parpadean
-  solos (intervalo aleatorio, look "chunky" sin easing suave). Grilla
-  deliberadamente simple (pocos píxeles grandes) — a los tamaños de un
-  botón flotante (~40-56px) el detalle fino no se lee; se priorizó
-  silueta clara + ojos legibles sobre fidelidad al cursor de OS real.
-  Estado `locked` = paleta gris + candado.
+- `components/clicky/ClickyMascot.tsx` — mascota con la silueta clásica del
+  cursor de mouse (flecha + colita, path SVG fijo) y dos ojos que parpadean
+  solos (intervalo aleatorio, `framer-motion` `scaleY`). Se probaron dos
+  variantes pixel-art (grillas 15x11 y 9x9) que a tamaño de botón flotante
+  (~40-56px) no se leían como "cursor" — se abandonaron a favor de un path
+  SVG suave, verificado visualmente (`chrome --headless --screenshot`)
+  antes de aplicarse. Estado `locked` = gradiente gris + candado.
 - `components/clicky/ClickyWidget.tsx` — botón flotante (`bottom-6 right-5`,
   z-70) + panel de chat. Usa `usePlan(s => s.has(Features.CLICKY_ASSISTANT))`
   para decidir entre chat funcional o card de upsell (mismo patrón que
@@ -108,8 +107,15 @@ con eso justo ahora…"). Cubierto por
   tiene la feature, el click abre un upsell con link a `/admin/billing` en
   vez de abrir el chat.
 - `components/clicky/clickyFaq.ts` — catálogo de preguntas rápidas →
-  `tourSlug`. Agregar una pregunta nueva acá es la forma correcta de
-  extender la cobertura de Clicky sin tocar el backend.
+  `tourSlug` + `route`. Agregar una pregunta nueva acá es la forma correcta
+  de extender la cobertura de Clicky sin tocar el backend. **`route` es
+  obligatorio**: `ClickyWidget` navega ahí (`router.push`) antes de abrir
+  el tour si el usuario no está ya en esa página — sin esto, una duda
+  preguntada desde /admin (o cualquier otra pantalla) abría un tour cuyos
+  `data-tour` no existen en el DOM actual y se veía roto/centrado. El
+  `useEffect` que dispara `openTour` espera a que `pathname` coincida con
+  la `route` pendiente (+300ms de margen para que la página monte) antes
+  de medir el primer target.
 - Montado en `app/admin/layout.tsx`, junto a `TourOverlay`/`AutoTourTrigger`,
   sólo para `user.rol !== 'super_admin'`.
 - `store/plan.ts` — `Features.CLICKY_ASSISTANT` agregado al espejo TS de

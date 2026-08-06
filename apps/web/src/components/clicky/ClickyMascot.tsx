@@ -3,54 +3,22 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * Cuerpo visual de Clicky — mascota pixel-art (8-bit) de un cursor de
- * mouse (flecha de "click") con cara. Grilla de 9x9 "sprites" grandes
- * (pocos píxeles, bien gruesos) — a tamaños chicos (botón flotante de
- * ~40-56px) el detalle fino no se lee, así que priorizamos una silueta
- * simple y ojos grandes por encima de fidelidad al cursor real.
+ * Cuerpo visual de Clicky — cursor de mouse pixel-art (8-bit) con ojos que
+ * parpadean. Es un PNG chico (28x28) embebido en base64, escalado sin
+ * suavizado (`imageRendering: pixelated`) — no un asset externo.
+ *
+ * Por qué PNG y no una grilla de divs (como los intentos anteriores):
+ * la silueta se diseñó primero como un path SVG suave y se verificó
+ * visualmente (`chrome --headless --screenshot`) hasta que leyó
+ * inequívocamente como "cursor" — reconstruir esa silueta a mano en una
+ * grilla de píxeles gruesos la distorsionaba. En cambio, se renderizó el
+ * SVG ya aprobado a 28x28 y se dejó que el navegador haga el escalado
+ * "nearest neighbor" — mismo resultado 8-bit, proporciones exactas.
  */
 
-const SIZE = 9; // grilla cuadrada NxN
+const OPEN_SRC = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAAB+klEQVR4nNyWMUvDQBTHX2rdBP0kiotCFxcVFKWgCBYFW8FCddJRWmuTWnBwqNBBJz9AFVQoaHUoRcFR3MTvoEIXbZozd8klufSSNDZ28EE57q53v/u/e+/lQtBjC0GPrefAsH1gNzKIrP3C46cAAZrAg+W3dwApMmSKx4GD+S5VWiAgBaStFEipJHOYvwGqMNRqaa0KF5MJA9otOMTnmTDcYsW59RXIxZcNMAQJ1GAKcasVitv91YWuoGE+z1QYTmiBI58mjfFsbF47AFQI1E9AcYFUWV+8yB5CVd2/eWaMZeUlyJ1XidpOoa4KqQ0MDEGj8cH93150AsTLmuFiL7BDWuh3Z7FmaY05AP5Rt2fmIpCeGSNzXnfrGqXyyQbpvx9GySG+izHSx2qJYktA4WtIT496QrkuBYRIHuJNmqU4kyJfR4t6nspkHuwp5GF8oG0TtkWO8/nqM1nudo8OCunJEbMpVqQomjLp+oG71CtoPPPQXuYEvZ+ZHQep8uS7qLtUGkstVXNNvLjXo1cx58F/xXGNUlCViOVbY1y8qpswFZyeHAa/xgUKil6wyzekj91GXUfdC5ao9KOyzf9uX3w6l54a0d0rE/BB7bXju2xTSBdaVdnn2Dv2zj1XILOxg+XvXgxoof4GfuxX75RuHlqBvsg6sf//EP4BAAD//0cbrp0AAAAGSURBVAMAOw+jHXw40AAAAAAASUVORK5CYII=';
 
-// Cuña/triángulo que ensancha hacia abajo-derecha — lee como flecha de
-// cursor apuntando arriba-izquierda, sin necesitar una colita fina.
-function isBody(r: number, c: number): boolean {
-  return c <= Math.min(r + 2, SIZE - 1);
-}
-
-// Ojos grandes 2x2, en la zona ancha del cuerpo.
-const EYES = [
-  { col0: 1, pupilCol: 2 },
-  { col0: 4, pupilCol: 4 },
-];
-const EYE_ROW_TOP = 4;
-const EYE_ROW_BOTTOM = 5;
-
-type Palette = { body: string; shade: string; white: string; pupil: string };
-
-const PALETTE: Palette = {
-  body:  '#FF8A3D',
-  shade: 'var(--ce-accent, #F26A1F)',
-  white: '#FFFFFF',
-  pupil: '#0B0B0F',
-};
-const PALETTE_LOCKED: Palette = {
-  body: '#C9C9C0', shade: '#A6A69C', white: '#FFFFFF', pupil: '#3A3A36',
-};
-
-function cellColor(r: number, c: number, blink: boolean, p: Palette): string | null {
-  const inEyeRow = r === EYE_ROW_TOP || r === EYE_ROW_BOTTOM;
-  const eye = inEyeRow ? EYES.find((e) => c === e.col0 || c === e.col0 + 1) : undefined;
-
-  if (eye) {
-    if (blink) return r === EYE_ROW_TOP ? p.body : p.shade;
-    if (r === EYE_ROW_BOTTOM && c === eye.pupilCol) return p.pupil;
-    return p.white;
-  }
-
-  if (!isBody(r, c)) return null;
-  return r >= 6 ? p.shade : p.body;
-}
+const BLINK_SRC = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAAB1UlEQVR4nNyWO0/DMBDHL1V3vgmMSCww0AUJ8VpAVAgQqlQxwYj6TEN3mNlYGAoSDxXRwlBVIMGCEBviS7AnNrHjuHHqODUNHXqLYzvxz//z3cUpGLGlYMQ2cmA6PHA0M4GD/frLjwEJmiGDWQeHgJENxZPTxMFylyIHDIygtp+HWj4nbOZ/gC4MO47XunAzt8Ohw4JTcl4PRlqiuLq7CdXtdQ6GJIEeDFG3BqGkrWRXh4Km5TxRYbgtbyx6G4AmheoElFShEVAEQRjyWl95eS1D39dRq1RYOjvnY5XsCo9eElA+tLQ0C+Z1h0Pj1Erz0NzbYoocmo9EGbB+5eKOv19annPhNotqG6z7N4iDSoEkIqk73UUwhdnMnTbbhMM3EH62Wu9KaESUYp6HEBNA4fk4k56hGoIj5632h1JdNJDvHAuLkkBBrltp2bt9ln4aFzSD5aEjQkm/uDANteardlFXVJpALb1sg3n1xAIH9eZBv+Ioaym4SsxGi4+bN12hCBTmJ0HX5JWG5V218UD7xG2+68LRS0xHZZ//VX98f66QmRLy8rjzNfBZ9in0PwyqCs+JZxyfe0qgsHCEWY+fHFrvfoOO/emeMsxFK9Eb2SA2/hfhXwAAAP//UvkengAAAAZJREFUAwAsJNJJ38zLfQAAAABJRU5ErkJggg==';
 
 export function ClickyMascot({ size = 44, locked = false, awake = true }: {
   size?: number;
@@ -69,40 +37,26 @@ export function ClickyMascot({ size = 44, locked = false, awake = true }: {
         timeoutRef.current = setTimeout(() => {
           setBlink(false);
           scheduleBlink();
-        }, 130);
+        }, 140);
       }, 1800 + Math.random() * 2600);
     }
     scheduleBlink();
     return () => clearTimeout(timeoutRef.current);
   }, [awake]);
 
-  const unit = Math.floor(size / SIZE);
-  const total = unit * SIZE;
-  const palette = locked ? PALETTE_LOCKED : PALETTE;
-
   return (
-    <div
+    <img
+      src={blink ? BLINK_SRC : OPEN_SRC}
+      alt=""
       aria-hidden="true"
+      width={size}
+      height={size}
       style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${SIZE}, ${unit}px)`,
-        gridTemplateRows: `repeat(${SIZE}, ${unit}px)`,
-        width: total,
-        height: total,
-        filter: 'drop-shadow(0 2px 0 rgba(0,0,0,0.18))',
+        imageRendering: 'pixelated',
+        filter: locked
+          ? 'grayscale(1) opacity(0.7) drop-shadow(0 2px 2px rgba(0,0,0,0.15))'
+          : 'drop-shadow(0 2px 3px rgba(0,0,0,0.18))',
       }}
-    >
-      {Array.from({ length: SIZE }).map((_, r) => (
-        Array.from({ length: SIZE }).map((__, c) => {
-          const color = cellColor(r, c, blink, palette);
-          return (
-            <div
-              key={`${r}-${c}`}
-              style={{ width: unit, height: unit, background: color ?? 'transparent' }}
-            />
-          );
-        })
-      ))}
-    </div>
+    />
   );
 }
