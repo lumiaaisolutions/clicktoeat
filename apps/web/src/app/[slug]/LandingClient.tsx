@@ -118,7 +118,7 @@ export function LandingClient({ menu }: Props) {
           Mobile: 40vh con logo 160px. Desktop: 52vh con logo 240px. */}
       <header
         className="relative w-full overflow-hidden bg-[#F3ECE1]"
-        style={{ height: 'clamp(220px, 34vh, 360px)' }}
+        style={{ minHeight: 'clamp(220px, 34vh, 360px)' }}
       >
         {branding.banner && (
           <>
@@ -179,8 +179,12 @@ export function LandingClient({ menu }: Props) {
           </button>
         </div>
 
-        {/* HERO BODY — logo arriba-centro + nombre + tagline arriba de info card */}
-        <div className="absolute inset-0 z-[5] flex flex-col items-center text-center px-4 sm:px-6 md:px-10 pt-10 sm:pt-12 pb-20 sm:pb-24">
+        {/* HERO BODY — logo arriba-centro + nombre + tagline arriba de info card.
+            `relative` (no `absolute inset-0`) a propósito: deja que el header
+            (min-height, no height fija) crezca con el contenido real — si el
+            nombre o el tagline son largos, empujan el header hacia abajo en vez
+            de desbordar/encimarse con el info card que flota -70px más abajo. */}
+        <div className="relative z-[5] flex flex-col items-center text-center px-4 sm:px-6 md:px-10 pt-10 sm:pt-12 pb-20 sm:pb-24">
           {/* LOGO — reducido para banner más delgado */}
           <motion.div
             initial={{ opacity: 0, scale: 0.82, y: 16 }}
