@@ -10,10 +10,12 @@ use App\Http\Resources\IngredienteResource;
 use App\Http\Resources\MovimientoInventarioResource;
 use App\Models\Ingrediente;
 use App\Models\MovimientoInventario;
+use App\Support\CsvResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * @OA\Tag(name="Ingredientes", description="Inventario por ingrediente del local.")
@@ -25,7 +27,9 @@ class IngredienteController extends Controller
      *     path="/ingredientes",
      *     tags={"Ingredientes"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="bajo_stock", in="query", @OA\Schema(type="boolean")),
+     *
      *     @OA\Response(response=200, description="OK")
      * )
      */
@@ -51,14 +55,14 @@ class IngredienteController extends Controller
         // Movimiento inicial
         if ((float) $ing->stock > 0) {
             MovimientoInventario::create([
-                'local_id'         => $ing->local_id,
-                'ingrediente_id'   => $ing->id,
-                'tipo'             => 'entrada',
-                'cantidad'         => (float) $ing->stock,
+                'local_id' => $ing->local_id,
+                'ingrediente_id' => $ing->id,
+                'tipo' => 'entrada',
+                'cantidad' => (float) $ing->stock,
                 'stock_resultante' => (float) $ing->stock,
-                'referencia'       => 'alta',
-                'motivo'           => 'Stock inicial',
-                'user_id'          => $request->user()->id,
+                'referencia' => 'alta',
+                'motivo' => 'Stock inicial',
+                'user_id' => $request->user()->id,
             ]);
         }
 
@@ -68,12 +72,14 @@ class IngredienteController extends Controller
     public function show(Ingrediente $ingrediente): IngredienteResource
     {
         $this->authorize('view', $ingrediente);
+
         return new IngredienteResource($ingrediente->loadCount('recetas'));
     }
 
     public function update(UpdateIngredienteRequest $request, Ingrediente $ingrediente): IngredienteResource
     {
         $ingrediente->update($request->validated());
+
         return new IngredienteResource($ingrediente->fresh());
     }
 
@@ -88,6 +94,7 @@ class IngredienteController extends Controller
         }
 
         $ingrediente->delete();
+
         return response()->json(null, 204);
     }
 
@@ -97,20 +104,24 @@ class IngredienteController extends Controller
      *     tags={"Ingredientes"},
      *     security={{"sanctum":{}}},
      *     summary="Registra una entrada / ajuste / merma de stock.",
+     *
      *     @OA\Parameter(name="ingrediente", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\RequestBody(required=true, @OA\JsonContent(
      *         required={"tipo","cantidad"},
+     *
      *         @OA\Property(property="tipo", type="string", enum={"entrada","ajuste","merma"}),
      *         @OA\Property(property="cantidad", type="number", description="Positivo suma, negativo resta. Cero rechazado."),
      *         @OA\Property(property="motivo", type="string")
      *     )),
+     *
      *     @OA\Response(response=200, description="OK")
      * )
      */
     public function ajustar(AjusteStockRequest $request, Ingrediente $ingrediente): IngredienteResource
     {
         $cantidad = (float) $request->input('cantidad');
-        $tipo     = $request->string('tipo')->toString();
+        $tipo = $request->string('tipo')->toString();
 
         $resultado = DB::transaction(function () use ($ingrediente, $cantidad, $tipo, $request) {
             $ingrediente->refresh();
@@ -119,14 +130,14 @@ class IngredienteController extends Controller
             $ingrediente->save();
 
             MovimientoInventario::create([
-                'local_id'         => $ingrediente->local_id,
-                'ingrediente_id'   => $ingrediente->id,
-                'tipo'             => $tipo,
-                'cantidad'         => $cantidad,
+                'local_id' => $ingrediente->local_id,
+                'ingrediente_id' => $ingrediente->id,
+                'tipo' => $tipo,
+                'cantidad' => $cantidad,
                 'stock_resultante' => $nuevoStock,
-                'referencia'       => 'manual',
-                'motivo'           => $request->input('motivo'),
-                'user_id'          => $request->user()->id,
+                'referencia' => 'manual',
+                'motivo' => $request->input('motivo'),
+                'user_id' => $request->user()->id,
             ]);
 
             return $ingrediente;
@@ -141,11 +152,13 @@ class IngredienteController extends Controller
      *     tags={"Ingredientes"},
      *     security={{"sanctum":{}}},
      *     summary="Historial de movimientos (entradas / salidas / ajustes / mermas).",
+     *
      *     @OA\Parameter(name="ingrediente", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="tipo", in="query", description="entrada|salida|ajuste|merma"),
      *     @OA\Parameter(name="desde", in="query", @OA\Schema(type="string", format="date")),
      *     @OA\Parameter(name="hasta", in="query", @OA\Schema(type="string", format="date")),
      *     @OA\Parameter(name="per_page", in="query", @OA\Schema(type="integer", default=30)),
+     *
      *     @OA\Response(response=200, description="OK")
      * )
      */
@@ -175,10 +188,11 @@ class IngredienteController extends Controller
     }
 
     /** Exporta inventario completo del local a CSV. */
-    public function export(): \Symfony\Component\HttpFoundation\StreamedResponse
+    public function export(): StreamedResponse
     {
         $filename = 'inventario-'.now()->format('Y-m-d').'.csv';
-        return \App\Support\CsvResponse::stream(
+
+        return CsvResponse::stream(
             $filename,
             ['Nombre', 'Unidad', 'Stock', 'Stock mínimo', 'Costo unitario', 'Bajo stock'],
             function () {
@@ -186,7 +200,7 @@ class IngredienteController extends Controller
                     yield [
                         $i->nombre,
                         $i->unidad,
-                        number_format((float) $i->stock,          3, '.', ''),
+                        number_format((float) $i->stock, 3, '.', ''),
                         number_format((float) ($i->stock_minimo ?? 0), 3, '.', ''),
                         number_format((float) ($i->costo_unitario ?? 0), 2, '.', ''),
                         $i->bajo_stock ? 'sí' : 'no',

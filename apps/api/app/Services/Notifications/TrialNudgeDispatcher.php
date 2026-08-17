@@ -43,34 +43,46 @@ class TrialNudgeDispatcher
             $daysSinceCreated = (int) $local->created_at?->startOfDay()->diffInDays($hoy);
 
             $tipo = null;
-            if     ($daysSinceCreated === 3)  $tipo = 'trial_d3';
-            elseif ($daysSinceCreated === 7)  $tipo = 'trial_d7';
-            elseif ($daysSinceCreated === 14) $tipo = 'trial_d14';
+            if ($daysSinceCreated === 3) {
+                $tipo = 'trial_d3';
+            } elseif ($daysSinceCreated === 7) {
+                $tipo = 'trial_d7';
+            } elseif ($daysSinceCreated === 14) {
+                $tipo = 'trial_d14';
+            }
 
             // 1 día antes de fin de trial
             if (! $tipo && $local->trial_ends_at) {
                 $daysToEnd = (int) $hoy->diffInDays($local->trial_ends_at->startOfDay(), false);
-                if ($daysToEnd === 1) $tipo = 'trial_ending';
+                if ($daysToEnd === 1) {
+                    $tipo = 'trial_ending';
+                }
             }
 
-            if (! $tipo) continue;
+            if (! $tipo) {
+                continue;
+            }
 
             // Idempotencia
             $yaEnviado = DB::table('local_email_log')
                 ->where('local_id', $local->id)
                 ->where('tipo', $tipo)
                 ->exists();
-            if ($yaEnviado) continue;
+            if ($yaEnviado) {
+                continue;
+            }
 
             $owner = User::find($local->owner_id);
-            if (! $owner?->email) continue;
+            if (! $owner?->email) {
+                continue;
+            }
 
             try {
                 Mail::to($owner->email)->send(new TrialNudgeMail($local, $tipo));
                 DB::table('local_email_log')->insert([
                     'local_id' => $local->id,
-                    'tipo'     => $tipo,
-                    'sent_at'  => now(),
+                    'tipo' => $tipo,
+                    'sent_at' => now(),
                 ]);
                 $sent++;
             } catch (\Throwable $e) {

@@ -3,7 +3,6 @@
 namespace Tests\Feature\Billing;
 
 use App\Models\Local;
-use App\Models\Plan;
 use App\Support\Features;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -21,12 +20,12 @@ class PlanModelTest extends TestCase
     public function test_trialing_y_active_estan_activos(): void
     {
         $trialing = Local::factory()->withPlan('essential', 'trialing')->create();
-        $active   = Local::factory()->withPlan('essential', 'active')->create();
+        $active = Local::factory()->withPlan('essential', 'active')->create();
         $this->assertTrue($trialing->hasActivePlan());
         $this->assertTrue($active->hasActivePlan());
     }
 
-    public function test_trialing_con_trial_ends_at_vencido_NO_esta_activo(): void
+    public function test_trialing_con_trial_ends_at_vencido_n_o_esta_activo(): void
     {
         // Red de seguridad post 2026-07-06: si el cron `trials:expire-manual`
         // no corre, plan_status se queda en 'trialing' para siempre — este
@@ -53,14 +52,14 @@ class PlanModelTest extends TestCase
         $this->assertTrue($local->fresh()->hasActivePlan());
     }
 
-    public function test_canceled_con_periodo_vencido_NO_esta_activo(): void
+    public function test_canceled_con_periodo_vencido_n_o_esta_activo(): void
     {
         $local = Local::factory()->withPlan('essential', 'canceled')->create();
         $local->update(['current_period_ends_at' => now()->subDay()]);
         $this->assertFalse($local->fresh()->hasActivePlan());
     }
 
-    public function test_incomplete_NO_esta_activo(): void
+    public function test_incomplete_n_o_esta_activo(): void
     {
         $local = Local::factory()->withPlan('essential', 'incomplete')->create();
         $this->assertFalse($local->hasActivePlan());

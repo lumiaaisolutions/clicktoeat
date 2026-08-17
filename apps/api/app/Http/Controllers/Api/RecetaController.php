@@ -21,7 +21,9 @@ class RecetaController extends Controller
      *     path="/productos/{producto}/recetas",
      *     tags={"Recetas"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="producto", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\Response(response=200, description="OK")
      * )
      */
@@ -43,15 +45,19 @@ class RecetaController extends Controller
      *     tags={"Recetas"},
      *     security={{"sanctum":{}}},
      *     summary="Reemplaza completamente la receta de un producto (operación idempotente).",
+     *
      *     @OA\Parameter(name="producto", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\RequestBody(required=true, @OA\JsonContent(
      *         required={"recetas"},
+     *
      *         @OA\Property(property="recetas", type="array", @OA\Items(
      *             required={"ingrediente_id","cantidad"},
      *             @OA\Property(property="ingrediente_id", type="integer"),
      *             @OA\Property(property="cantidad", type="number")
      *         ))
      *     )),
+     *
      *     @OA\Response(response=200, description="OK")
      * )
      */
@@ -64,9 +70,9 @@ class RecetaController extends Controller
 
             // Deduplicar — una sola línea por (ingrediente_id) o (componente_producto_id)
             $byIngrediente = [];
-            $byComponente  = [];
+            $byComponente = [];
             foreach ($recetas as $r) {
-                $ingId  = isset($r['ingrediente_id'])         && $r['ingrediente_id']         !== null ? (int) $r['ingrediente_id']         : null;
+                $ingId = isset($r['ingrediente_id']) && $r['ingrediente_id'] !== null ? (int) $r['ingrediente_id'] : null;
                 $compId = isset($r['componente_producto_id']) && $r['componente_producto_id'] !== null ? (int) $r['componente_producto_id'] : null;
 
                 if ($ingId !== null) {
@@ -78,16 +84,16 @@ class RecetaController extends Controller
 
             foreach ($byIngrediente as $ingId => $cantidad) {
                 Receta::create([
-                    'producto_id'    => $producto->id,
+                    'producto_id' => $producto->id,
                     'ingrediente_id' => $ingId,
-                    'cantidad'       => $cantidad,
+                    'cantidad' => $cantidad,
                 ]);
             }
             foreach ($byComponente as $compId => $cantidad) {
                 Receta::create([
-                    'producto_id'            => $producto->id,
+                    'producto_id' => $producto->id,
                     'componente_producto_id' => $compId,
-                    'cantidad'               => $cantidad,
+                    'cantidad' => $cantidad,
                 ]);
             }
         });
@@ -104,7 +110,9 @@ class RecetaController extends Controller
      *     path="/recetas/{receta}",
      *     tags={"Recetas"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="receta", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\Response(response=204, description="No Content")
      * )
      */
@@ -112,6 +120,7 @@ class RecetaController extends Controller
     {
         $this->authorize('delete', $receta);
         $receta->delete();
+
         return response()->json(null, 204);
     }
 }

@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Schema;
  * automáticamente todavía — ver nota legal en ADR-012 §3.5 (IMSS/ISR
  * pendiente de confirmar antes de automatizar el reparto físico).
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::table('locales', function (Blueprint $t) {

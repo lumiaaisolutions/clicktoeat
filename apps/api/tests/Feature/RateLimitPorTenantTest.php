@@ -8,6 +8,7 @@ use App\Models\Local;
 use App\Models\Producto;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class RateLimitPorTenantTest extends TestCase
@@ -15,8 +16,11 @@ class RateLimitPorTenantTest extends TestCase
     use RefreshDatabase;
 
     private Local $localA;
+
     private Local $localB;
+
     private Producto $productoA;
+
     private Producto $productoB;
 
     protected function setUp(): void
@@ -41,13 +45,13 @@ class RateLimitPorTenantTest extends TestCase
         $this->productoB = Producto::factory()->paraLocal($this->localB, $catB)->conReceta($ingB, 0.001)->create(['precio' => 10]);
     }
 
-    private function pedirPara(Local $local, Producto $producto): \Illuminate\Testing\TestResponse
+    private function pedirPara(Local $local, Producto $producto): TestResponse
     {
         return $this->postJson("/api/v1/public/pedidos/{$local->slug}", [
-            'cliente'        => ['nombre' => 'X', 'telefono' => '5215512345678'],
+            'cliente' => ['nombre' => 'X', 'telefono' => '5215512345678'],
             'metodo_entrega' => 'pickup',
-            'metodo_pago'    => 'efectivo',
-            'items'          => [['producto_id' => $producto->id, 'cantidad' => 1]],
+            'metodo_pago' => 'efectivo',
+            'items' => [['producto_id' => $producto->id, 'cantidad' => 1]],
         ]);
     }
 
@@ -66,7 +70,7 @@ class RateLimitPorTenantTest extends TestCase
     }
 
     /** @test */
-    public function al_saturar_un_local_OTRO_local_sigue_funcionando_si_son_IPs_distintas(): void
+    public function al_saturar_un_local_otr_o_local_sigue_funcionando_si_son_i_ps_distintas(): void
     {
         // Saturar local A simulando IPs distintas (cada request con server header IP custom).
         // Como la suite usa el mismo IP, este test verifica que el limit POR TENANT funciona

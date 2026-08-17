@@ -3,13 +3,19 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\WelcomeMail;
+use App\Models\Local;
 use App\Models\OnboardingToken;
+use App\Models\Referral;
 use App\Models\User;
+use App\Services\Images\ImageUploader;
+use App\Support\AuthCookie;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -43,7 +49,7 @@ class OnboardingController extends Controller
 
                 return response()->json([
                     'completed_steps' => $token->completed_steps,
-                    'user_id'         => $owner->id,
+                    'user_id' => $owner->id,
                 ]);
             }
         }
@@ -54,9 +60,9 @@ class OnboardingController extends Controller
         // checkout (eso fue justo lo que causó los locales huérfanos
         // duplicados del incidente 2026-07-06).
         $data = $req->validate([
-            'nombre'                => ['required', 'string', 'max:120'],
-            'email'                 => ['required', 'email', 'max:160', Rule::unique('users', 'email')],
-            'password'              => ['required', 'string', 'min:8', 'confirmed'],
+            'nombre' => ['required', 'string', 'max:120'],
+            'email' => ['required', 'email', 'max:160', Rule::unique('users', 'email')],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
         ], [
             'email.unique' => 'Ese correo ya tiene una cuenta. Inicia sesión en su lugar en vez de crear una nueva.',
         ]);
@@ -65,17 +71,17 @@ class OnboardingController extends Controller
         $owner = User::where('local_id', $local->id)->where('rol', 'owner')->first();
         if (! $owner) {
             $owner = User::create([
-                'nombre'   => $data['nombre'],
-                'email'    => $data['email'],
+                'nombre' => $data['nombre'],
+                'email' => $data['email'],
                 'password' => Hash::make($data['password']),
-                'rol'      => 'owner',
+                'rol' => 'owner',
                 'local_id' => $local->id,
             ]);
             $local->update(['owner_id' => $owner->id]);
         } else {
             $owner->update([
-                'nombre'   => $data['nombre'],
-                'email'    => $data['email'],
+                'nombre' => $data['nombre'],
+                'email' => $data['email'],
                 'password' => Hash::make($data['password']),
             ]);
         }
@@ -84,7 +90,7 @@ class OnboardingController extends Controller
 
         return response()->json([
             'completed_steps' => $token->completed_steps,
-            'user_id'         => $owner->id,
+            'user_id' => $owner->id,
         ]);
     }
 
@@ -94,16 +100,16 @@ class OnboardingController extends Controller
         $token = $this->resolveToken($req);
 
         $data = $req->validate([
-            'nombre'  => ['required', 'string', 'max:120'],
-            'slug'    => ['required', 'string', 'min:3', 'max:60', 'regex:/^[a-z0-9-]+$/',
+            'nombre' => ['required', 'string', 'max:120'],
+            'slug' => ['required', 'string', 'min:3', 'max:60', 'regex:/^[a-z0-9-]+$/',
                 Rule::unique('locales', 'slug')->ignore($token->local_id)],
-            'tagline'        => ['nullable', 'string', 'max:160'],
+            'tagline' => ['nullable', 'string', 'max:160'],
             'codigo_referido' => ['nullable', 'string', 'max:32'],
         ]);
 
         $token->local->update([
-            'nombre'  => $data['nombre'],
-            'slug'    => $data['slug'],
+            'nombre' => $data['nombre'],
+            'slug' => $data['slug'],
             'tagline' => $data['tagline'] ?? null,
         ]);
         $token->markStepCompleted('local');
@@ -113,37 +119,37 @@ class OnboardingController extends Controller
         // el webhook le aplica el descuento al referrer (ver WebhookHandler).
         if (! empty($data['codigo_referido'])) {
             $code = strtoupper(trim($data['codigo_referido']));
-            $referrer = \App\Models\Local::withoutGlobalScopes()
+            $referrer = Local::withoutGlobalScopes()
                 ->where('codigo_referido', $code)
                 ->where('activo', true)
                 ->first();
             if ($referrer && $referrer->id !== $token->local_id) {
-                $referral = \App\Models\Referral::firstOrCreate(
+                $referral = Referral::firstOrCreate(
                     [
                         'referrer_local_id' => $referrer->id,
                         'referred_local_id' => $token->local_id,
                     ],
                     ['status' => 'pending'],
                 );
-                \Illuminate\Support\Facades\Log::info('Referral pending creado', [
-                    'referral_id'       => $referral->id,
+                Log::info('Referral pending creado', [
+                    'referral_id' => $referral->id,
                     'referrer_local_id' => $referrer->id,
                     'referred_local_id' => $token->local_id,
-                    'codigo'            => $code,
-                    'was_created'       => $referral->wasRecentlyCreated,
+                    'codigo' => $code,
+                    'was_created' => $referral->wasRecentlyCreated,
                 ]);
             } else {
-                \Illuminate\Support\Facades\Log::info('Código de referido NO aplicado', [
-                    'codigo'          => $code,
-                    'reason'          => $referrer ? 'self_referral' : 'codigo_invalido_o_local_inactivo',
-                    'local_id'        => $token->local_id,
+                Log::info('Código de referido NO aplicado', [
+                    'codigo' => $code,
+                    'reason' => $referrer ? 'self_referral' : 'codigo_invalido_o_local_inactivo',
+                    'local_id' => $token->local_id,
                 ]);
             }
         }
 
         return response()->json([
             'completed_steps' => $token->completed_steps,
-            'local'           => $token->local->only(['id', 'nombre', 'slug', 'tagline']),
+            'local' => $token->local->only(['id', 'nombre', 'slug', 'tagline']),
         ]);
     }
 
@@ -151,20 +157,21 @@ class OnboardingController extends Controller
      * Upload de imagen durante onboarding (logo/banner). Autenticado por
      * el bearer onboarding_token, reusa el ImageUploader service.
      */
-    public function uploadImagen(Request $req, \App\Services\Images\ImageUploader $uploader): JsonResponse
+    public function uploadImagen(Request $req, ImageUploader $uploader): JsonResponse
     {
         $this->resolveToken($req);  // valida token
         // Misma regla que StoreImageRequest (Upload/branding) — `image` de
         // Laravel no reconoce AVIF (whitelist hardcodeada sin avif), así que
         // usamos `mimetypes` con content-sniffing real en su lugar.
         $req->validate([
-            'image'  => ['required', 'file', 'mimetypes:image/jpeg,image/png,image/webp,image/avif', 'max:5120'],     // 5 MB
+            'image' => ['required', 'file', 'mimetypes:image/jpeg,image/png,image/webp,image/avif', 'max:5120'],     // 5 MB
             'folder' => ['nullable', 'string', 'in:logos,banners,locales'],
         ]);
         $result = $uploader->upload(
             $req->file('image'),
             $req->input('folder', 'locales'),
         );
+
         return response()->json(['data' => $result], 201);
     }
 
@@ -174,11 +181,11 @@ class OnboardingController extends Controller
         $token = $this->resolveToken($req);
 
         $data = $req->validate([
-            'logo_url'         => ['nullable', 'url'],
-            'banner_url'       => ['nullable', 'url'],
-            'color_primario'   => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'logo_url' => ['nullable', 'url'],
+            'banner_url' => ['nullable', 'url'],
+            'color_primario' => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'color_secundario' => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
-            'color_fondo'      => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'color_fondo' => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
         ]);
 
         $token->local->update($data);
@@ -195,12 +202,12 @@ class OnboardingController extends Controller
         $token = $this->resolveToken($req);
 
         $data = $req->validate([
-            'whatsapp'  => ['required', 'string', 'regex:/^\d{8,16}$/'],
-            'telefono'  => ['nullable', 'string', 'max:30'],
+            'whatsapp' => ['required', 'string', 'regex:/^\d{8,16}$/'],
+            'telefono' => ['nullable', 'string', 'max:30'],
             'direccion' => ['nullable', 'string', 'max:240'],
-            'lat'       => ['nullable', 'numeric', 'between:-90,90'],
-            'lng'       => ['nullable', 'numeric', 'between:-180,180'],
-            'horarios'  => ['nullable', 'array'],
+            'lat' => ['nullable', 'numeric', 'between:-90,90'],
+            'lng' => ['nullable', 'numeric', 'between:-180,180'],
+            'horarios' => ['nullable', 'array'],
         ]);
 
         $token->local->update($data);
@@ -222,7 +229,7 @@ class OnboardingController extends Controller
         if (! $owner) {
             return response()->json([
                 'message' => 'Onboarding incompleto: falta crear la cuenta del dueño (paso "password").',
-                'code'    => 'ONBOARDING_INCOMPLETE',
+                'code' => 'ONBOARDING_INCOMPLETE',
             ], 422);
         }
 
@@ -241,18 +248,18 @@ class OnboardingController extends Controller
 
         // Email de bienvenida — non-blocking
         rescue(function () use ($token, $owner) {
-            \Illuminate\Support\Facades\Mail::to($owner->email)
-                ->send(new \App\Mail\WelcomeMail($token->local->fresh(), $owner));
+            Mail::to($owner->email)
+                ->send(new WelcomeMail($token->local->fresh(), $owner));
         }, report: false);
 
         // SEV-2 — la sesión web viaja en cookie HttpOnly; el token del JSON
         // es respaldo transitorio (setTokenAndHydrate) para esta misma página.
         return response()->json([
-            'token'   => $sanctum,
-            'user'    => $owner->only(['id', 'nombre', 'email', 'rol', 'local_id']),
-            'local'   => $token->local->only(['id', 'nombre', 'slug']),
-            'next'    => '/admin',
-        ])->withCookie(\App\Support\AuthCookie::make($sanctum));
+            'token' => $sanctum,
+            'user' => $owner->only(['id', 'nombre', 'email', 'rol', 'local_id']),
+            'local' => $token->local->only(['id', 'nombre', 'slug']),
+            'next' => '/admin',
+        ])->withCookie(AuthCookie::make($sanctum));
     }
 
     /**
@@ -276,6 +283,7 @@ class OnboardingController extends Controller
         if ($token->expires_at->isPast()) {
             abort(response()->json(['message' => 'Token expirado. Contacta a soporte.'], Response::HTTP_GONE));
         }
+
         return $token;
     }
 }

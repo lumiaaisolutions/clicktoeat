@@ -25,7 +25,7 @@ class ResetPasswordNotification extends Notification
         $url = rtrim((string) config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:3000')), '/').
             '/reset-password?token='.$this->token.'&email='.urlencode($notifiable->getEmailForPasswordReset());
 
-        return (new MailMessage())
+        return (new MailMessage)
             ->subject('Restablecer contraseña — '.config('app.name'))
             ->greeting('Hola '.($notifiable->nombre ?? '').',')
             ->line('Recibimos una solicitud para restablecer tu contraseña en '.config('app.name').'.')

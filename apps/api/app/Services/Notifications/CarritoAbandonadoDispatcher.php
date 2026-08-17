@@ -34,8 +34,12 @@ class CarritoAbandonadoDispatcher
 
         foreach ($carritos as $row) {
             $local = Local::find($row->local_id);
-            if (! $local) continue;
-            if (! $local->hasActivePlan()) continue;
+            if (! $local) {
+                continue;
+            }
+            if (! $local->hasActivePlan()) {
+                continue;
+            }
 
             // Doble-check: ¿el email ya hizo pedido en este local en las últimas 2h?
             $hizoPedido = DB::table('pedidos')
@@ -47,6 +51,7 @@ class CarritoAbandonadoDispatcher
             if ($hizoPedido) {
                 DB::table('carritos_abandonados')->where('id', $row->id)
                     ->update(['recovered_at' => now()]);
+
                 continue;
             }
 

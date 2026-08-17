@@ -16,7 +16,8 @@ use Illuminate\Support\Facades\Schema;
  *  - Una receta apunta EITHER a un ingrediente, OR a un componente producto.
  *  - Nunca a ambos. El CHECK lo enforza en MySQL/sqlite.
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         // Idempotente: la migración original ya define la columna en BDs nuevas.
@@ -24,10 +25,10 @@ return new class extends Migration {
         if (! Schema::hasColumn('recetas', 'componente_producto_id')) {
             Schema::table('recetas', function (Blueprint $table) {
                 $table->foreignId('componente_producto_id')
-                      ->nullable()
-                      ->after('ingrediente_id')
-                      ->constrained('productos')
-                      ->cascadeOnDelete();
+                    ->nullable()
+                    ->after('ingrediente_id')
+                    ->constrained('productos')
+                    ->cascadeOnDelete();
             });
         }
 

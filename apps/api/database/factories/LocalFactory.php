@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Local;
+use App\Models\Plan;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -18,26 +19,26 @@ class LocalFactory extends Factory
         $nombre = $this->faker->company();
 
         return [
-            'nombre'                => $nombre,
-            'slug'                  => Str::slug($nombre).'-'.Str::lower(Str::random(4)),
-            'tagline'               => $this->faker->catchPhrase(),
-            'whatsapp'              => '521'.$this->faker->numerify('##########'),
-            'telefono'              => $this->faker->numerify('##########'),
-            'email_contacto'        => $this->faker->companyEmail(),
-            'direccion'             => $this->faker->address(),
-            'color_primario'        => '#FF2D2D',
-            'color_secundario'      => '#0B0B0F',
-            'color_fondo'           => '#FAFAF7',
-            'tipografia'            => 'Bricolage Grotesque',
-            'dark_mode'             => false,
-            'delivery_fee'          => 35,
-            'delivery_min_minutos'  => 30,
-            'delivery_radio_km'     => 5,
-            'metodos_pago'          => ['efectivo', 'tarjeta_entrega', 'transferencia'],
-            'activo'                => true,
-            'suspendido'            => false,
-            'cerrado_temporal'      => false,
-            'zona_horaria'          => 'America/Mexico_City',
+            'nombre' => $nombre,
+            'slug' => Str::slug($nombre).'-'.Str::lower(Str::random(4)),
+            'tagline' => $this->faker->catchPhrase(),
+            'whatsapp' => '521'.$this->faker->numerify('##########'),
+            'telefono' => $this->faker->numerify('##########'),
+            'email_contacto' => $this->faker->companyEmail(),
+            'direccion' => $this->faker->address(),
+            'color_primario' => '#FF2D2D',
+            'color_secundario' => '#0B0B0F',
+            'color_fondo' => '#FAFAF7',
+            'tipografia' => 'Bricolage Grotesque',
+            'dark_mode' => false,
+            'delivery_fee' => 35,
+            'delivery_min_minutos' => 30,
+            'delivery_radio_km' => 5,
+            'metodos_pago' => ['efectivo', 'tarjeta_entrega', 'transferencia'],
+            'activo' => true,
+            'suspendido' => false,
+            'cerrado_temporal' => false,
+            'zona_horaria' => 'America/Mexico_City',
         ];
     }
 
@@ -56,7 +57,7 @@ class LocalFactory extends Factory
         return $this->state(fn () => ['cerrado_temporal' => true]);
     }
 
-    public function conHorarios(array $horarios = null): static
+    public function conHorarios(?array $horarios = null): static
     {
         return $this->state(fn () => [
             'horarios' => $horarios ?? [
@@ -81,15 +82,15 @@ class LocalFactory extends Factory
     public function withPlan(string $slug = 'professional', string $status = 'trialing'): static
     {
         return $this->state(function () use ($slug, $status) {
-            $plan = \App\Models\Plan::query()->where('slug', $slug)->first()
-                ?? \App\Models\Plan::factory()->$slug()->create();
+            $plan = Plan::query()->where('slug', $slug)->first()
+                ?? Plan::factory()->$slug()->create();
 
             return [
-                'plan_id'                => $plan->id,
-                'plan_status'            => $status,
-                'stripe_customer_id'     => 'cus_test_'.\Illuminate\Support\Str::random(10),
-                'stripe_subscription_id' => 'sub_test_'.\Illuminate\Support\Str::random(10),
-                'trial_ends_at'          => $status === 'trialing' ? now()->addDays(14) : null,
+                'plan_id' => $plan->id,
+                'plan_status' => $status,
+                'stripe_customer_id' => 'cus_test_'.Str::random(10),
+                'stripe_subscription_id' => 'sub_test_'.Str::random(10),
+                'trial_ends_at' => $status === 'trialing' ? now()->addDays(14) : null,
                 'current_period_ends_at' => now()->addMonth(),
             ];
         });

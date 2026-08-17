@@ -19,9 +19,9 @@ class DetalleCompra extends Model
     protected function casts(): array
     {
         return [
-            'cantidad'       => 'decimal:3',
+            'cantidad' => 'decimal:3',
             'costo_unitario' => 'decimal:2',
-            'subtotal'       => 'decimal:2',
+            'subtotal' => 'decimal:2',
         ];
     }
 

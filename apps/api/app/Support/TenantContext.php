@@ -7,6 +7,7 @@ use App\Models\Local;
 class TenantContext
 {
     protected ?int $localId = null;
+
     protected ?Local $cachedLocal = null;
 
     public function set(?int $localId): void
@@ -28,6 +29,7 @@ class TenantContext
         if ($this->cachedLocal && $this->cachedLocal->id === $this->localId) {
             return $this->cachedLocal;
         }
+
         return $this->cachedLocal = Local::withoutGlobalScopes()->find($this->localId);
     }
 

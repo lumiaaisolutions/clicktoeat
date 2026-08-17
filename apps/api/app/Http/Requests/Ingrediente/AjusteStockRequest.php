@@ -14,9 +14,9 @@ class AjusteStockRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'tipo'     => ['required', 'in:entrada,ajuste,merma'],
+            'tipo' => ['required', 'in:entrada,ajuste,merma'],
             'cantidad' => ['required', 'numeric', 'not_in:0', 'min:-999999.999', 'max:999999.999'],
-            'motivo'   => ['nullable', 'string', 'max:200'],
+            'motivo' => ['nullable', 'string', 'max:200'],
         ];
     }
 }

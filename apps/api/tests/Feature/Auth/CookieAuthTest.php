@@ -28,9 +28,9 @@ class CookieAuthTest extends TestCase
     private function createUser(string $email = 'tester@cte.app', string $password = 'secret123'): User
     {
         return User::factory()->create([
-            'email'    => $email,
+            'email' => $email,
             'password' => Hash::make($password),
-            'rol'      => 'owner',
+            'rol' => 'owner',
         ]);
     }
 
@@ -40,10 +40,10 @@ class CookieAuthTest extends TestCase
         $this->createUser();
 
         $resp = $this->postJson('/api/v1/auth/login', [
-            'email'    => 'tester@cte.app',
+            'email' => 'tester@cte.app',
             'password' => 'secret123',
         ])->assertOk()
-          ->assertJsonStructure(['user', 'token']);
+            ->assertJsonStructure(['user', 'token']);
 
         // La cookie debe estar presente en el response.
         $cookie = collect($resp->headers->getCookies())
@@ -70,7 +70,7 @@ class CookieAuthTest extends TestCase
 
         // Login obtiene la cookie REAL desde el server (con encrypt correcto).
         $loginResp = $this->postJson('/api/v1/auth/login', [
-            'email'    => 'tester@cte.app',
+            'email' => 'tester@cte.app',
             'password' => 'secret123',
         ])->assertOk();
 
@@ -125,7 +125,7 @@ class CookieAuthTest extends TestCase
     /** @test */
     public function logout_limpia_la_cookie(): void
     {
-        $user  = $this->createUser();
+        $user = $this->createUser();
         $token = $user->createToken('web')->plainTextToken;
 
         $resp = $this->withCookie('cte_token', $token)

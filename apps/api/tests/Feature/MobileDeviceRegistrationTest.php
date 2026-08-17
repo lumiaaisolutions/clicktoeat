@@ -23,16 +23,16 @@ class MobileDeviceRegistrationTest extends TestCase
 
         $this->postJson('/api/v1/mobile/register-device', [
             'expo_push_token' => 'ExponentPushToken[abc123]',
-            'platform'        => 'ios',
-            'device_name'     => 'iPhone Cocina',
+            'platform' => 'ios',
+            'device_name' => 'iPhone Cocina',
         ])->assertCreated();
 
         $this->assertDatabaseHas('mobile_devices', [
             'expo_push_token' => 'ExponentPushToken[abc123]',
-            'user_id'         => $owner->id,
-            'local_id'        => $local->id,
-            'platform'        => 'ios',
-            'device_name'     => 'iPhone Cocina',
+            'user_id' => $owner->id,
+            'local_id' => $local->id,
+            'platform' => 'ios',
+            'device_name' => 'iPhone Cocina',
         ]);
     }
 
@@ -46,8 +46,8 @@ class MobileDeviceRegistrationTest extends TestCase
 
         $payload = [
             'expo_push_token' => 'ExponentPushToken[abc123]',
-            'platform'        => 'ios',
-            'device_name'     => 'iPhone Cocina',
+            'platform' => 'ios',
+            'device_name' => 'iPhone Cocina',
         ];
 
         $this->postJson('/api/v1/mobile/register-device', $payload)->assertCreated();
@@ -58,7 +58,7 @@ class MobileDeviceRegistrationTest extends TestCase
         $this->assertSame(1, MobileDevice::query()->count());
         $this->assertDatabaseHas('mobile_devices', [
             'expo_push_token' => 'ExponentPushToken[abc123]',
-            'device_name'     => 'iPhone Caja',
+            'device_name' => 'iPhone Caja',
         ]);
     }
 
@@ -77,15 +77,15 @@ class MobileDeviceRegistrationTest extends TestCase
         Sanctum::actingAs($ownerA, ['*']);
         $this->postJson('/api/v1/mobile/register-device', [
             'expo_push_token' => 'ExponentPushToken[shared]',
-            'platform'        => 'ios',
+            'platform' => 'ios',
         ])->assertCreated();
 
         Sanctum::actingAs($ownerB, ['*']);
         $this->postJson('/api/v1/mobile/register-device', [
             'expo_push_token' => 'ExponentPushToken[shared]',
-            'platform'        => 'ios',
+            'platform' => 'ios',
         ])->assertStatus(409)
-          ->assertJsonPath('code', 'device_already_registered');
+            ->assertJsonPath('code', 'device_already_registered');
 
         // El registro del owner original NO se modificó.
         $device = MobileDevice::query()->first();
@@ -106,7 +106,7 @@ class MobileDeviceRegistrationTest extends TestCase
         Sanctum::actingAs($ownerA, ['*']);
         $this->postJson('/api/v1/mobile/register-device', [
             'expo_push_token' => 'ExponentPushToken[A]',
-            'platform'        => 'ios',
+            'platform' => 'ios',
         ])->assertCreated();
 
         // Owner B intenta borrar el token de A → no debe borrar nada.
@@ -117,7 +117,7 @@ class MobileDeviceRegistrationTest extends TestCase
 
         $this->assertDatabaseHas('mobile_devices', [
             'expo_push_token' => 'ExponentPushToken[A]',
-            'user_id'         => $ownerA->id,
+            'user_id' => $ownerA->id,
         ]);
     }
 
@@ -126,7 +126,7 @@ class MobileDeviceRegistrationTest extends TestCase
     {
         $this->postJson('/api/v1/mobile/register-device', [
             'expo_push_token' => 'ExponentPushToken[abc123]',
-            'platform'        => 'ios',
+            'platform' => 'ios',
         ])->assertUnauthorized();
     }
 
@@ -140,8 +140,8 @@ class MobileDeviceRegistrationTest extends TestCase
 
         $this->postJson('/api/v1/mobile/register-device', [
             'expo_push_token' => 'ExponentPushToken[abc123]',
-            'platform'        => 'windows',
+            'platform' => 'windows',
         ])->assertUnprocessable()
-          ->assertJsonValidationErrors('platform');
+            ->assertJsonValidationErrors('platform');
     }
 }

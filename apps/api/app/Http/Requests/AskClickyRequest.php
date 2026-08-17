@@ -14,7 +14,7 @@ class AskClickyRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'message'  => ['required', 'string', 'max:400'],
+            'message' => ['required', 'string', 'max:400'],
             'pathname' => ['nullable', 'string', 'max:200'],
         ];
     }

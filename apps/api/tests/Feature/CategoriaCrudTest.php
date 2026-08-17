@@ -15,6 +15,7 @@ class CategoriaCrudTest extends TestCase
     use RefreshDatabase;
 
     private Local $local;
+
     private User $owner;
 
     protected function setUp(): void
@@ -46,13 +47,13 @@ class CategoriaCrudTest extends TestCase
 
         $resp = $this->postJson('/api/v1/categorias', [
             'nombre' => 'Especiales del Chef',
-            'icono'  => 'fa-star',
-            'orden'  => 5,
+            'icono' => 'fa-star',
+            'orden' => 5,
         ])->assertCreated();
 
         $resp->assertJsonPath('data.nombre', 'Especiales del Chef')
-             ->assertJsonPath('data.slug',   'especiales-del-chef')
-             ->assertJsonPath('data.local_id', $this->local->id);
+            ->assertJsonPath('data.slug', 'especiales-del-chef')
+            ->assertJsonPath('data.local_id', $this->local->id);
     }
 
     /** @test */
@@ -63,7 +64,7 @@ class CategoriaCrudTest extends TestCase
 
         $this->postJson('/api/v1/categorias', [
             'nombre' => 'Tacos',
-            'slug'   => 'tacos',
+            'slug' => 'tacos',
         ])->assertStatus(422)->assertJsonValidationErrors('slug');
     }
 
@@ -77,7 +78,7 @@ class CategoriaCrudTest extends TestCase
 
         $this->postJson('/api/v1/categorias', [
             'nombre' => 'Tacos',
-            'slug'   => 'tacos',
+            'slug' => 'tacos',
         ])->assertCreated();
     }
 
@@ -107,7 +108,7 @@ class CategoriaCrudTest extends TestCase
     public function owner_no_puede_actualizar_categoria_de_otro_local(): void
     {
         $otroLocal = Local::factory()->create();
-        $cat       = Categoria::factory()->paraLocal($otroLocal)->create();
+        $cat = Categoria::factory()->paraLocal($otroLocal)->create();
 
         Sanctum::actingAs($this->owner, ['*']);
 
@@ -137,8 +138,8 @@ class CategoriaCrudTest extends TestCase
         Sanctum::actingAs($this->owner, ['*']);
 
         $this->deleteJson("/api/v1/categorias/{$cat->id}")
-             ->assertStatus(409)
-             ->assertJson(['message' => 'No se puede eliminar: la categoría tiene productos. Reasígnalos primero.']);
+            ->assertStatus(409)
+            ->assertJson(['message' => 'No se puede eliminar: la categoría tiene productos. Reasígnalos primero.']);
 
         $this->assertDatabaseHas('categorias', ['id' => $cat->id]);
     }
@@ -152,8 +153,8 @@ class CategoriaCrudTest extends TestCase
         Sanctum::actingAs($this->owner, ['*']);
 
         $this->getJson('/api/v1/categorias')
-             ->assertOk()
-             ->assertJsonPath('data.0.productos_count', 3);
+            ->assertOk()
+            ->assertJsonPath('data.0.productos_count', 3);
     }
 
     /** @test */
@@ -165,11 +166,11 @@ class CategoriaCrudTest extends TestCase
         Sanctum::actingAs($this->owner, ['*']);
 
         $this->getJson('/api/v1/categorias?activo=true')
-             ->assertOk()
-             ->assertJsonCount(2, 'data');
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
 
         $this->getJson('/api/v1/categorias?activo=false')
-             ->assertOk()
-             ->assertJsonCount(1, 'data');
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
     }
 }

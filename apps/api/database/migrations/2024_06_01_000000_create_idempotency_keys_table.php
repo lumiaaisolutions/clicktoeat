@@ -15,7 +15,8 @@ use Illuminate\Support\Facades\Schema;
  *
  * TTL: 24h. Cleanup por cron (cuando se introduzca en Console/Kernel).
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::create('idempotency_keys', function (Blueprint $table) {

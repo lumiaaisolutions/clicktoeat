@@ -6,6 +6,7 @@ use App\Notifications\ResetPasswordNotification;
 use Illuminate\Contracts\Auth\CanResetPassword;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -46,9 +47,9 @@ class User extends Authenticatable implements CanResetPassword
     protected function casts(): array
     {
         return [
-            'email_verified_at'       => 'datetime',
-            'password'                => 'hashed',
-            'permisos'                => 'array',
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'permisos' => 'array',
             'two_factor_confirmed_at' => 'datetime',
         ];
     }
@@ -81,7 +82,7 @@ class User extends Authenticatable implements CanResetPassword
     }
 
     /** F71 — Lista completa de locales a los que tiene acceso. */
-    public function locales(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function locales(): BelongsToMany
     {
         return $this->belongsToMany(Local::class, 'user_locales', 'user_id', 'local_id')
             ->withPivot('created_at');
@@ -89,7 +90,10 @@ class User extends Authenticatable implements CanResetPassword
 
     public function canAccessLocal(int $localId): bool
     {
-        if ($this->isSuperAdmin()) return true;
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
         return $this->locales()->where('locales.id', $localId)->exists();
     }
 
@@ -125,6 +129,7 @@ class User extends Authenticatable implements CanResetPassword
             return self::PERMISOS_DEFAULT_STAFF;
         }
         $arr = is_string($permisosAttr) ? json_decode($permisosAttr, true) : $permisosAttr;
+
         return is_array($arr) ? array_values(array_intersect($arr, self::MODULOS_VALIDOS)) : self::PERMISOS_DEFAULT_STAFF;
     }
 

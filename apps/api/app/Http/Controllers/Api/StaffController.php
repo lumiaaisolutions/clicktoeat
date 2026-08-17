@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\PlanLimitException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Staff\StoreStaffRequest;
 use App\Http\Requests\Staff\UpdateStaffRequest;
 use App\Http\Resources\StaffResource;
 use App\Models\User;
+use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -23,6 +25,7 @@ class StaffController extends Controller
      *     tags={"Staff"},
      *     security={{"sanctum":{}}},
      *     summary="Lista usuarios del local (owner + staff).",
+     *
      *     @OA\Response(response=200, description="OK")
      * )
      */
@@ -50,12 +53,12 @@ class StaffController extends Controller
     public function store(StoreStaffRequest $request): JsonResponse
     {
         // Límite cuantitativo del plan SaaS (max_staff).
-        $local = app(\App\Support\TenantContext::class)->local();
-        $max   = $local?->plan?->max_staff;
+        $local = app(TenantContext::class)->local();
+        $max = $local?->plan?->max_staff;
         if ($max !== null) {
             $current = User::where('local_id', $local->id)->where('rol', 'staff')->count();
             if ($current >= $max) {
-                throw new \App\Exceptions\PlanLimitException('staff', $max, $current);
+                throw new PlanLimitException('staff', $max, $current);
             }
         }
 
@@ -72,10 +75,10 @@ class StaffController extends Controller
         // Aquí es seguro porque el owner ya pasó por auth + el staff lo
         // marca confiable. `forceFill` es el escape hatch intencional.
         $staff = User::create([
-            'nombre'   => $request->input('nombre'),
-            'email'    => $request->input('email'),
+            'nombre' => $request->input('nombre'),
+            'email' => $request->input('email'),
             'password' => Hash::make($request->input('password')),
-            'rol'      => 'staff',
+            'rol' => 'staff',
             'permisos' => $permisos,
             'local_id' => $request->user()->local_id,
         ]);
@@ -91,13 +94,16 @@ class StaffController extends Controller
      *     path="/local/staff/{staff}",
      *     tags={"Staff"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="staff", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\Response(response=200, description="OK")
      * )
      */
     public function show(User $staff): StaffResource
     {
         $this->authorize('view', $staff);
+
         return new StaffResource($staff);
     }
 
@@ -106,7 +112,9 @@ class StaffController extends Controller
      *     path="/local/staff/{staff}",
      *     tags={"Staff"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="staff", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\Response(response=200, description="OK")
      * )
      */
@@ -139,7 +147,9 @@ class StaffController extends Controller
      *     path="/local/staff/{staff}",
      *     tags={"Staff"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="staff", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\Response(response=204, description="No Content")
      * )
      */

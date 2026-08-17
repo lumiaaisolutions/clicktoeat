@@ -11,6 +11,7 @@ use Illuminate\Routing\Controller as BaseController;
  *     title="ClickToEat API",
  *     version="1.0.0",
  *     description="API multi-tenant para landing pages de restaurantes con pedidos por WhatsApp.",
+ *
  *     @OA\Contact(email="dev@ClickToEat.app")
  * )
  *

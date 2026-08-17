@@ -11,7 +11,8 @@ use Illuminate\Support\Facades\Schema;
  * `cuentas_mesa.gift_card_id`/`descuento_gift_card`: aplicado a nivel cuenta
  * de mesa (puede cubrir varios pedidos), no a un pedido individual.
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::table('pedidos', function (Blueprint $t) {

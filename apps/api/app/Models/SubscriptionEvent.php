@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $stripe_event_id
  * @property string $type
  * @property array $payload
- * @property \Illuminate\Support\Carbon|null $processed_at
+ * @property Carbon|null $processed_at
  * @property string|null $error
  */
 class SubscriptionEvent extends Model
@@ -23,7 +24,7 @@ class SubscriptionEvent extends Model
     protected function casts(): array
     {
         return [
-            'payload'      => 'array',
+            'payload' => 'array',
             'processed_at' => 'datetime',
         ];
     }

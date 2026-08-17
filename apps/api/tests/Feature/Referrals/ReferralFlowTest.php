@@ -23,18 +23,18 @@ class ReferralFlowTest extends TestCase
     {
         $referrer = Local::factory()->create([
             'codigo_referido' => 'TEST1234',
-            'activo'          => true,
+            'activo' => true,
         ]);
         $nuevo = Local::factory()->create([
             'codigo_referido' => 'NUEVO5678',
-            'activo'          => true,
+            'activo' => true,
         ]);
         $token = OnboardingToken::issueFor($nuevo);
 
         $res = $this->withToken($token->value)
             ->postJson('/api/v1/onboarding/local', [
-                'nombre'          => 'Postres del Nuevo',
-                'slug'            => 'postres-del-nuevo',
+                'nombre' => 'Postres del Nuevo',
+                'slug' => 'postres-del-nuevo',
                 'codigo_referido' => 'TEST1234',
             ]);
 
@@ -43,7 +43,7 @@ class ReferralFlowTest extends TestCase
         $this->assertDatabaseHas('referrals', [
             'referrer_local_id' => $referrer->id,
             'referred_local_id' => $nuevo->id,
-            'status'            => 'pending',
+            'status' => 'pending',
         ]);
     }
 
@@ -54,8 +54,8 @@ class ReferralFlowTest extends TestCase
 
         $res = $this->withToken($token->value)
             ->postJson('/api/v1/onboarding/local', [
-                'nombre'          => 'Postres del Nuevo',
-                'slug'            => 'postres-del-nuevo-2',
+                'nombre' => 'Postres del Nuevo',
+                'slug' => 'postres-del-nuevo-2',
                 'codigo_referido' => 'NOEXISTE99',
             ]);
 
@@ -67,14 +67,14 @@ class ReferralFlowTest extends TestCase
     {
         $local = Local::factory()->create([
             'codigo_referido' => 'YOSOY9999',
-            'activo'          => true,
+            'activo' => true,
         ]);
         $token = OnboardingToken::issueFor($local);
 
         $res = $this->withToken($token->value)
             ->postJson('/api/v1/onboarding/local', [
-                'nombre'          => $local->nombre,
-                'slug'            => $local->slug,
+                'nombre' => $local->nombre,
+                'slug' => $local->slug,
                 'codigo_referido' => 'YOSOY9999',
             ]);
 
@@ -86,7 +86,7 @@ class ReferralFlowTest extends TestCase
     {
         $referrer = Local::factory()->create([
             'codigo_referido' => 'MAYUS123',
-            'activo'          => true,
+            'activo' => true,
         ]);
         $nuevo = Local::factory()->create(['activo' => true]);
         $token = OnboardingToken::issueFor($nuevo);
@@ -94,15 +94,15 @@ class ReferralFlowTest extends TestCase
         // El usuario pega el código en minúscula
         $this->withToken($token->value)
             ->postJson('/api/v1/onboarding/local', [
-                'nombre'          => 'Postres XYZ',
-                'slug'            => 'postres-xyz',
+                'nombre' => 'Postres XYZ',
+                'slug' => 'postres-xyz',
                 'codigo_referido' => 'mayus123',
             ])->assertOk();
 
         $this->assertDatabaseHas('referrals', [
             'referrer_local_id' => $referrer->id,
             'referred_local_id' => $nuevo->id,
-            'status'            => 'pending',
+            'status' => 'pending',
         ]);
     }
 }

@@ -20,9 +20,9 @@ class DetectOrphanStripeLocalsTest extends TestCase
     public function test_detecta_local_huerfano_con_stripe_activo(): void
     {
         Local::factory()->create([
-            'owner_id'               => null,
+            'owner_id' => null,
             'stripe_subscription_id' => 'sub_huerfano',
-            'plan_status'            => 'trialing',
+            'plan_status' => 'trialing',
         ]);
 
         $this->artisan('locales:detect-orphan-stripe')->assertExitCode(1);
@@ -32,7 +32,7 @@ class DetectOrphanStripeLocalsTest extends TestCase
     {
         $owner = User::factory()->create(['rol' => 'owner']);
         Local::factory()->create([
-            'owner_id'               => $owner->id,
+            'owner_id' => $owner->id,
             'stripe_subscription_id' => 'sub_con_dueno',
         ]);
 
@@ -42,9 +42,9 @@ class DetectOrphanStripeLocalsTest extends TestCase
     public function test_no_alerta_si_no_tiene_stripe_subscription(): void
     {
         Local::factory()->create([
-            'owner_id'               => null,
+            'owner_id' => null,
             'stripe_subscription_id' => null,
-            'plan_status'            => 'incomplete',
+            'plan_status' => 'incomplete',
         ]);
 
         $this->artisan('locales:detect-orphan-stripe')->assertExitCode(0);

@@ -7,6 +7,7 @@ use App\Models\Local;
 use App\Models\Pedido;
 use App\Models\Producto;
 use App\Models\Resena;
+use App\Services\Images\ImageUploader;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -21,11 +22,11 @@ class ResenaController extends Controller
     public function store(Request $req, string $pedidoCodigo): JsonResponse
     {
         $data = $req->validate([
-            'producto_id'    => ['required', 'integer'],
-            'calificacion'   => ['required', 'integer', 'between:1,5'],
-            'comentario'     => ['nullable', 'string', 'max:500'],
+            'producto_id' => ['required', 'integer'],
+            'calificacion' => ['required', 'integer', 'between:1,5'],
+            'comentario' => ['nullable', 'string', 'max:500'],
             'nombre_cliente' => ['nullable', 'string', 'max:120'],
-            'image'          => ['nullable', 'image', 'max:5120'], // 5MB
+            'image' => ['nullable', 'image', 'max:5120'], // 5MB
         ]);
 
         $pedido = Pedido::withoutGlobalScopes()
@@ -57,7 +58,7 @@ class ResenaController extends Controller
         $imageUrl = null;
         if ($req->hasFile('image')) {
             try {
-                $result = app(\App\Services\Images\ImageUploader::class)->upload($req->file('image'), 'resenas');
+                $result = app(ImageUploader::class)->upload($req->file('image'), 'resenas');
                 $imageUrl = $result['url'] ?? null;
             } catch (\Throwable $e) {
                 report($e); // no rompe la reseña por fallo de upload
@@ -65,14 +66,14 @@ class ResenaController extends Controller
         }
 
         $resena = Resena::create([
-            'local_id'       => $pedido->local_id,
-            'producto_id'    => $data['producto_id'],
-            'pedido_id'      => $pedido->id,
-            'calificacion'   => (int) $data['calificacion'],
-            'comentario'     => $data['comentario'] ?? null,
-            'image_url'      => $imageUrl,
+            'local_id' => $pedido->local_id,
+            'producto_id' => $data['producto_id'],
+            'pedido_id' => $pedido->id,
+            'calificacion' => (int) $data['calificacion'],
+            'comentario' => $data['comentario'] ?? null,
+            'image_url' => $imageUrl,
             'nombre_cliente' => $data['nombre_cliente'] ?? $pedido->cliente_nombre,
-            'publicada'      => true,
+            'publicada' => true,
         ]);
 
         return response()->json(['data' => $resena], 201);
@@ -82,7 +83,9 @@ class ResenaController extends Controller
     public function porProducto(string $slug, int $productoId): JsonResponse
     {
         $local = Local::where('slug', $slug)->where('activo', true)->first();
-        if (! $local) return response()->json(['message' => 'Local no encontrado'], 404);
+        if (! $local) {
+            return response()->json(['message' => 'Local no encontrado'], 404);
+        }
 
         $resenas = Resena::withoutGlobalScopes()
             ->where('local_id', $local->id)
@@ -92,11 +95,12 @@ class ResenaController extends Controller
             ->limit(30)
             ->get(['calificacion', 'comentario', 'image_url', 'nombre_cliente', 'created_at']);
 
-        $avg   = $resenas->avg('calificacion') ?? 0;
+        $avg = $resenas->avg('calificacion') ?? 0;
+
         return response()->json([
-            'avg'   => round((float) $avg, 1),
+            'avg' => round((float) $avg, 1),
             'count' => $resenas->count(),
-            'data'  => $resenas,
+            'data' => $resenas,
         ]);
     }
 }

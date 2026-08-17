@@ -14,6 +14,7 @@ class StaffCrudTest extends TestCase
     use RefreshDatabase;
 
     private Local $local;
+
     private User $owner;
 
     protected function setUp(): void
@@ -44,19 +45,19 @@ class StaffCrudTest extends TestCase
         Sanctum::actingAs($this->owner, ['*']);
 
         $resp = $this->postJson('/api/v1/local/staff', [
-            'nombre'                => 'Juan Empleado',
-            'email'                 => 'juan@empleado.com',
-            'password'              => 'staff-pass-123',
+            'nombre' => 'Juan Empleado',
+            'email' => 'juan@empleado.com',
+            'password' => 'staff-pass-123',
             'password_confirmation' => 'staff-pass-123',
         ])->assertCreated();
 
         $resp->assertJsonPath('data.email', 'juan@empleado.com')
-             ->assertJsonPath('data.rol', 'staff')
-             ->assertJsonPath('data.local_id', $this->local->id);
+            ->assertJsonPath('data.rol', 'staff')
+            ->assertJsonPath('data.local_id', $this->local->id);
 
         $this->assertDatabaseHas('users', [
-            'email'    => 'juan@empleado.com',
-            'rol'      => 'staff',
+            'email' => 'juan@empleado.com',
+            'rol' => 'staff',
             'local_id' => $this->local->id,
         ]);
 
@@ -71,9 +72,9 @@ class StaffCrudTest extends TestCase
         Sanctum::actingAs($staff, ['*']);
 
         $this->postJson('/api/v1/local/staff', [
-            'nombre'                => 'X',
-            'email'                 => 'x@y.com',
-            'password'              => 'pass-pass-123',
+            'nombre' => 'X',
+            'email' => 'x@y.com',
+            'password' => 'pass-pass-123',
             'password_confirmation' => 'pass-pass-123',
         ])->assertStatus(403);
     }
@@ -85,16 +86,16 @@ class StaffCrudTest extends TestCase
         Sanctum::actingAs($this->owner, ['*']);
 
         $this->postJson('/api/v1/local/staff', [
-            'nombre'                => 'Otro owner',
-            'email'                 => 'otro@owner.com',
-            'password'              => 'pass-pass-123',
+            'nombre' => 'Otro owner',
+            'email' => 'otro@owner.com',
+            'password' => 'pass-pass-123',
             'password_confirmation' => 'pass-pass-123',
-            'rol'                   => 'owner',   // intento de inyección
+            'rol' => 'owner',   // intento de inyección
         ])->assertCreated();
 
         $this->assertDatabaseHas('users', [
             'email' => 'otro@owner.com',
-            'rol'   => 'staff',   // se hardcodea
+            'rol' => 'staff',   // se hardcodea
         ]);
     }
 
@@ -106,10 +107,10 @@ class StaffCrudTest extends TestCase
 
         $this->patchJson("/api/v1/local/staff/{$staff->id}", [
             'nombre' => 'Nuevo nombre',
-            'email'  => 'nuevo@email.com',
+            'email' => 'nuevo@email.com',
         ])->assertOk()
-          ->assertJsonPath('data.nombre', 'Nuevo nombre')
-          ->assertJsonPath('data.email',  'nuevo@email.com');
+            ->assertJsonPath('data.nombre', 'Nuevo nombre')
+            ->assertJsonPath('data.email', 'nuevo@email.com');
     }
 
     /** @test */
@@ -123,7 +124,7 @@ class StaffCrudTest extends TestCase
         Sanctum::actingAs($this->owner, ['*']);
 
         $this->patchJson("/api/v1/local/staff/{$staff->id}", [
-            'password'              => 'nueva-segura-456',
+            'password' => 'nueva-segura-456',
             'password_confirmation' => 'nueva-segura-456',
         ])->assertOk();
 
@@ -157,7 +158,7 @@ class StaffCrudTest extends TestCase
     public function owner_no_puede_editar_staff_de_otro_local(): void
     {
         $otroLocal = Local::factory()->create();
-        $staff     = User::factory()->staff($otroLocal)->create();
+        $staff = User::factory()->staff($otroLocal)->create();
 
         Sanctum::actingAs($this->owner, ['*']);
 
@@ -187,9 +188,9 @@ class StaffCrudTest extends TestCase
         Sanctum::actingAs($this->owner, ['*']);
 
         $this->postJson('/api/v1/local/staff', [
-            'nombre'                => 'X',
-            'email'                 => 'duplicado@example.com',
-            'password'              => 'staff-pass-123',
+            'nombre' => 'X',
+            'email' => 'duplicado@example.com',
+            'password' => 'staff-pass-123',
             'password_confirmation' => 'staff-pass-123',
         ])->assertStatus(422)->assertJsonValidationErrors('email');
     }

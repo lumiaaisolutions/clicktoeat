@@ -22,35 +22,39 @@ class EmailTemplatesController extends Controller
     public function index(): JsonResponse
     {
         $items = EmailTemplate::orderBy('slug')->get();
+
         return response()->json(['data' => $items]);
     }
 
     public function store(Request $req): JsonResponse
     {
         $data = $req->validate([
-            'slug'      => ['required', 'string', 'max:60', 'unique:email_templates,slug'],
-            'subject'   => ['required', 'string', 'max:200'],
+            'slug' => ['required', 'string', 'max:60', 'unique:email_templates,slug'],
+            'subject' => ['required', 'string', 'max:200'],
             'body_html' => ['required', 'string'],
-            'active'    => ['boolean'],
+            'active' => ['boolean'],
         ]);
         $t = EmailTemplate::create($data);
+
         return response()->json(['data' => $t], 201);
     }
 
     public function update(Request $req, EmailTemplate $template): JsonResponse
     {
         $data = $req->validate([
-            'subject'   => ['sometimes', 'required', 'string', 'max:200'],
+            'subject' => ['sometimes', 'required', 'string', 'max:200'],
             'body_html' => ['sometimes', 'required', 'string'],
-            'active'    => ['sometimes', 'boolean'],
+            'active' => ['sometimes', 'boolean'],
         ]);
         $template->update($data);
+
         return response()->json(['data' => $template->fresh()]);
     }
 
     public function destroy(EmailTemplate $template): JsonResponse
     {
         $template->delete();
+
         return response()->json(null, 204);
     }
 
@@ -61,26 +65,26 @@ class EmailTemplatesController extends Controller
     public function preview(Request $req): JsonResponse
     {
         $data = $req->validate([
-            'subject'   => ['required', 'string'],
+            'subject' => ['required', 'string'],
             'body_html' => ['required', 'string'],
         ]);
 
         $sample = [
-            'nombre_local'    => 'Tacos El Gordo',
-            'nombre_cliente'  => 'María González',
-            'pedido_id'       => 1234,
-            'total'           => '$245.00',
-            'link'            => 'https://clicktoeat.lumiaaisolutions.com/tacos-el-gordo',
-            'fecha'           => now()->format('d/m/Y H:i'),
-            'codigo'          => 'BIENVENIDO10',
+            'nombre_local' => 'Tacos El Gordo',
+            'nombre_cliente' => 'María González',
+            'pedido_id' => 1234,
+            'total' => '$245.00',
+            'link' => 'https://clicktoeat.lumiaaisolutions.com/tacos-el-gordo',
+            'fecha' => now()->format('d/m/Y H:i'),
+            'codigo' => 'BIENVENIDO10',
         ];
-        $sub = $this->fill($data['subject'],   $sample);
+        $sub = $this->fill($data['subject'], $sample);
         $bdy = $this->fill($data['body_html'], $sample);
 
         return response()->json([
-            'subject_rendered'   => $sub,
+            'subject_rendered' => $sub,
             'body_html_rendered' => $bdy,
-            'sample_vars'        => $sample,
+            'sample_vars' => $sample,
         ]);
     }
 
@@ -88,8 +92,9 @@ class EmailTemplatesController extends Controller
     {
         foreach ($vars as $k => $v) {
             $tpl = str_replace('{{ '.$k.' }}', (string) $v, $tpl);
-            $tpl = str_replace('{{'.$k.'}}',   (string) $v, $tpl);
+            $tpl = str_replace('{{'.$k.'}}', (string) $v, $tpl);
         }
+
         return $tpl;
     }
 }

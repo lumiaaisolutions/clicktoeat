@@ -23,11 +23,11 @@ class CategoriaFactory extends Factory
 
         return [
             'local_id' => Local::factory(),
-            'nombre'   => $nombre,
-            'slug'     => Str::slug($nombre),
-            'icono'    => 'fa-utensils',
-            'orden'    => $this->faker->numberBetween(0, 100),
-            'activo'   => true,
+            'nombre' => $nombre,
+            'slug' => Str::slug($nombre),
+            'icono' => 'fa-utensils',
+            'orden' => $this->faker->numberBetween(0, 100),
+            'activo' => true,
         ];
     }
 

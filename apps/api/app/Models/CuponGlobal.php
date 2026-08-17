@@ -17,11 +17,11 @@ class CuponGlobal extends Model
     protected function casts(): array
     {
         return [
-            'valor'          => 'decimal:2',
-            'min_subtotal'   => 'decimal:2',
+            'valor' => 'decimal:2',
+            'min_subtotal' => 'decimal:2',
             'aplicar_nuevos' => 'boolean',
-            'vigente_desde'  => 'date',
-            'vigente_hasta'  => 'date',
+            'vigente_desde' => 'date',
+            'vigente_hasta' => 'date',
         ];
     }
 }

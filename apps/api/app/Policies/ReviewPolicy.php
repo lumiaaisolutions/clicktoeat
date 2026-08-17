@@ -18,6 +18,7 @@ class ReviewPolicy
         if ($user->isSuperAdmin()) {
             return true;
         }
+
         return null;
     }
 

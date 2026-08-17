@@ -21,7 +21,7 @@ class MovimientoInventario extends Model
     protected function casts(): array
     {
         return [
-            'cantidad'         => 'decimal:3',
+            'cantidad' => 'decimal:3',
             'stock_resultante' => 'decimal:3',
         ];
     }

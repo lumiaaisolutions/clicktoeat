@@ -18,19 +18,19 @@ class GastosRecurrentesCommandTest extends TestCase
         $local = Local::factory()->create();
 
         Gasto::factory()->create([
-            'local_id'   => $local->id,
-            'categoria'  => 'renta',
-            'concepto'   => 'Renta del local',
+            'local_id' => $local->id,
+            'categoria' => 'renta',
+            'concepto' => 'Renta del local',
             'recurrente' => true,
-            'fecha'      => now()->subDays(40),
+            'fecha' => now()->subDays(40),
         ]);
 
         $this->artisan('gastos:check-recurrentes')->assertExitCode(0);
 
         $this->assertDatabaseHas('notificaciones', [
             'local_id' => $local->id,
-            'tipo'     => 'gasto_recurrente_pendiente',
-            'titulo'   => 'Gasto pendiente: Renta del local',
+            'tipo' => 'gasto_recurrente_pendiente',
+            'titulo' => 'Gasto pendiente: Renta del local',
         ]);
     }
 
@@ -40,18 +40,18 @@ class GastosRecurrentesCommandTest extends TestCase
         $local = Local::factory()->create();
 
         Gasto::factory()->create([
-            'local_id'   => $local->id,
-            'categoria'  => 'renta',
-            'concepto'   => 'Renta del local',
+            'local_id' => $local->id,
+            'categoria' => 'renta',
+            'concepto' => 'Renta del local',
             'recurrente' => true,
-            'fecha'      => now()->subDays(10),  // recent → ok
+            'fecha' => now()->subDays(10),  // recent → ok
         ]);
 
         $this->artisan('gastos:check-recurrentes')->assertExitCode(0);
 
         $this->assertDatabaseMissing('notificaciones', [
             'local_id' => $local->id,
-            'tipo'     => 'gasto_recurrente_pendiente',
+            'tipo' => 'gasto_recurrente_pendiente',
         ]);
     }
 
@@ -61,11 +61,11 @@ class GastosRecurrentesCommandTest extends TestCase
         $local = Local::factory()->create();
 
         Gasto::factory()->create([
-            'local_id'   => $local->id,
-            'categoria'  => 'renta',
-            'concepto'   => 'Renta del local',
+            'local_id' => $local->id,
+            'categoria' => 'renta',
+            'concepto' => 'Renta del local',
             'recurrente' => true,
-            'fecha'      => now()->subDays(40),
+            'fecha' => now()->subDays(40),
         ]);
 
         $this->artisan('gastos:check-recurrentes')->assertExitCode(0);
@@ -84,18 +84,18 @@ class GastosRecurrentesCommandTest extends TestCase
         $local = Local::factory()->create();
 
         Gasto::factory()->create([
-            'local_id'   => $local->id,
-            'categoria'  => 'mantenimiento',
-            'concepto'   => 'Reparación sillas',
+            'local_id' => $local->id,
+            'categoria' => 'mantenimiento',
+            'concepto' => 'Reparación sillas',
             'recurrente' => false,
-            'fecha'      => now()->subDays(60),
+            'fecha' => now()->subDays(60),
         ]);
 
         $this->artisan('gastos:check-recurrentes')->assertExitCode(0);
 
         $this->assertDatabaseMissing('notificaciones', [
             'local_id' => $local->id,
-            'tipo'     => 'gasto_recurrente_pendiente',
+            'tipo' => 'gasto_recurrente_pendiente',
         ]);
     }
 }

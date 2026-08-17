@@ -15,29 +15,29 @@ class PedidoFactory extends Factory
 
     public function definition(): array
     {
-        $subtotal     = $this->faker->randomFloat(2, 50, 800);
-        $deliveryFee  = $this->faker->boolean() ? 35 : 0;
-        $descuento    = 0;
-        $total        = $subtotal + $deliveryFee - $descuento;
+        $subtotal = $this->faker->randomFloat(2, 50, 800);
+        $deliveryFee = $this->faker->boolean() ? 35 : 0;
+        $descuento = 0;
+        $total = $subtotal + $deliveryFee - $descuento;
 
         return [
-            'local_id'         => Local::factory(),
-            'cliente_nombre'   => $this->faker->name(),
+            'local_id' => Local::factory(),
+            'cliente_nombre' => $this->faker->name(),
             'cliente_telefono' => '521'.$this->faker->numerify('##########'),
-            'direccion'        => $deliveryFee > 0 ? $this->faker->address() : null,
-            'notas'            => null,
-            'metodo_entrega'   => $deliveryFee > 0 ? 'delivery' : 'pickup',
-            'metodo_pago'      => $this->faker->randomElement([
+            'direccion' => $deliveryFee > 0 ? $this->faker->address() : null,
+            'notas' => null,
+            'metodo_entrega' => $deliveryFee > 0 ? 'delivery' : 'pickup',
+            'metodo_pago' => $this->faker->randomElement([
                 'efectivo', 'tarjeta_entrega', 'transferencia',
             ]),
-            'subtotal'         => $subtotal,
-            'delivery_fee'     => $deliveryFee,
-            'descuento'        => $descuento,
-            'total'            => $total,
-            'estado'           => 'nuevo',
-            'whatsapp_url'     => null,
-            'confirmado_at'    => null,
-            'entregado_at'     => null,
+            'subtotal' => $subtotal,
+            'delivery_fee' => $deliveryFee,
+            'descuento' => $descuento,
+            'total' => $total,
+            'estado' => 'nuevo',
+            'whatsapp_url' => null,
+            'confirmado_at' => null,
+            'entregado_at' => null,
         ];
     }
 
@@ -49,9 +49,9 @@ class PedidoFactory extends Factory
     public function conEstado(string $estado): static
     {
         return $this->state(fn () => array_filter([
-            'estado'        => $estado,
+            'estado' => $estado,
             'confirmado_at' => in_array($estado, ['confirmado', 'preparando', 'listo', 'en_camino', 'entregado'], true) ? now() : null,
-            'entregado_at'  => $estado === 'entregado' ? now() : null,
+            'entregado_at' => $estado === 'entregado' ? now() : null,
         ], fn ($v) => $v !== null || true));
     }
 
@@ -69,8 +69,8 @@ class PedidoFactory extends Factory
     {
         return $this->state(fn () => [
             'metodo_entrega' => 'delivery',
-            'delivery_fee'   => 35,
-            'direccion'      => $this->faker->address(),
+            'delivery_fee' => 35,
+            'direccion' => $this->faker->address(),
         ]);
     }
 
@@ -78,8 +78,8 @@ class PedidoFactory extends Factory
     {
         return $this->state(fn () => [
             'metodo_entrega' => 'pickup',
-            'delivery_fee'   => 0,
-            'direccion'      => null,
+            'delivery_fee' => 0,
+            'direccion' => null,
         ]);
     }
 
@@ -87,9 +87,9 @@ class PedidoFactory extends Factory
     {
         return $this->state(fn () => [
             'metodo_entrega' => 'sucursal',
-            'metodo_pago'    => 'tarjeta_tpv',
-            'delivery_fee'   => 0,
-            'direccion'      => null,
+            'metodo_pago' => 'tarjeta_tpv',
+            'delivery_fee' => 0,
+            'direccion' => null,
             'cliente_nombre' => 'Mostrador',
         ]);
     }

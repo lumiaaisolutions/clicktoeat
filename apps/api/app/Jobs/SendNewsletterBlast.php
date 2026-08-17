@@ -28,12 +28,17 @@ class SendNewsletterBlast implements ShouldQueue
     public function handle(): void
     {
         $blast = NewsletterBlast::find($this->blastId);
-        if (! $blast) return;
+        if (! $blast) {
+            return;
+        }
 
         $query = User::query()->whereNotNull('email');
-        if ($this->rol !== 'todos') $query->where('rol', $this->rol);
+        if ($this->rol !== 'todos') {
+            $query->where('rol', $this->rol);
+        }
 
-        $sent = 0; $failed = 0;
+        $sent = 0;
+        $failed = 0;
         $query->select('id', 'nombre', 'email')->chunkById(100, function ($users) use ($blast, &$sent, &$failed) {
             foreach ($users as $u) {
                 try {
@@ -51,9 +56,9 @@ class SendNewsletterBlast implements ShouldQueue
         });
 
         $blast->update([
-            'sent_count'   => $sent,
+            'sent_count' => $sent,
             'failed_count' => $failed,
-            'finished_at'  => now(),
+            'finished_at' => now(),
         ]);
     }
 }

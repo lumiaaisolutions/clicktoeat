@@ -26,14 +26,18 @@ class UploadController extends Controller
      *     tags={"Uploads"},
      *     security={{"sanctum":{}}},
      *     summary="Sube una imagen al servidor.",
+     *
      *     @OA\RequestBody(required=true, @OA\MediaType(
      *         mediaType="multipart/form-data",
+     *
      *         @OA\Schema(
      *             required={"image"},
+     *
      *             @OA\Property(property="image", type="string", format="binary"),
      *             @OA\Property(property="folder", type="string", enum={"productos","locales","banners","logos"})
      *         )
      *     )),
+     *
      *     @OA\Response(response=201, description="Created")
      * )
      */

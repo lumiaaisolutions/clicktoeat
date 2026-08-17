@@ -24,7 +24,7 @@ class PaymentFailedMail extends Mailable
     public function content(): Content
     {
         return $this->editableContent('payment_failed', 'emails.payment-failed', [
-            'local'  => $this->local,
+            'local' => $this->local,
             'portal' => config('stripe.portal_return_url'),
         ]);
     }
@@ -33,8 +33,8 @@ class PaymentFailedMail extends Mailable
     {
         return [
             'nombre_local' => $this->local->nombre,
-            'link'         => (string) config('stripe.portal_return_url'),
-            'fecha'        => now()->format('d/m/Y'),
+            'link' => (string) config('stripe.portal_return_url'),
+            'fecha' => now()->format('d/m/Y'),
         ];
     }
 }

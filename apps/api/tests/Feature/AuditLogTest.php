@@ -16,14 +16,16 @@ class AuditLogTest extends TestCase
     use RefreshDatabase;
 
     private Local $local;
+
     private User $owner;
+
     private Categoria $categoria;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->local     = Local::factory()->create();
-        $this->owner     = User::factory()->owner($this->local)->create();
+        $this->local = Local::factory()->create();
+        $this->owner = User::factory()->owner($this->local)->create();
         $this->categoria = Categoria::factory()->paraLocal($this->local)->create();
     }
 
@@ -34,8 +36,8 @@ class AuditLogTest extends TestCase
 
         $this->postJson('/api/v1/productos', [
             'categoria_id' => $this->categoria->id,
-            'nombre'       => 'Taco audit',
-            'precio'       => 30,
+            'nombre' => 'Taco audit',
+            'precio' => 30,
         ])->assertCreated();
 
         $log = AuditLog::where('resource_type', Producto::class)
@@ -84,21 +86,21 @@ class AuditLogTest extends TestCase
 
         $this->assertDatabaseHas('audit_logs', [
             'resource_type' => Producto::class,
-            'resource_id'   => $producto->id,
-            'action'        => 'deleted',
+            'resource_id' => $producto->id,
+            'action' => 'deleted',
             'actor_user_id' => $this->owner->id,
         ]);
     }
 
     /** @test */
-    public function audit_log_NO_incluye_password_aunque_cambie(): void
+    public function audit_log_n_o_incluye_password_aunque_cambie(): void
     {
         $staff = User::factory()->staff($this->local)->create(['nombre' => 'Original']);
         Sanctum::actingAs($this->owner, ['*']);
 
         $this->patchJson("/api/v1/local/staff/{$staff->id}", [
-            'nombre'                => 'Cambiado',
-            'password'              => 'nueva-segura-456',
+            'nombre' => 'Cambiado',
+            'password' => 'nueva-segura-456',
             'password_confirmation' => 'nueva-segura-456',
         ])->assertOk();
 
@@ -118,7 +120,7 @@ class AuditLogTest extends TestCase
     {
         Producto::factory()->paraLocal($this->local, $this->categoria)->create();   // log de este local
 
-        $otroLocal     = Local::factory()->create();
+        $otroLocal = Local::factory()->create();
         $otraCategoria = Categoria::factory()->paraLocal($otroLocal)->create();
         Producto::factory()->paraLocal($otroLocal, $otraCategoria)->create();   // log de otro local
 
@@ -151,10 +153,10 @@ class AuditLogTest extends TestCase
     /** @test */
     public function super_admin_ve_todos_los_logs(): void
     {
-        $superAdmin    = User::factory()->superAdmin()->create();
+        $superAdmin = User::factory()->superAdmin()->create();
         Producto::factory()->paraLocal($this->local, $this->categoria)->create();
 
-        $otroLocal     = Local::factory()->create();
+        $otroLocal = Local::factory()->create();
         $otraCategoria = Categoria::factory()->paraLocal($otroLocal)->create();
         Producto::factory()->paraLocal($otroLocal, $otraCategoria)->create();
 

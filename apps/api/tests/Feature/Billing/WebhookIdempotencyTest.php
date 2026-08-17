@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Billing;
 
-use App\Models\Local;
 use App\Models\SubscriptionEvent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -35,9 +34,9 @@ class WebhookIdempotencyTest extends TestCase
     {
         SubscriptionEvent::create([
             'stripe_event_id' => 'evt_test_already_processed',
-            'type'            => 'invoice.paid',
-            'payload'         => ['id' => 'evt_test_already_processed'],
-            'processed_at'    => now(),
+            'type' => 'invoice.paid',
+            'payload' => ['id' => 'evt_test_already_processed'],
+            'processed_at' => now(),
         ]);
 
         // No podemos ejecutar el endpoint real porque firma fallaría; lo que

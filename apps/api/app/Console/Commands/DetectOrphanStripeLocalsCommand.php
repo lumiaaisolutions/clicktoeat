@@ -23,7 +23,8 @@ use RuntimeException;
  */
 class DetectOrphanStripeLocalsCommand extends Command
 {
-    protected $signature   = 'locales:detect-orphan-stripe';
+    protected $signature = 'locales:detect-orphan-stripe';
+
     protected $description = 'Alerta sobre locales con suscripción Stripe activa pero sin owner_id vinculado.';
 
     public function handle(): int
@@ -36,18 +37,19 @@ class DetectOrphanStripeLocalsCommand extends Command
 
         if ($orphans->isEmpty()) {
             $this->info('Sin locales huérfanos con Stripe activo.');
+
             return self::SUCCESS;
         }
 
         $detalle = $orphans->map(fn (Local $l) => [
-            'id'                     => $l->id,
-            'nombre'                 => $l->nombre,
-            'slug'                   => $l->slug,
-            'stripe_customer_id'     => $l->stripe_customer_id,
+            'id' => $l->id,
+            'nombre' => $l->nombre,
+            'slug' => $l->slug,
+            'stripe_customer_id' => $l->stripe_customer_id,
             'stripe_subscription_id' => $l->stripe_subscription_id,
-            'plan_status'            => $l->plan_status,
-            'trial_ends_at'          => $l->trial_ends_at?->toIso8601String(),
-            'created_at'             => $l->created_at?->toIso8601String(),
+            'plan_status' => $l->plan_status,
+            'trial_ends_at' => $l->trial_ends_at?->toIso8601String(),
+            'created_at' => $l->created_at?->toIso8601String(),
         ])->all();
 
         Log::critical('Locales con Stripe activo sin owner_id (huérfanos)', ['locales' => $detalle]);

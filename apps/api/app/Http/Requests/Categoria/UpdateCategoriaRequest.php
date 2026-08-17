@@ -16,17 +16,17 @@ class UpdateCategoriaRequest extends FormRequest
     public function rules(): array
     {
         $categoria = $this->route('categoria');
-        $localId   = $this->user()->local_id;
+        $localId = $this->user()->local_id;
 
         return [
             'nombre' => ['sometimes', 'required', 'string', 'min:1', 'max:80'],
-            'slug'   => ['sometimes', 'required', 'string', 'max:80',
+            'slug' => ['sometimes', 'required', 'string', 'max:80',
                 Rule::unique('categorias', 'slug')
                     ->where('local_id', $localId)
                     ->ignore($categoria?->id),
             ],
-            'icono'  => ['sometimes', 'nullable', 'string', 'max:60'],
-            'orden'  => ['sometimes', 'integer', 'min:0', 'max:9999'],
+            'icono' => ['sometimes', 'nullable', 'string', 'max:60'],
+            'orden' => ['sometimes', 'integer', 'min:0', 'max:9999'],
             'activo' => ['sometimes', 'boolean'],
         ];
     }

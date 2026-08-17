@@ -3,6 +3,7 @@
 namespace App\Mail\Concerns;
 
 use App\Models\EmailTemplate;
+use Illuminate\Mail\Mailables\Content;
 
 /**
  * Mailables que mezclan plantilla Blade hardcoded con override del super_admin.
@@ -26,7 +27,10 @@ trait UsesEditableTemplate
     protected function editableSubject(string $slug, string $fallback): string
     {
         $t = EmailTemplate::findBySlug($slug);
-        if (! $t) return $fallback;
+        if (! $t) {
+            return $fallback;
+        }
+
         return $this->fillPlaceholders($t->subject, $this->templateVars());
     }
 
@@ -34,14 +38,15 @@ trait UsesEditableTemplate
      * Devuelve un `Content` que sirve HTML del template editable, o cae al
      * Blade hardcoded si no hay registro activo.
      */
-    protected function editableContent(string $slug, string $fallbackBlade, array $with = []): \Illuminate\Mail\Mailables\Content
+    protected function editableContent(string $slug, string $fallbackBlade, array $with = []): Content
     {
         $t = EmailTemplate::findBySlug($slug);
         if (! $t) {
-            return new \Illuminate\Mail\Mailables\Content(view: $fallbackBlade, with: $with);
+            return new Content(view: $fallbackBlade, with: $with);
         }
         $html = $this->fillPlaceholders($t->body_html, array_merge($with, $this->templateVars()));
-        return new \Illuminate\Mail\Mailables\Content(htmlString: $html);
+
+        return new Content(htmlString: $html);
     }
 
     /**
@@ -56,10 +61,13 @@ trait UsesEditableTemplate
     private function fillPlaceholders(string $tpl, array $vars): string
     {
         foreach ($vars as $k => $v) {
-            if (! is_scalar($v) && ! (is_object($v) && method_exists($v, '__toString'))) continue;
+            if (! is_scalar($v) && ! (is_object($v) && method_exists($v, '__toString'))) {
+                continue;
+            }
             $tpl = str_replace('{{ '.$k.' }}', (string) $v, $tpl);
-            $tpl = str_replace('{{'.$k.'}}',   (string) $v, $tpl);
+            $tpl = str_replace('{{'.$k.'}}', (string) $v, $tpl);
         }
+
         return $tpl;
     }
 }

@@ -4,7 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::table('users', function (Blueprint $t) {
@@ -14,10 +15,13 @@ return new class extends Migration {
             }
         });
     }
+
     public function down(): void
     {
         Schema::table('users', function (Blueprint $t) {
-            if (Schema::hasColumn('users', 'notif_filtro')) $t->dropColumn('notif_filtro');
+            if (Schema::hasColumn('users', 'notif_filtro')) {
+                $t->dropColumn('notif_filtro');
+            }
         });
     }
 };

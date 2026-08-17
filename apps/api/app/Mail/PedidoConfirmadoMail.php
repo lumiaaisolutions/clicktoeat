@@ -19,6 +19,7 @@ class PedidoConfirmadoMail extends Mailable
     public function envelope(): Envelope
     {
         $local = $this->pedido->local;
+
         return new Envelope(
             subject: $this->editableSubject(
                 'pedido_confirmado',
@@ -32,19 +33,20 @@ class PedidoConfirmadoMail extends Mailable
     {
         return $this->editableContent('pedido_confirmado', 'mail.pedido_confirmado', [
             'pedido' => $this->pedido,
-            'local'  => $this->pedido->local,
+            'local' => $this->pedido->local,
         ]);
     }
 
     protected function templateVars(): array
     {
         $local = $this->pedido->local;
+
         return [
-            'nombre_local'   => $local->nombre,
+            'nombre_local' => $local->nombre,
             'nombre_cliente' => $this->pedido->cliente_nombre ?? '',
-            'pedido_id'      => $this->pedido->codigo ?? $this->pedido->id,
-            'total'          => '$'.number_format((float) $this->pedido->total, 2),
-            'fecha'          => $this->pedido->created_at?->format('d/m/Y H:i'),
+            'pedido_id' => $this->pedido->codigo ?? $this->pedido->id,
+            'total' => '$'.number_format((float) $this->pedido->total, 2),
+            'fecha' => $this->pedido->created_at?->format('d/m/Y H:i'),
         ];
     }
 }

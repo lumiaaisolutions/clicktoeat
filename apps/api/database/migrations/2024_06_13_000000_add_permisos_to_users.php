@@ -13,7 +13,8 @@ use Illuminate\Support\Facades\Schema;
  *   pedidos, pos, productos, categorias, inventario, compras, recetas,
  *   metricas, branding, qr, horarios, audit_log
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {

@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\Schema;
  * rawurlencode (espacios → %20, acentos → %C3%xx) duplica o triplica el
  * tamaño visible. Pasamos la columna a TEXT para evitar el truncado.
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::table('pedidos', function (Blueprint $table) {

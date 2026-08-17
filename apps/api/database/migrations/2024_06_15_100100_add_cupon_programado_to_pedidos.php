@@ -4,7 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::table('pedidos', function (Blueprint $t) {
@@ -26,7 +27,9 @@ return new class extends Migration {
     {
         Schema::table('pedidos', function (Blueprint $t) {
             foreach (['cupon_codigo', 'descuento', 'programado_para'] as $col) {
-                if (Schema::hasColumn('pedidos', $col)) $t->dropColumn($col);
+                if (Schema::hasColumn('pedidos', $col)) {
+                    $t->dropColumn($col);
+                }
             }
         });
     }

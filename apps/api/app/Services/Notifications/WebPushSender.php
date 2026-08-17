@@ -3,6 +3,7 @@
 namespace App\Services\Notifications;
 
 use App\Models\PushSubscription;
+use App\Models\User;
 use Minishlink\WebPush\Subscription;
 use Minishlink\WebPush\WebPush;
 use Throwable;
@@ -23,8 +24,10 @@ class WebPushSender
     /** Envía a TODOS los super_admin suscritos. Útil para tickets, signups, etc. */
     public function sendToSuperAdmins(array $payload): void
     {
-        $userIds = \App\Models\User::query()->where('rol', 'super_admin')->pluck('id');
-        if ($userIds->isEmpty()) return;
+        $userIds = User::query()->where('rol', 'super_admin')->pluck('id');
+        if ($userIds->isEmpty()) {
+            return;
+        }
         $this->sendToSubs(PushSubscription::query()->whereIn('user_id', $userIds)->get(), $payload);
     }
 
@@ -37,17 +40,21 @@ class WebPushSender
     private function sendToSubs($subs, array $payload): void
     {
         $webPush = $this->build();
-        if (! $webPush) return;
-        if ($subs->isEmpty()) return;
+        if (! $webPush) {
+            return;
+        }
+        if ($subs->isEmpty()) {
+            return;
+        }
 
         $json = json_encode($payload, JSON_UNESCAPED_UNICODE);
 
         foreach ($subs as $sub) {
             $webPush->queueNotification(
                 Subscription::create([
-                    'endpoint'        => $sub->endpoint,
-                    'publicKey'       => $sub->p256dh,
-                    'authToken'       => $sub->auth,
+                    'endpoint' => $sub->endpoint,
+                    'publicKey' => $sub->p256dh,
+                    'authToken' => $sub->auth,
                     'contentEncoding' => 'aesgcm',
                 ]),
                 $json,
@@ -71,16 +78,18 @@ class WebPushSender
 
     private function build(): ?WebPush
     {
-        $public  = (string) config('services.webpush.public_key', env('VAPID_PUBLIC_KEY'));
+        $public = (string) config('services.webpush.public_key', env('VAPID_PUBLIC_KEY'));
         $private = (string) config('services.webpush.private_key', env('VAPID_PRIVATE_KEY'));
         $subject = (string) config('services.webpush.subject', env('VAPID_SUBJECT', 'mailto:soporte@lumiaaisolutions.com'));
 
-        if (! $public || ! $private) return null;
+        if (! $public || ! $private) {
+            return null;
+        }
 
         return new WebPush([
             'VAPID' => [
-                'subject'    => $subject,
-                'publicKey'  => $public,
+                'subject' => $subject,
+                'publicKey' => $public,
                 'privateKey' => $private,
             ],
         ], [], 5);

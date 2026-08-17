@@ -20,6 +20,7 @@ class CuponPolicy
         if ($user->isSuperAdmin()) {
             return true;
         }
+
         return null;
     }
 

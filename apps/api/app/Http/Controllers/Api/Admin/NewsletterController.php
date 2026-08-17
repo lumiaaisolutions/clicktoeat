@@ -22,8 +22,8 @@ class NewsletterController extends Controller
     {
         $data = $req->validate([
             'asunto' => ['required', 'string', 'max:200'],
-            'body'   => ['required', 'string', 'max:10000'],
-            'rol'    => ['sometimes', 'in:owner,super_admin,todos'],
+            'body' => ['required', 'string', 'max:10000'],
+            'rol' => ['sometimes', 'in:owner,super_admin,todos'],
         ]);
 
         $rol = $data['rol'] ?? 'owner';
@@ -32,11 +32,11 @@ class NewsletterController extends Controller
             ->count();
 
         $blast = NewsletterBlast::create([
-            'user_id'          => $req->user()->id,
-            'asunto'           => $data['asunto'],
-            'body'             => $data['body'],
+            'user_id' => $req->user()->id,
+            'asunto' => $data['asunto'],
+            'body' => $data['body'],
             'recipients_count' => $count,
-            'started_at'       => now(),
+            'started_at' => now(),
         ]);
 
         // Dispatch al Job: corre sync con QUEUE_CONNECTION=sync (default actual),

@@ -16,12 +16,12 @@ class StoreStaffRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nombre'                => ['required', 'string', 'min:2', 'max:120'],
-            'email'                 => ['required', 'email:rfc', 'unique:users,email'],
-            'password'              => ['required', Password::min(8)->letters()->numbers()],
+            'nombre' => ['required', 'string', 'min:2', 'max:120'],
+            'email' => ['required', 'email:rfc', 'unique:users,email'],
+            'password' => ['required', Password::min(8)->letters()->numbers()],
             'password_confirmation' => ['sometimes'],
-            'permisos'              => ['sometimes', 'array'],
-            'permisos.*'            => ['string', 'in:'.implode(',', User::MODULOS_VALIDOS)],
+            'permisos' => ['sometimes', 'array'],
+            'permisos.*' => ['string', 'in:'.implode(',', User::MODULOS_VALIDOS)],
         ];
     }
 }

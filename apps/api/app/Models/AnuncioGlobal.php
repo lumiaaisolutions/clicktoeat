@@ -16,19 +16,26 @@ class AnuncioGlobal extends Model
     protected function casts(): array
     {
         return [
-            'active'        => 'boolean',
+            'active' => 'boolean',
             'show_to_super' => 'boolean',
-            'starts_at'     => 'datetime',
-            'ends_at'       => 'datetime',
+            'starts_at' => 'datetime',
+            'ends_at' => 'datetime',
         ];
     }
 
     public function isVisibleNow(): bool
     {
-        if (! $this->active) return false;
+        if (! $this->active) {
+            return false;
+        }
         $now = now();
-        if ($this->starts_at && $now->lt($this->starts_at)) return false;
-        if ($this->ends_at   && $now->gt($this->ends_at))   return false;
+        if ($this->starts_at && $now->lt($this->starts_at)) {
+            return false;
+        }
+        if ($this->ends_at && $now->gt($this->ends_at)) {
+            return false;
+        }
+
         return true;
     }
 }

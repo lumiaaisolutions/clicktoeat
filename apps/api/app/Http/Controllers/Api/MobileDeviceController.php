@@ -33,27 +33,27 @@ class MobileDeviceController extends Controller
         if ($existing && $existing->user_id !== $user->id) {
             return response()->json([
                 'message' => 'Este dispositivo ya está registrado para otra cuenta. Cierra sesión en el otro dispositivo primero.',
-                'code'    => 'device_already_registered',
+                'code' => 'device_already_registered',
             ], 409);
         }
 
         $device = MobileDevice::updateOrCreate(
             [
                 'expo_push_token' => $data['expo_push_token'],
-                'user_id'         => $user->id,
+                'user_id' => $user->id,
             ],
             [
-                'local_id'     => $user->local_id,
-                'platform'     => $data['platform'],
-                'device_name'  => $data['device_name'] ?? null,
-                'app_version'  => $data['app_version'] ?? null,
+                'local_id' => $user->local_id,
+                'platform' => $data['platform'],
+                'device_name' => $data['device_name'] ?? null,
+                'app_version' => $data['app_version'] ?? null,
                 'last_seen_at' => now(),
             ],
         );
 
         return response()->json([
             'data' => [
-                'id'       => $device->id,
+                'id' => $device->id,
                 'platform' => $device->platform,
             ],
         ], 201);

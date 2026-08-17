@@ -19,7 +19,7 @@ class CuponController extends Controller
     public function validar(Request $req, string $slug): JsonResponse
     {
         $data = $req->validate([
-            'codigo'   => ['required', 'string', 'max:32'],
+            'codigo' => ['required', 'string', 'max:32'],
             'subtotal' => ['required', 'numeric', 'min:0'],
         ]);
 
@@ -55,21 +55,22 @@ class CuponController extends Controller
         }
         if ((float) $data['subtotal'] < (float) $cupon->min_subtotal) {
             return response()->json([
-                'valid'   => false,
+                'valid' => false,
                 'message' => "Tu pedido necesita ser de al menos \${$cupon->min_subtotal} MXN para usar este cupón.",
                 'min_subtotal' => (float) $cupon->min_subtotal,
             ], 200);
         }
 
         $descuento = $cupon->calcularDescuento((float) $data['subtotal']);
+
         return response()->json([
-            'valid'      => true,
-            'codigo'     => $cupon->codigo,
-            'tipo'       => $cupon->tipo,
-            'valor'      => (float) $cupon->valor,
-            'descuento'  => round($descuento, 2),
+            'valid' => true,
+            'codigo' => $cupon->codigo,
+            'tipo' => $cupon->tipo,
+            'valor' => (float) $cupon->valor,
+            'descuento' => round($descuento, 2),
             'subtotal_con_descuento' => round((float) $data['subtotal'] - $descuento, 2),
-            'message'    => $cupon->tipo === 'percent'
+            'message' => $cupon->tipo === 'percent'
                 ? "Aplicado: {$cupon->valor}% de descuento."
                 : 'Descuento aplicado.',
         ]);
@@ -82,7 +83,9 @@ class CuponController extends Controller
     public function destacados(string $slug): JsonResponse
     {
         $local = Local::where('slug', $slug)->where('activo', true)->first();
-        if (! $local) return response()->json(['data' => []]);
+        if (! $local) {
+            return response()->json(['data' => []]);
+        }
 
         $items = Cupon::withoutGlobalScopes()
             ->where('local_id', $local->id)
@@ -91,15 +94,15 @@ class CuponController extends Controller
             ->get()
             ->filter(fn ($c) => $c->aplicaEnEsteMomento() && $c->tieneCupoDisponible())
             ->map(fn ($c) => [
-                'id'                  => $c->id,
-                'codigo'              => $c->codigo,
-                'tipo'                => $c->tipo,
-                'valor'               => (float) $c->valor,
-                'min_subtotal'        => (float) $c->min_subtotal,
+                'id' => $c->id,
+                'codigo' => $c->codigo,
+                'tipo' => $c->tipo,
+                'valor' => (float) $c->valor,
+                'min_subtotal' => (float) $c->min_subtotal,
                 'productos_sugeridos' => $c->productos_sugeridos ?? [],
-                'hora_inicio'         => $c->hora_inicio,
-                'hora_fin'            => $c->hora_fin,
-                'descripcion_corta'   => $c->tipo === 'percent'
+                'hora_inicio' => $c->hora_inicio,
+                'hora_fin' => $c->hora_fin,
+                'descripcion_corta' => $c->tipo === 'percent'
                     ? "{$c->valor}% OFF con {$c->codigo}"
                     : "\${$c->valor} OFF con {$c->codigo}",
             ])

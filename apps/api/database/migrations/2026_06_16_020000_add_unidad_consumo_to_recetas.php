@@ -19,7 +19,8 @@ use Illuminate\Support\Facades\Schema;
  * Si unidad_consumo == ingrediente.unidad (o es null), no se convierte.
  * Si las unidades son incompatibles, InventoryService lanza una excepción.
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::table('recetas', function (Blueprint $t) {

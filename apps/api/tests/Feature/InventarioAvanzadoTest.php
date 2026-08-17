@@ -11,9 +11,7 @@ use App\Models\Pedido;
 use App\Models\Producto;
 use App\Models\Receta;
 use App\Models\User;
-use App\Services\Inventory\InventoryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -29,9 +27,13 @@ class InventarioAvanzadoTest extends TestCase
     use RefreshDatabase;
 
     protected Local $local;
-    protected User  $owner;
+
+    protected User $owner;
+
     protected Producto $taco;
+
     protected Ingrediente $tortilla;
+
     protected Ingrediente $carne;
 
     protected function setUp(): void
@@ -87,8 +89,8 @@ class InventarioAvanzadoTest extends TestCase
             'items' => [['producto_id' => $this->taco->id, 'cantidad' => 5]],
         ])->assertCreated();
 
-        $this->assertEqualsWithDelta(95.0,  (float) $this->tortilla->fresh()->stock, 0.001);
-        $this->assertEqualsWithDelta(4.60,  (float) $this->carne->fresh()->stock,    0.001);
+        $this->assertEqualsWithDelta(95.0, (float) $this->tortilla->fresh()->stock, 0.001);
+        $this->assertEqualsWithDelta(4.60, (float) $this->carne->fresh()->stock, 0.001);
 
         $pedido = Pedido::firstOrFail();
 
@@ -99,7 +101,7 @@ class InventarioAvanzadoTest extends TestCase
             ->assertJsonPath('data.estado', 'cancelado');
 
         $this->assertEqualsWithDelta(100.0, (float) $this->tortilla->fresh()->stock, 0.001);
-        $this->assertEqualsWithDelta(5.0,   (float) $this->carne->fresh()->stock,    0.001);
+        $this->assertEqualsWithDelta(5.0, (float) $this->carne->fresh()->stock, 0.001);
 
         // Hay movimientos: 2 salidas + 2 entradas (reintegro)
         $this->assertSame(4, MovimientoInventario::count());
@@ -256,9 +258,9 @@ class InventarioAvanzadoTest extends TestCase
             'nombre' => 'Combo de 2 tacos', 'slug' => 'combo-2', 'precio' => 55, 'disponible' => true,
         ]);
         Receta::create([
-            'producto_id'            => $combo->id,
+            'producto_id' => $combo->id,
             'componente_producto_id' => $this->taco->id,  // 1 combo = 2 tacos
-            'cantidad'               => 2,
+            'cantidad' => 2,
         ]);
 
         // 1 combo → expande a 2 tacos → 2 tortillas + 0.16 kg carne
@@ -268,8 +270,8 @@ class InventarioAvanzadoTest extends TestCase
             'items' => [['producto_id' => $combo->id, 'cantidad' => 1]],
         ])->assertCreated();
 
-        $this->assertEqualsWithDelta(98.0,  (float) $this->tortilla->fresh()->stock, 0.001);
-        $this->assertEqualsWithDelta(4.84,  (float) $this->carne->fresh()->stock,    0.001);
+        $this->assertEqualsWithDelta(98.0, (float) $this->tortilla->fresh()->stock, 0.001);
+        $this->assertEqualsWithDelta(4.84, (float) $this->carne->fresh()->stock, 0.001);
     }
 
     /** @test */
@@ -299,8 +301,8 @@ class InventarioAvanzadoTest extends TestCase
         ])->assertCreated();
 
         // 4 tacos = 4 tortillas + 0.32 kg carne
-        $this->assertEqualsWithDelta(96.0,  (float) $this->tortilla->fresh()->stock, 0.001);
-        $this->assertEqualsWithDelta(4.68,  (float) $this->carne->fresh()->stock,    0.001);
+        $this->assertEqualsWithDelta(96.0, (float) $this->tortilla->fresh()->stock, 0.001);
+        $this->assertEqualsWithDelta(4.68, (float) $this->carne->fresh()->stock, 0.001);
     }
 
     /** @test */

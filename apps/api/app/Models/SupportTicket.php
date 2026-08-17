@@ -21,7 +21,18 @@ class SupportTicket extends Model
         ];
     }
 
-    public function local():  BelongsTo { return $this->belongsTo(Local::class); }
-    public function user():   BelongsTo { return $this->belongsTo(User::class); }
-    public function messages(): HasMany { return $this->hasMany(SupportMessage::class, 'ticket_id'); }
+    public function local(): BelongsTo
+    {
+        return $this->belongsTo(Local::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function messages(): HasMany
+    {
+        return $this->hasMany(SupportMessage::class, 'ticket_id');
+    }
 }

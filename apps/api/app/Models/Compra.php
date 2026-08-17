@@ -24,10 +24,10 @@ class Compra extends Model
     protected function casts(): array
     {
         return [
-            'fecha'     => 'date',
-            'subtotal'  => 'decimal:2',
+            'fecha' => 'date',
+            'subtotal' => 'decimal:2',
             'impuestos' => 'decimal:2',
-            'total'     => 'decimal:2',
+            'total' => 'decimal:2',
         ];
     }
 

@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Schema;
  * el aislamiento por `local_id` (TenantScope) — es una capa opcional por
  * ENCIMA de Local, de sólo lectura en v1.
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::create('organizations', function (Blueprint $t) {

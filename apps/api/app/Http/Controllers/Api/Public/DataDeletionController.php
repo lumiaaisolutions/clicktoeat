@@ -7,6 +7,7 @@ use App\Models\Pedido;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Endpoint de derecho de borrado (LFPDPPP México / GDPR equivalencia).
@@ -40,20 +41,20 @@ class DataDeletionController extends Controller
                 ->withoutGlobalScopes()
                 ->whereRaw('LOWER(cliente_email) = ?', [$email])
                 ->update([
-                    'cliente_nombre'    => 'Cliente (datos borrados)',
-                    'cliente_email'     => null,
-                    'cliente_telefono'  => null,
-                    'direccion'         => null,
-                    'notas'             => null,
+                    'cliente_nombre' => 'Cliente (datos borrados)',
+                    'cliente_email' => null,
+                    'cliente_telefono' => null,
+                    'direccion' => null,
+                    'notas' => null,
                 ]);
 
             // Carrito abandonado si la tabla existe (F75)
-            if (\Illuminate\Support\Facades\Schema::hasTable('carritos_abandonados')) {
+            if (Schema::hasTable('carritos_abandonados')) {
                 DB::table('carritos_abandonados')->whereRaw('LOWER(email) = ?', [$email])->delete();
             }
 
             // Sellos de lealtad si existe (F73)
-            if (\Illuminate\Support\Facades\Schema::hasTable('lealtad_sellos')) {
+            if (Schema::hasTable('lealtad_sellos')) {
                 DB::table('lealtad_sellos')->whereRaw('LOWER(cliente_email) = ?', [$email])->delete();
             }
 

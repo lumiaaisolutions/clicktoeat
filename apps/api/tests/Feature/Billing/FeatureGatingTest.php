@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Billing;
 
+use App\Models\Categoria;
 use App\Models\Local;
 use App\Models\Producto;
 use App\Models\User;
@@ -45,7 +46,7 @@ class FeatureGatingTest extends TestCase
         $this->getJson('/api/v1/audit-logs')->assertOk();
     }
 
-    public function test_essential_NO_accede_a_audit_log(): void
+    public function test_essential_n_o_accede_a_audit_log(): void
     {
         $local = Local::factory()->withPlan('essential')->create();
         $owner = User::factory()->owner($local)->create();
@@ -61,7 +62,7 @@ class FeatureGatingTest extends TestCase
     {
         $local = Local::factory()->withPlan('essential')->create();
         // Categoría real del mismo local para que el FormRequest valide ok.
-        $categoria = \App\Models\Categoria::factory()->create(['local_id' => $local->id]);
+        $categoria = Categoria::factory()->create(['local_id' => $local->id]);
         Producto::factory()->count(30)->create(['local_id' => $local->id, 'categoria_id' => $categoria->id]);
 
         $owner = User::factory()->owner($local)->create();
@@ -69,12 +70,12 @@ class FeatureGatingTest extends TestCase
 
         // El producto 31 debe ser rechazado con PLAN_LIMIT
         $this->postJson('/api/v1/productos', [
-            'nombre'       => 'Producto rechazado',
-            'precio'       => 100,
+            'nombre' => 'Producto rechazado',
+            'precio' => 100,
             'categoria_id' => $categoria->id,
         ])->assertStatus(402)
-          ->assertJsonPath('code', 'PLAN_LIMIT')
-          ->assertJsonPath('limit', 30);
+            ->assertJsonPath('code', 'PLAN_LIMIT')
+            ->assertJsonPath('limit', 30);
     }
 
     public function test_plan_inactive_bloquea_endpoint_gated(): void

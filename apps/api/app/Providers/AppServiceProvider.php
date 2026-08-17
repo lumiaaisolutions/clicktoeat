@@ -2,6 +2,15 @@
 
 namespace App\Providers;
 
+use App\Models\Categoria;
+use App\Models\Compra;
+use App\Models\Ingrediente;
+use App\Models\Local;
+use App\Models\Pedido;
+use App\Models\Producto;
+use App\Models\User;
+use App\Observers\AuditObserver;
+use App\Support\TenantContext;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -16,7 +25,7 @@ class AppServiceProvider extends ServiceProvider
         // CRÍTICO: TenantContext debe ser singleton — el middleware lo settea
         // y el GlobalScope lo lee. Sin singleton, son instancias distintas y el
         // scope no filtra nada.
-        $this->app->singleton(\App\Support\TenantContext::class);
+        $this->app->singleton(TenantContext::class);
     }
 
     public function boot(): void
@@ -50,6 +59,7 @@ class AppServiceProvider extends ServiceProvider
         // Ver: docs/security/threat-model.md vector #9.
         RateLimiter::for('public-orders-by-tenant', function (Request $request) {
             $slug = $request->route('slug') ?? 'unknown';
+
             return [
                 // 100 pedidos/min por local — generoso para horarios pico legítimos
                 Limit::perMinute(100)->by("local:{$slug}"),
@@ -62,6 +72,7 @@ class AppServiceProvider extends ServiceProvider
         // mesa usa {qrToken} en vez de {slug} (no hay slug en el path).
         RateLimiter::for('public-orders-by-mesa', function (Request $request) {
             $qrToken = $request->route('qrToken') ?? 'unknown';
+
             return [
                 Limit::perMinute(100)->by("mesa:{$qrToken}"),
                 Limit::perMinute(20)->by($request->ip()),
@@ -72,7 +83,8 @@ class AppServiceProvider extends ServiceProvider
         // que no se pueda esquivar creando varias cuentas de staff. Generoso
         // para uso normal de onboarding, bajo para controlar costo de tokens.
         RateLimiter::for('clicky', function (Request $request) {
-            $local = app(\App\Support\TenantContext::class)->local();
+            $local = app(TenantContext::class)->local();
+
             return Limit::perDay(40)->by('clicky:'.($local?->id ?: $request->ip()));
         });
     }
@@ -84,17 +96,17 @@ class AppServiceProvider extends ServiceProvider
     protected function registerAuditObservers(): void
     {
         $audited = [
-            \App\Models\Local::class,
-            \App\Models\User::class,
-            \App\Models\Categoria::class,
-            \App\Models\Producto::class,
-            \App\Models\Ingrediente::class,
-            \App\Models\Pedido::class,
-            \App\Models\Compra::class,
+            Local::class,
+            User::class,
+            Categoria::class,
+            Producto::class,
+            Ingrediente::class,
+            Pedido::class,
+            Compra::class,
         ];
 
         foreach ($audited as $modelClass) {
-            $modelClass::observe(\App\Observers\AuditObserver::class);
+            $modelClass::observe(AuditObserver::class);
         }
     }
 }

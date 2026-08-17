@@ -18,6 +18,7 @@ class StoreInternalPedidoRequest extends FormRequest
     public function authorize(): bool
     {
         $user = $this->user();
+
         return $user !== null
             && $user->local_id !== null
             && in_array($user->rol, ['owner', 'staff', 'super_admin'], true);
@@ -26,22 +27,22 @@ class StoreInternalPedidoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'cliente'                  => ['nullable', 'array'],
-            'cliente.nombre'           => ['nullable', 'string', 'min:1', 'max:120'],
-            'cliente.telefono'         => ['nullable', 'string', 'min:7', 'max:20'],
-            'cliente.notas'            => ['nullable', 'string', 'max:500'],
+            'cliente' => ['nullable', 'array'],
+            'cliente.nombre' => ['nullable', 'string', 'min:1', 'max:120'],
+            'cliente.telefono' => ['nullable', 'string', 'min:7', 'max:20'],
+            'cliente.notas' => ['nullable', 'string', 'max:500'],
 
-            'metodo_entrega'           => ['required', 'in:pickup,delivery,sucursal'],
-            'metodo_pago'              => ['required', 'in:efectivo,tarjeta_entrega,tarjeta_tpv,transferencia'],
+            'metodo_entrega' => ['required', 'in:pickup,delivery,sucursal'],
+            'metodo_pago' => ['required', 'in:efectivo,tarjeta_entrega,tarjeta_tpv,transferencia'],
 
-            'items'                    => ['required', 'array', 'min:1', 'max:50'],
-            'items.*.producto_id'      => ['required', 'integer', 'min:1'],
-            'items.*.cantidad'         => ['required', 'integer', 'min:1', 'max:99'],
-            'items.*.notas'            => ['nullable', 'string', 'max:200'],
-            'items.*.extras'           => ['nullable', 'array'],
-            'items.*.extras.*.group'   => ['required_with:items.*.extras', 'string', 'max:40'],
-            'items.*.extras.*.item'    => ['required_with:items.*.extras', 'string', 'max:60'],
-            'items.*.extras.*.price'   => ['required_with:items.*.extras', 'numeric', 'min:0'],
+            'items' => ['required', 'array', 'min:1', 'max:50'],
+            'items.*.producto_id' => ['required', 'integer', 'min:1'],
+            'items.*.cantidad' => ['required', 'integer', 'min:1', 'max:99'],
+            'items.*.notas' => ['nullable', 'string', 'max:200'],
+            'items.*.extras' => ['nullable', 'array'],
+            'items.*.extras.*.group' => ['required_with:items.*.extras', 'string', 'max:40'],
+            'items.*.extras.*.item' => ['required_with:items.*.extras', 'string', 'max:60'],
+            'items.*.extras.*.price' => ['required_with:items.*.extras', 'numeric', 'min:0'],
         ];
     }
 
@@ -55,14 +56,14 @@ class StoreInternalPedidoRequest extends FormRequest
 
         return [
             'cliente' => [
-                'nombre'    => $cliente['nombre']    ?? 'Mostrador',
-                'telefono'  => $cliente['telefono']  ?? '-',
+                'nombre' => $cliente['nombre'] ?? 'Mostrador',
+                'telefono' => $cliente['telefono'] ?? '-',
                 'direccion' => null,
-                'notas'     => $cliente['notas']     ?? null,
+                'notas' => $cliente['notas'] ?? null,
             ],
             'metodo_entrega' => $this->input('metodo_entrega'),
-            'metodo_pago'    => $this->input('metodo_pago'),
-            'items'          => $this->input('items'),
+            'metodo_pago' => $this->input('metodo_pago'),
+            'items' => $this->input('items'),
         ];
     }
 }

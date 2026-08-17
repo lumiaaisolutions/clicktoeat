@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\User;
+use App\Support\AuthCookie;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
+use PragmaRX\Google2FA\Google2FA;
 
 /**
  * @OA\Tag(name="Auth", description="Sign-up, sign-in y tokens Sanctum.")
@@ -22,29 +25,32 @@ class AuthController extends Controller
      *     path="/auth/register",
      *     tags={"Auth"},
      *     summary="Registrar un usuario nuevo (owner de un local futuro).",
+     *
      *     @OA\RequestBody(required=true, @OA\JsonContent(
      *         required={"nombre","email","password","password_confirmation"},
+     *
      *         @OA\Property(property="nombre", type="string", example="María Pérez"),
      *         @OA\Property(property="email", type="string", format="email"),
      *         @OA\Property(property="password", type="string", format="password", minLength=8),
      *         @OA\Property(property="password_confirmation", type="string")
      *     )),
+     *
      *     @OA\Response(response=201, description="Created")
      * )
      */
     public function register(RegisterRequest $request): JsonResponse
     {
         $user = User::create([
-            'nombre'   => $request->string('nombre'),
-            'email'    => $request->string('email'),
+            'nombre' => $request->string('nombre'),
+            'email' => $request->string('email'),
             'password' => Hash::make($request->string('password')),
-            'rol'      => 'owner',  // el super_admin solo se crea por seeder
+            'rol' => 'owner',  // el super_admin solo se crea por seeder
         ]);
 
         $token = $user->createToken('register-'.now()->timestamp)->plainTextToken;
 
         return response()->json([
-            'user'  => $user->only(['id', 'nombre', 'email', 'rol', 'local_id']),
+            'user' => $user->only(['id', 'nombre', 'email', 'rol', 'local_id']),
             'token' => $token,
         ], 201);
     }
@@ -54,12 +60,15 @@ class AuthController extends Controller
      *     path="/auth/login",
      *     tags={"Auth"},
      *     summary="Login con email + password. Regresa Sanctum bearer token.",
+     *
      *     @OA\RequestBody(required=true, @OA\JsonContent(
      *         required={"email","password"},
+     *
      *         @OA\Property(property="email", type="string", format="email"),
      *         @OA\Property(property="password", type="string", format="password"),
      *         @OA\Property(property="device", type="string", description="Nombre legible del dispositivo")
      *     )),
+     *
      *     @OA\Response(response=200, description="OK")
      * )
      */
@@ -72,12 +81,12 @@ class AuthController extends Controller
         // TODO: Cuando tengamos llaves de Cloudflare Turnstile (o hCaptcha),
         // exigir token tras 3 fallos seguidos. Esto frena el credential
         // stuffing automatizado incluso si el atacante respeta los límites.
-        $email      = strtolower((string) $request->input('email'));
-        $emailKey   = 'login:email:'.$email;
-        $ipKey      = 'login:ip:'.$request->ip();
-        $globalKey  = 'login:global';
-        $emailWindow  = 60 * 15;  // 15 min — bloqueo por cuenta
-        $ipWindow     = 60 * 15;
+        $email = strtolower((string) $request->input('email'));
+        $emailKey = 'login:email:'.$email;
+        $ipKey = 'login:ip:'.$request->ip();
+        $globalKey = 'login:global';
+        $emailWindow = 60 * 15;  // 15 min — bloqueo por cuenta
+        $ipWindow = 60 * 15;
         $globalWindow = 60 * 15;
 
         foreach ([
@@ -87,10 +96,11 @@ class AuthController extends Controller
         ] as [$key, $limit, $msg]) {
             if (RateLimiter::tooManyAttempts($key, $limit)) {
                 $seconds = RateLimiter::availableIn($key);
+
                 // 429 JSON directo — `ValidationException::status(429)` lo ignora Laravel.
                 return response()->json([
                     'message' => "{$msg} Intenta de nuevo en {$seconds}s.",
-                    'errors'  => ['email' => ["{$msg} Intenta de nuevo en {$seconds}s."]],
+                    'errors' => ['email' => ["{$msg} Intenta de nuevo en {$seconds}s."]],
                 ], 429)->header('Retry-After', (string) $seconds);
             }
         }
@@ -101,8 +111,8 @@ class AuthController extends Controller
             // Incrementa los 3 contadores — un atacante que prueba muchos
             // emails desde una IP cae primero por ipKey; un atacante
             // distribuido golpea emailKey de una víctima específica.
-            RateLimiter::hit($emailKey,  $emailWindow);
-            RateLimiter::hit($ipKey,     $ipWindow);
+            RateLimiter::hit($emailKey, $emailWindow);
+            RateLimiter::hit($ipKey, $ipWindow);
             RateLimiter::hit($globalKey, $globalWindow);
             throw ValidationException::withMessages([
                 'email' => ['Credenciales incorrectas.'],
@@ -122,20 +132,20 @@ class AuthController extends Controller
             // Permitir recovery codes
             $recoveryOk = false;
             if ($user->two_factor_recovery_codes) {
-                $codes = json_decode(\Illuminate\Support\Facades\Crypt::decryptString($user->two_factor_recovery_codes), true) ?? [];
+                $codes = json_decode(Crypt::decryptString($user->two_factor_recovery_codes), true) ?? [];
                 if (in_array(strtoupper($otp), array_map('strtoupper', $codes), true)) {
                     $codes = array_values(array_filter($codes, fn ($c) => strtoupper($c) !== strtoupper($otp)));
-                    $user->two_factor_recovery_codes = \Illuminate\Support\Facades\Crypt::encryptString(json_encode($codes));
+                    $user->two_factor_recovery_codes = Crypt::encryptString(json_encode($codes));
                     $user->save();
                     $recoveryOk = true;
                 }
             }
             if (! $recoveryOk) {
-                $secret = \Illuminate\Support\Facades\Crypt::decryptString($user->two_factor_secret);
-                $valid  = (new \PragmaRX\Google2FA\Google2FA())->verifyKey($secret, $otp);
+                $secret = Crypt::decryptString($user->two_factor_secret);
+                $valid = (new Google2FA)->verifyKey($secret, $otp);
                 if (! $valid) {
-                    RateLimiter::hit($emailKey,  $emailWindow);
-                    RateLimiter::hit($ipKey,     $ipWindow);
+                    RateLimiter::hit($emailKey, $emailWindow);
+                    RateLimiter::hit($ipKey, $ipWindow);
                     RateLimiter::hit($globalKey, $globalWindow);
                     throw ValidationException::withMessages([
                         'otp' => ['Código 2FA incorrecto.'],
@@ -148,17 +158,17 @@ class AuthController extends Controller
         RateLimiter::clear($ipKey);
 
         $device = $request->input('device') ?: 'web';
-        $token  = $user->createToken($device, $this->abilitiesFor($user))->plainTextToken;
+        $token = $user->createToken($device, $this->abilitiesFor($user))->plainTextToken;
 
         // SEV-2 — además del JSON token (para mobile/API externa), setamos
         // la cookie HttpOnly+Secure+SameSite=Lax vía AuthCookie (única
         // fuente de flags/dominio/TTL). El frontend web depende de la
         // cookie — el token del JSON es solo para mobile y API externa.
-        $cookie = \App\Support\AuthCookie::make($token);
+        $cookie = AuthCookie::make($token);
 
         return response()
             ->json([
-                'user'  => $user->only(['id', 'nombre', 'email', 'rol', 'local_id']),
+                'user' => $user->only(['id', 'nombre', 'email', 'rol', 'local_id']),
                 'token' => $token,
             ])
             ->withCookie($cookie);
@@ -170,6 +180,7 @@ class AuthController extends Controller
      *     tags={"Auth"},
      *     summary="Devuelve el usuario autenticado.",
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Response(response=200, description="OK")
      * )
      */
@@ -182,7 +193,7 @@ class AuthController extends Controller
         $payload['permisos'] = $user->permisosEfectivos();
 
         $local = $user->local;
-        $plan  = $local?->plan;
+        $plan = $local?->plan;
 
         // F100g — Auto-heal de trial_ends_at: locales legacy o marcados como
         // `trialing` por super_admin sin fecha quedaban con `trial_ends_at = null`
@@ -197,23 +208,23 @@ class AuthController extends Controller
             'user' => $payload,
             // Plan + status del SaaS para que el frontend pueda hacer gating
             'plan' => $plan ? [
-                'slug'                   => $plan->slug,
-                'nombre'                 => $plan->nombre,
+                'slug' => $plan->slug,
+                'nombre' => $plan->nombre,
                 // F100 — precio real del plan (no hardcoded en frontend)
-                'precio_mxn'             => (int) round($plan->precio_mxn_centavos / 100),
-                'features'               => $plan->features ?? [],
+                'precio_mxn' => (int) round($plan->precio_mxn_centavos / 100),
+                'features' => $plan->features ?? [],
                 'limits' => [
-                    'productos'  => $plan->max_productos,
+                    'productos' => $plan->max_productos,
                     'categorias' => $plan->max_categorias,
-                    'staff'      => $plan->max_staff,
+                    'staff' => $plan->max_staff,
                 ],
-                'status'                 => $local->plan_status,
-                'trial_ends_at'          => $local->trial_ends_at?->toIso8601String(),
+                'status' => $local->plan_status,
+                'trial_ends_at' => $local->trial_ends_at?->toIso8601String(),
                 'current_period_ends_at' => $local->current_period_ends_at?->toIso8601String(),
-                'is_active'              => $local->hasActivePlan(),
+                'is_active' => $local->hasActivePlan(),
                 // F100g — el frontend lo usa para decidir si abre el Stripe
                 // Customer Portal (requiere customer) o redirige a checkout.
-                'has_stripe_customer'    => ! empty($local->stripe_customer_id),
+                'has_stripe_customer' => ! empty($local->stripe_customer_id),
             ] : null,
         ]);
     }
@@ -224,6 +235,7 @@ class AuthController extends Controller
      *     tags={"Auth"},
      *     summary="Revoca el token actual.",
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Response(response=204, description="No Content")
      * )
      */
@@ -235,16 +247,16 @@ class AuthController extends Controller
         // un Set-Cookie con expiración en el pasado.
         return response()
             ->json(null, 204)
-            ->withCookie(\App\Support\AuthCookie::forget());
+            ->withCookie(AuthCookie::forget());
     }
 
     protected function abilitiesFor(User $user): array
     {
         return match ($user->rol) {
             'super_admin' => ['*'],
-            'owner'       => ['local:*', 'productos:*', 'pedidos:*', 'inventario:*'],
-            'staff'       => ['pedidos:read', 'pedidos:update'],
-            default       => [],
+            'owner' => ['local:*', 'productos:*', 'pedidos:*', 'inventario:*'],
+            'staff' => ['pedidos:read', 'pedidos:update'],
+            default => [],
         };
     }
 }

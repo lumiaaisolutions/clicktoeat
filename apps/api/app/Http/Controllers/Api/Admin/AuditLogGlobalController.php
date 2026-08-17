@@ -18,7 +18,7 @@ class AuditLogGlobalController extends Controller
         if ($s = $req->input('q')) {
             $q->where(function ($w) use ($s) {
                 $w->where('action', 'like', "%$s%")
-                  ->orWhere('subject_type', 'like', "%$s%");
+                    ->orWhere('subject_type', 'like', "%$s%");
             });
         }
 

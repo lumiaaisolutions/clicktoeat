@@ -4,7 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         // Cada local tiene un código único auto-generado (slug + 4 chars).
@@ -33,7 +34,9 @@ return new class extends Migration {
     {
         Schema::dropIfExists('referrals');
         Schema::table('locales', function (Blueprint $t) {
-            if (Schema::hasColumn('locales', 'codigo_referido')) $t->dropColumn('codigo_referido');
+            if (Schema::hasColumn('locales', 'codigo_referido')) {
+                $t->dropColumn('codigo_referido');
+            }
         });
     }
 };

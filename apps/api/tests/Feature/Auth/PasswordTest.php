@@ -21,8 +21,8 @@ class PasswordTest extends TestCase
         Sanctum::actingAs($user, ['*']);
 
         $this->patchJson('/api/v1/auth/me/password', [
-            'current_password'      => 'actual123',
-            'password'              => 'nueva-segura-456',
+            'current_password' => 'actual123',
+            'password' => 'nueva-segura-456',
             'password_confirmation' => 'nueva-segura-456',
         ])->assertOk();
 
@@ -36,8 +36,8 @@ class PasswordTest extends TestCase
         Sanctum::actingAs($user, ['*']);
 
         $this->patchJson('/api/v1/auth/me/password', [
-            'current_password'      => 'incorrecta',
-            'password'              => 'nueva-segura-456',
+            'current_password' => 'incorrecta',
+            'password' => 'nueva-segura-456',
             'password_confirmation' => 'nueva-segura-456',
         ])->assertStatus(422)->assertJsonValidationErrors('current_password');
 
@@ -57,57 +57,57 @@ class PasswordTest extends TestCase
 
         // Cambiamos password con tokenB
         $this->withHeader('Authorization', "Bearer {$tokenB}")
-             ->patchJson('/api/v1/auth/me/password', [
-                 'current_password'      => 'actual123',
-                 'password'              => 'nueva-segura-456',
-                 'password_confirmation' => 'nueva-segura-456',
-             ])->assertOk();
+            ->patchJson('/api/v1/auth/me/password', [
+                'current_password' => 'actual123',
+                'password' => 'nueva-segura-456',
+                'password_confirmation' => 'nueva-segura-456',
+            ])->assertOk();
 
         // Sólo el token actual sobrevive
         $this->assertSame(1, $user->tokens()->count());
 
         // tokenB sigue vivo
         $this->withHeader('Authorization', "Bearer {$tokenB}")
-             ->getJson('/api/v1/auth/me')
-             ->assertOk();
+            ->getJson('/api/v1/auth/me')
+            ->assertOk();
 
         // tokenA y tokenC NO sirven — `auth()->forgetGuards()` limpia el cache
         // del guard sanctum para forzar re-validación con la nueva auth header.
         auth()->forgetGuards();
         $this->withHeader('Authorization', "Bearer {$tokenA}")
-             ->getJson('/api/v1/auth/me')
-             ->assertStatus(401);
+            ->getJson('/api/v1/auth/me')
+            ->assertStatus(401);
 
         auth()->forgetGuards();
         $this->withHeader('Authorization', "Bearer {$tokenC}")
-             ->getJson('/api/v1/auth/me')
-             ->assertStatus(401);
+            ->getJson('/api/v1/auth/me')
+            ->assertStatus(401);
     }
 
     /** @test */
     public function super_admin_resetea_password_del_owner_de_un_local(): void
     {
         $superAdmin = User::factory()->superAdmin()->create();
-        $local      = Local::factory()->create();
-        $owner      = User::factory()->owner($local)->create(['password' => Hash::make('vieja123')]);
+        $local = Local::factory()->create();
+        $owner = User::factory()->owner($local)->create(['password' => Hash::make('vieja123')]);
 
         Sanctum::actingAs($superAdmin, ['*']);
 
         $this->patchJson("/api/v1/admin/locales/{$local->id}/owner-password", [
-            'password'              => 'reseteada-789',
+            'password' => 'reseteada-789',
             'password_confirmation' => 'reseteada-789',
         ])->assertOk()
-          ->assertJsonPath('owner.email', $owner->email);
+            ->assertJsonPath('owner.email', $owner->email);
 
         $this->assertTrue(Hash::check('reseteada-789', $owner->fresh()->password));
     }
 
     /** @test */
-    public function reset_por_super_admin_cierra_TODAS_las_sesiones_del_owner(): void
+    public function reset_por_super_admin_cierra_toda_s_las_sesiones_del_owner(): void
     {
         $superAdmin = User::factory()->superAdmin()->create();
-        $local      = Local::factory()->create();
-        $owner      = User::factory()->owner($local)->create();
+        $local = Local::factory()->create();
+        $owner = User::factory()->owner($local)->create();
 
         // Owner tiene 3 sesiones activas
         $owner->createToken('a');
@@ -118,7 +118,7 @@ class PasswordTest extends TestCase
         Sanctum::actingAs($superAdmin, ['*']);
 
         $this->patchJson("/api/v1/admin/locales/{$local->id}/owner-password", [
-            'password'              => 'reseteada-789',
+            'password' => 'reseteada-789',
             'password_confirmation' => 'reseteada-789',
         ])->assertOk();
 
@@ -129,14 +129,14 @@ class PasswordTest extends TestCase
     /** @test */
     public function owner_no_puede_resetear_password_de_otro_owner(): void
     {
-        $local      = Local::factory()->create();
-        $owner      = User::factory()->owner($local)->create();
-        $otroLocal  = Local::factory()->create();
+        $local = Local::factory()->create();
+        $owner = User::factory()->owner($local)->create();
+        $otroLocal = Local::factory()->create();
 
         Sanctum::actingAs($owner, ['*']);
 
         $this->patchJson("/api/v1/admin/locales/{$otroLocal->id}/owner-password", [
-            'password'              => 'hijacked-789',
+            'password' => 'hijacked-789',
             'password_confirmation' => 'hijacked-789',
         ])->assertStatus(403);
     }
@@ -145,12 +145,12 @@ class PasswordTest extends TestCase
     public function reset_falla_404_si_el_local_no_tiene_owner(): void
     {
         $superAdmin = User::factory()->superAdmin()->create();
-        $local      = Local::factory()->create();   // sin owner asociado
+        $local = Local::factory()->create();   // sin owner asociado
 
         Sanctum::actingAs($superAdmin, ['*']);
 
         $this->patchJson("/api/v1/admin/locales/{$local->id}/owner-password", [
-            'password'              => 'cualquiera-789',
+            'password' => 'cualquiera-789',
             'password_confirmation' => 'cualquiera-789',
         ])->assertStatus(404);
     }

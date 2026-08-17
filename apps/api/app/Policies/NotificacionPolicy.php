@@ -12,6 +12,7 @@ class NotificacionPolicy
         if ($user->isSuperAdmin()) {
             return true;
         }
+
         return null;
     }
 

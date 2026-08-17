@@ -20,32 +20,36 @@ class AnunciosController extends Controller
     {
         $data = $this->rules($req);
         $a = AnuncioGlobal::create($data);
+
         return response()->json(['data' => $a], 201);
     }
 
     public function update(Request $req, AnuncioGlobal $anuncio): JsonResponse
     {
         $anuncio->update($this->rules($req, true));
+
         return response()->json(['data' => $anuncio->fresh()]);
     }
 
     public function destroy(AnuncioGlobal $anuncio): JsonResponse
     {
         $anuncio->delete();
+
         return response()->json(null, 204);
     }
 
     private function rules(Request $req, bool $update = false): array
     {
         $rules = [
-            'titulo'   => [$update ? 'sometimes' : 'required', 'string', 'max:120'],
-            'body'     => [$update ? 'sometimes' : 'required', 'string', 'max:2000'],
+            'titulo' => [$update ? 'sometimes' : 'required', 'string', 'max:120'],
+            'body' => [$update ? 'sometimes' : 'required', 'string', 'max:2000'],
             'severity' => ['sometimes', 'in:info,warning,success,danger'],
-            'active'   => ['sometimes', 'boolean'],
+            'active' => ['sometimes', 'boolean'],
             'show_to_super' => ['sometimes', 'boolean'],
             'starts_at' => ['sometimes', 'nullable', 'date'],
-            'ends_at'   => ['sometimes', 'nullable', 'date'],
+            'ends_at' => ['sometimes', 'nullable', 'date'],
         ];
+
         return $req->validate($rules);
     }
 }

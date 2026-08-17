@@ -20,14 +20,14 @@ class CarritoAbandonadoController extends Controller
     public function track(Request $req, string $slug): JsonResponse
     {
         $data = $req->validate([
-            'email'          => ['required', 'email:rfc', 'max:191'],
+            'email' => ['required', 'email:rfc', 'max:191'],
             'cliente_nombre' => ['nullable', 'string', 'max:120'],
-            'items'          => ['required', 'array', 'min:1', 'max:50'],
+            'items' => ['required', 'array', 'min:1', 'max:50'],
             'items.*.producto_id' => ['required', 'integer'],
-            'items.*.nombre'      => ['required', 'string', 'max:120'],
-            'items.*.cantidad'    => ['required', 'integer', 'min:1', 'max:99'],
-            'items.*.precio'      => ['required', 'numeric', 'min:0'],
-            'total_estimado'      => ['nullable', 'numeric', 'min:0'],
+            'items.*.nombre' => ['required', 'string', 'max:120'],
+            'items.*.cantidad' => ['required', 'integer', 'min:1', 'max:99'],
+            'items.*.precio' => ['required', 'numeric', 'min:0'],
+            'total_estimado' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $local = Local::where('slug', $slug)->where('activo', true)->firstOrFail();
@@ -37,13 +37,13 @@ class CarritoAbandonadoController extends Controller
             ['local_id' => $local->id, 'email' => $email],
             [
                 'cliente_nombre' => $data['cliente_nombre'] ?? null,
-                'items'          => json_encode($data['items']),
+                'items' => json_encode($data['items']),
                 'total_estimado' => $data['total_estimado'] ?? 0,
-                'seen_at'        => now(),
-                'recovered_at'   => null, // reset si vuelve después de recuperar
-                'notified_at'    => null,
-                'updated_at'     => now(),
-                'created_at'     => now(),
+                'seen_at' => now(),
+                'recovered_at' => null, // reset si vuelve después de recuperar
+                'notified_at' => null,
+                'updated_at' => now(),
+                'created_at' => now(),
             ],
         );
 

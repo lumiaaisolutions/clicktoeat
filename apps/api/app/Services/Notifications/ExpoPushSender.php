@@ -3,6 +3,7 @@
 namespace App\Services\Notifications;
 
 use App\Models\MobileDevice;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -19,7 +20,8 @@ use Throwable;
 class ExpoPushSender
 {
     private const ENDPOINT = 'https://exp.host/--/api/v2/push/send';
-    private const BATCH    = 100;
+
+    private const BATCH = 100;
 
     public function sendToLocal(int $localId, array $payload): void
     {
@@ -33,34 +35,36 @@ class ExpoPushSender
         $this->send($devices, $payload);
     }
 
-    /** @param \Illuminate\Database\Eloquent\Collection<int, MobileDevice> $devices */
+    /** @param Collection<int, MobileDevice> $devices */
     private function send($devices, array $payload): void
     {
-        if ($devices->isEmpty()) return;
+        if ($devices->isEmpty()) {
+            return;
+        }
 
         $title = (string) ($payload['title'] ?? 'ClickToEat');
-        $body  = (string) ($payload['body']  ?? '');
-        $data  = $payload['data'] ?? [];
+        $body = (string) ($payload['body'] ?? '');
+        $data = $payload['data'] ?? [];
 
         foreach ($devices->chunk(self::BATCH) as $chunk) {
             $messages = $chunk->map(function (MobileDevice $d) use ($title, $body, $data) {
                 return [
-                    'to'        => $d->expo_push_token,
-                    'title'     => $title,
-                    'body'      => $body,
-                    'sound'     => 'default',
-                    'data'      => $data,
+                    'to' => $d->expo_push_token,
+                    'title' => $title,
+                    'body' => $body,
+                    'sound' => 'default',
+                    'data' => $data,
                     'channelId' => 'pedidos',
-                    'priority'  => 'high',
+                    'priority' => 'high',
                 ];
             })->values()->toArray();
 
             try {
                 $res = Http::timeout(10)
                     ->withHeaders([
-                        'Accept'           => 'application/json',
-                        'Accept-Encoding'  => 'gzip, deflate',
-                        'Content-Type'     => 'application/json',
+                        'Accept' => 'application/json',
+                        'Accept-Encoding' => 'gzip, deflate',
+                        'Content-Type' => 'application/json',
                     ])
                     ->post(self::ENDPOINT, $messages);
 
@@ -72,8 +76,8 @@ class ExpoPushSender
     }
 
     /**
-     * @param array<int, array{status?: string, message?: string, details?: array{error?: string}}> $tickets
-     * @param \Illuminate\Database\Eloquent\Collection<int, MobileDevice>                            $chunk
+     * @param  array<int, array{status?: string, message?: string, details?: array{error?: string}}>  $tickets
+     * @param  Collection<int, MobileDevice>  $chunk
      */
     private function handleResponse(array $tickets, $chunk): void
     {

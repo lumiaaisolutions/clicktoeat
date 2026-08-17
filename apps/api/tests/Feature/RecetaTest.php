@@ -17,9 +17,13 @@ class RecetaTest extends TestCase
     use RefreshDatabase;
 
     protected Local $local;
+
     protected User $owner;
+
     protected Producto $producto;
+
     protected Ingrediente $tortilla;
+
     protected Ingrediente $carne;
 
     protected function setUp(): void
@@ -95,7 +99,7 @@ class RecetaTest extends TestCase
         // La tortilla anterior debe haber desaparecido
         $this->assertSame(1, Receta::where('producto_id', $this->producto->id)->count());
         $this->assertDatabaseMissing('recetas', [
-            'producto_id'    => $this->producto->id,
+            'producto_id' => $this->producto->id,
             'ingrediente_id' => $this->tortilla->id,
         ]);
     }

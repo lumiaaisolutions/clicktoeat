@@ -15,9 +15,9 @@ class RegisterMobileDeviceRequest extends FormRequest
     {
         return [
             'expo_push_token' => ['required', 'string', 'max:200'],
-            'platform'        => ['required', 'in:ios,android'],
-            'device_name'     => ['nullable', 'string', 'max:120'],
-            'app_version'     => ['nullable', 'string', 'max:32'],
+            'platform' => ['required', 'in:ios,android'],
+            'device_name' => ['nullable', 'string', 'max:120'],
+            'app_version' => ['nullable', 'string', 'max:32'],
         ];
     }
 }

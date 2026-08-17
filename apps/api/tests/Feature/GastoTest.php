@@ -16,6 +16,7 @@ class GastoTest extends TestCase
     use RefreshDatabase;
 
     private Local $local;
+
     private User $owner;
 
     protected function setUp(): void
@@ -45,19 +46,19 @@ class GastoTest extends TestCase
 
         $this->postJson('/api/v1/gastos', [
             'categoria' => 'luz',
-            'concepto'  => 'CFE bimestral',
+            'concepto' => 'CFE bimestral',
             'monto_mxn' => 1234.56,
-            'fecha'     => '2026-06-15',
-            'recurrente'=> true,
+            'fecha' => '2026-06-15',
+            'recurrente' => true,
         ])->assertCreated()
-          ->assertJsonPath('data.categoria', 'luz')
-          ->assertJsonPath('data.monto_centavos', 123456);
+            ->assertJsonPath('data.categoria', 'luz')
+            ->assertJsonPath('data.monto_centavos', 123456);
 
         $this->assertDatabaseHas('gastos', [
-            'local_id'       => $this->local->id,
-            'categoria'      => 'luz',
+            'local_id' => $this->local->id,
+            'categoria' => 'luz',
             'monto_centavos' => 123456,
-            'recurrente'     => true,
+            'recurrente' => true,
         ]);
     }
 
@@ -68,11 +69,11 @@ class GastoTest extends TestCase
 
         $this->postJson('/api/v1/gastos', [
             'categoria' => 'hackeando',
-            'concepto'  => 'x',
+            'concepto' => 'x',
             'monto_mxn' => 100,
-            'fecha'     => '2026-06-15',
+            'fecha' => '2026-06-15',
         ])->assertUnprocessable()
-          ->assertJsonValidationErrors('categoria');
+            ->assertJsonValidationErrors('categoria');
     }
 
     /** @test */
@@ -82,11 +83,11 @@ class GastoTest extends TestCase
 
         $this->postJson('/api/v1/gastos', [
             'categoria' => 'luz',
-            'concepto'  => 'x',
+            'concepto' => 'x',
             'monto_mxn' => 100,
-            'fecha'     => now()->addDays(5)->toDateString(),
+            'fecha' => now()->addDays(5)->toDateString(),
         ])->assertUnprocessable()
-          ->assertJsonValidationErrors('fecha');
+            ->assertJsonValidationErrors('fecha');
     }
 
     /** @test */
@@ -126,9 +127,9 @@ class GastoTest extends TestCase
 
         $this->patchJson("/api/v1/gastos/{$gasto->id}", [
             'monto_mxn' => 1500.00,
-            'notas'     => 'Aumentó por uso de aire',
+            'notas' => 'Aumentó por uso de aire',
         ])->assertOk()
-          ->assertJsonPath('data.monto_centavos', 150000);
+            ->assertJsonPath('data.monto_centavos', 150000);
     }
 
     /** @test */
@@ -189,7 +190,7 @@ class GastoTest extends TestCase
         $this->postJson("/api/v1/gastos/{$gasto->id}/comprobante", [
             'comprobante' => UploadedFile::fake()->create('virus.exe', 10),
         ])->assertUnprocessable()
-          ->assertJsonValidationErrors('comprobante');
+            ->assertJsonValidationErrors('comprobante');
     }
 
     /** @test */
@@ -268,7 +269,7 @@ class GastoTest extends TestCase
         Gasto::factory()->create([
             'local_id' => $this->local->id,
             'categoria' => 'luz',
-            'concepto'  => 'CFE',
+            'concepto' => 'CFE',
             'monto_centavos' => 50000,
             'fecha' => now()->startOfMonth()->addDay(),
             'recurrente' => true,
@@ -277,7 +278,7 @@ class GastoTest extends TestCase
         Gasto::factory()->create([
             'local_id' => $this->local->id,
             'categoria' => 'agua',
-            'concepto'  => 'CONAGUA',
+            'concepto' => 'CONAGUA',
             'monto_centavos' => 30000,
             'fecha' => now()->startOfMonth()->addDays(2),
         ]);
@@ -321,7 +322,7 @@ class GastoTest extends TestCase
         // Mes actual: 2 gastos de luz + 1 de agua
         Gasto::factory()->create(['local_id' => $this->local->id, 'categoria' => 'luz', 'monto_centavos' => 100000, 'fecha' => now()->startOfMonth()->addDay()]);
         Gasto::factory()->create(['local_id' => $this->local->id, 'categoria' => 'luz', 'monto_centavos' => 50000,  'fecha' => now()->startOfMonth()->addDays(5)]);
-        Gasto::factory()->create(['local_id' => $this->local->id, 'categoria' => 'agua','monto_centavos' => 30000,  'fecha' => now()->startOfMonth()->addDays(10)]);
+        Gasto::factory()->create(['local_id' => $this->local->id, 'categoria' => 'agua', 'monto_centavos' => 30000,  'fecha' => now()->startOfMonth()->addDays(10)]);
 
         Sanctum::actingAs($this->owner, ['*']);
 
@@ -331,6 +332,6 @@ class GastoTest extends TestCase
         $cats = collect($resp->json('data.por_categoria'));
         $this->assertSame('luz', $cats->first()['categoria']);
         $this->assertEquals(1500, $cats->first()['total_mxn']);        // $1000 + $500
-        $this->assertSame(2,      $cats->first()['cantidad']);
+        $this->assertSame(2, $cats->first()['cantidad']);
     }
 }

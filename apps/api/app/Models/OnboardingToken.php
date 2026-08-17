@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 /**
@@ -11,8 +12,8 @@ use Illuminate\Support\Str;
  * @property int $local_id
  * @property string $value
  * @property array|null $completed_steps
- * @property \Illuminate\Support\Carbon|null $used_at
- * @property \Illuminate\Support\Carbon $expires_at
+ * @property Carbon|null $used_at
+ * @property Carbon $expires_at
  */
 class OnboardingToken extends Model
 {
@@ -24,8 +25,8 @@ class OnboardingToken extends Model
     {
         return [
             'completed_steps' => 'array',
-            'used_at'         => 'datetime',
-            'expires_at'      => 'datetime',
+            'used_at' => 'datetime',
+            'expires_at' => 'datetime',
         ];
     }
 
@@ -52,9 +53,10 @@ class OnboardingToken extends Model
     public static function issueFor(Local $local, ?int $ttlHours = null): self
     {
         $ttl = $ttlHours ?? config('stripe.onboarding_token_ttl_h', 24);
+
         return self::create([
-            'local_id'   => $local->id,
-            'value'      => Str::random(64),
+            'local_id' => $local->id,
+            'value' => Str::random(64),
             'expires_at' => now()->addHours($ttl),
         ]);
     }

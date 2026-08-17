@@ -13,9 +13,9 @@ class UsuariosSeeder extends Seeder
         User::updateOrCreate(
             ['email' => 'admin@ClickToEat.app'],
             [
-                'nombre'   => 'Super Admin',
+                'nombre' => 'Super Admin',
                 'password' => Hash::make('password123'),
-                'rol'      => 'super_admin',
+                'rol' => 'super_admin',
                 'email_verified_at' => now(),
             ],
         );

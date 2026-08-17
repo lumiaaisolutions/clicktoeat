@@ -30,15 +30,15 @@ class PlansSeeder extends Seeder
         $plans = [
             // Esencial — para arrancar a vender por WhatsApp.
             [
-                'slug'                 => 'essential',
-                'nombre'               => 'Esencial',
-                'precio_mxn_centavos'  => 9900,
-                'stripe_price_id'      => config('stripe.prices.essential'),
-                'orden'                => 10,
-                'max_productos'        => 30,
-                'max_categorias'       => 8,
-                'max_staff'            => 0,
-                'features'             => [
+                'slug' => 'essential',
+                'nombre' => 'Esencial',
+                'precio_mxn_centavos' => 9900,
+                'stripe_price_id' => config('stripe.prices.essential'),
+                'orden' => 10,
+                'max_productos' => 30,
+                'max_categorias' => 8,
+                'max_staff' => 0,
+                'features' => [
                     F::BRANDING_BASICO,
                     F::BRANDING_AVANZADO,
                     F::QR_PERSONALIZADO,
@@ -50,15 +50,15 @@ class PlansSeeder extends Seeder
             ],
             // Profesional — todo incluido.
             [
-                'slug'                 => 'professional',
-                'nombre'               => 'Profesional',
-                'precio_mxn_centavos'  => 29900,
-                'stripe_price_id'      => config('stripe.prices.professional'),
-                'orden'                => 20,
-                'max_productos'        => null,
-                'max_categorias'       => null,
-                'max_staff'            => 10,
-                'features'             => [
+                'slug' => 'professional',
+                'nombre' => 'Profesional',
+                'precio_mxn_centavos' => 29900,
+                'stripe_price_id' => config('stripe.prices.professional'),
+                'orden' => 20,
+                'max_productos' => null,
+                'max_categorias' => null,
+                'max_staff' => 10,
+                'features' => [
                     F::BRANDING_BASICO,
                     F::BRANDING_AVANZADO,
                     F::INVENTARIO,
@@ -81,15 +81,15 @@ class PlansSeeder extends Seeder
             ],
             // F88 — Premium: para cadenas y locales que necesitan más control
             [
-                'slug'                 => 'premium',
-                'nombre'               => 'Premium',
-                'precio_mxn_centavos'  => 49900,
-                'stripe_price_id'      => config('stripe.prices.premium'),
-                'orden'                => 30,
-                'max_productos'        => null,
-                'max_categorias'       => null,
-                'max_staff'            => null,
-                'features'             => [
+                'slug' => 'premium',
+                'nombre' => 'Premium',
+                'precio_mxn_centavos' => 49900,
+                'stripe_price_id' => config('stripe.prices.premium'),
+                'orden' => 30,
+                'max_productos' => null,
+                'max_categorias' => null,
+                'max_staff' => null,
+                'features' => [
                     F::BRANDING_BASICO,
                     F::BRANDING_AVANZADO,
                     F::INVENTARIO,
@@ -145,9 +145,9 @@ class PlansSeeder extends Seeder
         $this->command?->info('PlansSeeder: 3 planes activos (essential, professional, premium).');
 
         $missing = array_filter([
-            'STRIPE_PRICE_ESSENTIAL'    => config('stripe.prices.essential'),
+            'STRIPE_PRICE_ESSENTIAL' => config('stripe.prices.essential'),
             'STRIPE_PRICE_PROFESSIONAL' => config('stripe.prices.professional'),
-            'STRIPE_PRICE_PREMIUM'      => config('stripe.prices.premium'),
+            'STRIPE_PRICE_PREMIUM' => config('stripe.prices.premium'),
         ], fn ($v) => empty($v));
 
         if (! empty($missing)) {

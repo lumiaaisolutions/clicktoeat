@@ -20,10 +20,14 @@ class ProductTemplatesService
     public function seedFor(Local $local, ?string $giro = null): int
     {
         $giro ??= $local->giro;
-        if (! $giro) return 0;
+        if (! $giro) {
+            return 0;
+        }
 
         $catalog = self::CATALOGS[$giro] ?? null;
-        if (! $catalog) return 0;
+        if (! $catalog) {
+            return 0;
+        }
 
         // Idempotente: no piso productos existentes.
         if (Producto::query()->where('local_id', $local->id)->exists()) {
@@ -37,11 +41,11 @@ class ProductTemplatesService
             foreach ($catalog['categorias'] as $idx => $cat) {
                 $c = Categoria::create([
                     'local_id' => $local->id,
-                    'slug'     => Str::slug($cat['nombre']),
-                    'nombre'   => $cat['nombre'],
-                    'icono'    => $cat['icono'] ?? null,
-                    'orden'    => $idx,
-                    'activo'   => true,
+                    'slug' => Str::slug($cat['nombre']),
+                    'nombre' => $cat['nombre'],
+                    'icono' => $cat['icono'] ?? null,
+                    'orden' => $idx,
+                    'activo' => true,
                 ]);
                 $catMap[$cat['slug']] = $c->id;
             }
@@ -49,16 +53,16 @@ class ProductTemplatesService
             // Productos
             foreach ($catalog['productos'] as $idx => $p) {
                 Producto::create([
-                    'local_id'     => $local->id,
+                    'local_id' => $local->id,
                     'categoria_id' => $catMap[$p['categoria']] ?? null,
-                    'slug'         => Str::slug($p['nombre']).'-'.Str::random(4),
-                    'nombre'       => $p['nombre'],
-                    'descripcion'  => $p['descripcion'] ?? null,
-                    'precio'       => $p['precio'],
-                    'imagen_url'   => null,
-                    'tag'          => $p['tag'] ?? null,
-                    'disponible'   => true,
-                    'orden'        => $idx,
+                    'slug' => Str::slug($p['nombre']).'-'.Str::random(4),
+                    'nombre' => $p['nombre'],
+                    'descripcion' => $p['descripcion'] ?? null,
+                    'precio' => $p['precio'],
+                    'imagen_url' => null,
+                    'tag' => $p['tag'] ?? null,
+                    'disponible' => true,
+                    'orden' => $idx,
                 ]);
                 $created++;
             }
@@ -68,13 +72,13 @@ class ProductTemplatesService
     }
 
     public const GIROS = [
-        'mexicana'   => 'Cocina mexicana',
-        'italiana'   => 'Pizzería / italiana',
-        'cafeteria'  => 'Cafetería',
-        'sushi'      => 'Sushi / japonesa',
-        'postres'    => 'Postres y repostería',
-        'bar'        => 'Bar / coctelería',
-        'vegan'      => 'Healthy / vegana',
+        'mexicana' => 'Cocina mexicana',
+        'italiana' => 'Pizzería / italiana',
+        'cafeteria' => 'Cafetería',
+        'sushi' => 'Sushi / japonesa',
+        'postres' => 'Postres y repostería',
+        'bar' => 'Bar / coctelería',
+        'vegan' => 'Healthy / vegana',
         'pasteleria' => 'Pastelería',
     ];
 
@@ -110,7 +114,7 @@ class ProductTemplatesService
                 ['categoria' => 'pastas',  'nombre' => 'Spaghetti Boloñesa', 'descripcion' => 'Salsa de carne lentamente cocida.',   'precio' => 160],
                 ['categoria' => 'pastas',  'nombre' => 'Fettuccine Alfredo',  'descripcion' => 'Crema, mantequilla y parmesano.',     'precio' => 165],
                 ['categoria' => 'pastas',  'nombre' => 'Lasagna',          'descripcion' => 'Capas de pasta, carne y bechamel.',     'precio' => 175],
-                ['categoria' => 'bebidas', 'nombre' => 'Limonada Italiana','descripcion' => 'Limón fresco con menta.',                'precio' => 50],
+                ['categoria' => 'bebidas', 'nombre' => 'Limonada Italiana', 'descripcion' => 'Limón fresco con menta.',                'precio' => 50],
                 ['categoria' => 'bebidas', 'nombre' => 'Copa de Vino Tinto', 'descripcion' => 'Chianti DOCG.',                         'precio' => 95],
             ],
         ],
@@ -118,14 +122,14 @@ class ProductTemplatesService
         'cafeteria' => [
             'categorias' => [
                 ['slug' => 'cafe',      'nombre' => 'Café',      'icono' => '☕'],
-                ['slug' => 'reposteria','nombre' => 'Repostería','icono' => '🥐'],
+                ['slug' => 'reposteria', 'nombre' => 'Repostería', 'icono' => '🥐'],
                 ['slug' => 'desayuno',  'nombre' => 'Desayuno',  'icono' => '🍳'],
             ],
             'productos' => [
                 ['categoria' => 'cafe',       'nombre' => 'Espresso',         'descripcion' => 'Doble shot 60ml.',                'precio' => 35],
                 ['categoria' => 'cafe',       'nombre' => 'Cappuccino',        'descripcion' => 'Espresso con leche vaporizada.', 'precio' => 55, 'tag' => 'TOP'],
                 ['categoria' => 'cafe',       'nombre' => 'Latte Vainilla',   'descripcion' => 'Espresso, leche y vainilla.',    'precio' => 65],
-                ['categoria' => 'cafe',       'nombre' => 'Cold Brew',        'descripcion' => '12 horas de extracción en frío.','precio' => 60],
+                ['categoria' => 'cafe',       'nombre' => 'Cold Brew',        'descripcion' => '12 horas de extracción en frío.', 'precio' => 60],
                 ['categoria' => 'reposteria', 'nombre' => 'Croissant Mantequilla', 'descripcion' => 'Hojaldre francés.',         'precio' => 45],
                 ['categoria' => 'reposteria', 'nombre' => 'Concha de Chocolate', 'descripcion' => 'Pan dulce tradicional.',       'precio' => 35],
                 ['categoria' => 'desayuno',   'nombre' => 'Chilaquiles Verdes', 'descripcion' => 'Con pollo y crema.',            'precio' => 110],
@@ -141,7 +145,7 @@ class ProductTemplatesService
             ],
             'productos' => [
                 ['categoria' => 'rolls',   'nombre' => 'California Roll',  'descripcion' => 'Cangrejo, pepino y aguacate.',  'precio' => 145, 'tag' => 'CLÁSICO'],
-                ['categoria' => 'rolls',   'nombre' => 'Philadelphia Roll','descripcion' => 'Salmón, queso crema, pepino.',  'precio' => 165],
+                ['categoria' => 'rolls',   'nombre' => 'Philadelphia Roll', 'descripcion' => 'Salmón, queso crema, pepino.',  'precio' => 165],
                 ['categoria' => 'rolls',   'nombre' => 'Spicy Tuna Roll',  'descripcion' => 'Atún picante con sriracha.',     'precio' => 175],
                 ['categoria' => 'sashimi', 'nombre' => 'Sashimi de Salmón', 'descripcion' => '8 piezas frescas.',             'precio' => 220],
                 ['categoria' => 'sashimi', 'nombre' => 'Sashimi de Atún',  'descripcion' => '8 piezas de atún azul.',         'precio' => 240],

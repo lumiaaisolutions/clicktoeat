@@ -17,10 +17,10 @@ class ExpireManualTrialsTest extends TestCase
     public function test_trial_manual_vencido_pasa_a_incomplete(): void
     {
         $local = Local::factory()->create([
-            'plan_status'            => 'trialing',
-            'trial_ends_at'          => now()->subDay(),  // vencido ayer
+            'plan_status' => 'trialing',
+            'trial_ends_at' => now()->subDay(),  // vencido ayer
             'stripe_subscription_id' => null,
-            'pago_externo'           => false,
+            'pago_externo' => false,
         ]);
 
         $this->artisan('trials:expire-manual')->assertExitCode(0);
@@ -31,8 +31,8 @@ class ExpireManualTrialsTest extends TestCase
     public function test_trial_vigente_no_se_toca(): void
     {
         $local = Local::factory()->create([
-            'plan_status'            => 'trialing',
-            'trial_ends_at'          => now()->addDays(5),  // todavía dentro
+            'plan_status' => 'trialing',
+            'trial_ends_at' => now()->addDays(5),  // todavía dentro
             'stripe_subscription_id' => null,
         ]);
 
@@ -46,8 +46,8 @@ class ExpireManualTrialsTest extends TestCase
         // Si tiene stripe_subscription_id, Stripe es la fuente de verdad —
         // este cron NO debe meter mano para no pisar datos del webhook.
         $local = Local::factory()->create([
-            'plan_status'            => 'trialing',
-            'trial_ends_at'          => now()->subDay(),
+            'plan_status' => 'trialing',
+            'trial_ends_at' => now()->subDay(),
             'stripe_subscription_id' => 'sub_test_real',
         ]);
 
@@ -61,10 +61,10 @@ class ExpireManualTrialsTest extends TestCase
         // Pago externo = el local paga al super_admin en efectivo. El trial
         // técnico está vencido pero NO debe bloquearse.
         $local = Local::factory()->create([
-            'plan_status'            => 'trialing',
-            'trial_ends_at'          => now()->subDays(30),
+            'plan_status' => 'trialing',
+            'trial_ends_at' => now()->subDays(30),
             'stripe_subscription_id' => null,
-            'pago_externo'           => true,
+            'pago_externo' => true,
         ]);
 
         $this->artisan('trials:expire-manual')->assertExitCode(0);
@@ -76,8 +76,8 @@ class ExpireManualTrialsTest extends TestCase
     {
         // Idempotencia: si ya está incomplete, no lo procesa.
         $local = Local::factory()->create([
-            'plan_status'            => 'incomplete',
-            'trial_ends_at'          => now()->subDays(5),
+            'plan_status' => 'incomplete',
+            'trial_ends_at' => now()->subDays(5),
             'stripe_subscription_id' => null,
         ]);
 

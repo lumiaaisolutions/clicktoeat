@@ -12,8 +12,8 @@ use App\Models\Receta;
 use App\Models\User;
 use App\Services\Inventory\InventoryService;
 use App\Services\Orders\OrderService;
-use App\Services\WhatsApp\WhatsAppLinkBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -22,11 +22,17 @@ class PedidoFlowTest extends TestCase
     use RefreshDatabase;
 
     protected Local $local;
-    protected User  $owner;
+
+    protected User $owner;
+
     protected Categoria $categoria;
-    protected Producto  $tacoPastor;
-    protected Producto  $tacoSuadero;
+
+    protected Producto $tacoPastor;
+
+    protected Producto $tacoSuadero;
+
     protected Ingrediente $tortilla;
+
     protected Ingrediente $carnePastor;
 
     protected function setUp(): void
@@ -34,77 +40,77 @@ class PedidoFlowTest extends TestCase
         parent::setUp();
 
         $this->local = Local::create([
-            'nombre'         => 'Tacos Test',
-            'slug'           => 'tacos-test',
-            'whatsapp'       => '5215512345678',
+            'nombre' => 'Tacos Test',
+            'slug' => 'tacos-test',
+            'whatsapp' => '5215512345678',
             'color_primario' => '#FF2D2D',
             'color_secundario' => '#0B0B0F',
-            'color_fondo'    => '#FAFAF7',
-            'tipografia'     => 'Bricolage Grotesque',
-            'delivery_fee'   => 35,
-            'activo'         => true,
+            'color_fondo' => '#FAFAF7',
+            'tipografia' => 'Bricolage Grotesque',
+            'delivery_fee' => 35,
+            'activo' => true,
         ]);
 
         $this->owner = User::create([
-            'nombre'   => 'Owner',
-            'email'    => 'owner@tacos-test.local',
+            'nombre' => 'Owner',
+            'email' => 'owner@tacos-test.local',
             'password' => Hash::make('password123'),
-            'rol'      => 'owner',
+            'rol' => 'owner',
             'local_id' => $this->local->id,
         ]);
 
         $this->categoria = Categoria::create([
             'local_id' => $this->local->id,
-            'nombre'   => 'Tacos',
-            'slug'     => 'tacos',
-            'orden'    => 0,
-            'activo'   => true,
+            'nombre' => 'Tacos',
+            'slug' => 'tacos',
+            'orden' => 0,
+            'activo' => true,
         ]);
 
         $this->tacoPastor = Producto::create([
-            'local_id'     => $this->local->id,
+            'local_id' => $this->local->id,
             'categoria_id' => $this->categoria->id,
-            'nombre'       => 'Taco al Pastor',
-            'slug'         => 'taco-al-pastor',
-            'precio'       => 28,
-            'disponible'   => true,
+            'nombre' => 'Taco al Pastor',
+            'slug' => 'taco-al-pastor',
+            'precio' => 28,
+            'disponible' => true,
         ]);
 
         $this->tacoSuadero = Producto::create([
-            'local_id'     => $this->local->id,
+            'local_id' => $this->local->id,
             'categoria_id' => $this->categoria->id,
-            'nombre'       => 'Taco de Suadero',
-            'slug'         => 'taco-de-suadero',
-            'precio'       => 26,
-            'disponible'   => true,
+            'nombre' => 'Taco de Suadero',
+            'slug' => 'taco-de-suadero',
+            'precio' => 26,
+            'disponible' => true,
         ]);
 
         $this->tortilla = Ingrediente::create([
             'local_id' => $this->local->id,
-            'nombre'   => 'Tortilla maíz',
-            'stock'    => 10,        // sólo 10 para forzar shortage en algunos tests
-            'unidad'   => 'pz',
-            'activo'   => true,
+            'nombre' => 'Tortilla maíz',
+            'stock' => 10,        // sólo 10 para forzar shortage en algunos tests
+            'unidad' => 'pz',
+            'activo' => true,
         ]);
 
         $this->carnePastor = Ingrediente::create([
             'local_id' => $this->local->id,
-            'nombre'   => 'Carne al pastor',
-            'stock'    => 5,         // 5 kg
-            'unidad'   => 'kg',
-            'activo'   => true,
+            'nombre' => 'Carne al pastor',
+            'stock' => 5,         // 5 kg
+            'unidad' => 'kg',
+            'activo' => true,
         ]);
 
         // Receta: 1 taco al pastor = 1 tortilla + 0.080 kg carne
         Receta::create([
-            'producto_id'    => $this->tacoPastor->id,
+            'producto_id' => $this->tacoPastor->id,
             'ingrediente_id' => $this->tortilla->id,
-            'cantidad'       => 1,
+            'cantidad' => 1,
         ]);
         Receta::create([
-            'producto_id'    => $this->tacoPastor->id,
+            'producto_id' => $this->tacoPastor->id,
             'ingrediente_id' => $this->carnePastor->id,
-            'cantidad'       => 0.080,
+            'cantidad' => 0.080,
         ]);
     }
 
@@ -129,11 +135,11 @@ class PedidoFlowTest extends TestCase
     {
         $response = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
             'cliente' => [
-                'nombre'   => 'María Pérez',
+                'nombre' => 'María Pérez',
                 'telefono' => '5215511112222',
             ],
             'metodo_entrega' => 'pickup',
-            'metodo_pago'    => 'efectivo',
+            'metodo_pago' => 'efectivo',
             'items' => [
                 ['producto_id' => $this->tacoPastor->id, 'cantidad' => 3],
             ],
@@ -144,11 +150,11 @@ class PedidoFlowTest extends TestCase
         $pedido = Pedido::firstWhere('cliente_telefono', '5215511112222');
         $this->assertNotNull($pedido);
         $this->assertSame(3 * 28.0, (float) $pedido->subtotal);   // 3 × $28
-        $this->assertSame(0.0,      (float) $pedido->delivery_fee); // pickup
-        $this->assertSame(84.0,     (float) $pedido->total);
+        $this->assertSame(0.0, (float) $pedido->delivery_fee); // pickup
+        $this->assertSame(84.0, (float) $pedido->total);
 
         // Inventario descontado: 10 - 3 = 7 tortillas, 5 - 0.240 = 4.760 kg
-        $this->assertEqualsWithDelta(7.0,   (float) $this->tortilla->fresh()->stock,    0.001);
+        $this->assertEqualsWithDelta(7.0, (float) $this->tortilla->fresh()->stock, 0.001);
         $this->assertEqualsWithDelta(4.760, (float) $this->carnePastor->fresh()->stock, 0.001);
 
         // Movimientos registrados
@@ -162,14 +168,14 @@ class PedidoFlowTest extends TestCase
     /** @test */
     public function rechaza_pedido_si_no_hay_stock_y_no_descuenta_nada(): void
     {
-        $stockInicialTortilla   = $this->tortilla->stock;
-        $stockInicialCarne      = $this->carnePastor->stock;
-        $pedidosAntes           = Pedido::count();
+        $stockInicialTortilla = $this->tortilla->stock;
+        $stockInicialCarne = $this->carnePastor->stock;
+        $pedidosAntes = Pedido::count();
 
         $response = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente'        => ['nombre' => 'Cliente', 'telefono' => '5215599999999'],
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215599999999'],
             'metodo_entrega' => 'pickup',
-            'metodo_pago'    => 'efectivo',
+            'metodo_pago' => 'efectivo',
             'items' => [
                 // Requiere 50 tortillas pero sólo hay 10 → debe fallar
                 ['producto_id' => $this->tacoPastor->id, 'cantidad' => 50],
@@ -181,7 +187,7 @@ class PedidoFlowTest extends TestCase
 
         // Rollback: stock no cambió, no se creó pedido ni movimientos
         $this->assertSame((float) $stockInicialTortilla, (float) $this->tortilla->fresh()->stock);
-        $this->assertSame((float) $stockInicialCarne,    (float) $this->carnePastor->fresh()->stock);
+        $this->assertSame((float) $stockInicialCarne, (float) $this->carnePastor->fresh()->stock);
         $this->assertSame($pedidosAntes, Pedido::count());
         $this->assertSame(0, MovimientoInventario::count());
     }
@@ -191,9 +197,9 @@ class PedidoFlowTest extends TestCase
     {
         // tacoSuadero NO tiene receta
         $response = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente'        => ['nombre' => 'Cliente', 'telefono' => '5215500000000'],
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215500000000'],
             'metodo_entrega' => 'delivery',
-            'metodo_pago'    => 'tarjeta_entrega',
+            'metodo_pago' => 'tarjeta_entrega',
             'items' => [
                 ['producto_id' => $this->tacoSuadero->id, 'cantidad' => 5],
             ],
@@ -204,12 +210,12 @@ class PedidoFlowTest extends TestCase
 
         $pedido = Pedido::firstWhere('cliente_telefono', '5215500000000');
         $this->assertSame('delivery', $pedido->metodo_entrega);
-        $this->assertSame(35.0,  (float) $pedido->delivery_fee);
+        $this->assertSame(35.0, (float) $pedido->delivery_fee);
         $this->assertSame(5 * 26.0 + 35.0, (float) $pedido->total);
 
         // Inventario sin tocar — no había receta
         $this->assertSame(10.0, (float) $this->tortilla->fresh()->stock);
-        $this->assertSame(5.0,  (float) $this->carnePastor->fresh()->stock);
+        $this->assertSame(5.0, (float) $this->carnePastor->fresh()->stock);
         $this->assertSame(0, MovimientoInventario::count());
     }
 
@@ -219,9 +225,9 @@ class PedidoFlowTest extends TestCase
         $this->tacoPastor->update(['disponible' => false]);
 
         $response = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente'        => ['nombre' => 'Cliente', 'telefono' => '5215500000000'],
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215500000000'],
             'metodo_entrega' => 'pickup',
-            'metodo_pago'    => 'efectivo',
+            'metodo_pago' => 'efectivo',
             'items' => [['producto_id' => $this->tacoPastor->id, 'cantidad' => 1]],
         ]);
 
@@ -313,31 +319,31 @@ class PedidoFlowTest extends TestCase
     public function el_inventory_service_descuenta_correctamente_dentro_de_transaccion(): void
     {
         $service = app(InventoryService::class);
-        $pedido  = Pedido::create([
+        $pedido = Pedido::create([
             'local_id' => $this->local->id,
             'cliente_nombre' => 'X', 'cliente_telefono' => '5215511111111',
             'metodo_entrega' => 'pickup', 'metodo_pago' => 'efectivo',
             'subtotal' => 0, 'total' => 0, 'estado' => 'nuevo',
         ]);
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($service, $pedido) {
+        DB::transaction(function () use ($service, $pedido) {
             $service->descontarParaPedido($pedido, [
                 ['producto_id' => $this->tacoPastor->id, 'cantidad' => 2],
             ]);
         });
 
-        $this->assertEqualsWithDelta(8.0,    (float) $this->tortilla->fresh()->stock,    0.001);
-        $this->assertEqualsWithDelta(4.840,  (float) $this->carnePastor->fresh()->stock, 0.001);
+        $this->assertEqualsWithDelta(8.0, (float) $this->tortilla->fresh()->stock, 0.001);
+        $this->assertEqualsWithDelta(4.840, (float) $this->carnePastor->fresh()->stock, 0.001);
     }
 
     /** @test */
     public function el_whatsapp_url_incluye_los_items_y_total(): void
     {
         $resp = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente'        => ['nombre' => 'Test', 'telefono' => '5215500000001'],
+            'cliente' => ['nombre' => 'Test', 'telefono' => '5215500000001'],
             'metodo_entrega' => 'pickup',
-            'metodo_pago'    => 'efectivo',
-            'items'          => [['producto_id' => $this->tacoPastor->id, 'cantidad' => 2]],
+            'metodo_pago' => 'efectivo',
+            'items' => [['producto_id' => $this->tacoPastor->id, 'cantidad' => 2]],
         ])->assertCreated();
 
         $url = $resp->json('whatsapp_url');

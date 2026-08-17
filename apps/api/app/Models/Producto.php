@@ -27,13 +27,13 @@ class Producto extends Model
     protected function casts(): array
     {
         return [
-            'precio'           => 'decimal:2',
+            'precio' => 'decimal:2',
             'precio_descuento' => 'decimal:2',
-            'disponible'       => 'boolean',
-            'es_combo'         => 'boolean',
-            'es_promocion'     => 'boolean',
-            'extras'           => 'array',
-            'meta'             => 'array',
+            'disponible' => 'boolean',
+            'es_combo' => 'boolean',
+            'es_promocion' => 'boolean',
+            'extras' => 'array',
+            'meta' => 'array',
         ];
     }
 

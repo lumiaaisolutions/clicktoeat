@@ -19,20 +19,20 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'nombre'             => $this->faker->name(),
-            'email'              => $this->faker->unique()->safeEmail(),
-            'password'           => static::$defaultPassword ??= Hash::make('password123'),
-            'rol'                => 'staff',
-            'local_id'           => null,
-            'email_verified_at'  => now(),
-            'remember_token'     => null,
+            'nombre' => $this->faker->name(),
+            'email' => $this->faker->unique()->safeEmail(),
+            'password' => static::$defaultPassword ??= Hash::make('password123'),
+            'rol' => 'staff',
+            'local_id' => null,
+            'email_verified_at' => now(),
+            'remember_token' => null,
         ];
     }
 
     public function superAdmin(): static
     {
         return $this->state(fn () => [
-            'rol'      => 'super_admin',
+            'rol' => 'super_admin',
             'local_id' => null,
         ]);
     }
@@ -40,7 +40,7 @@ class UserFactory extends Factory
     public function owner(?Local $local = null): static
     {
         return $this->state(fn () => [
-            'rol'      => 'owner',
+            'rol' => 'owner',
             'local_id' => $local?->id ?? Local::factory(),
         ]);
     }
@@ -48,7 +48,7 @@ class UserFactory extends Factory
     public function staff(?Local $local = null): static
     {
         return $this->state(fn () => [
-            'rol'      => 'staff',
+            'rol' => 'staff',
             'local_id' => $local?->id ?? Local::factory(),
         ]);
     }

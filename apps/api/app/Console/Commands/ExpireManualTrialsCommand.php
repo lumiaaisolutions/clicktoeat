@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use App\Models\Local;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -28,7 +27,8 @@ use Illuminate\Support\Facades\Log;
  */
 class ExpireManualTrialsCommand extends Command
 {
-    protected $signature   = 'trials:expire-manual';
+    protected $signature = 'trials:expire-manual';
+
     protected $description = 'Marca como incomplete los trials manuales vencidos sin Stripe subscription.';
 
     public function handle(): int
@@ -50,16 +50,17 @@ class ExpireManualTrialsCommand extends Command
             ])->save();
 
             Log::info('Trial manual expirado', [
-                'local_id'      => $local->id,
-                'local_slug'    => $local->slug,
+                'local_id' => $local->id,
+                'local_slug' => $local->slug,
                 'trial_ends_at' => $local->trial_ends_at?->toIso8601String(),
-                'expired_at'    => now()->toIso8601String(),
+                'expired_at' => now()->toIso8601String(),
             ]);
 
             $count++;
         }
 
         $this->info("Expiraron {$count} trials manuales.");
+
         return self::SUCCESS;
     }
 }

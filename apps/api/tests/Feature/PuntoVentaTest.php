@@ -19,9 +19,13 @@ class PuntoVentaTest extends TestCase
     use RefreshDatabase;
 
     protected Local $local;
+
     protected User $owner;
+
     protected User $staff;
+
     protected Producto $tacoPastor;
+
     protected Ingrediente $tortilla;
 
     protected function setUp(): void
@@ -72,16 +76,16 @@ class PuntoVentaTest extends TestCase
         $resp = $this->actingAs($this->staff, 'sanctum')
             ->postJson('/api/v1/pedidos', [
                 'metodo_entrega' => 'sucursal',
-                'metodo_pago'    => 'efectivo',
+                'metodo_pago' => 'efectivo',
                 'items' => [['producto_id' => $this->tacoPastor->id, 'cantidad' => 5]],
             ]);
 
         $resp->assertCreated()
             ->assertJsonPath('data.metodo_entrega', 'sucursal')
-            ->assertJsonPath('data.estado',         'confirmado')   // auto-confirma
+            ->assertJsonPath('data.estado', 'confirmado')   // auto-confirma
             ->assertJsonPath('data.cliente_nombre', 'Mostrador')    // default
-            ->assertJsonPath('data.delivery_fee',   0)               // sucursal no cobra envío
-            ->assertJsonPath('data.total',          5 * 28);
+            ->assertJsonPath('data.delivery_fee', 0)               // sucursal no cobra envío
+            ->assertJsonPath('data.total', 5 * 28);
 
         // Inventario descontado
         $this->assertEqualsWithDelta(95.0, (float) $this->tortilla->fresh()->stock, 0.001);
@@ -96,7 +100,7 @@ class PuntoVentaTest extends TestCase
         $resp = $this->actingAs($this->owner, 'sanctum')
             ->postJson('/api/v1/pedidos', [
                 'metodo_entrega' => 'sucursal',
-                'metodo_pago'    => 'tarjeta_tpv',
+                'metodo_pago' => 'tarjeta_tpv',
                 'items' => [['producto_id' => $this->tacoPastor->id, 'cantidad' => 1]],
             ]);
 
@@ -108,9 +112,9 @@ class PuntoVentaTest extends TestCase
     {
         $resp = $this->actingAs($this->staff, 'sanctum')
             ->postJson('/api/v1/pedidos', [
-                'cliente'        => ['nombre' => 'Mesa 4'],
+                'cliente' => ['nombre' => 'Mesa 4'],
                 'metodo_entrega' => 'sucursal',
-                'metodo_pago'    => 'efectivo',
+                'metodo_pago' => 'efectivo',
                 'items' => [['producto_id' => $this->tacoPastor->id, 'cantidad' => 2]],
             ]);
 
@@ -127,7 +131,7 @@ class PuntoVentaTest extends TestCase
         $resp = $this->actingAs($this->staff, 'sanctum')
             ->postJson('/api/v1/pedidos', [
                 'metodo_entrega' => 'sucursal',
-                'metodo_pago'    => 'efectivo',
+                'metodo_pago' => 'efectivo',
                 'items' => [['producto_id' => $this->tacoPastor->id, 'cantidad' => 99]], // tope de validación
             ]);
 
@@ -150,7 +154,7 @@ class PuntoVentaTest extends TestCase
         $this->actingAs($superAdmin, 'sanctum')
             ->postJson('/api/v1/pedidos', [
                 'metodo_entrega' => 'sucursal',
-                'metodo_pago'    => 'efectivo',
+                'metodo_pago' => 'efectivo',
                 'items' => [['producto_id' => $this->tacoPastor->id, 'cantidad' => 1]],
             ])
             ->assertStatus(403);   // sin local_id, authorize() false
@@ -162,7 +166,7 @@ class PuntoVentaTest extends TestCase
         $this->actingAs($this->staff, 'sanctum')
             ->postJson('/api/v1/pedidos', [
                 'metodo_entrega' => 'sucursal',
-                'metodo_pago'    => 'efectivo',
+                'metodo_pago' => 'efectivo',
                 'items' => [['producto_id' => $this->tacoPastor->id, 'cantidad' => 1]],
             ])->assertCreated();
 

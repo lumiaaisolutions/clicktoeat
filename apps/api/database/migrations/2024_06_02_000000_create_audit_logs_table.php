@@ -14,7 +14,8 @@ use Illuminate\Support\Facades\Schema;
  * Modelos auditados (vía Observers): Producto, Pedido, Categoria, Ingrediente,
  * Compra, Local, User. Ver `AuditObserver`.
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::create('audit_logs', function (Blueprint $table) {

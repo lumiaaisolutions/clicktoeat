@@ -9,6 +9,7 @@ use App\Services\Metricas\MetricasService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @OA\Tag(name="Métricas", description="KPIs y reportes estadísticos del local.")
@@ -27,9 +28,11 @@ class MetricasController extends Controller
      *     tags={"Métricas"},
      *     security={{"sanctum":{}}},
      *     summary="KPIs + serie temporal + top productos del rango (default: últimos 30 días).",
+     *
      *     @OA\Parameter(name="desde", in="query", @OA\Schema(type="string", format="date")),
      *     @OA\Parameter(name="hasta", in="query", @OA\Schema(type="string", format="date")),
      *     @OA\Parameter(name="preset", in="query", description="hoy|ayer|7d|30d|mes", @OA\Schema(type="string")),
+     *
      *     @OA\Response(response=200, description="OK")
      * )
      */
@@ -59,11 +62,11 @@ class MetricasController extends Controller
 
         $meses = max(1, min((int) $request->input('meses', 6), 24));
 
-        $end   = now()->endOfMonth();
+        $end = now()->endOfMonth();
         $start = now()->subMonths($meses - 1)->startOfMonth();
 
         // sqlite (tests) y mysql (prod) tienen sintaxis distintas para extraer YYYY-MM.
-        $driver = \Illuminate\Support\Facades\DB::connection()->getDriverName();
+        $driver = DB::connection()->getDriverName();
         $mesExpr = fn (string $col) => $driver === 'mysql'
             ? "DATE_FORMAT($col, '%Y-%m')"
             : "strftime('%Y-%m', $col)";
@@ -85,32 +88,32 @@ class MetricasController extends Controller
         $serie = [];
         $cursor = $start->copy();
         while ($cursor->lte($end)) {
-            $key     = $cursor->format('Y-m');
-            $ventas  = (float) ($ventasRaw[$key] ?? 0);
-            $gastos  = (int) ($gastosRaw[$key] ?? 0) / 100;
-            $util    = $ventas - $gastos;
+            $key = $cursor->format('Y-m');
+            $ventas = (float) ($ventasRaw[$key] ?? 0);
+            $gastos = (int) ($gastosRaw[$key] ?? 0) / 100;
+            $util = $ventas - $gastos;
             $serie[] = [
-                'mes'              => $key,
-                'label'            => $cursor->locale('es')->isoFormat('MMM YY'),
-                'ventas_mxn'       => round($ventas, 2),
-                'gastos_mxn'       => round($gastos, 2),
-                'utilidad_mxn'     => round($util, 2),
-                'margen_pct'       => $ventas > 0 ? round(($util / $ventas) * 100, 1) : null,
+                'mes' => $key,
+                'label' => $cursor->locale('es')->isoFormat('MMM YY'),
+                'ventas_mxn' => round($ventas, 2),
+                'gastos_mxn' => round($gastos, 2),
+                'utilidad_mxn' => round($util, 2),
+                'margen_pct' => $ventas > 0 ? round(($util / $ventas) * 100, 1) : null,
             ];
             $cursor->addMonth();
         }
 
-        $totVentas   = array_sum(array_column($serie, 'ventas_mxn'));
-        $totGastos   = array_sum(array_column($serie, 'gastos_mxn'));
+        $totVentas = array_sum(array_column($serie, 'ventas_mxn'));
+        $totGastos = array_sum(array_column($serie, 'gastos_mxn'));
         $totUtilidad = $totVentas - $totGastos;
 
         return response()->json([
             'data' => [
-                'meses'           => $meses,
-                'serie'           => $serie,
-                'total_ventas'    => round($totVentas, 2),
-                'total_gastos'    => round($totGastos, 2),
-                'total_utilidad'  => round($totUtilidad, 2),
+                'meses' => $meses,
+                'serie' => $serie,
+                'total_ventas' => round($totVentas, 2),
+                'total_gastos' => round($totGastos, 2),
+                'total_utilidad' => round($totUtilidad, 2),
                 'margen_promedio' => $totVentas > 0 ? round(($totUtilidad / $totVentas) * 100, 1) : null,
             ],
         ]);
@@ -120,15 +123,15 @@ class MetricasController extends Controller
     protected function parseRango(Request $request): array
     {
         $preset = $request->input('preset');
-        $now    = Carbon::now();
+        $now = Carbon::now();
 
         if ($preset) {
             return match ($preset) {
-                'hoy'   => [$now->copy()->startOfDay(),  $now->copy()->endOfDay()],
-                'ayer'  => [$now->copy()->subDay()->startOfDay(), $now->copy()->subDay()->endOfDay()],
-                '7d'    => [$now->copy()->subDays(6)->startOfDay(), $now->copy()->endOfDay()],
-                '30d'   => [$now->copy()->subDays(29)->startOfDay(), $now->copy()->endOfDay()],
-                'mes'   => [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()],
+                'hoy' => [$now->copy()->startOfDay(),  $now->copy()->endOfDay()],
+                'ayer' => [$now->copy()->subDay()->startOfDay(), $now->copy()->subDay()->endOfDay()],
+                '7d' => [$now->copy()->subDays(6)->startOfDay(), $now->copy()->endOfDay()],
+                '30d' => [$now->copy()->subDays(29)->startOfDay(), $now->copy()->endOfDay()],
+                'mes' => [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()],
                 default => [$now->copy()->subDays(29)->startOfDay(), $now->copy()->endOfDay()],
             };
         }

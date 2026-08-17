@@ -28,15 +28,15 @@ class SearchController extends Controller
         }
 
         $localId = $tenant->localIdOrFail();
-        $like    = '%'.$q.'%';
+        $like = '%'.$q.'%';
 
         $pedidos = Pedido::query()
             ->where('local_id', $localId)
             ->where(function ($w) use ($like) {
                 $w->where('codigo', 'like', $like)
-                  ->orWhere('cliente_nombre', 'like', $like)
-                  ->orWhere('cliente_telefono', 'like', $like)
-                  ->orWhere('cliente_email', 'like', $like);
+                    ->orWhere('cliente_nombre', 'like', $like)
+                    ->orWhere('cliente_telefono', 'like', $like)
+                    ->orWhere('cliente_email', 'like', $like);
             })
             ->orderByDesc('id')
             ->limit(5)
@@ -46,7 +46,7 @@ class SearchController extends Controller
             ->where('local_id', $localId)
             ->where(function ($w) use ($like) {
                 $w->where('nombre', 'like', $like)
-                  ->orWhere('slug',   'like', $like);
+                    ->orWhere('slug', 'like', $like);
             })
             ->orderBy('nombre')
             ->limit(5)
@@ -57,8 +57,8 @@ class SearchController extends Controller
             ->where('local_id', $localId)
             ->where(function ($w) use ($like) {
                 $w->where('cliente_nombre', 'like', $like)
-                  ->orWhere('cliente_telefono', 'like', $like)
-                  ->orWhere('cliente_email', 'like', $like);
+                    ->orWhere('cliente_telefono', 'like', $like)
+                    ->orWhere('cliente_email', 'like', $like);
             })
             ->select('cliente_nombre', 'cliente_telefono', 'cliente_email', DB::raw('MAX(created_at) as ultimo'), DB::raw('COUNT(*) as pedidos'))
             ->groupBy('cliente_nombre', 'cliente_telefono', 'cliente_email')
@@ -68,9 +68,9 @@ class SearchController extends Controller
 
         return response()->json([
             'data' => [
-                'pedidos'   => $pedidos,
+                'pedidos' => $pedidos,
                 'productos' => $productos,
-                'clientes'  => $clientes,
+                'clientes' => $clientes,
             ],
         ]);
     }

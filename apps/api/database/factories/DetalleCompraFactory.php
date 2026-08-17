@@ -17,14 +17,14 @@ class DetalleCompraFactory extends Factory
     public function definition(): array
     {
         $cantidad = $this->faker->randomFloat(3, 1, 50);
-        $costo    = $this->faker->randomFloat(2, 5, 200);
+        $costo = $this->faker->randomFloat(2, 5, 200);
 
         return [
-            'compra_id'      => Compra::factory(),
+            'compra_id' => Compra::factory(),
             'ingrediente_id' => Ingrediente::factory(),
-            'cantidad'       => $cantidad,
+            'cantidad' => $cantidad,
             'costo_unitario' => $costo,
-            'subtotal'       => round($cantidad * $costo, 2),
+            'subtotal' => round($cantidad * $costo, 2),
         ];
     }
 }

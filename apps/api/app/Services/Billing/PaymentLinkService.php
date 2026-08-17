@@ -2,8 +2,8 @@
 
 namespace App\Services\Billing;
 
-use App\Models\Pedido;
 use App\Models\Local;
+use App\Models\Pedido;
 use RuntimeException;
 use Throwable;
 
@@ -65,37 +65,38 @@ class PaymentLinkService
                 'name' => "Pedido {$pedido->codigo} — {$local->nombre}",
                 'metadata' => [
                     'pedido_codigo' => $pedido->codigo,
-                    'local_slug'    => $local->slug,
+                    'local_slug' => $local->slug,
                 ],
             ], $opts);
 
             // 2) Precio fijo en MXN
             $price = $stripe->prices->create([
-                'product'     => $product->id,
-                'currency'    => 'mxn',
+                'product' => $product->id,
+                'currency' => 'mxn',
                 'unit_amount' => $totalCentavos,
             ], $opts);
 
             // 3) Payment Link
             $link = $stripe->paymentLinks->create([
                 'line_items' => [[
-                    'price'    => $price->id,
+                    'price' => $price->id,
                     'quantity' => 1,
                 ]],
                 'after_completion' => [
-                    'type'     => 'redirect',
+                    'type' => 'redirect',
                     'redirect' => [
                         'url' => rtrim((string) config('app.url_frontend', config('app.url')), '/')."/{$local->slug}/pedido/{$pedido->codigo}?paid=1",
                     ],
                 ],
                 'metadata' => [
                     'pedido_codigo' => $pedido->codigo,
-                    'local_slug'    => $local->slug,
-                    'tipo'          => 'pedido_anticipado',
+                    'local_slug' => $local->slug,
+                    'tipo' => 'pedido_anticipado',
                 ],
             ], $opts);
 
             $pedido->update(['stripe_payment_link_id' => $link->id]);
+
             return $link->url;
 
         } catch (Throwable $e) {

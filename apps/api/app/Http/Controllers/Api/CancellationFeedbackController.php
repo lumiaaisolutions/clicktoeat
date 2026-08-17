@@ -24,19 +24,21 @@ class CancellationFeedbackController extends Controller
     public function store(Request $req): JsonResponse
     {
         $user = $req->user();
-        if (! $user || ! $user->local_id) abort(403);
+        if (! $user || ! $user->local_id) {
+            abort(403);
+        }
 
         $data = $req->validate([
-            'motivo'        => ['required', 'in:precio,falta_feature,no_funciono,no_lo_uso,cambio_proveedor,otro'],
-            'motivo_detalle'=> ['nullable', 'string', 'max:500'],
+            'motivo' => ['required', 'in:precio,falta_feature,no_funciono,no_lo_uso,cambio_proveedor,otro'],
+            'motivo_detalle' => ['nullable', 'string', 'max:500'],
         ]);
 
         DB::table('cancellation_feedback')->insert([
-            'local_id'      => $user->local_id,
-            'user_id'       => $user->id,
-            'motivo'        => $data['motivo'],
-            'motivo_detalle'=> $data['motivo_detalle'] ?? null,
-            'created_at'    => now(),
+            'local_id' => $user->local_id,
+            'user_id' => $user->id,
+            'motivo' => $data['motivo'],
+            'motivo_detalle' => $data['motivo_detalle'] ?? null,
+            'created_at' => now(),
         ]);
 
         return response()->json(['data' => null], 201);
@@ -45,7 +47,9 @@ class CancellationFeedbackController extends Controller
     /** Resumen agregado para super_admin (visible en /admin/saas-metrics). */
     public function summary(): JsonResponse
     {
-        if (! request()->user()?->isSuperAdmin()) abort(403);
+        if (! request()->user()?->isSuperAdmin()) {
+            abort(403);
+        }
 
         $rows = DB::table('cancellation_feedback')
             ->select('motivo', DB::raw('COUNT(*) as count'))
@@ -63,7 +67,7 @@ class CancellationFeedbackController extends Controller
             ->get(['motivo', 'motivo_detalle', 'created_at']);
 
         return response()->json([
-            'agregado'  => $rows,
+            'agregado' => $rows,
             'comentarios' => $detalles,
         ]);
     }

@@ -16,7 +16,8 @@ use Illuminate\Support\Facades\Schema;
  *
  * Backfill: cada usuario con local_id ya seteado se inserta en el pivot.
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::create('user_locales', function (Blueprint $t) {
@@ -35,8 +36,8 @@ return new class extends Migration {
             ->chunk(200, function ($users) {
                 foreach ($users as $u) {
                     DB::table('user_locales')->insertOrIgnore([
-                        'user_id'    => $u->id,
-                        'local_id'   => $u->local_id,
+                        'user_id' => $u->id,
+                        'local_id' => $u->local_id,
                         'created_at' => now(),
                     ]);
                 }

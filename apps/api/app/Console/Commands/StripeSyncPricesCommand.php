@@ -25,6 +25,7 @@ use Throwable;
 class StripeSyncPricesCommand extends Command
 {
     protected $signature = 'stripe:sync-prices {--write-env : Escribe los price IDs al .env}';
+
     protected $description = 'Sincroniza productos y precios de los planes en Stripe vía API.';
 
     public function __construct(
@@ -37,6 +38,7 @@ class StripeSyncPricesCommand extends Command
     {
         if (empty(config('stripe.secret_key'))) {
             $this->error('STRIPE_SECRET_KEY no está configurado. Agrégalo a apps/api/.env primero.');
+
             return self::FAILURE;
         }
 
@@ -44,12 +46,14 @@ class StripeSyncPricesCommand extends Command
             $stripe = $this->stripeFactory->make();
         } catch (Throwable $e) {
             $this->error("No se pudo inicializar Stripe: {$e->getMessage()}");
+
             return self::FAILURE;
         }
 
         $plans = Plan::query()->where('activo', true)->orderBy('orden')->get();
         if ($plans->isEmpty()) {
             $this->warn('Sin planes activos. Corre `php artisan db:seed --class=PlansSeeder` primero.');
+
             return self::FAILURE;
         }
 
@@ -64,7 +68,8 @@ class StripeSyncPricesCommand extends Command
                     $price = $stripe->prices->retrieve($plan->stripe_price_id);
                     if ($price && $price->active) {
                         $this->info("  ✓ Price {$plan->stripe_price_id} ya existe y está activo.");
-                        $envEntries["STRIPE_PRICE_".strtoupper($plan->slug)] = $plan->stripe_price_id;
+                        $envEntries['STRIPE_PRICE_'.strtoupper($plan->slug)] = $plan->stripe_price_id;
+
                         continue;
                     }
                 } catch (Throwable $e) {
@@ -86,9 +91,9 @@ class StripeSyncPricesCommand extends Command
 
             if (! $product) {
                 $product = $stripe->products->create([
-                    'name'        => "ClickToEat — {$plan->nombre}",
+                    'name' => "ClickToEat — {$plan->nombre}",
                     'description' => $this->descriptionFor($plan),
-                    'metadata'    => ['plan_slug' => $plan->slug],
+                    'metadata' => ['plan_slug' => $plan->slug],
                 ]);
                 $this->info("  + Producto creado: {$product->id}");
             } else {
@@ -96,20 +101,20 @@ class StripeSyncPricesCommand extends Command
             }
 
             $price = $stripe->prices->create([
-                'product'     => $product->id,
-                'currency'    => 'mxn',
+                'product' => $product->id,
+                'currency' => 'mxn',
                 'unit_amount' => $plan->precio_mxn_centavos,
-                'recurring'   => ['interval' => 'month'],
-                'metadata'    => ['plan_slug' => $plan->slug],
+                'recurring' => ['interval' => 'month'],
+                'metadata' => ['plan_slug' => $plan->slug],
             ]);
             $this->info("  + Price creado: {$price->id}");
 
             $plan->update(['stripe_price_id' => $price->id]);
-            $envEntries["STRIPE_PRICE_".strtoupper($plan->slug)] = $price->id;
+            $envEntries['STRIPE_PRICE_'.strtoupper($plan->slug)] = $price->id;
         }
 
         $this->newLine();
-        $this->info("Sincronización completa.");
+        $this->info('Sincronización completa.');
 
         if ($this->option('write-env')) {
             $this->writeEnv($envEntries);
@@ -127,10 +132,10 @@ class StripeSyncPricesCommand extends Command
     private function descriptionFor(Plan $plan): string
     {
         return match ($plan->slug) {
-            'essential'    => 'Catálogo + landing pública + pedidos por WhatsApp. Para arrancar.',
+            'essential' => 'Catálogo + landing pública + pedidos por WhatsApp. Para arrancar.',
             'professional' => 'Inventario, recetas, métricas, staff y más. Para operar tu local.',
-            'premium'      => 'POS, historial de cambios, métricas avanzadas. Para escalar.',
-            default        => $plan->nombre,
+            'premium' => 'POS, historial de cambios, métricas avanzadas. Para escalar.',
+            default => $plan->nombre,
         };
     }
 
@@ -142,15 +147,16 @@ class StripeSyncPricesCommand extends Command
         $envPath = base_path('.env');
         if (! file_exists($envPath)) {
             $this->warn("No se encontró .env en {$envPath}. Saltando escritura.");
+
             return;
         }
 
         $contents = file_get_contents($envPath);
-        $updated  = false;
+        $updated = false;
 
         foreach ($entries as $key => $value) {
             $pattern = "/^{$key}=.*$/m";
-            $line    = "{$key}={$value}";
+            $line = "{$key}={$value}";
             if (preg_match($pattern, $contents)) {
                 $contents = preg_replace($pattern, $line, $contents);
             } else {
@@ -161,7 +167,7 @@ class StripeSyncPricesCommand extends Command
 
         if ($updated) {
             file_put_contents($envPath, $contents);
-            $this->info(".env actualizado con ".count($entries)." entradas STRIPE_PRICE_*.");
+            $this->info('.env actualizado con '.count($entries).' entradas STRIPE_PRICE_*.');
             $this->warn('Recuerda correr `php artisan config:clear` para que el server recargue config.');
         }
     }

@@ -17,10 +17,10 @@ class NotificacionFactory extends Factory
     {
         return [
             'local_id' => Local::factory(),
-            'tipo'     => 'bajo_stock',
-            'titulo'   => 'Bajo stock: '.$this->faker->word(),
-            'mensaje'  => $this->faker->sentence(),
-            'data'     => null,
+            'tipo' => 'bajo_stock',
+            'titulo' => 'Bajo stock: '.$this->faker->word(),
+            'mensaje' => $this->faker->sentence(),
+            'data' => null,
             'leida_at' => null,
         ];
     }
@@ -33,14 +33,14 @@ class NotificacionFactory extends Factory
     public function bajoStock(int $ingredienteId, float $stock, float $stockMinimo, string $unidad = 'pz'): static
     {
         return $this->state(fn () => [
-            'tipo'    => 'bajo_stock',
-            'titulo'  => "Bajo stock",
+            'tipo' => 'bajo_stock',
+            'titulo' => 'Bajo stock',
             'mensaje' => "Quedan {$stock} {$unidad}",
-            'data'    => [
+            'data' => [
                 'ingrediente_id' => $ingredienteId,
-                'stock'          => $stock,
-                'stock_minimo'   => $stockMinimo,
-                'unidad'         => $unidad,
+                'stock' => $stock,
+                'stock_minimo' => $stockMinimo,
+                'unidad' => $unidad,
             ],
         ]);
     }

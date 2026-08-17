@@ -36,11 +36,12 @@ class ResumenSemanalMail extends Mailable
     protected function templateVars(): array
     {
         $base = rtrim((string) config('app.frontend_url', 'http://localhost:3000'), '/');
+
         return [
             'nombre_local' => $this->local->nombre,
-            'total'        => '$'.number_format((float) ($this->stats['ventas'] ?? 0), 2),
-            'link'         => "{$base}/admin/metricas",
-            'fecha'        => now()->format('d/m/Y'),
+            'total' => '$'.number_format((float) ($this->stats['ventas'] ?? 0), 2),
+            'link' => "{$base}/admin/metricas",
+            'fecha' => now()->format('d/m/Y'),
         ];
     }
 }

@@ -4,16 +4,20 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StartCheckoutRequest;
+use App\Models\Local;
 use App\Models\OnboardingToken;
 use App\Models\Plan;
-use App\Models\Local;
 use App\Models\User;
 use App\Services\Billing\StripeClientFactory;
 use App\Support\TenantContext;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Stripe\Checkout\Session;
+use Stripe\Exception\ApiErrorException;
 use Throwable;
 
 /**
@@ -47,22 +51,22 @@ class BillingController extends Controller
             ->orderBy('orden')
             ->get()
             ->map(fn (Plan $p) => [
-                'id'                    => $p->id,   // F100: necesario para el BillingModal del super_admin
-                'slug'                  => $p->slug,
-                'nombre'                => $p->nombre,
-                'precio_mxn'            => $p->priceMxn(),
-                'precio_mxn_centavos'   => $p->precio_mxn_centavos,
-                'features'              => $p->features,
+                'id' => $p->id,   // F100: necesario para el BillingModal del super_admin
+                'slug' => $p->slug,
+                'nombre' => $p->nombre,
+                'precio_mxn' => $p->priceMxn(),
+                'precio_mxn_centavos' => $p->precio_mxn_centavos,
+                'features' => $p->features,
                 'limits' => [
-                    'productos'   => $p->max_productos,
-                    'categorias'  => $p->max_categorias,
-                    'staff'       => $p->max_staff,
+                    'productos' => $p->max_productos,
+                    'categorias' => $p->max_categorias,
+                    'staff' => $p->max_staff,
                 ],
                 'available_for_purchase' => ! empty($p->stripe_price_id),
             ]);
 
         return response()->json([
-            'data'       => $plans,
+            'data' => $plans,
             'trial_days' => config('stripe.trial_days', 14),
         ]);
     }
@@ -81,15 +85,15 @@ class BillingController extends Controller
         if (empty($plan->stripe_price_id)) {
             return response()->json([
                 'message' => 'Este plan aún no está disponible para suscripción. Contacta al equipo.',
-                'code'    => 'PLAN_NOT_PROVISIONED',
+                'code' => 'PLAN_NOT_PROVISIONED',
             ], 503);
         }
 
         $payload = [
-            'mode'                       => 'subscription',
-            'payment_method_collection'  => 'if_required',
-            'line_items'                 => [[
-                'price'    => $plan->stripe_price_id,
+            'mode' => 'subscription',
+            'payment_method_collection' => 'if_required',
+            'line_items' => [[
+                'price' => $plan->stripe_price_id,
                 'quantity' => 1,
             ]],
             'subscription_data' => [
@@ -101,10 +105,10 @@ class BillingController extends Controller
             'metadata' => [
                 'plan_slug' => $plan->slug,
             ],
-            'success_url'           => config('stripe.success_url'),
-            'cancel_url'            => config('stripe.cancel_url'),
+            'success_url' => config('stripe.success_url'),
+            'cancel_url' => config('stripe.cancel_url'),
             'allow_promotion_codes' => true,
-            'locale'                => config('stripe.locale', 'es-419'),
+            'locale' => config('stripe.locale', 'es-419'),
         ];
 
         // Solo incluimos customer_email si llegó uno válido. Stripe rechaza
@@ -131,22 +135,24 @@ class BillingController extends Controller
 
         try {
             $session = $this->stripeFactory->make()->checkout->sessions->create($payload);
-        } catch (\Stripe\Exception\ApiErrorException $e) {
+        } catch (ApiErrorException $e) {
             report($e);
+
             return response()->json([
                 'message' => 'No pudimos iniciar el checkout: '.$e->getMessage(),
-                'code'    => 'STRIPE_CHECKOUT_FAILED',
+                'code' => 'STRIPE_CHECKOUT_FAILED',
             ], 502);
         } catch (Throwable $e) {
             report($e);
+
             return response()->json([
                 'message' => 'No pudimos iniciar el checkout. Intenta de nuevo.',
-                'code'    => 'STRIPE_CHECKOUT_FAILED',
+                'code' => 'STRIPE_CHECKOUT_FAILED',
             ], 502);
         }
 
         return response()->json([
-            'session_id'  => $session->id,
+            'session_id' => $session->id,
             'session_url' => $session->url,
         ]);
     }
@@ -166,9 +172,10 @@ class BillingController extends Controller
             ]);
         } catch (Throwable $e) {
             report($e);
+
             return response()->json([
                 'message' => 'Sesión inválida o expirada.',
-                'code'    => 'STRIPE_SESSION_NOT_FOUND',
+                'code' => 'STRIPE_SESSION_NOT_FOUND',
             ], 404);
         }
 
@@ -176,8 +183,8 @@ class BillingController extends Controller
         if (! in_array($session->status, ['complete'], true)) {
             return response()->json([
                 'message' => 'Pago aún no confirmado. Espera unos segundos.',
-                'code'    => 'STRIPE_SESSION_NOT_COMPLETE',
-                'status'  => $session->status,
+                'code' => 'STRIPE_SESSION_NOT_COMPLETE',
+                'status' => $session->status,
             ], 202);
         }
 
@@ -187,14 +194,14 @@ class BillingController extends Controller
             ? $this->stripeFactory->make()->subscriptions->retrieve($session->subscription)
             : $session->subscription;
 
-        $trialEndsAt   = $subscription?->trial_end ? \Carbon\Carbon::createFromTimestamp($subscription->trial_end) : now()->addDays(config('stripe.trial_days', 14));
-        $currentPeriod = $subscription?->current_period_end ? \Carbon\Carbon::createFromTimestamp($subscription->current_period_end) : null;
+        $trialEndsAt = $subscription?->trial_end ? Carbon::createFromTimestamp($subscription->trial_end) : now()->addDays(config('stripe.trial_days', 14));
+        $currentPeriod = $subscription?->current_period_end ? Carbon::createFromTimestamp($subscription->current_period_end) : null;
 
         // client_reference_id (seteado por checkout()/activateExisting() cuando
         // hay sesión) — "local:N" ata a un local existente, "user:N" ata a un
         // usuario ya registrado (vía /registro) que todavía no tiene local.
         $existingLocalId = null;
-        $existingUserId  = null;
+        $existingUserId = null;
         $clientRef = $session->client_reference_id ?? null;
         if ($clientRef && str_starts_with($clientRef, 'local:')) {
             $existingLocalId = (int) substr($clientRef, 6);
@@ -214,20 +221,20 @@ class BillingController extends Controller
         if (! $local) {
             $local = DB::transaction(function () use ($plan, $session, $subscription, $trialEndsAt, $currentPeriod, $existingUserId) {
                 $local = Local::create([
-                    'nombre'                  => 'Mi local',
-                    'slug'                    => 'pendiente-'.Str::random(10),
-                    'whatsapp'                => '',
-                    'color_primario'          => '#FF2D2D',
-                    'color_secundario'        => '#0B0B0F',
-                    'color_fondo'             => '#FAFAF7',
-                    'tipografia'              => 'Geist',
-                    'plan_id'                 => $plan->id,
-                    'plan_status'             => $subscription?->status ?? 'trialing',
-                    'stripe_customer_id'      => $session->customer,
-                    'stripe_subscription_id'  => $subscription?->id,
-                    'trial_ends_at'           => $trialEndsAt,
-                    'current_period_ends_at'  => $currentPeriod,
-                    'activo'                  => true,
+                    'nombre' => 'Mi local',
+                    'slug' => 'pendiente-'.Str::random(10),
+                    'whatsapp' => '',
+                    'color_primario' => '#FF2D2D',
+                    'color_secundario' => '#0B0B0F',
+                    'color_fondo' => '#FAFAF7',
+                    'tipografia' => 'Geist',
+                    'plan_id' => $plan->id,
+                    'plan_status' => $subscription?->status ?? 'trialing',
+                    'stripe_customer_id' => $session->customer,
+                    'stripe_subscription_id' => $subscription?->id,
+                    'trial_ends_at' => $trialEndsAt,
+                    'current_period_ends_at' => $currentPeriod,
+                    'activo' => true,
                 ]);
 
                 // Vincula el Local nuevo al usuario que ya existía (prospecto
@@ -251,14 +258,14 @@ class BillingController extends Controller
 
         return response()->json([
             'onboarding_token' => $token->value,
-            'local_id'         => $local->id,
-            'plan_slug'        => $plan->slug,
-            'trial_ends_at'    => $local->trial_ends_at?->toIso8601String(),
+            'local_id' => $local->id,
+            'plan_slug' => $plan->slug,
+            'trial_ends_at' => $local->trial_ends_at?->toIso8601String(),
             // El wizard usa esto para saltar el paso "Tu cuenta" — el owner
             // ya existe (vino de /registro), no hay que crear uno nuevo.
-            'already_linked'   => (bool) $owner,
-            'owner_nombre'     => $owner?->nombre,
-            'owner_email'      => $owner?->email,
+            'already_linked' => (bool) $owner,
+            'owner_nombre' => $owner?->nombre,
+            'owner_email' => $owner?->email,
         ]);
     }
 
@@ -274,7 +281,7 @@ class BillingController extends Controller
      * — evita el bug de crear un Local huérfano duplicado vía el checkout
      * público (`checkout()`), que no sabe a qué local pertenece la sesión.
      */
-    public function activateExisting(\Illuminate\Http\Request $req, TenantContext $ctx): JsonResponse
+    public function activateExisting(Request $req, TenantContext $ctx): JsonResponse
     {
         $local = $ctx->local();
         if (! $local) {
@@ -283,7 +290,7 @@ class BillingController extends Controller
         if (! empty($local->stripe_customer_id)) {
             return response()->json([
                 'message' => 'Este local ya tiene suscripción Stripe. Usa el portal en su lugar.',
-                'code'    => 'ALREADY_HAS_CUSTOMER',
+                'code' => 'ALREADY_HAS_CUSTOMER',
             ], 409);
         }
 
@@ -298,7 +305,7 @@ class BillingController extends Controller
         if (! $plan || empty($plan->stripe_price_id)) {
             return response()->json([
                 'message' => 'El plan del local no tiene precio configurado en Stripe.',
-                'code'    => 'PLAN_NOT_PROVISIONED',
+                'code' => 'PLAN_NOT_PROVISIONED',
             ], 503);
         }
 
@@ -320,7 +327,7 @@ class BillingController extends Controller
 
         $subscriptionData = [
             'metadata' => [
-                'plan_slug'         => $plan->slug,
+                'plan_slug' => $plan->slug,
                 'existing_local_id' => (string) $local->id,
             ],
         ];
@@ -334,27 +341,27 @@ class BillingController extends Controller
         }
 
         $payload = [
-            'mode'                       => 'subscription',
+            'mode' => 'subscription',
             // 'always' fuerza al cliente a capturar tarjeta. Combinado con
             // trial_end → checkout muestra "MXN 0.00 due today" pero pide
             // tarjeta para cobro futuro automático.
-            'payment_method_collection'  => 'always',
-            'line_items'                 => [[
-                'price'    => $plan->stripe_price_id,
+            'payment_method_collection' => 'always',
+            'line_items' => [[
+                'price' => $plan->stripe_price_id,
                 'quantity' => 1,
             ]],
-            'subscription_data'          => $subscriptionData,
+            'subscription_data' => $subscriptionData,
             'metadata' => [
-                'plan_slug'         => $plan->slug,
+                'plan_slug' => $plan->slug,
                 'existing_local_id' => (string) $local->id,
             ],
             // client_reference_id es el identificador que el webhook usa primero
             // antes de buscar por customer/subscription. Formato "local:N".
-            'client_reference_id'   => 'local:'.$local->id,
-            'success_url'           => config('stripe.success_url'),
-            'cancel_url'            => config('stripe.cancel_url'),
+            'client_reference_id' => 'local:'.$local->id,
+            'success_url' => config('stripe.success_url'),
+            'cancel_url' => config('stripe.cancel_url'),
             'allow_promotion_codes' => true,
-            'locale'                => config('stripe.locale', 'es-419'),
+            'locale' => config('stripe.locale', 'es-419'),
         ];
 
         // Pre-llenar email del owner si lo tenemos — Stripe lo usa para crear el customer.
@@ -367,14 +374,15 @@ class BillingController extends Controller
             $session = $this->stripeFactory->make()->checkout->sessions->create($payload);
         } catch (Throwable $e) {
             report($e);
+
             return response()->json([
                 'message' => 'No pudimos iniciar el checkout. Intenta de nuevo.',
-                'code'    => 'STRIPE_CHECKOUT_FAILED',
+                'code' => 'STRIPE_CHECKOUT_FAILED',
             ], 502);
         }
 
         return response()->json([
-            'session_id'  => $session->id,
+            'session_id' => $session->id,
             'session_url' => $session->url,
         ]);
     }
@@ -392,33 +400,36 @@ class BillingController extends Controller
         if (empty($local->stripe_customer_id)) {
             return response()->json([
                 'message' => 'Este local no tiene suscripción activa.',
-                'code'    => 'NO_STRIPE_CUSTOMER',
+                'code' => 'NO_STRIPE_CUSTOMER',
             ], 404);
         }
 
         try {
             $session = $this->stripeFactory->make()->billingPortal->sessions->create([
-                'customer'   => $local->stripe_customer_id,
+                'customer' => $local->stripe_customer_id,
                 'return_url' => config('stripe.portal_return_url'),
             ]);
         } catch (Throwable $e) {
             report($e);
+
             return response()->json([
                 'message' => 'No pudimos abrir el portal.',
-                'code'    => 'STRIPE_PORTAL_FAILED',
+                'code' => 'STRIPE_PORTAL_FAILED',
             ], 502);
         }
 
         return response()->json(['url' => $session->url]);
     }
 
-    private function planFromSession(\Stripe\Checkout\Session $session): Plan
+    private function planFromSession(Session $session): Plan
     {
         // Preferimos el metadata 'plan_slug' que seteamos en checkout()
         $slug = $session->metadata['plan_slug'] ?? null;
         if ($slug) {
             $plan = Plan::where('slug', $slug)->first();
-            if ($plan) return $plan;
+            if ($plan) {
+                return $plan;
+            }
         }
 
         // Fallback: mapear por stripe_price_id (caso edge cuando metadata se pierde)
@@ -426,7 +437,9 @@ class BillingController extends Controller
         $priceId = $subscription?->items?->data[0]?->price?->id ?? null;
         if ($priceId) {
             $plan = Plan::where('stripe_price_id', $priceId)->first();
-            if ($plan) return $plan;
+            if ($plan) {
+                return $plan;
+            }
         }
 
         throw new RuntimeException("No se pudo resolver el plan para session {$session->id}");

@@ -28,20 +28,20 @@ class OutgoingWebhookController extends Controller
     public function store(Request $req, TenantContext $tenant): JsonResponse
     {
         $data = $req->validate([
-            'event'  => ['required', 'in:pedido.creado'],
+            'event' => ['required', 'in:pedido.creado'],
             // SEV-3 — Defensa anti-SSRF: el validador `url` de Laravel sólo
             // chequea sintaxis. SafePublicUrl resuelve el host y rechaza
             // IPs privadas / loopback / link-local / metadata cloud.
-            'url'    => ['required', 'url', 'max:500', new SafePublicUrl(allowHttp: ! app()->isProduction())],
+            'url' => ['required', 'url', 'max:500', new SafePublicUrl(allowHttp: ! app()->isProduction())],
             'active' => ['sometimes', 'boolean'],
         ]);
 
         $hook = OutgoingWebhook::create([
-            'local_id'   => $tenant->localIdOrFail(),
-            'event'      => $data['event'],
-            'url'        => $data['url'],
-            'secret'     => Str::random(40),
-            'active'     => $data['active'] ?? true,
+            'local_id' => $tenant->localIdOrFail(),
+            'event' => $data['event'],
+            'url' => $data['url'],
+            'secret' => Str::random(40),
+            'active' => $data['active'] ?? true,
         ]);
 
         return response()->json(['data' => $hook], 201);
@@ -52,10 +52,11 @@ class OutgoingWebhookController extends Controller
         abort_unless($webhook->local_id === $tenant->localIdOrFail(), 404);
 
         $data = $req->validate([
-            'url'    => ['sometimes', 'url', 'max:500', new SafePublicUrl(allowHttp: ! app()->isProduction())],
+            'url' => ['sometimes', 'url', 'max:500', new SafePublicUrl(allowHttp: ! app()->isProduction())],
             'active' => ['sometimes', 'boolean'],
         ]);
         $webhook->update($data);
+
         return response()->json(['data' => $webhook->fresh()]);
     }
 
@@ -63,6 +64,7 @@ class OutgoingWebhookController extends Controller
     {
         abort_unless($webhook->local_id === $tenant->localIdOrFail(), 404);
         $webhook->delete();
+
         return response()->json(null, 204);
     }
 }

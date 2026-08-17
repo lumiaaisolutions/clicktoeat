@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Local;
-use App\Models\Pedido;
 use App\Models\SupportTicket;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -30,13 +29,13 @@ class NotificacionesController extends Controller
             ->get()
             ->each(function (SupportTicket $t) use ($items) {
                 $items->push([
-                    'id'         => "ticket-{$t->id}",
-                    'tipo'       => 'ticket',
-                    'titulo'     => "Ticket abierto: {$t->asunto}",
-                    'mensaje'    => ($t->user?->nombre ?? 'Owner').' · '.($t->local?->nombre ?? 'sin local'),
-                    'url'        => '/admin/tickets',
+                    'id' => "ticket-{$t->id}",
+                    'tipo' => 'ticket',
+                    'titulo' => "Ticket abierto: {$t->asunto}",
+                    'mensaje' => ($t->user?->nombre ?? 'Owner').' · '.($t->local?->nombre ?? 'sin local'),
+                    'url' => '/admin/tickets',
                     'created_at' => $t->created_at?->toIso8601String(),
-                    'severity'   => $t->prioridad === 'alta' || $t->prioridad === 'urgente' ? 'danger' : 'info',
+                    'severity' => $t->prioridad === 'alta' || $t->prioridad === 'urgente' ? 'danger' : 'info',
                 ]);
             });
 
@@ -49,13 +48,13 @@ class NotificacionesController extends Controller
             ->get(['id', 'nombre', 'slug', 'created_at'])
             ->each(function (Local $l) use ($items) {
                 $items->push([
-                    'id'         => "local-{$l->id}",
-                    'tipo'       => 'nuevo_local',
-                    'titulo'     => "Nuevo local: {$l->nombre}",
-                    'mensaje'    => "Acaba de registrarse en la plataforma",
-                    'url'        => "/admin/locales/{$l->id}",
+                    'id' => "local-{$l->id}",
+                    'tipo' => 'nuevo_local',
+                    'titulo' => "Nuevo local: {$l->nombre}",
+                    'mensaje' => 'Acaba de registrarse en la plataforma',
+                    'url' => "/admin/locales/{$l->id}",
                     'created_at' => $l->created_at?->toIso8601String(),
-                    'severity'   => 'success',
+                    'severity' => 'success',
                 ]);
             });
 
@@ -69,13 +68,13 @@ class NotificacionesController extends Controller
             ->get(['id', 'nombre', 'updated_at', 'plan_status'])
             ->each(function (Local $l) use ($items) {
                 $items->push([
-                    'id'         => "pago-{$l->id}",
-                    'tipo'       => 'pago_fallido',
-                    'titulo'     => "Pago fallido: {$l->nombre}",
-                    'mensaje'    => "Estado: {$l->plan_status}",
-                    'url'        => "/admin/locales/{$l->id}",
+                    'id' => "pago-{$l->id}",
+                    'tipo' => 'pago_fallido',
+                    'titulo' => "Pago fallido: {$l->nombre}",
+                    'mensaje' => "Estado: {$l->plan_status}",
+                    'url' => "/admin/locales/{$l->id}",
                     'created_at' => $l->updated_at?->toIso8601String(),
-                    'severity'   => 'warning',
+                    'severity' => 'warning',
                 ]);
             });
 

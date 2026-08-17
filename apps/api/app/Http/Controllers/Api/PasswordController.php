@@ -21,7 +21,7 @@ class PasswordController extends Controller
     {
         $data = $request->validate([
             'current_password' => ['required', 'string'],
-            'password'         => ['required', 'confirmed', Password::min(8)],
+            'password' => ['required', 'confirmed', Password::min(8)],
         ]);
 
         $user = $request->user();
@@ -29,7 +29,7 @@ class PasswordController extends Controller
         if (! Hash::check($data['current_password'], $user->password)) {
             return response()->json([
                 'message' => 'La contraseña actual es incorrecta.',
-                'errors'  => ['current_password' => ['La contraseña actual es incorrecta.']],
+                'errors' => ['current_password' => ['La contraseña actual es incorrecta.']],
             ], 422);
         }
 
@@ -51,7 +51,7 @@ class PasswordController extends Controller
     {
         $data = $request->validate([
             'password' => ['required', 'confirmed', Password::min(8)],
-            'user_id'  => ['nullable', 'integer', Rule::exists('users', 'id')],
+            'user_id' => ['nullable', 'integer', Rule::exists('users', 'id')],
         ]);
 
         $query = User::where('local_id', $local->id)->where('rol', 'owner');
@@ -73,10 +73,10 @@ class PasswordController extends Controller
 
         return response()->json([
             'message' => 'Contraseña del owner actualizada.',
-            'owner'   => [
-                'id'     => $owner->id,
+            'owner' => [
+                'id' => $owner->id,
                 'nombre' => $owner->nombre,
-                'email'  => $owner->email,
+                'email' => $owner->email,
             ],
         ]);
     }
@@ -99,7 +99,7 @@ class PasswordController extends Controller
      * (nombre, email). Útil cuando el owner pide cambio o hay typo en el
      * registro. Cierra todas las sesiones activas si el email cambió.
      */
-    public function updateUserProfile(\App\Models\User $user, Request $request): JsonResponse
+    public function updateUserProfile(User $user, Request $request): JsonResponse
     {
         if (! $request->user()?->isSuperAdmin()) {
             abort(403, 'Solo super_admin puede editar perfiles ajenos.');
@@ -107,8 +107,8 @@ class PasswordController extends Controller
 
         $data = $request->validate([
             'nombre' => ['required', 'string', 'max:120'],
-            'email'  => ['required', 'email', 'max:160',
-                \Illuminate\Validation\Rule::unique('users', 'email')->ignore($user->id),
+            'email' => ['required', 'email', 'max:160',
+                Rule::unique('users', 'email')->ignore($user->id),
             ],
         ]);
 

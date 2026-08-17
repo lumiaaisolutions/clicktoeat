@@ -13,7 +13,8 @@ use Illuminate\Support\Facades\Schema;
  *
  * Cuando `cerrado_temporal=false`, el estado se calcula desde `horarios`.
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::table('locales', function (Blueprint $table) {

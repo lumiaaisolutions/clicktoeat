@@ -1,12 +1,24 @@
 <?php
 
+use App\Exceptions\PlanLimitException;
+use App\Http\Middleware\CookieToBearer;
 use App\Http\Middleware\EnforceTenantScope;
 use App\Http\Middleware\EnsureSuperAdmin;
+use App\Http\Middleware\Idempotency;
+use App\Http\Middleware\RequiresFeature;
+use App\Services\Notifications\CarritoAbandonadoDispatcher;
+use App\Services\Notifications\ResumenSemanalDispatcher;
+use App\Services\Notifications\TrialNudgeDispatcher;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Middleware\HandleCors;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use Sentry\Laravel\Integration;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -35,16 +47,16 @@ return Application::configure(basePath: dirname(__DIR__))
         // del navegador con extensiones). EncryptCookies → en respuesta
         // encripta antes de enviar; en request decripta antes de leer.
         $middleware->use([
-            \Illuminate\Http\Middleware\HandleCors::class,
-            \Illuminate\Cookie\Middleware\EncryptCookies::class,
-            \App\Http\Middleware\CookieToBearer::class,
+            HandleCors::class,
+            EncryptCookies::class,
+            CookieToBearer::class,
         ]);
 
         $middleware->alias([
-            'tenant'      => EnforceTenantScope::class,
+            'tenant' => EnforceTenantScope::class,
             'super_admin' => EnsureSuperAdmin::class,
-            'idempotent'  => \App\Http\Middleware\Idempotency::class,
-            'feature'     => \App\Http\Middleware\RequiresFeature::class,
+            'idempotent' => Idempotency::class,
+            'feature' => RequiresFeature::class,
         ]);
 
         $middleware->throttleApi();
@@ -99,7 +111,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Día 3 / 7 / 14 desde el alta del local + 1 día antes de fin de trial.
         // Idempotente vía tabla local_email_log (unique local_id + tipo).
         $schedule->call(function () {
-            \App\Services\Notifications\TrialNudgeDispatcher::dispatchPending();
+            TrialNudgeDispatcher::dispatchPending();
         })->daily()->at('10:00')->name('trial-nudge-emails')->onOneServer();
 
         // ─── F100g: Expira trials MANUALES vencidos ─────────────────────
@@ -111,12 +123,12 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // ─── Carrito abandonado (F75) — cada 15 min ────────────────────
         $schedule->call(function () {
-            \App\Services\Notifications\CarritoAbandonadoDispatcher::dispatchPending();
+            CarritoAbandonadoDispatcher::dispatchPending();
         })->everyFifteenMinutes()->name('carrito-abandonado')->onOneServer();
 
         // ─── Resumen semanal a owners (F74) — domingos 20:00 ───────────
         $schedule->call(function () {
-            \App\Services\Notifications\ResumenSemanalDispatcher::dispatchAll();
+            ResumenSemanalDispatcher::dispatchAll();
         })->weekly()->sundays()->at('20:00')->name('resumen-semanal')->onOneServer();
 
         // ─── Gastos recurrentes vencidos (F101) — diario 09:30 ─────────
@@ -135,32 +147,32 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions) {
         // Reporta excepciones a Sentry si DSN está configurado.
         // No bloquea si la lib no está cargada — fallback silencioso.
-        \Sentry\Laravel\Integration::handles($exceptions);
+        Integration::handles($exceptions);
 
-        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {
+        $exceptions->render(function (AuthenticationException $e, $request) {
             if ($request->is('api/*')) {
                 return response()->json(['message' => 'No autenticado'], 401);
             }
         });
 
-        $exceptions->render(function (\Illuminate\Validation\ValidationException $e, $request) {
+        $exceptions->render(function (ValidationException $e, $request) {
             if ($request->is('api/*')) {
                 return response()->json([
                     'message' => $e->getMessage(),
-                    'errors'  => $e->errors(),
+                    'errors' => $e->errors(),
                 ], 422);
             }
         });
 
         // SaaS — límite cuantitativo de plan alcanzado (max_productos, etc.)
-        $exceptions->render(function (\App\Exceptions\PlanLimitException $e, $request) {
+        $exceptions->render(function (PlanLimitException $e, $request) {
             if ($request->is('api/*')) {
                 return response()->json([
-                    'message'     => $e->getMessage(),
-                    'code'        => 'PLAN_LIMIT',
-                    'feature'     => $e->feature,
-                    'limit'       => $e->limit,
-                    'current'     => $e->current,
+                    'message' => $e->getMessage(),
+                    'code' => 'PLAN_LIMIT',
+                    'feature' => $e->feature,
+                    'limit' => $e->limit,
+                    'current' => $e->current,
                     'upgrade_url' => '/admin/billing',
                 ], 402);
             }

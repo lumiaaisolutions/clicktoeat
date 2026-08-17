@@ -21,7 +21,7 @@ class Categoria extends Model
     {
         return [
             'activo' => 'boolean',
-            'orden'  => 'integer',
+            'orden' => 'integer',
         ];
     }
 

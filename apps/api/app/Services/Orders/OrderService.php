@@ -2,15 +2,21 @@
 
 namespace App\Services\Orders;
 
+use App\Events\PedidoCreado;
+use App\Mail\PedidoConfirmadoMail;
 use App\Models\DetallePedido;
 use App\Models\Local;
 use App\Models\Pedido;
 use App\Models\Producto;
 use App\Services\Inventory\InventoryService;
+use App\Services\Loyalty\LoyaltyService;
 use App\Services\Notifications\PushDispatcher;
+use App\Services\Webhooks\OutgoingWebhookDispatcher;
 use App\Services\WhatsApp\WhatsAppLinkBuilder;
+use App\Support\Features;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use RuntimeException;
 
 /**
@@ -22,9 +28,9 @@ use RuntimeException;
 class OrderService
 {
     public function __construct(
-        protected InventoryService    $inventory,
+        protected InventoryService $inventory,
         protected WhatsAppLinkBuilder $whatsapp,
-        protected PushDispatcher      $push,
+        protected PushDispatcher $push,
     ) {}
 
     /**
@@ -68,32 +74,32 @@ class OrderService
         // 3. Transacción: crear pedido + detalles + descuento de inventario
         $pedido = DB::transaction(function () use ($local, $input, $lineas, $subtotal, $deliveryFee, $total) {
             $pedido = Pedido::create([
-                'local_id'         => $local->id,
-                'mesa_id'          => $input['mesa_id'] ?? null,
-                'cliente_nombre'   => $input['cliente']['nombre'],
-                'cliente_email'    => $input['cliente']['email']       ?? null,
+                'local_id' => $local->id,
+                'mesa_id' => $input['mesa_id'] ?? null,
+                'cliente_nombre' => $input['cliente']['nombre'],
+                'cliente_email' => $input['cliente']['email'] ?? null,
                 'cliente_telefono' => $input['cliente']['telefono'],
-                'direccion'        => $input['cliente']['direccion']   ?? null,
-                'notas'            => $input['cliente']['notas']       ?? null,
-                'metodo_entrega'   => $input['metodo_entrega'],
-                'metodo_pago'      => $input['metodo_pago'],
-                'subtotal'         => $subtotal,
-                'delivery_fee'     => $deliveryFee,
-                'descuento'        => 0,
-                'total'            => $total,
-                'estado'           => 'nuevo',
+                'direccion' => $input['cliente']['direccion'] ?? null,
+                'notas' => $input['cliente']['notas'] ?? null,
+                'metodo_entrega' => $input['metodo_entrega'],
+                'metodo_pago' => $input['metodo_pago'],
+                'subtotal' => $subtotal,
+                'delivery_fee' => $deliveryFee,
+                'descuento' => 0,
+                'total' => $total,
+                'estado' => 'nuevo',
             ]);
 
             foreach ($lineas as $linea) {
                 DetallePedido::create([
-                    'pedido_id'             => $pedido->id,
-                    'producto_id'           => $linea['producto_id'],
-                    'producto_nombre'       => $linea['producto_nombre'],
-                    'precio_unitario'       => $linea['precio_unitario'],
-                    'cantidad'              => $linea['cantidad'],
-                    'subtotal'              => $linea['subtotal'],
-                    'extras_seleccionados'  => $linea['extras'],
-                    'notas'                 => $linea['notas'],
+                    'pedido_id' => $pedido->id,
+                    'producto_id' => $linea['producto_id'],
+                    'producto_nombre' => $linea['producto_nombre'],
+                    'precio_unitario' => $linea['precio_unitario'],
+                    'cantidad' => $linea['cantidad'],
+                    'subtotal' => $linea['subtotal'],
+                    'extras_seleccionados' => $linea['extras'],
+                    'notas' => $linea['notas'],
                 ]);
             }
 
@@ -122,19 +128,19 @@ class OrderService
         // configurado, el evento se dispara pero no llega a nadie — frontend
         // sigue con polling como fallback.
         // Ver: docs/runbook/integrar-reverb.md
-        event(new \App\Events\PedidoCreado($pedido));
+        event(new PedidoCreado($pedido));
 
         // Fan-out a Web Push (browser) + Expo Push (app móvil). Cada canal es
         // no-op silencioso si no hay tokens registrados / VAPID sin config.
         $this->push->sendToLocal($local->id, [
             'title' => 'Nuevo pedido '.$pedido->codigo,
-            'body'  => trim(($pedido->cliente_nombre ?? 'Cliente').' · $'.number_format((float) $pedido->total, 2)),
-            'url'   => '/admin/pedidos',
-            'tag'   => 'pedido-'.$pedido->id,
-            'data'  => [
+            'body' => trim(($pedido->cliente_nombre ?? 'Cliente').' · $'.number_format((float) $pedido->total, 2)),
+            'url' => '/admin/pedidos',
+            'tag' => 'pedido-'.$pedido->id,
+            'data' => [
                 'pedido_id' => $pedido->id,
-                'codigo'    => $pedido->codigo,
-                'route'     => '/(admin)/pedidos/'.$pedido->id,
+                'codigo' => $pedido->codigo,
+                'route' => '/(admin)/pedidos/'.$pedido->id,
             ],
         ]);
 
@@ -143,8 +149,8 @@ class OrderService
         // proveedor rechaza — no debe romper la creación del pedido.
         if (! empty($pedido->cliente_email)) {
             try {
-                \Illuminate\Support\Facades\Mail::to($pedido->cliente_email)
-                    ->send(new \App\Mail\PedidoConfirmadoMail($pedido));
+                Mail::to($pedido->cliente_email)
+                    ->send(new PedidoConfirmadoMail($pedido));
             } catch (\Throwable $e) {
                 report($e);
             }
@@ -153,7 +159,7 @@ class OrderService
         // Programa de lealtad — suma sello. Si premio listo, lo marcamos en el pedido
         // para que el owner lo vea como badge en el panel.
         try {
-            $premio = app(\App\Services\Loyalty\LoyaltyService::class)->registrarPedido($pedido);
+            $premio = app(LoyaltyService::class)->registrarPedido($pedido);
             if ($premio) {
                 $pedido->lealtad_premio_listo = true;
                 $pedido->save();
@@ -170,26 +176,30 @@ class OrderService
                     ->whereRaw('LOWER(email) = ?', [strtolower($pedido->cliente_email)])
                     ->whereNull('recovered_at')
                     ->update(['recovered_at' => now()]);
-            } catch (\Throwable $e) { report($e); }
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
 
         // F90 — Webhooks outgoing al cliente técnico (sistema de cocina, ERP, etc.)
-        if (\App\Support\Features::has($local, \App\Support\Features::API_WEBHOOKS)) {
+        if (Features::has($local, Features::API_WEBHOOKS)) {
             try {
-                \App\Services\Webhooks\OutgoingWebhookDispatcher::dispatch(
+                OutgoingWebhookDispatcher::dispatch(
                     $local->id,
                     'pedido.creado',
                     [
-                        'codigo'         => $pedido->codigo,
-                        'cliente'        => $pedido->cliente_nombre,
-                        'total'          => (float) $pedido->total,
+                        'codigo' => $pedido->codigo,
+                        'cliente' => $pedido->cliente_nombre,
+                        'total' => (float) $pedido->total,
                         'metodo_entrega' => $pedido->metodo_entrega,
-                        'metodo_pago'    => $pedido->metodo_pago,
-                        'estado'         => $pedido->estado,
-                        'created_at'     => $pedido->created_at?->toIso8601String(),
+                        'metodo_pago' => $pedido->metodo_pago,
+                        'estado' => $pedido->estado,
+                        'created_at' => $pedido->created_at?->toIso8601String(),
                     ],
                 );
-            } catch (\Throwable $e) { report($e); }
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
 
         return $pedido;
@@ -200,7 +210,7 @@ class OrderService
      */
     protected function snapshotLineas(array $items, Collection $productos): array
     {
-        $lineas   = [];
+        $lineas = [];
         $subtotal = 0.0;
 
         foreach ($items as $item) {
@@ -223,16 +233,16 @@ class OrderService
             }
 
             $precioUnitario = (float) $producto->precio + $extrasTotal;
-            $subtotalLinea  = $precioUnitario * $cantidad;
+            $subtotalLinea = $precioUnitario * $cantidad;
 
             $lineas[] = [
-                'producto_id'      => $producto->id,
-                'producto_nombre'  => $producto->nombre,
-                'precio_unitario'  => $precioUnitario,
-                'cantidad'         => $cantidad,
-                'subtotal'         => $subtotalLinea,
-                'extras'           => $extras,
-                'notas'            => $item['notas'] ?? null,
+                'producto_id' => $producto->id,
+                'producto_nombre' => $producto->nombre,
+                'precio_unitario' => $precioUnitario,
+                'cantidad' => $cantidad,
+                'subtotal' => $subtotalLinea,
+                'extras' => $extras,
+                'notas' => $item['notas'] ?? null,
             ];
             $subtotal += $subtotalLinea;
         }
@@ -256,7 +266,7 @@ class OrderService
      *
      * Match se hace por `group` (exacto) + `item` (matchea con item.name O item.id).
      */
-    protected function validarYNormalizarExtras(array $extrasCliente, \App\Models\Producto $producto): array
+    protected function validarYNormalizarExtras(array $extrasCliente, Producto $producto): array
     {
         if (empty($extrasCliente)) {
             return [];
@@ -267,31 +277,37 @@ class OrderService
         $byGroup = [];
         foreach ($catalogo as $grupo) {
             $groupName = $grupo['group'] ?? null;
-            if (! $groupName) continue;
+            if (! $groupName) {
+                continue;
+            }
             $byGroup[$groupName] = [];
             foreach (($grupo['items'] ?? []) as $catItem) {
                 // Permitir match por `id` o por `name`
                 $price = (float) ($catItem['price'] ?? 0);
-                if (isset($catItem['id']))   $byGroup[$groupName][$catItem['id']]   = $price;
-                if (isset($catItem['name'])) $byGroup[$groupName][$catItem['name']] = $price;
+                if (isset($catItem['id'])) {
+                    $byGroup[$groupName][$catItem['id']] = $price;
+                }
+                if (isset($catItem['name'])) {
+                    $byGroup[$groupName][$catItem['name']] = $price;
+                }
             }
         }
 
         $normalizados = [];
         foreach ($extrasCliente as $extra) {
             $group = $extra['group'] ?? null;
-            $item  = $extra['item']  ?? null;
+            $item = $extra['item'] ?? null;
 
             if (! $group || ! $item) {
-                throw new \RuntimeException("Extra inválido: requiere 'group' e 'item'.");
+                throw new RuntimeException("Extra inválido: requiere 'group' e 'item'.");
             }
             if (! isset($byGroup[$group])) {
-                throw new \RuntimeException(
+                throw new RuntimeException(
                     "Extra rechazado: grupo '{$group}' no existe en el producto '{$producto->nombre}'.",
                 );
             }
             if (! array_key_exists($item, $byGroup[$group])) {
-                throw new \RuntimeException(
+                throw new RuntimeException(
                     "Extra rechazado: item '{$item}' no existe en el grupo '{$group}' del producto '{$producto->nombre}'.",
                 );
             }
@@ -299,7 +315,7 @@ class OrderService
             // Snapshot con el precio canónico del catálogo (ignora lo que vino del cliente)
             $normalizados[] = [
                 'group' => $group,
-                'item'  => $item,
+                'item' => $item,
                 'price' => $byGroup[$group][$item],
             ];
         }

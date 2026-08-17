@@ -31,14 +31,16 @@ class MigrarUploadsAS3 extends Command
         if (! config('filesystems.disks.s3.bucket')) {
             $this->error('El disk "s3" no está configurado en .env (S3_BUCKET vacío).');
             $this->line('Ver docs/runbook/migrar-uploads-a-s3-b2.md');
+
             return self::FAILURE;
         }
 
         $localDisk = Storage::disk('public');
-        $s3Disk    = Storage::disk('s3');
+        $s3Disk = Storage::disk('s3');
 
         if (! $localDisk->exists('uploads')) {
             $this->info('No hay uploads que migrar — el directorio "uploads" no existe en el disk local.');
+
             return self::SUCCESS;
         }
 
@@ -50,8 +52,8 @@ class MigrarUploadsAS3 extends Command
         }
 
         $migrados = 0;
-        $skipped  = 0;
-        $errores  = 0;
+        $skipped = 0;
+        $errores = 0;
 
         $bar = $this->output->createProgressBar(count($files));
         $bar->start();
@@ -62,6 +64,7 @@ class MigrarUploadsAS3 extends Command
                 if ($s3Disk->exists($path)) {
                     $skipped++;
                     $bar->advance();
+
                     continue;
                 }
 
@@ -72,6 +75,7 @@ class MigrarUploadsAS3 extends Command
                         $this->newLine();
                         $this->error("No se pudo leer: {$path}");
                         $bar->advance();
+
                         continue;
                     }
                     $s3Disk->writeStream($path, $stream);
@@ -94,6 +98,7 @@ class MigrarUploadsAS3 extends Command
 
         if ($dryRun) {
             $this->warn('DRY-RUN — no se actualizó BD. Repite sin --dry-run para aplicar.');
+
             return self::SUCCESS;
         }
 
@@ -103,6 +108,7 @@ class MigrarUploadsAS3 extends Command
 
         if ($oldBase === '/' || $newBase === '/') {
             $this->error('No pude calcular las base URLs (public.url o s3.url vacíos). URLs en BD NO actualizadas.');
+
             return self::FAILURE;
         }
 
@@ -123,12 +129,12 @@ class MigrarUploadsAS3 extends Command
         $localesActualizados = 0;
         Local::withTrashed()
             ->where(function ($q) use ($oldBase) {
-                $q->where('logo_url',   'like', "{$oldBase}%")
-                  ->orWhere('banner_url', 'like', "{$oldBase}%");
+                $q->where('logo_url', 'like', "{$oldBase}%")
+                    ->orWhere('banner_url', 'like', "{$oldBase}%");
             })
             ->chunk(100, function ($locales) use ($oldBase, $newBase, &$localesActualizados) {
                 foreach ($locales as $l) {
-                    $l->logo_url   = $l->logo_url   ? str_replace($oldBase, $newBase, $l->logo_url)   : null;
+                    $l->logo_url = $l->logo_url ? str_replace($oldBase, $newBase, $l->logo_url) : null;
                     $l->banner_url = $l->banner_url ? str_replace($oldBase, $newBase, $l->banner_url) : null;
                     $l->saveQuietly();
                     $localesActualizados++;

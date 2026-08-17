@@ -16,8 +16,11 @@ class ComprasTest extends TestCase
     use RefreshDatabase;
 
     protected Local $local;
-    protected User  $owner;
+
+    protected User $owner;
+
     protected Ingrediente $fresa;
+
     protected Ingrediente $chantilly;
 
     protected function setUp(): void
@@ -51,9 +54,9 @@ class ComprasTest extends TestCase
     {
         $resp = $this->actingAs($this->owner, 'sanctum')
             ->postJson('/api/v1/compras', [
-                'proveedor'          => 'Central de Abastos',
+                'proveedor' => 'Central de Abastos',
                 'referencia_factura' => 'F-2026-0123',
-                'fecha'              => '2026-05-19',
+                'fecha' => '2026-05-19',
                 'items' => [
                     ['ingrediente_id' => $this->fresa->id,     'cantidad' => 3,   'costo_unitario' => 90],
                     ['ingrediente_id' => $this->chantilly->id, 'cantidad' => 1.5, 'costo_unitario' => 100],
@@ -62,7 +65,7 @@ class ComprasTest extends TestCase
 
         $resp->assertCreated()
             ->assertJsonPath('data.proveedor', 'Central de Abastos')
-            ->assertJsonPath('data.estado',     'registrada');
+            ->assertJsonPath('data.estado', 'registrada');
 
         // Subtotal = 3×90 + 1.5×100 = 270 + 150 = 420
         $this->assertEqualsWithDelta(420.0, (float) $resp->json('data.total'), 0.001);
@@ -110,7 +113,7 @@ class ComprasTest extends TestCase
             ->assertCreated();
 
         $this->assertEqualsWithDelta(88.0, (float) $this->fresa->fresh()->costo_unitario, 0.01);
-        $this->assertEqualsWithDelta(5.0,  (float) $this->fresa->fresh()->stock,          0.001);
+        $this->assertEqualsWithDelta(5.0, (float) $this->fresa->fresh()->stock, 0.001);
     }
 
     /** @test */
@@ -192,7 +195,7 @@ class ComprasTest extends TestCase
             ])->assertCreated();
 
         $this->actingAs($this->owner, 'sanctum')
-            ->deleteJson("/api/v1/compras/".$r1->json('data.id'))->assertOk();
+            ->deleteJson('/api/v1/compras/'.$r1->json('data.id'))->assertOk();
 
         $this->actingAs($this->owner, 'sanctum')
             ->getJson('/api/v1/compras?estado=registrada')

@@ -18,9 +18,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class CsvResponse
 {
     /**
-     * @param string $filename
-     * @param list<string> $headers Columnas (primera fila)
-     * @param callable():iterable $rows Generator que yieldea arrays escalares
+     * @param  list<string>  $headers  Columnas (primera fila)
+     * @param  callable():iterable  $rows  Generator que yieldea arrays escalares
      */
     public static function stream(string $filename, array $headers, callable $rows): StreamedResponse
     {
@@ -34,9 +33,9 @@ class CsvResponse
             }
             fclose($out);
         }, 200, [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-            'Cache-Control'       => 'no-store',
+            'Cache-Control' => 'no-store',
         ]);
     }
 }

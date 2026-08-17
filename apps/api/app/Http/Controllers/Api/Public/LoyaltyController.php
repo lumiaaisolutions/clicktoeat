@@ -20,6 +20,7 @@ class LoyaltyController extends Controller
         }
 
         $status = app(LoyaltyService::class)->statusPara($local, $email);
+
         return response()->json([
             'enabled' => true,
             ...$status,

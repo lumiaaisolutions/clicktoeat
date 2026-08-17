@@ -4,7 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::create('gastos', function (Blueprint $t) {
@@ -35,7 +36,7 @@ return new class extends Migration {
             $t->string('comprobante_url', 500)->nullable();
 
             $t->foreignId('created_by_user_id')->nullable()
-              ->constrained('users')->nullOnDelete();
+                ->constrained('users')->nullOnDelete();
 
             $t->timestamps();
             $t->softDeletes();

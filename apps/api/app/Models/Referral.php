@@ -4,13 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
  * @property int $referrer_local_id
  * @property int $referred_local_id
  * @property 'pending'|'rewarded'|'invalid' $status
- * @property \Illuminate\Support\Carbon|null $rewarded_at
+ * @property Carbon|null $rewarded_at
  * @property string|null $stripe_coupon_id
  */
 class Referral extends Model

@@ -24,10 +24,11 @@ class TrialWillEndMail extends Mailable
     public function content(): Content
     {
         $days = $this->local->trial_ends_at?->diffInDays(now()) ?? 0;
+
         return $this->editableContent('trial_will_end', 'emails.trial-will-end', [
-            'local'    => $this->local,
+            'local' => $this->local,
             'daysLeft' => $days,
-            'portal'   => config('stripe.portal_return_url'),
+            'portal' => config('stripe.portal_return_url'),
         ]);
     }
 
@@ -35,8 +36,8 @@ class TrialWillEndMail extends Mailable
     {
         return [
             'nombre_local' => $this->local->nombre,
-            'fecha'        => $this->local->trial_ends_at?->format('d/m/Y'),
-            'link'         => (string) config('stripe.portal_return_url'),
+            'fecha' => $this->local->trial_ends_at?->format('d/m/Y'),
+            'link' => (string) config('stripe.portal_return_url'),
         ];
     }
 }

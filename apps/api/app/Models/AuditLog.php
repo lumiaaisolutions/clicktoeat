@@ -34,7 +34,7 @@ class AuditLog extends Model
     protected function casts(): array
     {
         return [
-            'changes'    => 'array',
+            'changes' => 'array',
             'created_at' => 'datetime',
         ];
     }

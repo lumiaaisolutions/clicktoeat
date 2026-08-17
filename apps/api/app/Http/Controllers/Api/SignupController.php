@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\AuthCookie;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -25,16 +26,16 @@ class SignupController extends Controller
     public function prospect(Request $req): JsonResponse
     {
         $data = $req->validate([
-            'nombre'   => ['required', 'string', 'min:2', 'max:120'],
-            'email'    => ['required', 'email:rfc', 'unique:users,email'],
+            'nombre' => ['required', 'string', 'min:2', 'max:120'],
+            'email' => ['required', 'email:rfc', 'unique:users,email'],
             'password' => ['required', 'confirmed', Password::min(8)],
         ]);
 
         $user = User::create([
-            'nombre'   => $data['nombre'],
-            'email'    => strtolower(trim($data['email'])),
+            'nombre' => $data['nombre'],
+            'email' => strtolower(trim($data['email'])),
             'password' => Hash::make($data['password']),
-            'rol'      => 'owner',
+            'rol' => 'owner',
             'local_id' => null, // se asigna cuando completa checkout
             'email_verified_at' => now(),
         ]);
@@ -45,8 +46,8 @@ class SignupController extends Controller
         // SEV-2 — la sesión web viaja en cookie HttpOnly; el token del JSON
         // queda como respaldo transitorio en memoria (registro → elegir plan).
         return response()->json([
-            'user'  => $user->only(['id', 'nombre', 'email', 'rol']),
+            'user' => $user->only(['id', 'nombre', 'email', 'rol']),
             'token' => $token,
-        ], 201)->withCookie(\App\Support\AuthCookie::make($token));
+        ], 201)->withCookie(AuthCookie::make($token));
     }
 }

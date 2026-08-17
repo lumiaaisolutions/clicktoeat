@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 /**
  * Gasto operativo del local — luz, agua, gas, renta, nómina, etc.
@@ -14,20 +15,20 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * Distinto de `compras` (que es inventario de insumos para preparar pedidos).
  * Gastos son OPEX puro: lo que el local paga para operar (no para producir).
  *
- * @property int    $id
- * @property int    $local_id
- * @property string $categoria   Slug estable: luz|agua|gas|internet|...
- * @property string $concepto    Descripción libre tipo "CFE bimestral"
- * @property int    $monto_centavos
- * @property \Illuminate\Support\Carbon $fecha
- * @property bool   $recurrente
+ * @property int $id
+ * @property int $local_id
+ * @property string $categoria Slug estable: luz|agua|gas|internet|...
+ * @property string $concepto Descripción libre tipo "CFE bimestral"
+ * @property int $monto_centavos
+ * @property Carbon $fecha
+ * @property bool $recurrente
  * @property string|null $notas
  * @property string|null $comprobante_url
  * @property int|null $created_by_user_id
  */
 class Gasto extends Model
 {
-    use HasFactory, SoftDeletes, BelongsToTenant;
+    use BelongsToTenant, HasFactory, SoftDeletes;
 
     public const CATEGORIAS = [
         'luz',
@@ -54,8 +55,8 @@ class Gasto extends Model
     protected function casts(): array
     {
         return [
-            'fecha'       => 'date',
-            'recurrente'  => 'boolean',
+            'fecha' => 'date',
+            'recurrente' => 'boolean',
         ];
     }
 

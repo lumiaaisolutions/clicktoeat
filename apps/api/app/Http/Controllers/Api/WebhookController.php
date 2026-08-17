@@ -30,11 +30,12 @@ class WebhookController extends Controller
     public function stripe(Request $req): Response
     {
         $payload = $req->getContent();
-        $sig     = $req->header('Stripe-Signature');
-        $secret  = config('stripe.webhook_secret');
+        $sig = $req->header('Stripe-Signature');
+        $secret = config('stripe.webhook_secret');
 
         if (empty($secret)) {
             Log::error('Stripe webhook recibido pero STRIPE_WEBHOOK_SECRET no está configurado.');
+
             return response('Webhook secret not configured', 500);
         }
 
@@ -42,9 +43,11 @@ class WebhookController extends Controller
             $event = StripeWebhook::constructEvent($payload, $sig ?? '', $secret);
         } catch (SignatureVerificationException $e) {
             Log::warning('Webhook Stripe: firma inválida.', ['error' => $e->getMessage()]);
+
             return response('Invalid signature', 400);
         } catch (Throwable $e) {
             Log::error('Webhook Stripe: error al construir evento.', ['error' => $e->getMessage()]);
+
             return response('Bad payload', 400);
         }
 
@@ -56,21 +59,23 @@ class WebhookController extends Controller
 
         $record = $existing ?? SubscriptionEvent::create([
             'stripe_event_id' => $event->id,
-            'type'            => $event->type,
-            'payload'         => $event->toArray(),
+            'type' => $event->type,
+            'payload' => $event->toArray(),
         ]);
 
         try {
             $this->handler->handle($event, $record);
             $record->update(['processed_at' => now(), 'error' => null]);
+
             return response('OK', 200);
         } catch (Throwable $e) {
             Log::error('Webhook Stripe: handler falló.', [
                 'event_id' => $event->id,
-                'type'     => $event->type,
-                'error'    => $e->getMessage(),
+                'type' => $event->type,
+                'error' => $e->getMessage(),
             ]);
             $record->update(['error' => mb_substr($e->getMessage(), 0, 2000)]);
+
             // 500 → Stripe reintenta automáticamente (hasta 3 días)
             return response('Handler failed: '.$e->getMessage(), 500);
         }

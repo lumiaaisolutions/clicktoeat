@@ -25,12 +25,14 @@ class AuditLogController extends Controller
      *     tags={"Audit log"},
      *     security={{"sanctum":{}}},
      *     summary="Lista paginada del audit log del local autenticado.",
+     *
      *     @OA\Parameter(name="resource_type", in="query", @OA\Schema(type="string"), description="Filtrar por modelo (Producto, Pedido, etc.)"),
      *     @OA\Parameter(name="action", in="query", @OA\Schema(type="string", enum={"created","updated","deleted","restored"})),
      *     @OA\Parameter(name="actor_user_id", in="query", @OA\Schema(type="integer")),
      *     @OA\Parameter(name="desde", in="query", @OA\Schema(type="string", format="date")),
      *     @OA\Parameter(name="hasta", in="query", @OA\Schema(type="string", format="date")),
      *     @OA\Parameter(name="per_page", in="query", @OA\Schema(type="integer", default=50)),
+     *
      *     @OA\Response(response=200, description="OK")
      * )
      */
@@ -54,7 +56,7 @@ class AuditLogController extends Controller
             $term = $request->string('resource_type')->toString();
             $query->where(function ($q) use ($term) {
                 $q->where('resource_type', 'App\\Models\\'.$term)
-                  ->orWhere('resource_type', $term);
+                    ->orWhere('resource_type', $term);
             });
         }
         if ($request->filled('action')) {

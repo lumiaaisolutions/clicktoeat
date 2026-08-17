@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Schema;
  * corte de caja que lo recibió, para que `CajaService::cerrarCorte` pueda
  * sumar efectivo real recibido (antes sólo sumaba movimientos manuales).
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::table('pagos_cuenta_mesa', function (Blueprint $t) {

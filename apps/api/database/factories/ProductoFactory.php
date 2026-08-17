@@ -22,28 +22,28 @@ class ProductoFactory extends Factory
         $nombre = ucfirst($this->faker->words(2, true)).' '.$this->faker->numerify('##');
 
         return [
-            'local_id'     => Local::factory(),
+            'local_id' => Local::factory(),
             'categoria_id' => Categoria::factory(),
-            'nombre'       => $nombre,
-            'slug'         => Str::slug($nombre),
-            'descripcion'  => $this->faker->sentence(10),
-            'precio'       => $this->faker->randomFloat(2, 20, 250),
+            'nombre' => $nombre,
+            'slug' => Str::slug($nombre),
+            'descripcion' => $this->faker->sentence(10),
+            'precio' => $this->faker->randomFloat(2, 20, 250),
             'precio_descuento' => null,
-            'imagen_url'   => null,
+            'imagen_url' => null,
             'imagen_public_id' => null,
-            'disponible'   => true,
-            'es_combo'     => false,
+            'disponible' => true,
+            'es_combo' => false,
             'es_promocion' => false,
-            'tag'          => null,
-            'extras'       => null,
-            'orden'        => $this->faker->numberBetween(0, 100),
+            'tag' => null,
+            'extras' => null,
+            'orden' => $this->faker->numberBetween(0, 100),
         ];
     }
 
     public function paraLocal(Local $local, ?Categoria $categoria = null): static
     {
         return $this->state(fn () => [
-            'local_id'     => $local->id,
+            'local_id' => $local->id,
             'categoria_id' => $categoria?->id
                 ?? Categoria::factory()->paraLocal($local)->create()->id,
         ]);
@@ -57,7 +57,7 @@ class ProductoFactory extends Factory
     public function conDescuento(float $precio = 40, float $descuento = 30): static
     {
         return $this->state(fn () => [
-            'precio'           => $precio,
+            'precio' => $precio,
             'precio_descuento' => $descuento,
         ]);
     }
@@ -97,9 +97,9 @@ class ProductoFactory extends Factory
     {
         return $this->afterCreating(function (Producto $producto) use ($ingrediente, $cantidad) {
             Receta::create([
-                'producto_id'    => $producto->id,
+                'producto_id' => $producto->id,
                 'ingrediente_id' => $ingrediente->id,
-                'cantidad'       => $cantidad,
+                'cantidad' => $cantidad,
             ]);
         });
     }

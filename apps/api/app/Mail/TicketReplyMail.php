@@ -29,7 +29,7 @@ class TicketReplyMail extends Mailable
     public function content(): Content
     {
         return $this->editableContent('ticket_reply', 'mail.ticket_reply', [
-            'ticket'  => $this->ticket,
+            'ticket' => $this->ticket,
             'mensaje' => $this->mensaje,
         ]);
     }
@@ -38,8 +38,8 @@ class TicketReplyMail extends Mailable
     {
         return [
             'nombre_cliente' => $this->ticket->user?->nombre ?? '',
-            'pedido_id'      => $this->ticket->id,
-            'fecha'          => now()->format('d/m/Y H:i'),
+            'pedido_id' => $this->ticket->id,
+            'fecha' => now()->format('d/m/Y H:i'),
         ];
     }
 }

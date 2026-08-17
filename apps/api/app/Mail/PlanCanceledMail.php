@@ -24,8 +24,8 @@ class PlanCanceledMail extends Mailable
     public function content(): Content
     {
         return $this->editableContent('plan_canceled', 'emails.plan-canceled', [
-            'local'   => $this->local,
-            'endsAt'  => $this->local->current_period_ends_at,
+            'local' => $this->local,
+            'endsAt' => $this->local->current_period_ends_at,
         ]);
     }
 
@@ -33,7 +33,7 @@ class PlanCanceledMail extends Mailable
     {
         return [
             'nombre_local' => $this->local->nombre,
-            'fecha'        => $this->local->current_period_ends_at?->format('d/m/Y'),
+            'fecha' => $this->local->current_period_ends_at?->format('d/m/Y'),
         ];
     }
 }

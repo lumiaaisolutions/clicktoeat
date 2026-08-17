@@ -13,7 +13,8 @@ use Illuminate\Support\Facades\Schema;
  *   - se oculta la opción "Entrega a domicilio" en el landing público
  *   - se ocultan los campos de envío/tiempo/radio del editor de branding
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::table('locales', function (Blueprint $table) {

@@ -25,9 +25,11 @@ class TwoFactorController extends Controller
     public function setup(Request $req): JsonResponse
     {
         $user = $req->user();
-        if (! $user) abort(401);
+        if (! $user) {
+            abort(401);
+        }
 
-        $g2fa  = new Google2FA();
+        $g2fa = new Google2FA;
         $secret = $g2fa->generateSecretKey();
 
         $user->two_factor_secret = Crypt::encryptString($secret);
@@ -38,7 +40,7 @@ class TwoFactorController extends Controller
         $otpauthUrl = $g2fa->getQRCodeUrl($issuer, $user->email, $secret);
 
         return response()->json([
-            'secret'      => $secret,           // mostrar al usuario una sola vez
+            'secret' => $secret,           // mostrar al usuario una sola vez
             'otpauth_url' => $otpauthUrl,       // base para QR generado en el frontend
         ]);
     }
@@ -46,7 +48,9 @@ class TwoFactorController extends Controller
     public function confirm(Request $req): JsonResponse
     {
         $user = $req->user();
-        if (! $user) abort(401);
+        if (! $user) {
+            abort(401);
+        }
 
         Validator::make($req->all(), [
             'code' => ['required', 'string', 'size:6'],
@@ -57,7 +61,7 @@ class TwoFactorController extends Controller
         }
 
         $secret = Crypt::decryptString($user->two_factor_secret);
-        $valid  = (new Google2FA())->verifyKey($secret, (string) $req->input('code'));
+        $valid = (new Google2FA)->verifyKey($secret, (string) $req->input('code'));
         if (! $valid) {
             return response()->json(['message' => 'Código incorrecto'], 422);
         }
@@ -72,7 +76,7 @@ class TwoFactorController extends Controller
         $user->save();
 
         return response()->json([
-            'enabled'        => true,
+            'enabled' => true,
             'recovery_codes' => $codes, // mostrar UNA SOLA VEZ
         ]);
     }
@@ -80,7 +84,9 @@ class TwoFactorController extends Controller
     public function disable(Request $req): JsonResponse
     {
         $user = $req->user();
-        if (! $user) abort(401);
+        if (! $user) {
+            abort(401);
+        }
 
         Validator::make($req->all(), [
             'password' => ['required', 'string'],
@@ -101,7 +107,10 @@ class TwoFactorController extends Controller
     public function status(Request $req): JsonResponse
     {
         $user = $req->user();
-        if (! $user) abort(401);
+        if (! $user) {
+            abort(401);
+        }
+
         return response()->json([
             'enabled' => $user->hasTwoFactorEnabled(),
         ]);

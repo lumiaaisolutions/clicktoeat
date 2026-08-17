@@ -42,13 +42,13 @@ class PedidoCreado implements ShouldBroadcast, ShouldDispatchAfterCommit
     public function broadcastWith(): array
     {
         return [
-            'pedido_id'      => $this->pedido->id,
-            'codigo'         => $this->pedido->codigo,
-            'cliente'        => $this->pedido->cliente_nombre,
-            'total'          => (float) $this->pedido->total,
+            'pedido_id' => $this->pedido->id,
+            'codigo' => $this->pedido->codigo,
+            'cliente' => $this->pedido->cliente_nombre,
+            'total' => (float) $this->pedido->total,
             'metodo_entrega' => $this->pedido->metodo_entrega,
-            'estado'         => $this->pedido->estado,
-            'created_at'     => $this->pedido->created_at?->toIso8601String(),
+            'estado' => $this->pedido->estado,
+            'created_at' => $this->pedido->created_at?->toIso8601String(),
         ];
     }
 

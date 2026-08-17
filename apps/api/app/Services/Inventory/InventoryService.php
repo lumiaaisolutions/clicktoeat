@@ -3,11 +3,15 @@
 namespace App\Services\Inventory;
 
 use App\Models\Ingrediente;
+use App\Models\Local;
 use App\Models\MovimientoInventario;
 use App\Models\Notificacion;
 use App\Models\Pedido;
+use App\Models\Producto;
 use App\Models\Receta;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 /**
  * Maneja el stock automático de ingredientes para un pedido.
@@ -32,7 +36,7 @@ class InventoryService
     /**
      * Descuenta inventario para un pedido nuevo.
      *
-     * @param array<int, array{producto_id:int, cantidad:int}> $lineas
+     * @param  array<int, array{producto_id:int, cantidad:int}>  $lineas
      */
     public function descontarParaPedido(Pedido $pedido, array $lineas): void
     {
@@ -41,20 +45,24 @@ class InventoryService
         }
 
         $consumo = $this->calcularConsumo($lineas);
-        if (empty($consumo)) return;
+        if (empty($consumo)) {
+            return;
+        }
 
         $ingredientes = $this->lockAndFetch(array_keys($consumo));
 
         $faltantes = [];
         foreach ($consumo as $ingId => $cantidad) {
             $ing = $ingredientes->get($ingId);
-            if (! $ing) continue;
+            if (! $ing) {
+                continue;
+            }
             if ((float) $ing->stock < $cantidad) {
                 $faltantes[] = [
                     'ingrediente' => $ing->nombre,
-                    'requerido'   => round($cantidad, 3),
-                    'disponible'  => (float) $ing->stock,
-                    'unidad'      => $ing->unidad,
+                    'requerido' => round($cantidad, 3),
+                    'disponible' => (float) $ing->stock,
+                    'unidad' => $ing->unidad,
                 ];
             }
         }
@@ -65,7 +73,9 @@ class InventoryService
 
         foreach ($consumo as $ingId => $cantidad) {
             $ing = $ingredientes->get($ingId);
-            if (! $ing) continue;
+            if (! $ing) {
+                continue;
+            }
 
             $stockAntes = (float) $ing->stock;
             $nuevoStock = $stockAntes - $cantidad;
@@ -73,13 +83,13 @@ class InventoryService
             $ing->save();
 
             MovimientoInventario::create([
-                'local_id'         => $pedido->local_id,
-                'ingrediente_id'   => $ing->id,
-                'tipo'             => 'salida',
-                'cantidad'         => $cantidad,
+                'local_id' => $pedido->local_id,
+                'ingrediente_id' => $ing->id,
+                'tipo' => 'salida',
+                'cantidad' => $cantidad,
                 'stock_resultante' => $nuevoStock,
-                'referencia'       => "pedido:{$pedido->id}",
-                'motivo'           => 'Descuento automático por pedido',
+                'referencia' => "pedido:{$pedido->id}",
+                'motivo' => 'Descuento automático por pedido',
             ]);
 
             // Si cruzamos el umbral mínimo en esta operación, notificar.
@@ -108,7 +118,7 @@ class InventoryService
             throw new \LogicException(__METHOD__.' debe correr dentro de DB::transaction.');
         }
 
-        $refSalida    = "pedido:{$pedido->id}";
+        $refSalida = "pedido:{$pedido->id}";
         $refReintegro = "pedido:{$pedido->id}:reintegro";
 
         if (MovimientoInventario::where('referencia', $refReintegro)->exists()) {
@@ -121,26 +131,30 @@ class InventoryService
             ->groupBy('ingrediente_id')
             ->map(fn ($grupo) => (float) $grupo->sum('cantidad'));
 
-        if ($salidas->isEmpty()) return;
+        if ($salidas->isEmpty()) {
+            return;
+        }
 
         $ingredientes = $this->lockAndFetch($salidas->keys()->all());
 
         foreach ($salidas as $ingId => $cantidad) {
             $ing = $ingredientes->get($ingId);
-            if (! $ing) continue;
+            if (! $ing) {
+                continue;
+            }
 
             $nuevoStock = (float) $ing->stock + (float) $cantidad;
             $ing->stock = $nuevoStock;
             $ing->save();
 
             MovimientoInventario::create([
-                'local_id'         => $pedido->local_id,
-                'ingrediente_id'   => $ing->id,
-                'tipo'             => 'entrada',
-                'cantidad'         => (float) $cantidad,
+                'local_id' => $pedido->local_id,
+                'ingrediente_id' => $ing->id,
+                'tipo' => 'entrada',
+                'cantidad' => (float) $cantidad,
                 'stock_resultante' => $nuevoStock,
-                'referencia'       => $refReintegro,
-                'motivo'           => 'Reintegro por cancelación de pedido',
+                'referencia' => $refReintegro,
+                'motivo' => 'Reintegro por cancelación de pedido',
             ]);
         }
     }
@@ -159,8 +173,8 @@ class InventoryService
     }
 
     /**
-     * @param array<int, array{producto_id:int, cantidad:int}> $lineas
-     * @return array<int, float>  ingrediente_id => cantidad_total
+     * @param  array<int, array{producto_id:int, cantidad:int}>  $lineas
+     * @return array<int, float> ingrediente_id => cantidad_total
      */
     protected function calcularConsumo(array $lineas): array
     {
@@ -173,6 +187,7 @@ class InventoryService
                 visitados: [],
             );
         }
+
         return $consumo;
     }
 
@@ -180,8 +195,8 @@ class InventoryService
      * Recursivamente expande un producto a sus ingredientes hoja.
      * Detecta ciclos vía $visitados (cadena actual).
      *
-     * @param array<int, float> $consumo
-     * @param array<int, bool>  $visitados
+     * @param  array<int, float>  $consumo
+     * @param  array<int, bool>  $visitados
      */
     protected function expandirProducto(int $productoId, float $multiplicador, array &$consumo, array $visitados): void
     {
@@ -193,7 +208,9 @@ class InventoryService
         $visitados[$productoId] = true;
 
         $recetas = Receta::where('producto_id', $productoId)->get();
-        if ($recetas->isEmpty()) return;
+        if ($recetas->isEmpty()) {
+            return;
+        }
 
         foreach ($recetas as $r) {
             $totalNeeded = (float) $r->cantidad * $multiplicador;
@@ -202,9 +219,9 @@ class InventoryService
                 // F91 — si la receta declara `unidad_consumo` distinta a la
                 // unidad del ingrediente, convertimos antes de descontar.
                 if (! empty($r->unidad_consumo)) {
-                    $ing = \App\Models\Ingrediente::find($r->ingrediente_id);
+                    $ing = Ingrediente::find($r->ingrediente_id);
                     if ($ing && ! empty($ing->unidad)) {
-                        $totalNeeded = \App\Services\Inventory\UnitConverter::convertir(
+                        $totalNeeded = UnitConverter::convertir(
                             $totalNeeded,
                             $r->unidad_consumo,
                             $ing->unidad,
@@ -228,18 +245,20 @@ class InventoryService
             ->where('data->ingrediente_id', $ing->id)
             ->exists();
 
-        if ($existe) return;
+        if ($existe) {
+            return;
+        }
 
         Notificacion::create([
             'local_id' => $localId,
-            'tipo'     => 'bajo_stock',
-            'titulo'   => "Bajo stock: {$ing->nombre}",
-            'mensaje'  => "Quedan {$ing->stock} {$ing->unidad} de {$ing->nombre} (mínimo: {$ing->stock_minimo}).",
-            'data'     => [
+            'tipo' => 'bajo_stock',
+            'titulo' => "Bajo stock: {$ing->nombre}",
+            'mensaje' => "Quedan {$ing->stock} {$ing->unidad} de {$ing->nombre} (mínimo: {$ing->stock_minimo}).",
+            'data' => [
                 'ingrediente_id' => $ing->id,
-                'stock'          => (float) $ing->stock,
-                'stock_minimo'   => (float) $ing->stock_minimo,
-                'unidad'         => $ing->unidad,
+                'stock' => (float) $ing->stock,
+                'stock_minimo' => (float) $ing->stock_minimo,
+                'unidad' => $ing->unidad,
             ],
         ]);
 
@@ -254,28 +273,32 @@ class InventoryService
      */
     protected function autoPausarProductosDelIngrediente(int $localId, Ingrediente $ing): void
     {
-        $productoIds = \App\Models\Receta::query()
+        $productoIds = Receta::query()
             ->where('ingrediente_id', $ing->id)
             ->pluck('producto_id')
             ->unique();
 
-        if ($productoIds->isEmpty()) return;
+        if ($productoIds->isEmpty()) {
+            return;
+        }
 
-        $afectados = \App\Models\Producto::query()
+        $afectados = Producto::query()
             ->where('local_id', $localId)
             ->whereIn('id', $productoIds)
             ->where('disponible', true)
             ->update(['disponible' => false]);
 
-        if ($afectados === 0) return;
+        if ($afectados === 0) {
+            return;
+        }
 
         // Notificación al owner explicando qué pasó
         Notificacion::create([
             'local_id' => $localId,
-            'tipo'     => 'auto_pause',
-            'titulo'   => "Productos pausados automáticamente",
-            'mensaje'  => "Se acabó {$ing->nombre} → {$afectados} producto(s) marcado(s) como agotado en tu landing.",
-            'data'     => [
+            'tipo' => 'auto_pause',
+            'titulo' => 'Productos pausados automáticamente',
+            'mensaje' => "Se acabó {$ing->nombre} → {$afectados} producto(s) marcado(s) como agotado en tu landing.",
+            'data' => [
                 'ingrediente_id' => $ing->id,
                 'productos_afectados' => $afectados,
             ],
@@ -297,27 +320,31 @@ class InventoryService
                 ->where('tipo', $tipo)
                 ->where('sent_at', '>=', now()->subDay())
                 ->exists();
-            if ($reciente) return;
+            if ($reciente) {
+                return;
+            }
 
             \DB::table('stock_alerts_sent')->insert([
-                'local_id'       => $localId,
+                'local_id' => $localId,
                 'ingrediente_id' => $ing->id,
-                'tipo'           => $tipo,
-                'sent_at'        => now(),
+                'tipo' => $tipo,
+                'sent_at' => now(),
             ]);
 
-            $local = \App\Models\Local::query()->withoutGlobalScopes()->find($localId);
-            $owner = \App\Models\User::query()->where('local_id', $localId)->where('rol', 'owner')->first();
-            if (! $local || ! $owner?->email) return;
+            $local = Local::query()->withoutGlobalScopes()->find($localId);
+            $owner = User::query()->where('local_id', $localId)->where('rol', 'owner')->first();
+            if (! $local || ! $owner?->email) {
+                return;
+            }
 
-            $asunto  = $tipo === 'agotado'
+            $asunto = $tipo === 'agotado'
                 ? "🔴 Se agotó {$ing->nombre} en {$local->nombre}"
                 : "🟡 Bajo stock: {$ing->nombre} en {$local->nombre}";
             $mensaje = $tipo === 'agotado'
                 ? "El ingrediente \"{$ing->nombre}\" se agotó. Los productos que lo usan se pausaron automáticamente en tu landing pública para evitar pedidos imposibles. Repón el stock y reactívalos desde /admin/productos."
                 : "Quedan {$ing->stock} {$ing->unidad} de \"{$ing->nombre}\" (mínimo configurado: {$ing->stock_minimo}). Pide más antes de quedarte sin.";
 
-            \Illuminate\Support\Facades\Mail::raw($mensaje, function ($m) use ($owner, $asunto) {
+            Mail::raw($mensaje, function ($m) use ($owner, $asunto) {
                 $m->to($owner->email)->subject($asunto);
             });
         } catch (\Throwable $e) {

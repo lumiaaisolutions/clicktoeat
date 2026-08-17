@@ -4,7 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::table('locales', function (Blueprint $t) {
@@ -39,12 +40,16 @@ return new class extends Migration {
     {
         Schema::table('locales', function (Blueprint $t) {
             foreach (['acepta_pago_online', 'stripe_account_id'] as $col) {
-                if (Schema::hasColumn('locales', $col)) $t->dropColumn($col);
+                if (Schema::hasColumn('locales', $col)) {
+                    $t->dropColumn($col);
+                }
             }
         });
         Schema::table('pedidos', function (Blueprint $t) {
             foreach (['estado_pago', 'stripe_payment_link_id', 'stripe_payment_intent_id', 'pagado_at'] as $col) {
-                if (Schema::hasColumn('pedidos', $col)) $t->dropColumn($col);
+                if (Schema::hasColumn('pedidos', $col)) {
+                    $t->dropColumn($col);
+                }
             }
         });
     }

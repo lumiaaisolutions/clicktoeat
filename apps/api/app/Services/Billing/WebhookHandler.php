@@ -2,12 +2,18 @@
 
 namespace App\Services\Billing;
 
+use App\Mail\PaymentFailedMail;
+use App\Mail\PlanCanceledMail;
+use App\Mail\TrialWillEndMail;
 use App\Models\Local;
 use App\Models\Plan;
+use App\Models\Referral;
 use App\Models\SubscriptionEvent;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Stripe\Event;
 
@@ -22,13 +28,13 @@ class WebhookHandler
     public function handle(Event $event, SubscriptionEvent $record): void
     {
         match ($event->type) {
-            'checkout.session.completed'           => $this->onCheckoutCompleted($event, $record),
-            'customer.subscription.created'        => $this->onSubscriptionUpsert($event, $record, isCreate: true),
-            'customer.subscription.updated'        => $this->onSubscriptionUpsert($event, $record, isCreate: false),
-            'customer.subscription.deleted'        => $this->onSubscriptionDeleted($event, $record),
+            'checkout.session.completed' => $this->onCheckoutCompleted($event, $record),
+            'customer.subscription.created' => $this->onSubscriptionUpsert($event, $record, isCreate: true),
+            'customer.subscription.updated' => $this->onSubscriptionUpsert($event, $record, isCreate: false),
+            'customer.subscription.deleted' => $this->onSubscriptionDeleted($event, $record),
             'customer.subscription.trial_will_end' => $this->onTrialWillEnd($event, $record),
-            'invoice.paid'                         => $this->onInvoicePaid($event, $record),
-            'invoice.payment_failed'               => $this->onInvoicePaymentFailed($event, $record),
+            'invoice.paid' => $this->onInvoicePaid($event, $record),
+            'invoice.payment_failed' => $this->onInvoicePaymentFailed($event, $record),
             default => Log::info("Webhook Stripe ignorado: {$event->type}"),
         };
     }
@@ -38,10 +44,10 @@ class WebhookHandler
     private function onCheckoutCompleted(Event $event, SubscriptionEvent $record): void
     {
         $session = $event->data->object;          // Stripe\Checkout\Session
-        $customerId     = $session->customer;
+        $customerId = $session->customer;
         $subscriptionId = $session->subscription;
-        $planSlug       = $session->metadata['plan_slug'] ?? null;
-        $plan           = $planSlug ? Plan::where('slug', $planSlug)->first() : null;
+        $planSlug = $session->metadata['plan_slug'] ?? null;
+        $plan = $planSlug ? Plan::where('slug', $planSlug)->first() : null;
 
         // F100g — Soporte para "activate-existing": si el checkout viene con
         // `client_reference_id = local:N` (o metadata `existing_local_id`),
@@ -49,7 +55,7 @@ class WebhookHandler
         // análogo para un usuario ya registrado (/registro) que aún no
         // tiene local — evita locales huérfanos duplicados.
         $existingLocalId = null;
-        $existingUserId  = null;
+        $existingUserId = null;
         $clientRef = $session->client_reference_id ?? null;
         if ($clientRef && str_starts_with($clientRef, 'local:')) {
             $existingLocalId = (int) substr($clientRef, 6);
@@ -77,23 +83,23 @@ class WebhookHandler
                 // El frontend probablemente todavía no llamó a /billing/session.
                 // Creamos el stub para que el siguiente subscription.* event no falle.
                 $local = Local::create([
-                    'nombre'                 => 'Mi local',
-                    'slug'                   => 'pendiente-'.Str::random(10),
-                    'whatsapp'               => '',
-                    'color_primario'         => '#FF2D2D',
-                    'color_secundario'       => '#0B0B0F',
-                    'color_fondo'            => '#FAFAF7',
-                    'tipografia'             => 'Geist',
-                    'plan_id'                => $plan?->id,
-                    'plan_status'            => 'trialing',
-                    'stripe_customer_id'     => $customerId,
+                    'nombre' => 'Mi local',
+                    'slug' => 'pendiente-'.Str::random(10),
+                    'whatsapp' => '',
+                    'color_primario' => '#FF2D2D',
+                    'color_secundario' => '#0B0B0F',
+                    'color_fondo' => '#FAFAF7',
+                    'tipografia' => 'Geist',
+                    'plan_id' => $plan?->id,
+                    'plan_status' => 'trialing',
+                    'stripe_customer_id' => $customerId,
                     'stripe_subscription_id' => $subscriptionId,
-                    'trial_ends_at'          => now()->addDays(config('stripe.trial_days', 14)),
-                    'activo'                 => true,
+                    'trial_ends_at' => now()->addDays(config('stripe.trial_days', 14)),
+                    'activo' => true,
                 ]);
 
                 if ($existingUserId) {
-                    $user = \App\Models\User::find($existingUserId);
+                    $user = User::find($existingUserId);
                     if ($user && ! $user->local_id) {
                         $user->update(['local_id' => $local->id]);
                         $local->update(['owner_id' => $user->id]);
@@ -101,7 +107,7 @@ class WebhookHandler
                 }
             } else {
                 $local->fill([
-                    'stripe_customer_id'     => $customerId,
+                    'stripe_customer_id' => $customerId,
                     'stripe_subscription_id' => $subscriptionId,
                 ]);
                 // El plan_slug del metadata es el que el usuario eligió EN ESTE
@@ -135,6 +141,7 @@ class WebhookHandler
 
         if (! $local) {
             Log::warning("Webhook subscription.{$event->type}: local no encontrado para sub {$sub->id}");
+
             return;  // No es error fatal — puede ser un cliente externo
         }
 
@@ -148,7 +155,7 @@ class WebhookHandler
 
         $local->fill([
             'stripe_subscription_id' => $sub->id,
-            'plan_status'            => $sub->status,
+            'plan_status' => $sub->status,
             'current_period_ends_at' => $sub->current_period_end
                 ? Carbon::createFromTimestamp($sub->current_period_end)
                 : null,
@@ -169,7 +176,9 @@ class WebhookHandler
         $sub = $event->data->object;
 
         $local = Local::where('stripe_subscription_id', $sub->id)->first();
-        if (! $local) return;
+        if (! $local) {
+            return;
+        }
 
         $local->fill([
             'plan_status' => 'canceled',
@@ -184,8 +193,8 @@ class WebhookHandler
         // Email "Cancelaste tu suscripción"
         // (Implementado en Fase 11.8 — si MAIL no está configurado va a log)
         rescue(function () use ($local) {
-            \Illuminate\Support\Facades\Mail::to($local->owner?->email ?: $local->email_contacto)
-                ->send(new \App\Mail\PlanCanceledMail($local));
+            Mail::to($local->owner?->email ?: $local->email_contacto)
+                ->send(new PlanCanceledMail($local));
         }, report: false);
     }
 
@@ -193,13 +202,15 @@ class WebhookHandler
     {
         $sub = $event->data->object;
         $local = Local::where('stripe_subscription_id', $sub->id)->first();
-        if (! $local || ! $local->owner) return;
+        if (! $local || ! $local->owner) {
+            return;
+        }
 
         $record->update(['local_id' => $local->id]);
 
         rescue(function () use ($local) {
-            \Illuminate\Support\Facades\Mail::to($local->owner->email)
-                ->send(new \App\Mail\TrialWillEndMail($local));
+            Mail::to($local->owner->email)
+                ->send(new TrialWillEndMail($local));
         }, report: false);
     }
 
@@ -207,10 +218,14 @@ class WebhookHandler
     {
         $invoice = $event->data->object;
         $subId = $invoice->subscription;
-        if (! $subId) return;
+        if (! $subId) {
+            return;
+        }
 
         $local = Local::where('stripe_subscription_id', $subId)->first();
-        if (! $local) return;
+        if (! $local) {
+            return;
+        }
 
         $local->fill([
             'plan_status' => 'active',
@@ -239,31 +254,35 @@ class WebhookHandler
      */
     private function aplicarRecompensaReferido(Local $referido): void
     {
-        $referral = \App\Models\Referral::query()
+        $referral = Referral::query()
             ->where('referred_local_id', $referido->id)
             ->where('status', 'pending')
             ->first();
-        if (! $referral) return;
+        if (! $referral) {
+            return;
+        }
 
         $referrer = Local::find($referral->referrer_local_id);
         if (! $referrer || empty($referrer->stripe_customer_id)) {
             $referral->update(['status' => 'invalid']);
+
             return;
         }
         if (empty(config('stripe.secret_key'))) {
             // Sin Stripe configurado solo marcamos pending → rewarded "manual"
             $referral->update(['status' => 'rewarded', 'rewarded_at' => now()]);
+
             return;
         }
 
         try {
-            $stripe = app(\App\Services\Billing\StripeClientFactory::class)->make();
+            $stripe = app(StripeClientFactory::class)->make();
 
             $coupon = $stripe->coupons->create([
-                'percent_off'  => 10,
-                'duration'     => 'once',
-                'name'         => "Referido — {$referido->slug}",
-                'metadata'     => [
+                'percent_off' => 10,
+                'duration' => 'once',
+                'name' => "Referido — {$referido->slug}",
+                'metadata' => [
                     'referrer_local_id' => (string) $referrer->id,
                     'referred_local_id' => (string) $referido->id,
                 ],
@@ -274,12 +293,12 @@ class WebhookHandler
             ]);
 
             $referral->update([
-                'status'           => 'rewarded',
-                'rewarded_at'      => now(),
+                'status' => 'rewarded',
+                'rewarded_at' => now(),
                 'stripe_coupon_id' => $coupon->id,
             ]);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning(
+            Log::warning(
                 "Referral reward failed for local {$referido->id}: {$e->getMessage()}"
             );
         }
@@ -289,17 +308,21 @@ class WebhookHandler
     {
         $invoice = $event->data->object;
         $subId = $invoice->subscription;
-        if (! $subId) return;
+        if (! $subId) {
+            return;
+        }
 
         $local = Local::where('stripe_subscription_id', $subId)->first();
-        if (! $local) return;
+        if (! $local) {
+            return;
+        }
 
         $local->fill(['plan_status' => 'past_due'])->save();
         $record->update(['local_id' => $local->id]);
 
         rescue(function () use ($local) {
-            \Illuminate\Support\Facades\Mail::to($local->owner?->email ?: $local->email_contacto)
-                ->send(new \App\Mail\PaymentFailedMail($local));
+            Mail::to($local->owner?->email ?: $local->email_contacto)
+                ->send(new PaymentFailedMail($local));
         }, report: false);
     }
 }

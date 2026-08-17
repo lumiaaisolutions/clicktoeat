@@ -19,10 +19,10 @@ class UnitConverter
 {
     private const FACTORS = [
         // toBase (a la unidad base)
-        'g'  => 1.0,        // base masa
+        'g' => 1.0,        // base masa
         'kg' => 1000.0,
         'ml' => 1.0,        // base volumen
-        'l'  => 1000.0,
+        'l' => 1000.0,
     ];
 
     private const FAMILIAS = [
@@ -49,18 +49,22 @@ class UnitConverter
         }
 
         $base = $cantidad * self::FACTORS[$desde];
+
         return round($base / self::FACTORS[$hasta], 4);
     }
 
     private static function normalize(?string $u): ?string
     {
-        if (! $u) return null;
+        if (! $u) {
+            return null;
+        }
         $u = strtolower(trim($u));
+
         return match ($u) {
             'gr', 'gramos', 'grams' => 'g',
             'kilogramo', 'kilogramos', 'kilo', 'kilos' => 'kg',
             'mililitros', 'mililitro' => 'ml',
-            'litro', 'litros'         => 'l',
+            'litro', 'litros' => 'l',
             default => $u,
         };
     }

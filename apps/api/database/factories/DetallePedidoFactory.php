@@ -17,17 +17,17 @@ class DetallePedidoFactory extends Factory
     public function definition(): array
     {
         $cantidad = $this->faker->numberBetween(1, 5);
-        $precio   = $this->faker->randomFloat(2, 20, 100);
+        $precio = $this->faker->randomFloat(2, 20, 100);
 
         return [
-            'pedido_id'             => Pedido::factory(),
-            'producto_id'           => Producto::factory(),
-            'producto_nombre'       => $this->faker->words(3, true),
-            'precio_unitario'       => $precio,
-            'cantidad'              => $cantidad,
-            'subtotal'              => $precio * $cantidad,
-            'extras_seleccionados'  => null,
-            'notas'                 => null,
+            'pedido_id' => Pedido::factory(),
+            'producto_id' => Producto::factory(),
+            'producto_nombre' => $this->faker->words(3, true),
+            'precio_unitario' => $precio,
+            'cantidad' => $cantidad,
+            'subtotal' => $precio * $cantidad,
+            'extras_seleccionados' => null,
+            'notas' => null,
         ];
     }
 }

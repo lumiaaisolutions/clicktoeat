@@ -26,10 +26,12 @@ class CompraController extends Controller
      *     tags={"Compras"},
      *     security={{"sanctum":{}}},
      *     summary="Lista paginada de compras del local.",
+     *
      *     @OA\Parameter(name="estado", in="query", @OA\Schema(type="string", enum={"registrada","anulada"})),
      *     @OA\Parameter(name="desde", in="query", @OA\Schema(type="string", format="date")),
      *     @OA\Parameter(name="hasta", in="query", @OA\Schema(type="string", format="date")),
      *     @OA\Parameter(name="per_page", in="query", @OA\Schema(type="integer", default=20)),
+     *
      *     @OA\Response(response=200, description="OK")
      * )
      */
@@ -57,6 +59,7 @@ class CompraController extends Controller
         }
 
         $perPage = min((int) $request->input('per_page', 20), 100);
+
         return CompraResource::collection(
             $query->orderByDesc('fecha')->orderByDesc('id')->paginate($perPage)
         );
@@ -68,7 +71,9 @@ class CompraController extends Controller
      *     tags={"Compras"},
      *     security={{"sanctum":{}}},
      *     summary="Restaura una compra soft-deleted (no la des-anula — sólo recupera la fila).",
+     *
      *     @OA\Parameter(name="compra", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\Response(response=200, description="OK")
      * )
      */
@@ -108,13 +113,16 @@ class CompraController extends Controller
      *     path="/compras/{compra}",
      *     tags={"Compras"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="compra", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\Response(response=200, description="OK")
      * )
      */
     public function show(Compra $compra): CompraResource
     {
         $this->authorize('view', $compra);
+
         return new CompraResource($compra->load(['detalles.ingrediente', 'usuario:id,nombre']));
     }
 
@@ -124,7 +132,9 @@ class CompraController extends Controller
      *     tags={"Compras"},
      *     security={{"sanctum":{}}},
      *     summary="Anula la compra: marca anulada + revierte stock. Falla 409 si ya se consumió parte.",
+     *
      *     @OA\Parameter(name="compra", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\Response(response=200, description="Anulada"),
      *     @OA\Response(response=409, description="No reversible (stock insuficiente)")
      * )
@@ -137,7 +147,7 @@ class CompraController extends Controller
             $compra = $this->service->anular($compra, $request->user()->id);
         } catch (CompraNoReversibleException $e) {
             return response()->json([
-                'message'   => $e->getMessage(),
+                'message' => $e->getMessage(),
                 'faltantes' => $e->faltantes,
             ], 409);
         }

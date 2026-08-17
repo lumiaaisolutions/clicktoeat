@@ -4,7 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::table('users', function (Blueprint $t) {
@@ -24,7 +25,9 @@ return new class extends Migration {
     {
         Schema::table('users', function (Blueprint $t) {
             foreach (['two_factor_secret', 'two_factor_confirmed_at', 'two_factor_recovery_codes'] as $c) {
-                if (Schema::hasColumn('users', $c)) $t->dropColumn($c);
+                if (Schema::hasColumn('users', $c)) {
+                    $t->dropColumn($c);
+                }
             }
         });
     }

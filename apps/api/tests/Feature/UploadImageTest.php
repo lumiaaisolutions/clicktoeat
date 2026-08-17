@@ -15,6 +15,7 @@ class UploadImageTest extends TestCase
     use RefreshDatabase;
 
     private Local $local;
+
     private User $owner;
 
     protected function setUp(): void
@@ -31,7 +32,7 @@ class UploadImageTest extends TestCase
         Sanctum::actingAs($this->owner, ['*']);
 
         $resp = $this->postJson('/api/v1/uploads/image', [
-            'image'  => UploadedFile::fake()->image('producto.png', 800, 600),
+            'image' => UploadedFile::fake()->image('producto.png', 800, 600),
             'folder' => 'productos',
         ])->assertCreated();
 
@@ -61,7 +62,7 @@ class UploadImageTest extends TestCase
         Sanctum::actingAs($this->owner, ['*']);
 
         $this->postJson('/api/v1/uploads/image', [
-            'image'  => UploadedFile::fake()->image('x.png'),
+            'image' => UploadedFile::fake()->image('x.png'),
             'folder' => 'malicious-path',
         ])->assertStatus(422)->assertJsonValidationErrors('folder');
     }
@@ -96,7 +97,7 @@ class UploadImageTest extends TestCase
         // con 422 pese a que el mensaje de error decía soportarlo.
         Sanctum::actingAs($this->owner, ['*']);
 
-        $im   = imagecreatetruecolor(10, 10);
+        $im = imagecreatetruecolor(10, 10);
         $path = tempnam(sys_get_temp_dir(), 'avif').'.avif';
         imageavif($im, $path);
         imagedestroy($im);
@@ -104,7 +105,7 @@ class UploadImageTest extends TestCase
         $file = new UploadedFile($path, 'banner.avif', 'image/avif', null, true);
 
         $this->postJson('/api/v1/uploads/image', [
-            'image'  => $file,
+            'image' => $file,
             'folder' => 'banners',
         ])->assertCreated();
 
@@ -112,7 +113,7 @@ class UploadImageTest extends TestCase
     }
 
     /** @test */
-    public function rechaza_imagen_que_excede_5_MB(): void
+    public function rechaza_imagen_que_excede_5_mb(): void
     {
         Sanctum::actingAs($this->owner, ['*']);
 

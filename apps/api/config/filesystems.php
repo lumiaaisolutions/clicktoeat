@@ -12,17 +12,17 @@ return [
     'disks' => [
         'local' => [
             'driver' => 'local',
-            'root'   => storage_path('app/private'),
-            'serve'  => true,
-            'throw'  => false,
+            'root' => storage_path('app/private'),
+            'serve' => true,
+            'throw' => false,
         ],
 
         'public' => [
-            'driver'     => 'local',
-            'root'       => public_path('storage'),
-            'url'        => env('APP_URL', 'http://localhost').'/storage',
+            'driver' => 'local',
+            'root' => public_path('storage'),
+            'url' => env('APP_URL', 'http://localhost').'/storage',
             'visibility' => 'public',
-            'throw'      => false,
+            'throw' => false,
         ],
 
         /*
@@ -40,16 +40,16 @@ return [
          * Ver: docs/runbook/migrar-uploads-a-s3-b2.md
          */
         's3' => [
-            'driver'                  => 's3',
-            'key'                     => env('S3_ACCESS_KEY'),
-            'secret'                  => env('S3_SECRET_KEY'),
-            'region'                  => env('S3_REGION', 'auto'),
-            'bucket'                  => env('S3_BUCKET'),
-            'endpoint'                => env('S3_ENDPOINT'),
+            'driver' => 's3',
+            'key' => env('S3_ACCESS_KEY'),
+            'secret' => env('S3_SECRET_KEY'),
+            'region' => env('S3_REGION', 'auto'),
+            'bucket' => env('S3_BUCKET'),
+            'endpoint' => env('S3_ENDPOINT'),
             'use_path_style_endpoint' => (bool) env('S3_PATH_STYLE', false),
-            'url'                     => env('S3_PUBLIC_URL'),
-            'visibility'              => 'public',
-            'throw'                   => false,
+            'url' => env('S3_PUBLIC_URL'),
+            'visibility' => 'public',
+            'throw' => false,
         ],
     ],
 

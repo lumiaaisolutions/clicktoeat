@@ -20,6 +20,7 @@ class LocalController extends Controller
      *     tags={"Local (mío)"},
      *     security={{"sanctum":{}}},
      *     summary="Devuelve el local del usuario autenticado.",
+     *
      *     @OA\Response(response=200, description="OK")
      * )
      */
@@ -27,6 +28,7 @@ class LocalController extends Controller
     {
         $local = $this->resolveLocal($request);
         $this->authorize('view', $local);
+
         return new LocalResource($local);
     }
 
@@ -36,6 +38,7 @@ class LocalController extends Controller
      *     tags={"Local (mío)"},
      *     security={{"sanctum":{}}},
      *     summary="Actualiza branding y configuración del local del usuario autenticado.",
+     *
      *     @OA\Response(response=200, description="OK")
      * )
      */
@@ -44,6 +47,7 @@ class LocalController extends Controller
         $local = $this->resolveLocal($request);
         $this->authorize('update', $local);
         $local->update($request->validated());
+
         return new LocalResource($local->fresh());
     }
 

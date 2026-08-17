@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Categoria;
 use App\Models\Compra;
-use App\Models\Ingrediente;
 use App\Models\Local;
 use App\Models\Pedido;
 use App\Models\Producto;
@@ -18,6 +17,7 @@ class RestoreSoftDeleteTest extends TestCase
     use RefreshDatabase;
 
     private Local $local;
+
     private User $owner;
 
     protected function setUp(): void
@@ -76,7 +76,7 @@ class RestoreSoftDeleteTest extends TestCase
     /** @test */
     public function owner_restaura_su_producto(): void
     {
-        $cat      = Categoria::factory()->paraLocal($this->local)->create();
+        $cat = Categoria::factory()->paraLocal($this->local)->create();
         $producto = Producto::factory()->paraLocal($this->local, $cat)->create();
         $producto->delete();
         $this->assertSoftDeleted($producto);
@@ -88,7 +88,7 @@ class RestoreSoftDeleteTest extends TestCase
             ->assertJsonPath('data.id', $producto->id);
 
         $this->assertDatabaseHas('productos', [
-            'id'         => $producto->id,
+            'id' => $producto->id,
             'deleted_at' => null,
         ]);
     }
@@ -97,8 +97,8 @@ class RestoreSoftDeleteTest extends TestCase
     public function owner_no_restaura_producto_de_otro_local(): void
     {
         $otroLocal = Local::factory()->create();
-        $otroCat   = Categoria::factory()->paraLocal($otroLocal)->create();
-        $producto  = Producto::factory()->paraLocal($otroLocal, $otroCat)->create();
+        $otroCat = Categoria::factory()->paraLocal($otroLocal)->create();
+        $producto = Producto::factory()->paraLocal($otroLocal, $otroCat)->create();
         $producto->delete();
 
         Sanctum::actingAs($this->owner, ['*']);
@@ -111,7 +111,7 @@ class RestoreSoftDeleteTest extends TestCase
     /** @test */
     public function staff_no_restaura(): void
     {
-        $cat      = Categoria::factory()->paraLocal($this->local)->create();
+        $cat = Categoria::factory()->paraLocal($this->local)->create();
         $producto = Producto::factory()->paraLocal($this->local, $cat)->create();
         $producto->delete();
 
@@ -137,7 +137,7 @@ class RestoreSoftDeleteTest extends TestCase
             ->assertJsonPath('data.id', $pedido->id);
 
         $this->assertDatabaseHas('pedidos', [
-            'id'         => $pedido->id,
+            'id' => $pedido->id,
             'deleted_at' => null,
         ]);
     }
@@ -163,7 +163,7 @@ class RestoreSoftDeleteTest extends TestCase
     public function super_admin_restaura_un_local(): void
     {
         $superAdmin = User::factory()->superAdmin()->create();
-        $local      = Local::factory()->create();
+        $local = Local::factory()->create();
         $local->delete();
 
         Sanctum::actingAs($superAdmin, ['*']);
@@ -173,7 +173,7 @@ class RestoreSoftDeleteTest extends TestCase
             ->assertJsonPath('data.id', $local->id);
 
         $this->assertDatabaseHas('locales', [
-            'id'         => $local->id,
+            'id' => $local->id,
             'deleted_at' => null,
         ]);
     }

@@ -51,26 +51,26 @@ class PasswordResetTest extends TestCase
     /** @test */
     public function reset_con_token_valido_cambia_password(): void
     {
-        $user  = User::factory()->create([
-            'email'    => 'user@example.com',
+        $user = User::factory()->create([
+            'email' => 'user@example.com',
             'password' => Hash::make('vieja123'),
         ]);
 
         $token = Password::createToken($user);
 
         $this->postJson('/api/v1/auth/reset-password', [
-            'token'                 => $token,
-            'email'                 => 'user@example.com',
-            'password'              => 'nueva-segura-456',
+            'token' => $token,
+            'email' => 'user@example.com',
+            'password' => 'nueva-segura-456',
             'password_confirmation' => 'nueva-segura-456',
         ])->assertOk()
-          ->assertJsonPath('message', 'Contraseña restablecida correctamente. Inicia sesión.');
+            ->assertJsonPath('message', 'Contraseña restablecida correctamente. Inicia sesión.');
 
         $this->assertTrue(Hash::check('nueva-segura-456', $user->fresh()->password));
     }
 
     /** @test */
-    public function reset_invalida_TODAS_las_sesiones_del_user(): void
+    public function reset_invalida_toda_s_las_sesiones_del_user(): void
     {
         $user = User::factory()->create(['password' => Hash::make('vieja123')]);
 
@@ -83,9 +83,9 @@ class PasswordResetTest extends TestCase
         $token = Password::createToken($user);
 
         $this->postJson('/api/v1/auth/reset-password', [
-            'token'                 => $token,
-            'email'                 => $user->email,
-            'password'              => 'nueva-segura-456',
+            'token' => $token,
+            'email' => $user->email,
+            'password' => 'nueva-segura-456',
             'password_confirmation' => 'nueva-segura-456',
         ])->assertOk();
 
@@ -99,9 +99,9 @@ class PasswordResetTest extends TestCase
         User::factory()->create(['email' => 'user@example.com', 'password' => Hash::make('vieja123')]);
 
         $this->postJson('/api/v1/auth/reset-password', [
-            'token'                 => 'token-falso',
-            'email'                 => 'user@example.com',
-            'password'              => 'nueva-segura-456',
+            'token' => 'token-falso',
+            'email' => 'user@example.com',
+            'password' => 'nueva-segura-456',
             'password_confirmation' => 'nueva-segura-456',
         ])->assertStatus(422);
     }
@@ -110,9 +110,9 @@ class PasswordResetTest extends TestCase
     public function reset_con_email_inexistente_devuelve_422(): void
     {
         $this->postJson('/api/v1/auth/reset-password', [
-            'token'                 => 'cualquiera',
-            'email'                 => 'no-existe@example.com',
-            'password'              => 'nueva-segura-456',
+            'token' => 'cualquiera',
+            'email' => 'no-existe@example.com',
+            'password' => 'nueva-segura-456',
             'password_confirmation' => 'nueva-segura-456',
         ])->assertStatus(422);
     }
@@ -120,15 +120,15 @@ class PasswordResetTest extends TestCase
     /** @test */
     public function reset_con_password_mismatch_falla_422(): void
     {
-        $user  = User::factory()->create();
+        $user = User::factory()->create();
         $token = Password::createToken($user);
 
         $this->postJson('/api/v1/auth/reset-password', [
-            'token'                 => $token,
-            'email'                 => $user->email,
-            'password'              => 'nueva-segura-456',
+            'token' => $token,
+            'email' => $user->email,
+            'password' => 'nueva-segura-456',
             'password_confirmation' => 'distinta-789',
         ])->assertStatus(422)
-          ->assertJsonValidationErrors('password');
+            ->assertJsonValidationErrors('password');
     }
 }

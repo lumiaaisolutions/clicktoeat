@@ -44,9 +44,9 @@ class PostresStitchSeeder extends Seeder
         $owner = User::updateOrCreate(
             ['email' => 'owner+postres-stitch@ClickToEat.app'],
             [
-                'nombre'   => 'Owner Postres Stitch',
+                'nombre' => 'Owner Postres Stitch',
                 'password' => Hash::make('password123'),
-                'rol'      => 'owner',
+                'rol' => 'owner',
                 'email_verified_at' => now(),
             ],
         );
@@ -54,19 +54,19 @@ class PostresStitchSeeder extends Seeder
         $local = Local::updateOrCreate(
             ['slug' => 'postres-stitch'],
             [
-                'nombre'              => 'Postres Stitch',
-                'tagline'             => '¡Ohana significa familia, y familia merece postre! Rebanadas y frutas con chantilly.',
-                'logo_url'            => null,
-                'banner_url'          => null, // gradient del color primario en la card
-                'color_primario'      => '#4FC3F7',  // cyan Stitch
-                'color_secundario'    => '#1B3A5C',  // azul marino
-                'color_fondo'         => '#E1F5FE',  // crema clara
-                'tipografia'          => 'Bricolage Grotesque',
-                'whatsapp'            => '5215544332211',
-                'telefono'            => '5544332211',
-                'email_contacto'      => 'hola@postresstitch.mx',
-                'direccion'           => 'Av. Álvaro Obregón 145, Roma Nte., CDMX',
-                'horarios'            => [
+                'nombre' => 'Postres Stitch',
+                'tagline' => '¡Ohana significa familia, y familia merece postre! Rebanadas y frutas con chantilly.',
+                'logo_url' => null,
+                'banner_url' => null, // gradient del color primario en la card
+                'color_primario' => '#4FC3F7',  // cyan Stitch
+                'color_secundario' => '#1B3A5C',  // azul marino
+                'color_fondo' => '#E1F5FE',  // crema clara
+                'tipografia' => 'Bricolage Grotesque',
+                'whatsapp' => '5215544332211',
+                'telefono' => '5544332211',
+                'email_contacto' => 'hola@postresstitch.mx',
+                'direccion' => 'Av. Álvaro Obregón 145, Roma Nte., CDMX',
+                'horarios' => [
                     ['dia' => 'lun', 'open' => '11:00', 'close' => '21:00'],
                     ['dia' => 'mar', 'open' => '11:00', 'close' => '21:00'],
                     ['dia' => 'mie', 'open' => '11:00', 'close' => '21:00'],
@@ -75,16 +75,16 @@ class PostresStitchSeeder extends Seeder
                     ['dia' => 'sab', 'open' => '10:00', 'close' => '23:00'],
                     ['dia' => 'dom', 'open' => '10:00', 'close' => '21:00'],
                 ],
-                'delivery_fee'         => 39,
+                'delivery_fee' => 39,
                 'delivery_min_minutos' => 30,
-                'redes_sociales'       => [
+                'redes_sociales' => [
                     'ig' => 'postresstitch.mx',
                     'fb' => 'postresstitchMX',
                     'tt' => 'postresstitch',
                 ],
-                'activo'     => true,
+                'activo' => true,
                 'suspendido' => false,
-                'owner_id'   => $owner->id,
+                'owner_id' => $owner->id,
             ],
         );
 
@@ -93,7 +93,7 @@ class PostresStitchSeeder extends Seeder
         // ── Categorías ───────────────────────────────────────────
         $cats = collect([
             ['slug' => 'pasteles',  'nombre' => 'Pasteles',            'icono' => 'fa-cake-candles'],
-            ['slug' => 'frutas',    'nombre' => 'Frutas con chantilly','icono' => 'fa-bowl-food'],
+            ['slug' => 'frutas',    'nombre' => 'Frutas con chantilly', 'icono' => 'fa-bowl-food'],
             ['slug' => 'bebidas',   'nombre' => 'Bebidas',             'icono' => 'fa-mug-hot'],
         ])->map(fn ($c, $i) => Categoria::updateOrCreate(
             ['local_id' => $local->id, 'slug' => $c['slug']],
@@ -103,71 +103,71 @@ class PostresStitchSeeder extends Seeder
         // ── Productos ───────────────────────────────────────────
         $productos = collect([
             ['cat' => 'pasteles', 'slug' => 'rebanada-tres-leches',   'nombre' => 'Rebanada Tres Leches',
-             'desc' => 'Bizcocho esponjoso bañado en tres tipos de leche, decorado con merengue y canela',
-             'precio' => 85, 'img' => '1565958011703-44f9829ba187', 'tag' => 'Más pedido'],
+                'desc' => 'Bizcocho esponjoso bañado en tres tipos de leche, decorado con merengue y canela',
+                'precio' => 85, 'img' => '1565958011703-44f9829ba187', 'tag' => 'Más pedido'],
 
             ['cat' => 'pasteles', 'slug' => 'rebanada-chocolate',     'nombre' => 'Rebanada de Chocolate',
-             'desc' => 'Doble capa de chocolate semiamargo con ganache',
-             'precio' => 95, 'img' => '1578985545062-69928b1d9587'],
+                'desc' => 'Doble capa de chocolate semiamargo con ganache',
+                'precio' => 95, 'img' => '1578985545062-69928b1d9587'],
 
             ['cat' => 'pasteles', 'slug' => 'rebanada-zanahoria',     'nombre' => 'Rebanada de Zanahoria',
-             'desc' => 'Bizcocho de zanahoria con nuez y cubierta de queso crema',
-             'precio' => 90, 'img' => '1571115177098-24ec42ed204d'],
+                'desc' => 'Bizcocho de zanahoria con nuez y cubierta de queso crema',
+                'precio' => 90, 'img' => '1571115177098-24ec42ed204d'],
 
             ['cat' => 'pasteles', 'slug' => 'rebanada-red-velvet',    'nombre' => 'Rebanada Red Velvet',
-             'desc' => 'Clásico bizcocho rojo aterciopelado con frosting de queso crema',
-             'precio' => 95, 'img' => '1586788224331-947f68671cf1', 'tag' => 'Nuevo'],
+                'desc' => 'Clásico bizcocho rojo aterciopelado con frosting de queso crema',
+                'precio' => 95, 'img' => '1586788224331-947f68671cf1', 'tag' => 'Nuevo'],
 
             ['cat' => 'pasteles', 'slug' => 'rebanada-cheesecake',    'nombre' => 'Rebanada de Cheesecake',
-             'desc' => 'Cheesecake estilo NY sobre base de galleta, con coulis de frutos rojos',
-             'precio' => 110, 'img' => '1533134242443-d4fd215305ad'],
+                'desc' => 'Cheesecake estilo NY sobre base de galleta, con coulis de frutos rojos',
+                'precio' => 110, 'img' => '1533134242443-d4fd215305ad'],
 
             ['cat' => 'frutas',   'slug' => 'fresas-con-chantilly',   'nombre' => 'Fresas con chantilly',
-             'desc' => 'Fresas frescas en tarrina con crema chantilly y un toque de leche condensada',
-             'precio' => 75, 'img' => '1488477181946-6428a0291777', 'tag' => 'Favorito'],
+                'desc' => 'Fresas frescas en tarrina con crema chantilly y un toque de leche condensada',
+                'precio' => 75, 'img' => '1488477181946-6428a0291777', 'tag' => 'Favorito'],
 
             ['cat' => 'frutas',   'slug' => 'uvas-con-chantilly',     'nombre' => 'Uvas con chantilly',
-             'desc' => 'Uvas verdes y rojas con crema chantilly batida al momento',
-             'precio' => 70, 'img' => '1599819811279-d5ad9cccf838'],
+                'desc' => 'Uvas verdes y rojas con crema chantilly batida al momento',
+                'precio' => 70, 'img' => '1599819811279-d5ad9cccf838'],
 
             ['cat' => 'frutas',   'slug' => 'duraznos-con-chantilly', 'nombre' => 'Duraznos con chantilly',
-             'desc' => 'Duraznos en almíbar con crema chantilly y nuez picada',
-             'precio' => 75, 'img' => '1595376898787-91cea2566e2c'],
+                'desc' => 'Duraznos en almíbar con crema chantilly y nuez picada',
+                'precio' => 75, 'img' => '1595376898787-91cea2566e2c'],
 
             ['cat' => 'frutas',   'slug' => 'mix-de-frutas',          'nombre' => 'Mix de frutas con chantilly',
-             'desc' => 'Combinación de fresa, uva y durazno con chantilly — el favorito de Stitch',
-             'precio' => 95, 'img' => '1490474504059-bf2db5ab2348', 'tag' => 'Especial'],
+                'desc' => 'Combinación de fresa, uva y durazno con chantilly — el favorito de Stitch',
+                'precio' => 95, 'img' => '1490474504059-bf2db5ab2348', 'tag' => 'Especial'],
 
             ['cat' => 'bebidas',  'slug' => 'cafe-americano',         'nombre' => 'Café americano',
-             'desc' => 'Café de especialidad recién extraído', 'precio' => 45,
-             'img' => '1495474472287-4d71bcdd2085'],
+                'desc' => 'Café de especialidad recién extraído', 'precio' => 45,
+                'img' => '1495474472287-4d71bcdd2085'],
 
             ['cat' => 'bebidas',  'slug' => 'chocolate-caliente',     'nombre' => 'Chocolate caliente',
-             'desc' => 'Chocolate oscuro con leche entera y malvaviscos', 'precio' => 55,
-             'img' => '1517578239113-b03992dcdd25'],
+                'desc' => 'Chocolate oscuro con leche entera y malvaviscos', 'precio' => 55,
+                'img' => '1517578239113-b03992dcdd25'],
 
             ['cat' => 'bebidas',  'slug' => 'agua-de-jamaica',        'nombre' => 'Agua de jamaica',
-             'desc' => 'Fresca, ligeramente endulzada con piloncillo', 'precio' => 35,
-             'img' => '1556679343-c7306c1976bc'],
+                'desc' => 'Fresca, ligeramente endulzada con piloncillo', 'precio' => 35,
+                'img' => '1556679343-c7306c1976bc'],
         ])->map(fn ($p, $i) => Producto::updateOrCreate(
             ['local_id' => $local->id, 'slug' => $p['slug']],
             [
                 'categoria_id' => $cats[$p['cat']]->id,
-                'nombre'       => $p['nombre'],
-                'descripcion'  => $p['desc'],
-                'precio'       => $p['precio'],
-                'imagen_url'   => $this->img($p['img']),
-                'disponible'   => true,
-                'tag'          => $p['tag'] ?? null,
-                'orden'        => $i,
+                'nombre' => $p['nombre'],
+                'descripcion' => $p['desc'],
+                'precio' => $p['precio'],
+                'imagen_url' => $this->img($p['img']),
+                'disponible' => true,
+                'tag' => $p['tag'] ?? null,
+                'orden' => $i,
             ],
         ))->keyBy('slug');
 
         // ── Ingredientes ───────────────────────────────────────
         $ing = collect([
             ['nombre' => 'Pastel tres leches entero', 'unidad' => 'pz', 'stock' => 6,    'stock_minimo' => 2,   'costo_unitario' => 320],
-            ['nombre' => 'Pastel de chocolate entero','unidad' => 'pz', 'stock' => 5,    'stock_minimo' => 2,   'costo_unitario' => 380],
-            ['nombre' => 'Pastel de zanahoria entero','unidad' => 'pz', 'stock' => 4,    'stock_minimo' => 2,   'costo_unitario' => 350],
+            ['nombre' => 'Pastel de chocolate entero', 'unidad' => 'pz', 'stock' => 5,    'stock_minimo' => 2,   'costo_unitario' => 380],
+            ['nombre' => 'Pastel de zanahoria entero', 'unidad' => 'pz', 'stock' => 4,    'stock_minimo' => 2,   'costo_unitario' => 350],
             ['nombre' => 'Red Velvet entero',         'unidad' => 'pz', 'stock' => 4,    'stock_minimo' => 2,   'costo_unitario' => 380],
             ['nombre' => 'Cheesecake entero',         'unidad' => 'pz', 'stock' => 3,    'stock_minimo' => 1,   'costo_unitario' => 450],
             ['nombre' => 'Fresa',                     'unidad' => 'kg', 'stock' => 8,    'stock_minimo' => 1.5, 'costo_unitario' => 70],
@@ -192,72 +192,72 @@ class PostresStitchSeeder extends Seeder
         // ── Recetas ────────────────────────────────────────────
         $this->receta($productos['rebanada-tres-leches'], [
             'Pastel tres leches entero' => 0.125,
-            'Plato desechable'          => 1,
-            'Cuchara desechable'        => 1,
+            'Plato desechable' => 1,
+            'Cuchara desechable' => 1,
         ], $ing);
         $this->receta($productos['rebanada-chocolate'], [
             'Pastel de chocolate entero' => 0.125,
-            'Plato desechable'           => 1,
-            'Cuchara desechable'         => 1,
+            'Plato desechable' => 1,
+            'Cuchara desechable' => 1,
         ], $ing);
         $this->receta($productos['rebanada-zanahoria'], [
             'Pastel de zanahoria entero' => 0.125,
-            'Nuez picada'                => 0.005,
-            'Plato desechable'           => 1,
-            'Cuchara desechable'         => 1,
+            'Nuez picada' => 0.005,
+            'Plato desechable' => 1,
+            'Cuchara desechable' => 1,
         ], $ing);
         $this->receta($productos['rebanada-red-velvet'], [
-            'Red Velvet entero'   => 0.125,
-            'Plato desechable'    => 1,
-            'Cuchara desechable'  => 1,
+            'Red Velvet entero' => 0.125,
+            'Plato desechable' => 1,
+            'Cuchara desechable' => 1,
         ], $ing);
         $this->receta($productos['rebanada-cheesecake'], [
-            'Cheesecake entero'   => 0.125,
-            'Plato desechable'    => 1,
-            'Cuchara desechable'  => 1,
+            'Cheesecake entero' => 0.125,
+            'Plato desechable' => 1,
+            'Cuchara desechable' => 1,
         ], $ing);
 
         $this->receta($productos['fresas-con-chantilly'], [
-            'Fresa'              => 0.150,
-            'Crema chantilly'    => 0.050,
-            'Leche condensada'   => 0.020,
-            'Tarrina 12 oz'      => 1,
+            'Fresa' => 0.150,
+            'Crema chantilly' => 0.050,
+            'Leche condensada' => 0.020,
+            'Tarrina 12 oz' => 1,
             'Cuchara desechable' => 1,
         ], $ing);
         $this->receta($productos['uvas-con-chantilly'], [
-            'Uva'                => 0.150,
-            'Crema chantilly'    => 0.050,
-            'Tarrina 12 oz'      => 1,
+            'Uva' => 0.150,
+            'Crema chantilly' => 0.050,
+            'Tarrina 12 oz' => 1,
             'Cuchara desechable' => 1,
         ], $ing);
         $this->receta($productos['duraznos-con-chantilly'], [
-            'Durazno'            => 0.150,
-            'Crema chantilly'    => 0.050,
-            'Nuez picada'        => 0.010,
-            'Tarrina 12 oz'      => 1,
+            'Durazno' => 0.150,
+            'Crema chantilly' => 0.050,
+            'Nuez picada' => 0.010,
+            'Tarrina 12 oz' => 1,
             'Cuchara desechable' => 1,
         ], $ing);
         $this->receta($productos['mix-de-frutas'], [
-            'Fresa'              => 0.060,
-            'Uva'                => 0.060,
-            'Durazno'            => 0.060,
-            'Crema chantilly'    => 0.060,
-            'Tarrina 12 oz'      => 1,
+            'Fresa' => 0.060,
+            'Uva' => 0.060,
+            'Durazno' => 0.060,
+            'Crema chantilly' => 0.060,
+            'Tarrina 12 oz' => 1,
             'Cuchara desechable' => 1,
         ], $ing);
 
         $this->receta($productos['cafe-americano'], [
             'Café en grano' => 0.018,
-            'Vaso 16 oz'    => 1,
+            'Vaso 16 oz' => 1,
         ], $ing);
         $this->receta($productos['chocolate-caliente'], [
-            'Cocoa'      => 0.020,
-            'Leche'      => 0.250,
+            'Cocoa' => 0.020,
+            'Leche' => 0.250,
             'Vaso 16 oz' => 1,
         ], $ing);
         $this->receta($productos['agua-de-jamaica'], [
             'Flor de jamaica' => 0.010,
-            'Vaso 16 oz'      => 1,
+            'Vaso 16 oz' => 1,
         ], $ing);
     }
 
@@ -266,11 +266,13 @@ class PostresStitchSeeder extends Seeder
         Receta::where('producto_id', $producto->id)->delete();
         foreach ($items as $nombre => $cantidad) {
             $ing = $ingredientes->get($nombre);
-            if (! $ing) continue;
+            if (! $ing) {
+                continue;
+            }
             Receta::create([
-                'producto_id'    => $producto->id,
+                'producto_id' => $producto->id,
                 'ingrediente_id' => $ing->id,
-                'cantidad'       => $cantidad,
+                'cantidad' => $cantidad,
             ]);
         }
     }

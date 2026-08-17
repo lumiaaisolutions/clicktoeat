@@ -21,9 +21,13 @@ class CuponAuthorizationTest extends TestCase
     use RefreshDatabase;
 
     private Local $localA;
+
     private Local $localB;
+
     private User $ownerA;
+
     private User $ownerB;
+
     private Cupon $cuponB;
 
     protected function setUp(): void
@@ -38,10 +42,10 @@ class CuponAuthorizationTest extends TestCase
         // Cupon que pertenece al local B
         $this->cuponB = Cupon::create([
             'local_id' => $this->localB->id,
-            'codigo'   => 'CUPONB',
-            'tipo'     => 'percent',
-            'valor'    => 10,
-            'activo'   => true,
+            'codigo' => 'CUPONB',
+            'tipo' => 'percent',
+            'valor' => 10,
+            'activo' => true,
         ]);
     }
 
@@ -65,15 +69,15 @@ class CuponAuthorizationTest extends TestCase
 
         $this->patchJson("/api/v1/cupones/{$this->cuponB->id}", [
             'codigo' => 'HACKED',
-            'tipo'   => 'fixed',
-            'valor'  => 999,
+            'tipo' => 'fixed',
+            'valor' => 999,
         ])->assertForbidden();
 
         // Confirmar que el cupon original NO se modificó
         $this->assertDatabaseHas('cupones', [
-            'id'     => $this->cuponB->id,
+            'id' => $this->cuponB->id,
             'codigo' => 'CUPONB',
-            'valor'  => 10,
+            'valor' => 10,
         ]);
     }
 
@@ -97,7 +101,7 @@ class CuponAuthorizationTest extends TestCase
             ->assertForbidden();
 
         $this->assertDatabaseHas('cupones', [
-            'id'     => $this->cuponB->id,
+            'id' => $this->cuponB->id,
             'activo' => true,   // sin cambio
         ]);
     }
@@ -128,8 +132,8 @@ class CuponAuthorizationTest extends TestCase
 
         $this->postJson('/api/v1/cupones', [
             'codigo' => 'TEST',
-            'tipo'   => 'fixed',
-            'valor'  => 50,
+            'tipo' => 'fixed',
+            'valor' => 50,
         ])->assertForbidden();
     }
 

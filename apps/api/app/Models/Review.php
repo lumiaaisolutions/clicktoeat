@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 
 class Review extends Model
 {
-    use HasFactory, BelongsToTenant;
+    use BelongsToTenant, HasFactory;
 
     protected $fillable = [
         'local_id', 'pedido_id', 'cliente_nombre', 'cliente_telefono',
@@ -18,17 +18,26 @@ class Review extends Model
     ];
 
     protected $casts = [
-        'rating'   => 'integer',
+        'rating' => 'integer',
         'aprobado' => 'boolean',
     ];
 
     protected static function booted(): void
     {
         static::creating(function (Review $r) {
-            if (! $r->token) $r->token = Str::random(40);
+            if (! $r->token) {
+                $r->token = Str::random(40);
+            }
         });
     }
 
-    public function local(): BelongsTo  { return $this->belongsTo(Local::class); }
-    public function pedido(): BelongsTo { return $this->belongsTo(Pedido::class); }
+    public function local(): BelongsTo
+    {
+        return $this->belongsTo(Local::class);
+    }
+
+    public function pedido(): BelongsTo
+    {
+        return $this->belongsTo(Pedido::class);
+    }
 }

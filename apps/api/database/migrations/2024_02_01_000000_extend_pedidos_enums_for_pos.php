@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\Schema;
  * En sqlite (tests) los "enums" son strings normales, así que la migración no
  * hace nada. Esto la hace idempotente cross-driver.
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         if (! Schema::hasTable('pedidos')) {

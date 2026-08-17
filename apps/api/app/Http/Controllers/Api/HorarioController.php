@@ -21,6 +21,7 @@ class HorarioController extends Controller
      *     tags={"Horarios"},
      *     security={{"sanctum":{}}},
      *     summary="Devuelve los horarios + estado calculado actual.",
+     *
      *     @OA\Response(response=200, description="OK")
      * )
      */
@@ -31,10 +32,10 @@ class HorarioController extends Controller
 
         return response()->json([
             'data' => [
-                'horarios'         => $local->horarios ?? [],
+                'horarios' => $local->horarios ?? [],
                 'cerrado_temporal' => (bool) $local->cerrado_temporal,
-                'zona_horaria'     => $local->zona_horaria ?: 'America/Mexico_City',
-                'estado'           => HorarioCalculator::estado($local),
+                'zona_horaria' => $local->zona_horaria ?: 'America/Mexico_City',
+                'estado' => HorarioCalculator::estado($local),
             ],
         ]);
     }
@@ -70,21 +71,22 @@ class HorarioController extends Controller
 
         return response()->json([
             'data' => [
-                'horarios'         => $local->horarios ?? [],
+                'horarios' => $local->horarios ?? [],
                 'cerrado_temporal' => (bool) $local->cerrado_temporal,
-                'zona_horaria'     => $local->zona_horaria ?: 'America/Mexico_City',
-                'estado'           => HorarioCalculator::estado($local->fresh()),
+                'zona_horaria' => $local->zona_horaria ?: 'America/Mexico_City',
+                'estado' => HorarioCalculator::estado($local->fresh()),
             ],
         ]);
     }
 
     protected function resolveLocal(Request $request): Local
     {
-        $user  = $request->user();
+        $user = $request->user();
         $local = Local::withoutGlobalScopes()->find($user->local_id);
         if (! $local) {
             throw new NotFoundHttpException('Tu usuario no está vinculado a un local.');
         }
+
         return $local;
     }
 }

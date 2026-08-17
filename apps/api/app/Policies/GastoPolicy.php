@@ -21,6 +21,7 @@ class GastoPolicy
         if ($user->isSuperAdmin()) {
             return true;
         }
+
         return null;
     }
 

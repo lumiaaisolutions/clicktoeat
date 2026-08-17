@@ -14,10 +14,10 @@ class OutgoingWebhook extends Model
     protected function casts(): array
     {
         return [
-            'active'         => 'boolean',
+            'active' => 'boolean',
             'last_called_at' => 'datetime',
-            'last_status'    => 'integer',
-            'error_count'    => 'integer',
+            'last_status' => 'integer',
+            'error_count' => 'integer',
         ];
     }
 }

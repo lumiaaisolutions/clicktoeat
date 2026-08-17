@@ -52,11 +52,11 @@ class InventarioSeeder extends Seeder
 
         if ($tacoPastor) {
             $this->setReceta($tacoPastor, [
-                'Tortilla maíz'   => 1,
+                'Tortilla maíz' => 1,
                 'Carne al pastor' => 0.080,
-                'Cebolla'         => 0.010,
-                'Cilantro'        => 0.010,
-                'Piña'            => 0.05,
+                'Cebolla' => 0.010,
+                'Cilantro' => 0.010,
+                'Piña' => 0.05,
             ], $ingredientes);
         }
 
@@ -68,8 +68,8 @@ class InventarioSeeder extends Seeder
             $this->setReceta($tacoSuadero, [
                 'Tortilla maíz' => 1,
                 'Carne suadero' => 0.080,
-                'Cebolla'       => 0.010,
-                'Cilantro'      => 0.010,
+                'Cebolla' => 0.010,
+                'Cilantro' => 0.010,
             ], $ingredientes);
         }
     }
@@ -79,11 +79,13 @@ class InventarioSeeder extends Seeder
         Receta::where('producto_id', $producto->id)->delete();
         foreach ($items as $nombre => $cantidad) {
             $ing = $ingredientes->get($nombre);
-            if (! $ing) continue;
+            if (! $ing) {
+                continue;
+            }
             Receta::create([
-                'producto_id'    => $producto->id,
+                'producto_id' => $producto->id,
                 'ingrediente_id' => $ing->id,
-                'cantidad'       => $cantidad,
+                'cantidad' => $cantidad,
             ]);
         }
     }

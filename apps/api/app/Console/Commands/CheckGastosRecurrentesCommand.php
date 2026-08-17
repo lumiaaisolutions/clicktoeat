@@ -20,7 +20,8 @@ use Illuminate\Support\Facades\DB;
  */
 class CheckGastosRecurrentesCommand extends Command
 {
-    protected $signature   = 'gastos:check-recurrentes';
+    protected $signature = 'gastos:check-recurrentes';
+
     protected $description = 'Notifica a los owners cuando un gasto recurrente lleva >35 días sin nuevo registro.';
 
     private const THRESHOLD_DAYS = 35;
@@ -64,14 +65,14 @@ class CheckGastosRecurrentesCommand extends Command
 
             Notificacion::create([
                 'local_id' => $r->local_id,
-                'tipo'     => 'gasto_recurrente_pendiente',
-                'titulo'   => "Gasto pendiente: {$r->concepto}",
-                'mensaje'  => "Llevas {$dias} días sin registrar {$r->concepto} ({$r->categoria}). ¿Ya pagaste este mes?",
-                'data'     => [
-                    'categoria'   => $r->categoria,
-                    'concepto'    => $r->concepto,
-                    'ultimo'      => $ultimo->toDateString(),
-                    'dias'        => $dias,
+                'tipo' => 'gasto_recurrente_pendiente',
+                'titulo' => "Gasto pendiente: {$r->concepto}",
+                'mensaje' => "Llevas {$dias} días sin registrar {$r->concepto} ({$r->categoria}). ¿Ya pagaste este mes?",
+                'data' => [
+                    'categoria' => $r->categoria,
+                    'concepto' => $r->concepto,
+                    'ultimo' => $ultimo->toDateString(),
+                    'dias' => $dias,
                     'url_destino' => '/admin/gastos',
                 ],
             ]);
@@ -80,6 +81,7 @@ class CheckGastosRecurrentesCommand extends Command
         }
 
         $this->info("Notificaciones creadas: {$creadas}");
+
         return Command::SUCCESS;
     }
 }

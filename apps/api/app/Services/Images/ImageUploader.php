@@ -39,7 +39,7 @@ class ImageUploader
         $this->guardExtension($file);
         $folder = $this->sanitizeFolder($folder);
 
-        $ext  = strtolower($file->getClientOriginalExtension() ?: $file->extension());
+        $ext = strtolower($file->getClientOriginalExtension() ?: $file->extension());
         $base = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) ?: 'img';
         $name = $base.'-'.Str::lower(Str::random(8)).'.'.$ext;
         $relative = "uploads/{$folder}/{$name}";
@@ -54,7 +54,7 @@ class ImageUploader
         // Para S3, hacerlo requeriría descargar el archivo — lo omitimos por costo/latencia.
         [$w, $h] = [null, null];
         try {
-            $disk   = Storage::disk($diskName);
+            $disk = Storage::disk($diskName);
             $driver = config('filesystems.disks.'.$diskName.'.driver');
             if ($driver === 'local') {
                 /** @phpstan-ignore-next-line */
@@ -65,11 +65,11 @@ class ImageUploader
         }
 
         return [
-            'url'       => Storage::disk($diskName)->url($relative),
+            'url' => Storage::disk($diskName)->url($relative),
             'public_id' => $relative,
-            'width'     => $w,
-            'height'    => $h,
-            'bytes'     => $file->getSize(),
+            'width' => $w,
+            'height' => $h,
+            'bytes' => $file->getSize(),
         ];
     }
 
@@ -85,6 +85,7 @@ class ImageUploader
         if (str_starts_with($publicId, 'local:')) {
             $publicId = substr($publicId, strlen('local:'));
         }
+
         return Storage::disk($this->diskName())->delete($publicId);
     }
 
@@ -106,6 +107,7 @@ class ImageUploader
     protected function sanitizeFolder(string $folder): string
     {
         $folder = Str::slug($folder);
+
         return $folder !== '' ? $folder : 'productos';
     }
 }

@@ -16,7 +16,8 @@ use Illuminate\Console\Command;
  */
 class PurgeLocalesCommand extends Command
 {
-    protected $signature   = 'locales:purge {--days=15}';
+    protected $signature = 'locales:purge {--days=15}';
+
     protected $description = 'Borra definitivamente locales soft-deleted con > N días (default 15)';
 
     public function handle(): int
@@ -24,6 +25,7 @@ class PurgeLocalesCommand extends Command
         $days = (int) $this->option('days');
         if ($days < 1) {
             $this->error('Mínimo 1 día por seguridad.');
+
             return 1;
         }
 
@@ -34,6 +36,7 @@ class PurgeLocalesCommand extends Command
 
         if ($locales->isEmpty()) {
             $this->info('Nada que borrar definitivamente.');
+
             return 0;
         }
 
@@ -43,6 +46,7 @@ class PurgeLocalesCommand extends Command
         }
 
         $this->info(sprintf('Locales purgados definitivamente: %d', $locales->count()));
+
         return 0;
     }
 }

@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\PlanLimitException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Producto\StoreProductoRequest;
 use App\Http\Requests\Producto\UpdateProductoRequest;
 use App\Http\Resources\ProductoResource;
 use App\Models\Producto;
 use App\Services\Images\ImageUploader;
+use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -25,10 +27,12 @@ class ProductoController extends Controller
      *     tags={"Productos"},
      *     security={{"sanctum":{}}},
      *     summary="Lista productos del local con filtros.",
+     *
      *     @OA\Parameter(name="categoria_id", in="query", @OA\Schema(type="integer")),
      *     @OA\Parameter(name="disponible", in="query", @OA\Schema(type="boolean")),
      *     @OA\Parameter(name="q", in="query", description="Búsqueda por nombre", @OA\Schema(type="string")),
      *     @OA\Parameter(name="per_page", in="query", @OA\Schema(type="integer", default=20)),
+     *
      *     @OA\Response(response=200, description="OK")
      * )
      */
@@ -56,9 +60,9 @@ class ProductoController extends Controller
             // Para >1000 productos considerar FULLTEXT en mysql.
             $term = '%'.trim($request->string('q')).'%';
             $query->where(function ($qq) use ($term) {
-                $qq->where('nombre',      'like', $term)
-                   ->orWhere('descripcion', 'like', $term)
-                   ->orWhere('tag',         'like', $term);
+                $qq->where('nombre', 'like', $term)
+                    ->orWhere('descripcion', 'like', $term)
+                    ->orWhere('tag', 'like', $term);
             });
         }
 
@@ -75,7 +79,9 @@ class ProductoController extends Controller
      *     tags={"Productos"},
      *     security={{"sanctum":{}}},
      *     summary="Restaura un producto soft-deleted.",
+     *
      *     @OA\Parameter(name="producto", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\Response(response=200, description="OK")
      * )
      */
@@ -95,8 +101,10 @@ class ProductoController extends Controller
      *     tags={"Productos"},
      *     security={{"sanctum":{}}},
      *     summary="Crea un producto.",
+     *
      *     @OA\RequestBody(required=true, @OA\JsonContent(
      *         required={"categoria_id","nombre","precio"},
+     *
      *         @OA\Property(property="categoria_id", type="integer"),
      *         @OA\Property(property="nombre", type="string"),
      *         @OA\Property(property="descripcion", type="string"),
@@ -104,6 +112,7 @@ class ProductoController extends Controller
      *         @OA\Property(property="imagen_url", type="string"),
      *         @OA\Property(property="extras", type="array", @OA\Items(type="object"))
      *     )),
+     *
      *     @OA\Response(response=201, description="Created")
      * )
      */
@@ -119,12 +128,14 @@ class ProductoController extends Controller
 
     private function enforcePlanLimit(string $feature): void
     {
-        $local = app(\App\Support\TenantContext::class)->local();
-        $max   = $local?->plan?->max_productos;
-        if ($max === null) return;
+        $local = app(TenantContext::class)->local();
+        $max = $local?->plan?->max_productos;
+        if ($max === null) {
+            return;
+        }
         $current = $local->productos()->count();
         if ($current >= $max) {
-            throw new \App\Exceptions\PlanLimitException($feature, $max, $current);
+            throw new PlanLimitException($feature, $max, $current);
         }
     }
 
@@ -133,13 +144,16 @@ class ProductoController extends Controller
      *     path="/productos/{producto}",
      *     tags={"Productos"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="producto", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\Response(response=200, description="OK")
      * )
      */
     public function show(Producto $producto): ProductoResource
     {
         $this->authorize('view', $producto);
+
         return new ProductoResource($producto->load('categoria'));
     }
 
@@ -148,7 +162,9 @@ class ProductoController extends Controller
      *     path="/productos/{producto}",
      *     tags={"Productos"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="producto", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\Response(response=200, description="OK")
      * )
      */
@@ -174,7 +190,9 @@ class ProductoController extends Controller
      *     path="/productos/{producto}",
      *     tags={"Productos"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="producto", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\Response(response=204, description="No Content")
      * )
      */
@@ -187,6 +205,7 @@ class ProductoController extends Controller
         }
 
         $producto->delete();
+
         return response()->json(null, 204);
     }
 }

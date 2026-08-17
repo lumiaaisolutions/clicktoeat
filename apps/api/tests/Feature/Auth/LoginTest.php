@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
+use Laravel\Sanctum\PersonalAccessToken;
 use Tests\TestCase;
 
 class LoginTest extends TestCase
@@ -28,34 +29,34 @@ class LoginTest extends TestCase
     public function login_valido_devuelve_token_y_user(): void
     {
         $local = Local::factory()->create();
-        $user  = User::factory()->owner($local)->create([
-            'email'    => 'owner@example.com',
+        $user = User::factory()->owner($local)->create([
+            'email' => 'owner@example.com',
             'password' => Hash::make('secret123'),
         ]);
 
         $resp = $this->postJson('/api/v1/auth/login', [
-            'email'    => 'owner@example.com',
+            'email' => 'owner@example.com',
             'password' => 'secret123',
-            'device'   => 'phpunit',
+            'device' => 'phpunit',
         ]);
 
         $resp->assertOk()
-             ->assertJsonStructure(['user' => ['id', 'nombre', 'email', 'rol', 'local_id'], 'token'])
-             ->assertJsonPath('user.id', $user->id)
-             ->assertJsonPath('user.rol', 'owner')
-             ->assertJsonPath('user.local_id', $local->id);
+            ->assertJsonStructure(['user' => ['id', 'nombre', 'email', 'rol', 'local_id'], 'token'])
+            ->assertJsonPath('user.id', $user->id)
+            ->assertJsonPath('user.rol', 'owner')
+            ->assertJsonPath('user.local_id', $local->id);
     }
 
     /** @test */
     public function login_con_password_incorrecto_devuelve_422(): void
     {
         User::factory()->create([
-            'email'    => 'owner@example.com',
+            'email' => 'owner@example.com',
             'password' => Hash::make('secret123'),
         ]);
 
         $this->postJson('/api/v1/auth/login', [
-            'email'    => 'owner@example.com',
+            'email' => 'owner@example.com',
             'password' => 'incorrecta',
         ])->assertStatus(422)->assertJsonValidationErrors('email');
     }
@@ -64,7 +65,7 @@ class LoginTest extends TestCase
     public function login_con_email_inexistente_devuelve_422(): void
     {
         $this->postJson('/api/v1/auth/login', [
-            'email'    => 'noexiste@example.com',
+            'email' => 'noexiste@example.com',
             'password' => 'cualquier',
         ])->assertStatus(422);
     }
@@ -73,21 +74,21 @@ class LoginTest extends TestCase
     public function throttle_bloquea_tras_5_intentos_fallidos_por_email(): void
     {
         User::factory()->create([
-            'email'    => 'owner@example.com',
+            'email' => 'owner@example.com',
             'password' => Hash::make('secret123'),
         ]);
 
         // 5 intentos fallidos
         for ($i = 0; $i < 5; $i++) {
             $this->postJson('/api/v1/auth/login', [
-                'email'    => 'owner@example.com',
+                'email' => 'owner@example.com',
                 'password' => 'wrongpass',
             ])->assertStatus(422);
         }
 
         // El 6to intenta — debe ser 429 (throttle del controller)
         $resp = $this->postJson('/api/v1/auth/login', [
-            'email'    => 'owner@example.com',
+            'email' => 'owner@example.com',
             'password' => 'wrongpass',
         ]);
 
@@ -99,27 +100,27 @@ class LoginTest extends TestCase
     public function login_exitoso_resetea_el_contador_de_throttle(): void
     {
         User::factory()->create([
-            'email'    => 'owner@example.com',
+            'email' => 'owner@example.com',
             'password' => Hash::make('secret123'),
         ]);
 
         // 4 fallos
         for ($i = 0; $i < 4; $i++) {
             $this->postJson('/api/v1/auth/login', [
-                'email'    => 'owner@example.com',
+                'email' => 'owner@example.com',
                 'password' => 'wrongpass',
             ]);
         }
 
         // Éxito
         $this->postJson('/api/v1/auth/login', [
-            'email'    => 'owner@example.com',
+            'email' => 'owner@example.com',
             'password' => 'secret123',
         ])->assertOk();
 
         // Tras login exitoso, contador reseteado — otro fallo no debería disparar 429
         $this->postJson('/api/v1/auth/login', [
-            'email'    => 'owner@example.com',
+            'email' => 'owner@example.com',
             'password' => 'wrongpass',
         ])->assertStatus(422);
     }
@@ -130,12 +131,12 @@ class LoginTest extends TestCase
         $superAdmin = User::factory()->superAdmin()->create(['password' => Hash::make('secret123')]);
 
         $resp = $this->postJson('/api/v1/auth/login', [
-            'email'    => $superAdmin->email,
+            'email' => $superAdmin->email,
             'password' => 'secret123',
         ])->assertOk();
 
         $token = $resp->json('token');
-        $accessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+        $accessToken = PersonalAccessToken::findToken($token);
 
         $this->assertEquals(['*'], $accessToken->abilities);
     }
@@ -147,12 +148,12 @@ class LoginTest extends TestCase
 
         // 2 logins → 2 tokens
         $token1 = $this->postJson('/api/v1/auth/login', [
-            'email'    => $user->email,
+            'email' => $user->email,
             'password' => 'secret123',
         ])->json('token');
 
         $token2 = $this->postJson('/api/v1/auth/login', [
-            'email'    => $user->email,
+            'email' => $user->email,
             'password' => 'secret123',
         ])->json('token');
 
@@ -160,13 +161,13 @@ class LoginTest extends TestCase
 
         // Logout del token2
         $this->withHeader('Authorization', "Bearer {$token2}")
-             ->postJson('/api/v1/auth/logout')
-             ->assertNoContent();
+            ->postJson('/api/v1/auth/logout')
+            ->assertNoContent();
 
         // token1 sigue vivo
         $this->assertSame(1, $user->tokens()->count());
         $this->withHeader('Authorization', "Bearer {$token1}")
-             ->getJson('/api/v1/auth/me')
-             ->assertOk();
+            ->getJson('/api/v1/auth/me')
+            ->assertOk();
     }
 }

@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Schema;
  *
  * Aditiva (CREATE TABLE solo), compatible con sqlite + mysql.
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::create('reviews', function (Blueprint $t) {

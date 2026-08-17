@@ -66,19 +66,19 @@ class CompraService
                 $subtotal += (float) $item['cantidad'] * (float) $item['costo_unitario'];
             }
             $impuestos = (float) ($input['impuestos'] ?? 0);
-            $total     = $subtotal + $impuestos;
+            $total = $subtotal + $impuestos;
 
             $compra = Compra::create([
-                'local_id'           => $local->id,
-                'proveedor'          => $input['proveedor']           ?? null,
-                'referencia_factura' => $input['referencia_factura']  ?? null,
-                'fecha'              => $input['fecha']                ?? now()->toDateString(),
-                'subtotal'           => $subtotal,
-                'impuestos'          => $impuestos,
-                'total'              => $total,
-                'notas'              => $input['notas']                ?? null,
-                'estado'             => 'registrada',
-                'user_id'            => $userId,
+                'local_id' => $local->id,
+                'proveedor' => $input['proveedor'] ?? null,
+                'referencia_factura' => $input['referencia_factura'] ?? null,
+                'fecha' => $input['fecha'] ?? now()->toDateString(),
+                'subtotal' => $subtotal,
+                'impuestos' => $impuestos,
+                'total' => $total,
+                'notas' => $input['notas'] ?? null,
+                'estado' => 'registrada',
+                'user_id' => $userId,
             ]);
 
             foreach ($input['items'] as $item) {
@@ -89,35 +89,35 @@ class CompraService
                 $subtotalLinea = $cantidad * $costoUnit;
 
                 DetalleCompra::create([
-                    'compra_id'      => $compra->id,
+                    'compra_id' => $compra->id,
                     'ingrediente_id' => $ing->id,
-                    'cantidad'       => $cantidad,
+                    'cantidad' => $cantidad,
                     'costo_unitario' => $costoUnit,
-                    'subtotal'       => $subtotalLinea,
+                    'subtotal' => $subtotalLinea,
                 ]);
 
-                $stockAntes  = (float) $ing->stock;
-                $costoAntes  = (float) $ing->costo_unitario;
+                $stockAntes = (float) $ing->stock;
+                $costoAntes = (float) $ing->costo_unitario;
 
-                $nuevoStock  = $stockAntes + $cantidad;
-                $nuevoCosto  = $this->promedioPonderado(
+                $nuevoStock = $stockAntes + $cantidad;
+                $nuevoCosto = $this->promedioPonderado(
                     $stockAntes, $costoAntes, $cantidad, $costoUnit,
                 );
 
-                $ing->stock          = $nuevoStock;
+                $ing->stock = $nuevoStock;
                 $ing->costo_unitario = $nuevoCosto;
                 $ing->save();
 
                 MovimientoInventario::create([
-                    'local_id'         => $local->id,
-                    'ingrediente_id'   => $ing->id,
-                    'tipo'             => 'entrada',
-                    'cantidad'         => $cantidad,
+                    'local_id' => $local->id,
+                    'ingrediente_id' => $ing->id,
+                    'tipo' => 'entrada',
+                    'cantidad' => $cantidad,
                     'stock_resultante' => $nuevoStock,
-                    'referencia'       => "compra:{$compra->id}",
-                    'motivo'           => "Compra {$compra->codigo}"
+                    'referencia' => "compra:{$compra->id}",
+                    'motivo' => "Compra {$compra->codigo}"
                         .($input['proveedor'] ?? null ? " — {$input['proveedor']}" : ''),
-                    'user_id'          => $userId,
+                    'user_id' => $userId,
                 ]);
             }
 
@@ -145,20 +145,22 @@ class CompraService
             $faltantes = [];
             foreach ($detalles as $d) {
                 $ing = $ingredientes->get($d->ingrediente_id);
-                if (! $ing) continue;
+                if (! $ing) {
+                    continue;
+                }
                 if ((float) $ing->stock < (float) $d->cantidad) {
                     $faltantes[] = [
                         'ingrediente' => $ing->nombre,
-                        'comprado'    => (float) $d->cantidad,
+                        'comprado' => (float) $d->cantidad,
                         'stock_actual' => (float) $ing->stock,
-                        'unidad'      => $ing->unidad,
+                        'unidad' => $ing->unidad,
                     ];
                 }
             }
 
             if (! empty($faltantes)) {
                 throw new CompraNoReversibleException(
-                    "No se puede anular: parte del inventario ya se consumió.",
+                    'No se puede anular: parte del inventario ya se consumió.',
                     $faltantes,
                 );
             }
@@ -166,24 +168,27 @@ class CompraService
             // Revertir stock + registrar movimientos de salida
             foreach ($detalles as $d) {
                 $ing = $ingredientes->get($d->ingrediente_id);
-                if (! $ing) continue;
+                if (! $ing) {
+                    continue;
+                }
                 $nuevoStock = (float) $ing->stock - (float) $d->cantidad;
                 $ing->stock = $nuevoStock;
                 $ing->save();
 
                 MovimientoInventario::create([
-                    'local_id'         => $compra->local_id,
-                    'ingrediente_id'   => $ing->id,
-                    'tipo'             => 'salida',
-                    'cantidad'         => (float) $d->cantidad,
+                    'local_id' => $compra->local_id,
+                    'ingrediente_id' => $ing->id,
+                    'tipo' => 'salida',
+                    'cantidad' => (float) $d->cantidad,
                     'stock_resultante' => $nuevoStock,
-                    'referencia'       => "compra:{$compra->id}:anulacion",
-                    'motivo'           => "Anulación de compra {$compra->codigo}",
-                    'user_id'          => $userId,
+                    'referencia' => "compra:{$compra->id}:anulacion",
+                    'motivo' => "Anulación de compra {$compra->codigo}",
+                    'user_id' => $userId,
                 ]);
             }
 
             $compra->update(['estado' => 'anulada']);
+
             return $compra->fresh('detalles.ingrediente');
         });
     }
@@ -193,7 +198,10 @@ class CompraService
         float $cantidadCompra, float $costoCompra,
     ): float {
         $totalStock = $stockAntes + $cantidadCompra;
-        if ($totalStock <= 0) return $costoCompra;
+        if ($totalStock <= 0) {
+            return $costoCompra;
+        }
+
         return round(
             (($stockAntes * $costoAntes) + ($cantidadCompra * $costoCompra)) / $totalStock,
             2,

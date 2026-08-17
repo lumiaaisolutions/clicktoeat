@@ -17,30 +17,30 @@ class StoreLocalRequest extends FormRequest
     {
         return [
             // Local
-            'nombre'           => ['required', 'string', 'min:2', 'max:120'],
-            'slug'             => ['nullable', 'string', 'min:2', 'max:80', 'regex:/^[a-z0-9-]+$/', 'unique:locales,slug'],
-            'giro'             => ['nullable', 'string', 'in:mexicana,italiana,cafeteria,sushi,postres,bar,vegan,pasteleria'],
-            'tagline'          => ['nullable', 'string', 'max:200'],
-            'whatsapp'         => ['required', 'string', 'min:10', 'max:20', 'regex:/^[0-9+]+$/'],
-            'telefono'         => ['nullable', 'string', 'max:20'],
-            'email_contacto'   => ['nullable', 'email:rfc'],
-            'direccion'        => ['nullable', 'string', 'max:300'],
+            'nombre' => ['required', 'string', 'min:2', 'max:120'],
+            'slug' => ['nullable', 'string', 'min:2', 'max:80', 'regex:/^[a-z0-9-]+$/', 'unique:locales,slug'],
+            'giro' => ['nullable', 'string', 'in:mexicana,italiana,cafeteria,sushi,postres,bar,vegan,pasteleria'],
+            'tagline' => ['nullable', 'string', 'max:200'],
+            'whatsapp' => ['required', 'string', 'min:10', 'max:20', 'regex:/^[0-9+]+$/'],
+            'telefono' => ['nullable', 'string', 'max:20'],
+            'email_contacto' => ['nullable', 'email:rfc'],
+            'direccion' => ['nullable', 'string', 'max:300'],
 
             // Branding (con defaults si no llegan)
-            'color_primario'   => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/'],
+            'color_primario' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/'],
             'color_secundario' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/'],
-            'color_fondo'      => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/'],
-            'tipografia'       => ['nullable', 'string', 'max:60'],
+            'color_fondo' => ['nullable', 'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/'],
+            'tipografia' => ['nullable', 'string', 'max:60'],
 
             // Operación
-            'delivery_fee'             => ['nullable', 'numeric', 'min:0', 'max:9999'],
-            'delivery_min_minutos'     => ['nullable', 'integer', 'min:0', 'max:300'],
+            'delivery_fee' => ['nullable', 'numeric', 'min:0', 'max:9999'],
+            'delivery_min_minutos' => ['nullable', 'integer', 'min:0', 'max:300'],
 
             // Owner — opcional, si no se pasa se crea sin owner asignado todavía
-            'owner'                 => ['nullable', 'array'],
-            'owner.nombre'          => ['required_with:owner', 'string', 'min:2', 'max:120'],
-            'owner.email'           => ['required_with:owner', 'email:rfc', 'unique:users,email'],
-            'owner.password'        => ['required_with:owner', 'confirmed', Password::min(8)],
+            'owner' => ['nullable', 'array'],
+            'owner.nombre' => ['required_with:owner', 'string', 'min:2', 'max:120'],
+            'owner.email' => ['required_with:owner', 'email:rfc', 'unique:users,email'],
+            'owner.password' => ['required_with:owner', 'confirmed', Password::min(8)],
         ];
     }
 

@@ -12,6 +12,7 @@ class CompraPolicy
         if ($user->isSuperAdmin()) {
             return true;
         }
+
         return null;
     }
 

@@ -21,10 +21,10 @@ class Ingrediente extends Model
     protected function casts(): array
     {
         return [
-            'stock'           => 'decimal:3',
-            'stock_minimo'    => 'decimal:3',
-            'costo_unitario'  => 'decimal:2',
-            'activo'          => 'boolean',
+            'stock' => 'decimal:3',
+            'stock_minimo' => 'decimal:3',
+            'costo_unitario' => 'decimal:2',
+            'activo' => 'boolean',
         ];
     }
 

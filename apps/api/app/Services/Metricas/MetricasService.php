@@ -63,10 +63,10 @@ class MetricasService
             ->keyBy('metodo_pago');
 
         // ── 5. Serie temporal: ventas por día ────────────────
-        $driver  = DB::connection()->getDriverName();
+        $driver = DB::connection()->getDriverName();
         $dateExpr = $driver === 'sqlite'
             ? "strftime('%Y-%m-%d', created_at)"
-            : "DATE(created_at)";
+            : 'DATE(created_at)';
 
         $ventasDiarias = (clone $pedidosBase)
             ->selectRaw("$dateExpr as fecha, COUNT(*) as pedidos, COALESCE(SUM(total), 0) as ventas")
@@ -81,9 +81,9 @@ class MetricasService
             $key = $dia->toDateString();
             $row = $ventasDiarias->get($key);
             $serie[] = [
-                'fecha'   => $key,
-                'pedidos' => (int)   ($row->pedidos ?? 0),
-                'ventas'  => (float) ($row->ventas  ?? 0),
+                'fecha' => $key,
+                'pedidos' => (int) ($row->pedidos ?? 0),
+                'ventas' => (float) ($row->ventas ?? 0),
             ];
         }
 
@@ -107,10 +107,10 @@ class MetricasService
             ->selectRaw('COUNT(*) as compras, COALESCE(SUM(total), 0) as costo_compras')
             ->first();
 
-        $costoCompras  = (float) ($compras->costo_compras ?? 0);
-        $ventasTotal   = (float) ($resumen->ventas_total ?? 0);
-        $margenAprox   = $ventasTotal - $costoCompras;
-        $margenPct     = $ventasTotal > 0 ? round(($margenAprox / $ventasTotal) * 100, 1) : 0;
+        $costoCompras = (float) ($compras->costo_compras ?? 0);
+        $ventasTotal = (float) ($resumen->ventas_total ?? 0);
+        $margenAprox = $ventasTotal - $costoCompras;
+        $margenPct = $ventasTotal > 0 ? round(($margenAprox / $ventasTotal) * 100, 1) : 0;
 
         // ── 8. Estado bajo stock (snapshot actual, no del rango) ──
         $bajoStockCount = DB::table('ingredientes')
@@ -123,38 +123,38 @@ class MetricasService
             'rango' => [
                 'desde' => $desde->toDateString(),
                 'hasta' => $hasta->toDateString(),
-                'dias'  => (int) $desde->copy()->startOfDay()->diffInDays($hasta->copy()->startOfDay()) + 1,
+                'dias' => (int) $desde->copy()->startOfDay()->diffInDays($hasta->copy()->startOfDay()) + 1,
             ],
             'resumen' => [
-                'pedidos'          => (int)   $resumen->pedidos,
-                'ventas_total'     => (float) $resumen->ventas_total,
-                'ventas_subtotal'  => (float) $resumen->ventas_subtotal,
-                'ingresos_envio'   => (float) $resumen->ingresos_envio,
-                'ticket_promedio'  => (float) $resumen->ticket_promedio,
-                'costo_compras'    => $costoCompras,
-                'margen_aprox'     => $margenAprox,
-                'margen_pct'       => $margenPct,
-                'bajo_stock'       => $bajoStockCount,
+                'pedidos' => (int) $resumen->pedidos,
+                'ventas_total' => (float) $resumen->ventas_total,
+                'ventas_subtotal' => (float) $resumen->ventas_subtotal,
+                'ingresos_envio' => (float) $resumen->ingresos_envio,
+                'ticket_promedio' => (float) $resumen->ticket_promedio,
+                'costo_compras' => $costoCompras,
+                'margen_aprox' => $margenAprox,
+                'margen_pct' => $margenPct,
+                'bajo_stock' => $bajoStockCount,
             ],
-            'por_estado'  => $porEstado,
+            'por_estado' => $porEstado,
             'por_entrega' => $porEntrega->map(fn ($r) => [
                 'pedidos' => (int) $r->pedidos,
-                'monto'   => (float) $r->monto,
+                'monto' => (float) $r->monto,
             ]),
-            'por_pago'    => $porPago->map(fn ($r) => [
+            'por_pago' => $porPago->map(fn ($r) => [
                 'pedidos' => (int) $r->pedidos,
-                'monto'   => (float) $r->monto,
+                'monto' => (float) $r->monto,
             ]),
             'serie_diaria' => $serie,
             'top_productos' => $topProductos->map(fn ($r) => [
                 'producto_nombre' => $r->producto_nombre,
-                'cantidad'        => (float) $r->cantidad_total,
-                'ingresos'        => (float) $r->ingresos,
-                'pedidos'         => (int)   $r->pedidos,
+                'cantidad' => (float) $r->cantidad_total,
+                'ingresos' => (float) $r->ingresos,
+                'pedidos' => (int) $r->pedidos,
             ]),
             'low_productos' => $this->productosMenosVendidos($localId, $desde, $hasta),
-            'heatmap'       => $this->heatmapDiaHora($localId, $desde, $hasta),
-            'por_dia_semana'=> $this->porDiaSemana($localId, $desde, $hasta),
+            'heatmap' => $this->heatmapDiaHora($localId, $desde, $hasta),
+            'por_dia_semana' => $this->porDiaSemana($localId, $desde, $hasta),
         ];
     }
 
@@ -181,8 +181,8 @@ class MetricasService
 
         return array_map(fn ($r) => [
             'producto_nombre' => $r->nombre,
-            'cantidad'        => (float) $r->cantidad,
-            'ingresos'        => (float) $r->ingresos,
+            'cantidad' => (float) $r->cantidad,
+            'ingresos' => (float) $r->ingresos,
         ], $rows);
     }
 
@@ -194,8 +194,8 @@ class MetricasService
     protected function heatmapDiaHora(int $localId, Carbon $desde, Carbon $hasta): array
     {
         $driver = DB::connection()->getDriverName();
-        $dowExpr  = $driver === 'sqlite' ? "CAST(strftime('%w', created_at) AS INTEGER)"   : 'DAYOFWEEK(created_at) - 1';
-        $hourExpr = $driver === 'sqlite' ? "CAST(strftime('%H', created_at) AS INTEGER)"  : 'HOUR(created_at)';
+        $dowExpr = $driver === 'sqlite' ? "CAST(strftime('%w', created_at) AS INTEGER)" : 'DAYOFWEEK(created_at) - 1';
+        $hourExpr = $driver === 'sqlite' ? "CAST(strftime('%H', created_at) AS INTEGER)" : 'HOUR(created_at)';
 
         $rows = DB::table('pedidos')
             ->where('local_id', $localId)
@@ -213,6 +213,7 @@ class MetricasService
                 'monto' => (float) $r->monto,
             ];
         }
+
         return $matrix;
     }
 
@@ -235,6 +236,7 @@ class MetricasService
         foreach ($rows as $r) {
             $out[(int) $r->dow] = ['count' => (int) $r->count, 'monto' => (float) $r->monto];
         }
+
         return $out;
     }
 }

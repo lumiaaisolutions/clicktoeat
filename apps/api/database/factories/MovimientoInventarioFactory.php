@@ -19,14 +19,14 @@ class MovimientoInventarioFactory extends Factory
         $cantidad = $this->faker->randomFloat(3, 1, 50);
 
         return [
-            'local_id'         => Local::factory(),
-            'ingrediente_id'   => Ingrediente::factory(),
-            'tipo'             => $this->faker->randomElement(['entrada', 'salida', 'ajuste', 'merma']),
-            'cantidad'         => $cantidad,
+            'local_id' => Local::factory(),
+            'ingrediente_id' => Ingrediente::factory(),
+            'tipo' => $this->faker->randomElement(['entrada', 'salida', 'ajuste', 'merma']),
+            'cantidad' => $cantidad,
             'stock_resultante' => $cantidad + $this->faker->randomFloat(3, 10, 200),
-            'referencia'       => 'manual',
-            'motivo'           => null,
-            'user_id'          => null,
+            'referencia' => 'manual',
+            'motivo' => null,
+            'user_id' => null,
         ];
     }
 }

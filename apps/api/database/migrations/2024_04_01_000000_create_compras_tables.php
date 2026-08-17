@@ -15,7 +15,8 @@ use Illuminate\Support\Facades\Schema;
  *
  * Anular una compra revierte el stock — solo si no se ha consumido parte.
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::create('compras', function (Blueprint $table) {

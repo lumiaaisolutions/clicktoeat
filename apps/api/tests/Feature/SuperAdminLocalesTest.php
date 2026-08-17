@@ -13,7 +13,9 @@ class SuperAdminLocalesTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $owner;
+
     protected Local $localOwner;
 
     protected function setUp(): void
@@ -21,10 +23,10 @@ class SuperAdminLocalesTest extends TestCase
         parent::setUp();
 
         $this->admin = User::create([
-            'nombre'   => 'Super Admin',
-            'email'    => 'admin@test.local',
+            'nombre' => 'Super Admin',
+            'email' => 'admin@test.local',
             'password' => Hash::make('password123'),
-            'rol'      => 'super_admin',
+            'rol' => 'super_admin',
         ]);
 
         $this->localOwner = Local::create([
@@ -68,16 +70,16 @@ class SuperAdminLocalesTest extends TestCase
     {
         $resp = $this->actingAs($this->admin, 'sanctum')
             ->postJson('/api/v1/admin/locales', [
-                'nombre'         => 'Quesadillas Doña Cleo',
-                'whatsapp'       => '5215511223344',
-                'tagline'        => 'Las mejores de la colonia',
+                'nombre' => 'Quesadillas Doña Cleo',
+                'whatsapp' => '5215511223344',
+                'tagline' => 'Las mejores de la colonia',
                 'color_primario' => '#FFD700',
-                'delivery_fee'   => 25,
+                'delivery_fee' => 25,
                 'owner' => [
-                    'nombre'                 => 'Doña Cleo',
-                    'email'                  => 'cleo@example.com',
-                    'password'               => 'segura1234',
-                    'password_confirmation'  => 'segura1234',
+                    'nombre' => 'Doña Cleo',
+                    'email' => 'cleo@example.com',
+                    'password' => 'segura1234',
+                    'password_confirmation' => 'segura1234',
                 ],
             ]);
 
@@ -86,7 +88,7 @@ class SuperAdminLocalesTest extends TestCase
             ->assertJsonPath('data.color_primario', '#FFD700');
 
         $this->assertDatabaseHas('locales', ['slug' => 'quesadillas-dona-cleo']);
-        $this->assertDatabaseHas('users',   ['email' => 'cleo@example.com', 'rol' => 'owner']);
+        $this->assertDatabaseHas('users', ['email' => 'cleo@example.com', 'rol' => 'owner']);
     }
 
     /** @test */
@@ -94,8 +96,8 @@ class SuperAdminLocalesTest extends TestCase
     {
         $this->actingAs($this->admin, 'sanctum')
             ->postJson('/api/v1/admin/locales', [
-                'nombre'   => 'Tacos Test 2',
-                'slug'     => 'tacos-test',
+                'nombre' => 'Tacos Test 2',
+                'slug' => 'tacos-test',
                 'whatsapp' => '5215511223344',
             ])
             ->assertStatus(422)
@@ -108,12 +110,12 @@ class SuperAdminLocalesTest extends TestCase
         $resp = $this->actingAs($this->admin, 'sanctum')
             ->patchJson("/api/v1/admin/locales/{$this->localOwner->id}", [
                 'color_primario' => '#123456',
-                'tagline'        => 'Reanimado',
+                'tagline' => 'Reanimado',
             ]);
 
         $resp->assertOk()
             ->assertJsonPath('data.color_primario', '#123456')
-            ->assertJsonPath('data.tagline',        'Reanimado');
+            ->assertJsonPath('data.tagline', 'Reanimado');
     }
 
     /** @test */

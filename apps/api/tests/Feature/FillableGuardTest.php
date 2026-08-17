@@ -26,7 +26,7 @@ class FillableGuardTest extends TestCase
     public function todos_los_modelos_declaran_fillable(): void
     {
         $modelos = collect(glob(app_path('Models/*.php')))
-            ->map(fn (string $file) => 'App\\Models\\' . basename($file, '.php'))
+            ->map(fn (string $file) => 'App\\Models\\'.basename($file, '.php'))
             ->filter(fn (string $class) => class_exists($class))
             ->filter(fn (string $class) => is_subclass_of($class, Model::class))
             ->values();
@@ -36,9 +36,9 @@ class FillableGuardTest extends TestCase
         $sinFillable = [];
         foreach ($modelos as $class) {
             /** @var Model $instance */
-            $instance = new $class();
+            $instance = new $class;
             $fillable = $instance->getFillable();
-            $guarded  = $instance->getGuarded();
+            $guarded = $instance->getGuarded();
 
             // Permitimos dos patrones safe:
             //   1) $fillable declarado y no vacío (allowlist explícito)
@@ -50,7 +50,7 @@ class FillableGuardTest extends TestCase
             //   - $fillable = [] Y $guarded = []  → todo asignable, vulnerabilidad
             //   - $fillable = [] Y $guarded vacío por default → idem
             $tieneAllowlist = ! empty($fillable);
-            $tieneDenylist  = ! empty($guarded);
+            $tieneDenylist = ! empty($guarded);
 
             if (! $tieneAllowlist && ! $tieneDenylist) {
                 $sinFillable[] = $class;
@@ -59,8 +59,8 @@ class FillableGuardTest extends TestCase
 
         $this->assertEmpty(
             $sinFillable,
-            "Los siguientes modelos NO declaran \$fillable ni \$guarded — bajo "
-            ."`Model::unguard()` global son vulnerables a mass assignment. "
+            'Los siguientes modelos NO declaran $fillable ni $guarded — bajo '
+            .'`Model::unguard()` global son vulnerables a mass assignment. '
             ."Agrega `protected \$fillable = [...]` con las columnas permitidas:\n  - "
             .implode("\n  - ", $sinFillable)
         );

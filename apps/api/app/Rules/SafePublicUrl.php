@@ -43,12 +43,14 @@ class SafePublicUrl implements ValidationRule
     {
         if (! is_string($value) || $value === '') {
             $fail('La URL es inválida.');
+
             return;
         }
 
         $parts = parse_url($value);
         if ($parts === false || empty($parts['scheme']) || empty($parts['host'])) {
             $fail('La URL es inválida.');
+
             return;
         }
 
@@ -58,6 +60,7 @@ class SafePublicUrl implements ValidationRule
             $fail($this->allowHttp
                 ? 'La URL debe usar http o https.'
                 : 'La URL debe usar https.');
+
             return;
         }
 
@@ -65,6 +68,7 @@ class SafePublicUrl implements ValidationRule
 
         if (in_array($host, self::BLOCKED_HOSTS, true)) {
             $fail('La URL apunta a un host bloqueado.');
+
             return;
         }
 
@@ -73,6 +77,7 @@ class SafePublicUrl implements ValidationRule
             if (! $this->isPublicIp($host)) {
                 $fail('La URL apunta a una IP reservada o privada.');
             }
+
             return;
         }
 
@@ -82,12 +87,14 @@ class SafePublicUrl implements ValidationRule
         $ips = $this->resolveHost($host);
         if ($ips === []) {
             $fail('El dominio no resuelve a ninguna IP.');
+
             return;
         }
 
         foreach ($ips as $ip) {
             if (! $this->isPublicIp($ip)) {
                 $fail('La URL apunta a una IP reservada, privada o de metadata interna.');
+
                 return;
             }
         }
@@ -112,6 +119,7 @@ class SafePublicUrl implements ValidationRule
                 }
             }
         }
+
         return array_values(array_unique($ips));
     }
 

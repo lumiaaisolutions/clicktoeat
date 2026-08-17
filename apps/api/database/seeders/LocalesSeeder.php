@@ -30,9 +30,9 @@ class LocalesSeeder extends Seeder
         $owner = User::updateOrCreate(
             ['email' => $ownerEmail],
             [
-                'nombre'   => "Owner {$config['nombre']}",
+                'nombre' => "Owner {$config['nombre']}",
                 'password' => Hash::make('password123'),
-                'rol'      => 'owner',
+                'rol' => 'owner',
                 'email_verified_at' => now(),
             ],
         );
@@ -40,22 +40,22 @@ class LocalesSeeder extends Seeder
         $local = Local::updateOrCreate(
             ['slug' => $config['slug']],
             [
-                'nombre'              => $config['nombre'],
-                'tagline'             => $config['tagline'],
-                'logo_url'            => $config['logo_url'] ?? null,
-                'banner_url'          => $config['hero'],
-                'color_primario'      => $config['color_primario'],
-                'color_secundario'    => $config['color_secundario'] ?? '#0B0B0F',
-                'color_fondo'         => $config['color_fondo'] ?? '#FAFAF7',
-                'tipografia'          => $config['tipografia'] ?? 'Bricolage Grotesque',
-                'whatsapp'            => $config['whatsapp'],
-                'direccion'           => $config['direccion'],
-                'horarios'            => $config['horarios'],
-                'delivery_fee'        => $config['delivery_fee'],
+                'nombre' => $config['nombre'],
+                'tagline' => $config['tagline'],
+                'logo_url' => $config['logo_url'] ?? null,
+                'banner_url' => $config['hero'],
+                'color_primario' => $config['color_primario'],
+                'color_secundario' => $config['color_secundario'] ?? '#0B0B0F',
+                'color_fondo' => $config['color_fondo'] ?? '#FAFAF7',
+                'tipografia' => $config['tipografia'] ?? 'Bricolage Grotesque',
+                'whatsapp' => $config['whatsapp'],
+                'direccion' => $config['direccion'],
+                'horarios' => $config['horarios'],
+                'delivery_fee' => $config['delivery_fee'],
                 'delivery_min_minutos' => $config['delivery_min'],
-                'redes_sociales'      => $config['socials'],
-                'activo'              => true,
-                'owner_id'            => $owner->id,
+                'redes_sociales' => $config['socials'],
+                'activo' => true,
+                'owner_id' => $owner->id,
             ],
         );
 
@@ -67,8 +67,8 @@ class LocalesSeeder extends Seeder
                 ['local_id' => $local->id, 'slug' => $cat['slug']],
                 [
                     'nombre' => $cat['nombre'],
-                    'icono'  => $cat['icono'] ?? null,
-                    'orden'  => $i,
+                    'icono' => $cat['icono'] ?? null,
+                    'orden' => $i,
                     'activo' => true,
                 ],
             );
@@ -79,15 +79,15 @@ class LocalesSeeder extends Seeder
             Producto::updateOrCreate(
                 ['local_id' => $local->id, 'slug' => Str::slug($prod['nombre'])],
                 [
-                    'categoria_id'  => $categoriaIdsPorSlug[$prod['categoria']],
-                    'nombre'        => $prod['nombre'],
-                    'descripcion'   => $prod['descripcion'],
-                    'precio'        => $prod['precio'],
-                    'imagen_url'    => $prod['imagen'],
-                    'disponible'    => $prod['disponible'] ?? true,
-                    'tag'           => $prod['tag'] ?? null,
-                    'extras'        => $prod['extras'] ?? null,
-                    'orden'         => $i,
+                    'categoria_id' => $categoriaIdsPorSlug[$prod['categoria']],
+                    'nombre' => $prod['nombre'],
+                    'descripcion' => $prod['descripcion'],
+                    'precio' => $prod['precio'],
+                    'imagen_url' => $prod['imagen'],
+                    'disponible' => $prod['disponible'] ?? true,
+                    'tag' => $prod['tag'] ?? null,
+                    'extras' => $prod['extras'] ?? null,
+                    'orden' => $i,
                 ],
             );
         }
@@ -101,18 +101,18 @@ class LocalesSeeder extends Seeder
     protected function tacosElGordo(): array
     {
         return [
-            'slug'           => 'tacos-el-gordo',
-            'nombre'         => 'Tacos El Gordo',
-            'tagline'        => 'Tacos al pastor, suadero y campechanos hechos al carbón',
+            'slug' => 'tacos-el-gordo',
+            'nombre' => 'Tacos El Gordo',
+            'tagline' => 'Tacos al pastor, suadero y campechanos hechos al carbón',
             'color_primario' => '#FF2D2D',
             'color_secundario' => '#0B0B0F',
-            'whatsapp'       => '5215512345678',
-            'direccion'      => 'Av. Insurgentes Sur 432, Roma Nte., CDMX',
-            'delivery_fee'   => 35,
-            'delivery_min'   => 25,
-            'hero'           => $this->img('1565299585323-38d6b0865b47', 1200),
-            'socials'        => ['ig' => 'tacoselgordo', 'fb' => 'tacoselgordoMX', 'tt' => 'tacoselgordo'],
-            'horarios'       => [
+            'whatsapp' => '5215512345678',
+            'direccion' => 'Av. Insurgentes Sur 432, Roma Nte., CDMX',
+            'delivery_fee' => 35,
+            'delivery_min' => 25,
+            'hero' => $this->img('1565299585323-38d6b0865b47', 1200),
+            'socials' => ['ig' => 'tacoselgordo', 'fb' => 'tacoselgordoMX', 'tt' => 'tacoselgordo'],
+            'horarios' => [
                 ['dia' => 'lun', 'open' => '12:00', 'close' => '23:00'],
                 ['dia' => 'mar', 'open' => '12:00', 'close' => '23:00'],
                 ['dia' => 'mie', 'open' => '12:00', 'close' => '23:00'],
@@ -161,18 +161,18 @@ class LocalesSeeder extends Seeder
     protected function pizzaBambino(): array
     {
         return [
-            'slug'           => 'pizza-bambino',
-            'nombre'         => 'Pizza Bambino',
-            'tagline'        => 'Pizza napolitana de leña, fermentación 72h',
+            'slug' => 'pizza-bambino',
+            'nombre' => 'Pizza Bambino',
+            'tagline' => 'Pizza napolitana de leña, fermentación 72h',
             'color_primario' => '#D2691E',
             'color_secundario' => '#1F1A17',
-            'whatsapp'       => '5215587654321',
-            'direccion'      => 'Calle Orizaba 87, Roma Nte., CDMX',
-            'delivery_fee'   => 45,
-            'delivery_min'   => 30,
-            'hero'           => $this->img('1604068549290-dea0e4a305ca', 1200),
-            'socials'        => ['ig' => 'pizzabambino', 'fb' => 'pizzabambinoMX'],
-            'horarios'       => [
+            'whatsapp' => '5215587654321',
+            'direccion' => 'Calle Orizaba 87, Roma Nte., CDMX',
+            'delivery_fee' => 45,
+            'delivery_min' => 30,
+            'hero' => $this->img('1604068549290-dea0e4a305ca', 1200),
+            'socials' => ['ig' => 'pizzabambino', 'fb' => 'pizzabambinoMX'],
+            'horarios' => [
                 ['dia' => 'mar', 'open' => '13:00', 'close' => '23:00'],
                 ['dia' => 'mie', 'open' => '13:00', 'close' => '23:00'],
                 ['dia' => 'jue', 'open' => '13:00', 'close' => '23:00'],

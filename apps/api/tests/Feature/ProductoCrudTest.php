@@ -15,14 +15,16 @@ class ProductoCrudTest extends TestCase
     use RefreshDatabase;
 
     private Local $local;
+
     private User $owner;
+
     private Categoria $categoria;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->local     = Local::factory()->create();
-        $this->owner     = User::factory()->owner($this->local)->create();
+        $this->local = Local::factory()->create();
+        $this->owner = User::factory()->owner($this->local)->create();
         $this->categoria = Categoria::factory()->paraLocal($this->local)->create();
     }
 
@@ -33,17 +35,17 @@ class ProductoCrudTest extends TestCase
 
         $resp = $this->postJson('/api/v1/productos', [
             'categoria_id' => $this->categoria->id,
-            'nombre'       => 'Taco al Pastor',
-            'descripcion'  => 'Receta tradicional',
-            'precio'       => 28,
+            'nombre' => 'Taco al Pastor',
+            'descripcion' => 'Receta tradicional',
+            'precio' => 28,
         ])->assertCreated();
 
         $resp->assertJsonPath('data.nombre', 'Taco al Pastor')
-             ->assertJsonPath('data.slug',   'taco-al-pastor')
-             ->assertJsonPath('data.precio', 28);
+            ->assertJsonPath('data.slug', 'taco-al-pastor')
+            ->assertJsonPath('data.precio', 28);
 
         $this->assertDatabaseHas('productos', [
-            'nombre'   => 'Taco al Pastor',
+            'nombre' => 'Taco al Pastor',
             'local_id' => $this->local->id,
         ]);
     }
@@ -55,14 +57,14 @@ class ProductoCrudTest extends TestCase
 
         $resp = $this->postJson('/api/v1/productos', [
             'categoria_id' => $this->categoria->id,
-            'nombre'       => 'Taco con opciones',
-            'precio'       => 35,
-            'extras'       => [
+            'nombre' => 'Taco con opciones',
+            'precio' => 35,
+            'extras' => [
                 [
-                    'group'    => 'Tortilla',
-                    'kind'     => 'one',
+                    'group' => 'Tortilla',
+                    'kind' => 'one',
                     'required' => true,
-                    'items'    => [
+                    'items' => [
                         ['id' => 'maiz',   'name' => 'Maíz',   'price' => 0],
                         ['id' => 'harina', 'name' => 'Harina', 'price' => 5],
                     ],
@@ -71,21 +73,21 @@ class ProductoCrudTest extends TestCase
         ])->assertCreated();
 
         $resp->assertJsonPath('data.extras.0.group', 'Tortilla')
-             ->assertJsonPath('data.extras.0.kind', 'one');
+            ->assertJsonPath('data.extras.0.kind', 'one');
     }
 
     /** @test */
     public function rechaza_categoria_de_otro_local(): void
     {
-        $otroLocal     = Local::factory()->create();
+        $otroLocal = Local::factory()->create();
         $otraCategoria = Categoria::factory()->paraLocal($otroLocal)->create();
 
         Sanctum::actingAs($this->owner, ['*']);
 
         $this->postJson('/api/v1/productos', [
             'categoria_id' => $otraCategoria->id,
-            'nombre'       => 'Producto malo',
-            'precio'       => 50,
+            'nombre' => 'Producto malo',
+            'precio' => 50,
         ])->assertStatus(422)->assertJsonValidationErrors('categoria_id');
     }
 
@@ -96,17 +98,17 @@ class ProductoCrudTest extends TestCase
 
         // Mayor → falla
         $this->postJson('/api/v1/productos', [
-            'categoria_id'     => $this->categoria->id,
-            'nombre'           => 'Test',
-            'precio'           => 50,
+            'categoria_id' => $this->categoria->id,
+            'nombre' => 'Test',
+            'precio' => 50,
             'precio_descuento' => 60,
         ])->assertStatus(422)->assertJsonValidationErrors('precio_descuento');
 
         // Igual → también falla (lt:precio, no lte)
         $this->postJson('/api/v1/productos', [
-            'categoria_id'     => $this->categoria->id,
-            'nombre'           => 'Test 2',
-            'precio'           => 50,
+            'categoria_id' => $this->categoria->id,
+            'nombre' => 'Test 2',
+            'precio' => 50,
             'precio_descuento' => 50,
         ])->assertStatus(422)->assertJsonValidationErrors('precio_descuento');
     }
@@ -119,9 +121,9 @@ class ProductoCrudTest extends TestCase
         // Sin items
         $this->postJson('/api/v1/productos', [
             'categoria_id' => $this->categoria->id,
-            'nombre'       => 'Mal',
-            'precio'       => 30,
-            'extras'       => [
+            'nombre' => 'Mal',
+            'precio' => 30,
+            'extras' => [
                 ['group' => 'X', 'kind' => 'one'],
             ],
         ])->assertStatus(422);
@@ -129,9 +131,9 @@ class ProductoCrudTest extends TestCase
         // Kind inválido
         $this->postJson('/api/v1/productos', [
             'categoria_id' => $this->categoria->id,
-            'nombre'       => 'Mal 2',
-            'precio'       => 30,
-            'extras'       => [
+            'nombre' => 'Mal 2',
+            'precio' => 30,
+            'extras' => [
                 ['group' => 'X', 'kind' => 'foo', 'items' => [['id' => 'a', 'name' => 'a', 'price' => 0]]],
             ],
         ])->assertStatus(422);
@@ -146,12 +148,12 @@ class ProductoCrudTest extends TestCase
         Sanctum::actingAs($this->owner, ['*']);
 
         $this->getJson('/api/v1/productos?disponible=true')
-             ->assertOk()
-             ->assertJsonCount(3, 'data');
+            ->assertOk()
+            ->assertJsonCount(3, 'data');
 
         $this->getJson('/api/v1/productos?disponible=false')
-             ->assertOk()
-             ->assertJsonCount(2, 'data');
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
     }
 
     /** @test */
@@ -163,9 +165,9 @@ class ProductoCrudTest extends TestCase
         Sanctum::actingAs($this->owner, ['*']);
 
         $this->getJson('/api/v1/productos?q=taco')
-             ->assertOk()
-             ->assertJsonCount(1, 'data')
-             ->assertJsonPath('data.0.nombre', 'Taco al Pastor');
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.nombre', 'Taco al Pastor');
     }
 
     /** @test */
@@ -178,8 +180,8 @@ class ProductoCrudTest extends TestCase
         Sanctum::actingAs($this->owner, ['*']);
 
         $this->getJson('/api/v1/productos')
-             ->assertOk()
-             ->assertJsonCount(2, 'data');
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
     }
 
     /** @test */
@@ -189,15 +191,15 @@ class ProductoCrudTest extends TestCase
         Sanctum::actingAs($this->owner, ['*']);
 
         $this->patchJson("/api/v1/productos/{$producto->id}", ['precio' => 35])
-             ->assertOk()
-             ->assertJsonPath('data.precio', 35);
+            ->assertOk()
+            ->assertJsonPath('data.precio', 35);
     }
 
     /** @test */
     public function owner_no_actualiza_producto_de_otro_local(): void
     {
         $otroLocal = Local::factory()->create();
-        $producto  = Producto::factory()->paraLocal($otroLocal)->create();
+        $producto = Producto::factory()->paraLocal($otroLocal)->create();
         Sanctum::actingAs($this->owner, ['*']);
 
         // 403 (policy lo bloquea) o 404 (TenantScope lo filtra) — ambos

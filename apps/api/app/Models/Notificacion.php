@@ -19,8 +19,8 @@ class Notificacion extends Model
     protected function casts(): array
     {
         return [
-            'data'      => 'array',
-            'leida_at'  => 'datetime',
+            'data' => 'array',
+            'leida_at' => 'datetime',
         ];
     }
 

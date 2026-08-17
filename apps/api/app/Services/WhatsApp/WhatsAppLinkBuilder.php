@@ -18,7 +18,7 @@ class WhatsAppLinkBuilder
         // Local no usa BelongsToTenant (los locales SON el tenant), así que carga directo.
         $local = $pedido->local;
 
-        $lines   = [];
+        $lines = [];
         $lines[] = "Hola {$local->nombre}, quiero pedir:";
         $lines[] = '';
 
@@ -48,7 +48,7 @@ class WhatsAppLinkBuilder
             $lines[] = 'Entrega:   Recoger en sucursal';
         }
 
-        $lines[] = "Pago:      ".$this->labelPago($pedido->metodo_pago);
+        $lines[] = 'Pago:      '.$this->labelPago($pedido->metodo_pago);
         $lines[] = "Folio:     {$pedido->codigo}";
 
         $phone = preg_replace('/\D+/', '', $local->whatsapp);
@@ -63,10 +63,10 @@ class WhatsAppLinkBuilder
     protected function labelPago(string $metodo): string
     {
         return match ($metodo) {
-            'efectivo'        => 'Efectivo',
+            'efectivo' => 'Efectivo',
             'tarjeta_entrega' => 'Tarjeta a la entrega',
-            'transferencia'   => 'Transferencia',
-            default           => $metodo,
+            'transferencia' => 'Transferencia',
+            default => $metodo,
         };
     }
 }

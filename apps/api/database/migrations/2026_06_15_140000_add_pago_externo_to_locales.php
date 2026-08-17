@@ -4,7 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::table('locales', function (Blueprint $t) {
@@ -20,8 +21,12 @@ return new class extends Migration {
     public function down(): void
     {
         Schema::table('locales', function (Blueprint $t) {
-            if (Schema::hasColumn('locales', 'pago_externo_notas')) $t->dropColumn('pago_externo_notas');
-            if (Schema::hasColumn('locales', 'pago_externo'))       $t->dropColumn('pago_externo');
+            if (Schema::hasColumn('locales', 'pago_externo_notas')) {
+                $t->dropColumn('pago_externo_notas');
+            }
+            if (Schema::hasColumn('locales', 'pago_externo')) {
+                $t->dropColumn('pago_externo');
+            }
         });
     }
 };

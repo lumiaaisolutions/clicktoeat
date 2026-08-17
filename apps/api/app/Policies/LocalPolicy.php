@@ -12,6 +12,7 @@ class LocalPolicy
         if ($user->isSuperAdmin()) {
             return true;
         }
+
         return null;
     }
 

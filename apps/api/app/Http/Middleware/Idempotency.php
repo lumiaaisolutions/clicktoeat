@@ -39,8 +39,8 @@ class Idempotency
             ], 400);
         }
 
-        $endpoint     = $request->method().':'.$request->path();
-        $requestHash  = hash('sha256', json_encode($request->all()));
+        $endpoint = $request->method().':'.$request->path();
+        $requestHash = hash('sha256', json_encode($request->all()));
 
         // Buscar key existente
         $existing = DB::table('idempotency_keys')
@@ -72,13 +72,13 @@ class Idempotency
             $expiresAt = now()->add($this->parseTtl($ttl));
 
             DB::table('idempotency_keys')->insert([
-                'key'           => $key,
-                'endpoint'      => $endpoint,
-                'request_hash'  => $requestHash,
-                'status_code'   => $response->getStatusCode(),
+                'key' => $key,
+                'endpoint' => $endpoint,
+                'request_hash' => $requestHash,
+                'status_code' => $response->getStatusCode(),
                 'response_body' => $response->getContent(),
-                'created_at'    => now(),
-                'expires_at'    => $expiresAt,
+                'created_at' => now(),
+                'expires_at' => $expiresAt,
             ]);
         }
 
@@ -90,12 +90,14 @@ class Idempotency
         // Soporta "24h", "30m", "7d"
         if (preg_match('/^(\d+)([hmd])$/', $ttl, $m)) {
             $n = (int) $m[1];
+
             return match ($m[2]) {
                 'm' => new \DateInterval("PT{$n}M"),
                 'h' => new \DateInterval("PT{$n}H"),
                 'd' => new \DateInterval("P{$n}D"),
             };
         }
+
         return new \DateInterval('PT24H');
     }
 }

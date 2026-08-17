@@ -17,10 +17,10 @@ class ResumenSemanalDispatcher
     public static function dispatchAll(): int
     {
         $sent = 0;
-        $inicio  = now()->startOfWeek()->subWeek();  // semana pasada (lun→dom)
+        $inicio = now()->startOfWeek()->subWeek();  // semana pasada (lun→dom)
         $finPrev = $inicio->copy()->endOfWeek();
         $inicioActual = $finPrev->copy()->addSecond();
-        $finActual    = now()->endOfWeek();
+        $finActual = now()->endOfWeek();
 
         $locales = Local::query()
             ->withoutGlobalScopes()
@@ -35,7 +35,9 @@ class ResumenSemanalDispatcher
         foreach ($locales as $local) {
             try {
                 $owner = User::find($local->owner_id);
-                if (! $owner?->email) continue;
+                if (! $owner?->email) {
+                    continue;
+                }
 
                 $pedidosActual = DB::table('pedidos')
                     ->where('local_id', $local->id)
@@ -43,7 +45,7 @@ class ResumenSemanalDispatcher
                     ->where('estado', '!=', 'cancelado');
 
                 $ventas = (float) (clone $pedidosActual)->sum('total');
-                $count  = (int)   (clone $pedidosActual)->count();
+                $count = (int) (clone $pedidosActual)->count();
                 $ticket = $count > 0 ? $ventas / $count : 0;
 
                 $countPrev = DB::table('pedidos')
@@ -70,15 +72,17 @@ class ResumenSemanalDispatcher
                     ->map(fn ($r) => ['nombre' => $r->nombre, 'unidades' => (int) $r->unidades])
                     ->all();
 
-                if ($count === 0 && $countPrev === 0) continue; // no spam a locales muertos
+                if ($count === 0 && $countPrev === 0) {
+                    continue;
+                } // no spam a locales muertos
 
                 Mail::to($owner->email)->send(new ResumenSemanalMail($local, [
-                    'pedidos'      => $count,
-                    'ventas'       => $ventas,
-                    'ticket'       => $ticket,
+                    'pedidos' => $count,
+                    'ventas' => $ventas,
+                    'ticket' => $ticket,
                     'pedidos_prev' => $countPrev,
-                    'ventas_prev'  => $ventasPrev,
-                    'top'          => $top,
+                    'ventas_prev' => $ventasPrev,
+                    'top' => $top,
                 ]));
                 $sent++;
             } catch (\Throwable $e) {

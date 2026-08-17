@@ -12,6 +12,7 @@ class IngredientePolicy
         if ($user->isSuperAdmin()) {
             return true;
         }
+
         return null;
     }
 

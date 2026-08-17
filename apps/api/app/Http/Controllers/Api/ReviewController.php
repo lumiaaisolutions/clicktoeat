@@ -36,13 +36,13 @@ class ReviewController extends Controller
             ->limit(50)
             ->get(['id', 'cliente_nombre', 'rating', 'comentario', 'created_at']);
 
-        $avg   = $items->isEmpty() ? null : round($items->avg('rating'), 1);
+        $avg = $items->isEmpty() ? null : round($items->avg('rating'), 1);
         $total = $items->count();
 
         return response()->json([
-            'data'    => $items,
+            'data' => $items,
             'average' => $avg,
-            'total'   => $total,
+            'total' => $total,
         ]);
     }
 
@@ -71,7 +71,7 @@ class ReviewController extends Controller
     public function submitByToken(Request $req, string $token): JsonResponse
     {
         $data = $req->validate([
-            'rating'     => ['required', 'integer', 'min:1', 'max:5'],
+            'rating' => ['required', 'integer', 'min:1', 'max:5'],
             'comentario' => ['nullable', 'string', 'max:1000'],
         ]);
 
@@ -86,14 +86,14 @@ class ReviewController extends Controller
         }
 
         $review->update([
-            'rating'     => $data['rating'],
+            'rating' => $data['rating'],
             'comentario' => $data['comentario'] ?? null,
-            'aprobado'   => true,
+            'aprobado' => true,
         ]);
 
         return response()->json([
             'message' => 'Gracias por tu calificación!',
-            'data'    => $review->fresh(),
+            'data' => $review->fresh(),
         ]);
     }
 
@@ -102,6 +102,7 @@ class ReviewController extends Controller
     {
         $this->authorize('viewAny', Review::class);
         $items = Review::query()->orderByDesc('id')->limit(100)->get();
+
         return response()->json(['data' => $items]);
     }
 
@@ -110,6 +111,7 @@ class ReviewController extends Controller
     {
         $this->authorize('update', $review);
         $review->update(['aprobado' => ! $review->aprobado]);
+
         return response()->json(['data' => $review]);
     }
 
@@ -118,6 +120,7 @@ class ReviewController extends Controller
     {
         $this->authorize('delete', $review);
         $review->delete();
+
         return response()->json(null, 204);
     }
 
@@ -144,12 +147,12 @@ class ReviewController extends Controller
 
         if (! $review) {
             $review = Review::query()->withoutGlobalScopes()->create([
-                'local_id'         => $pedido->local_id,
-                'pedido_id'        => $pedido->id,
-                'cliente_nombre'   => $pedido->cliente_nombre ?? 'Cliente',
+                'local_id' => $pedido->local_id,
+                'pedido_id' => $pedido->id,
+                'cliente_nombre' => $pedido->cliente_nombre ?? 'Cliente',
                 'cliente_telefono' => $pedido->cliente_telefono,
-                'rating'           => 0,
-                'aprobado'         => false,
+                'rating' => 0,
+                'aprobado' => false,
             ]);
         }
 

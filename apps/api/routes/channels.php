@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\Broadcast;
  * Si BROADCAST_CONNECTION=log (default), estos canales no se usan.
  * Activar con BROADCAST_CONNECTION=pusher (ver runbook integrar-reverb.md).
  */
-
 Broadcast::channel('local.{localId}', function (User $user, int $localId) {
     return $user->isSuperAdmin() || $user->local_id === (int) $localId;
 });

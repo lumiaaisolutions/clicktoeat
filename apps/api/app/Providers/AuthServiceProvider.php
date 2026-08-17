@@ -25,15 +25,15 @@ use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvid
 class AuthServiceProvider extends ServiceProvider
 {
     protected $policies = [
-        Local::class       => LocalPolicy::class,
-        Categoria::class   => CategoriaPolicy::class,
-        Compra::class      => CompraPolicy::class,
-        Producto::class    => ProductoPolicy::class,
-        Pedido::class      => PedidoPolicy::class,
+        Local::class => LocalPolicy::class,
+        Categoria::class => CategoriaPolicy::class,
+        Compra::class => CompraPolicy::class,
+        Producto::class => ProductoPolicy::class,
+        Pedido::class => PedidoPolicy::class,
         Ingrediente::class => IngredientePolicy::class,
-        Receta::class       => RecetaPolicy::class,
+        Receta::class => RecetaPolicy::class,
         Notificacion::class => NotificacionPolicy::class,
-        User::class         => UserPolicy::class,
+        User::class => UserPolicy::class,
     ];
 
     public function boot(): void

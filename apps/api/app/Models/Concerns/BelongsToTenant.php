@@ -2,8 +2,8 @@
 
 namespace App\Models\Concerns;
 
-use App\Models\Scopes\TenantScope;
 use App\Models\Local;
+use App\Models\Scopes\TenantScope;
 use App\Support\TenantContext;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 

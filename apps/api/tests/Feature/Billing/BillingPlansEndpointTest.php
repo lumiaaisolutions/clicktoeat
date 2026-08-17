@@ -20,9 +20,9 @@ class BillingPlansEndpointTest extends TestCase
         $data = $res->json('data');
         // F88 — ahora 3 planes activos (essential, professional, premium).
         $this->assertCount(3, $data);
-        $this->assertEquals('essential',    $data[0]['slug']);
+        $this->assertEquals('essential', $data[0]['slug']);
         $this->assertEquals('professional', $data[1]['slug']);
-        $this->assertEquals('premium',      $data[2]['slug']);
+        $this->assertEquals('premium', $data[2]['slug']);
         $this->assertEquals(14, $res->json('trial_days'));
     }
 

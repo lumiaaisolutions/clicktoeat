@@ -35,7 +35,7 @@ class Plan extends Model
     {
         return [
             'features' => 'array',
-            'activo'   => 'boolean',
+            'activo' => 'boolean',
         ];
     }
 

@@ -14,46 +14,74 @@ use App\Models\Local;
  */
 final class Features
 {
-    public const BRANDING_BASICO    = 'branding_basico';
-    public const BRANDING_AVANZADO  = 'branding_avanzado';
-    public const INVENTARIO         = 'inventario';
-    public const RECETAS            = 'recetas';
-    public const COMPRAS            = 'compras';
-    public const METRICAS_BASICAS   = 'metricas_basicas';
+    public const BRANDING_BASICO = 'branding_basico';
+
+    public const BRANDING_AVANZADO = 'branding_avanzado';
+
+    public const INVENTARIO = 'inventario';
+
+    public const RECETAS = 'recetas';
+
+    public const COMPRAS = 'compras';
+
+    public const METRICAS_BASICAS = 'metricas_basicas';
+
     public const METRICAS_AVANZADAS = 'metricas_avanzadas';
-    public const POS                = 'pos';
-    public const QR_PERSONALIZADO   = 'qr_personalizado';
-    public const NOTIFICACIONES     = 'notificaciones';
-    public const STAFF_MULTI        = 'staff_multi';
-    public const AUDIT_LOG          = 'audit_log';
-    public const RESTORE            = 'restore';
+
+    public const POS = 'pos';
+
+    public const QR_PERSONALIZADO = 'qr_personalizado';
+
+    public const NOTIFICACIONES = 'notificaciones';
+
+    public const STAFF_MULTI = 'staff_multi';
+
+    public const AUDIT_LOG = 'audit_log';
+
+    public const RESTORE = 'restore';
+
     // F88 — exclusivas Premium
-    public const MULTI_SUCURSAL     = 'multi_sucursal';
-    public const WHITE_LABEL        = 'white_label';    // deprecated — no se ofrece más (jul 2026, decisión del owner)
-    public const API_WEBHOOKS       = 'api_webhooks';   // deprecated — no se ofrece más
-    public const SOPORTE_PREMIUM    = 'soporte_premium';
+    public const MULTI_SUCURSAL = 'multi_sucursal';
+
+    public const WHITE_LABEL = 'white_label';    // deprecated — no se ofrece más (jul 2026, decisión del owner)
+
+    public const API_WEBHOOKS = 'api_webhooks';   // deprecated — no se ofrece más
+
+    public const SOPORTE_PREMIUM = 'soporte_premium';
 
     // F100 — Nuevas features junio 2026
-    public const REVIEWS            = 'reviews';
-    public const CUPONES_PROGRAMADOS= 'cupones_programados';
-    public const AUTO_PAUSE_STOCK   = 'auto_pause_stock';
-    public const POS_OFFLINE        = 'pos_offline';
+    public const REVIEWS = 'reviews';
+
+    public const CUPONES_PROGRAMADOS = 'cupones_programados';
+
+    public const AUTO_PAUSE_STOCK = 'auto_pause_stock';
+
+    public const POS_OFFLINE = 'pos_offline';
+
     public const CENTRO_APRENDIZAJE = 'centro_aprendizaje';
 
     // F102 — operación de salón (dine-in), ver ADR-012/ADR-013 y
     // docs/features/plan-499-operacion-salon-implementacion.md
-    public const DINE_IN                  = 'dine_in';
-    public const CAJA_FISICA              = 'caja_fisica';
-    public const TIP_POOLING              = 'tip_pooling';
-    public const RESERVACIONES            = 'reservaciones';
-    public const LOYALTY_TIERS            = 'loyalty_tiers';
-    public const GIFT_CARDS               = 'gift_cards';
-    public const CAMPANAS                 = 'campanas';
-    public const RRHH_TURNOS              = 'rrhh_turnos';
-    public const SUCURSALES_CONSOLIDADAS  = 'sucursales_consolidadas';
+    public const DINE_IN = 'dine_in';
+
+    public const CAJA_FISICA = 'caja_fisica';
+
+    public const TIP_POOLING = 'tip_pooling';
+
+    public const RESERVACIONES = 'reservaciones';
+
+    public const LOYALTY_TIERS = 'loyalty_tiers';
+
+    public const GIFT_CARDS = 'gift_cards';
+
+    public const CAMPANAS = 'campanas';
+
+    public const RRHH_TURNOS = 'rrhh_turnos';
+
+    public const SUCURSALES_CONSOLIDADAS = 'sucursales_consolidadas';
 
     // F103 — Clicky, asistente de IA del panel (guía scripteada + chat Gemini)
-    public const CLICKY_ASSISTANT         = 'clicky_assistant';
+    public const CLICKY_ASSISTANT = 'clicky_assistant';
 
     /** @return list<string> */
     public static function all(): array
@@ -66,6 +94,7 @@ final class Features
         if (! $local->hasActivePlan()) {
             return false;
         }
+
         return in_array($feature, $local->plan?->features ?? [], true);
     }
 }

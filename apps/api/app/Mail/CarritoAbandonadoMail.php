@@ -17,8 +17,8 @@ class CarritoAbandonadoMail extends Mailable
     public function __construct(
         public Local $local,
         public string $clienteNombre,
-        public array  $items,
-        public float  $totalEstimado,
+        public array $items,
+        public float $totalEstimado,
     ) {}
 
     public function envelope(): Envelope
@@ -32,24 +32,26 @@ class CarritoAbandonadoMail extends Mailable
     public function content(): Content
     {
         $landing = rtrim((string) config('app.frontend_url', 'http://localhost:3000'), '/').'/'.$this->local->slug;
+
         return $this->editableContent('carrito_abandonado', 'mail.carrito_abandonado', [
             'local' => $this->local,
             'clienteNombre' => $this->clienteNombre,
             'items' => $this->items,
             'totalEstimado' => $this->totalEstimado,
-            'landingUrl'    => $landing,
+            'landingUrl' => $landing,
         ]);
     }
 
     protected function templateVars(): array
     {
         $landing = rtrim((string) config('app.frontend_url', 'http://localhost:3000'), '/').'/'.$this->local->slug;
+
         return [
-            'nombre_local'   => $this->local->nombre,
+            'nombre_local' => $this->local->nombre,
             'nombre_cliente' => $this->clienteNombre,
-            'total'          => '$'.number_format($this->totalEstimado, 2),
-            'link'           => $landing,
-            'fecha'          => now()->format('d/m/Y H:i'),
+            'total' => '$'.number_format($this->totalEstimado, 2),
+            'link' => $landing,
+            'fecha' => now()->format('d/m/Y H:i'),
         ];
     }
 }

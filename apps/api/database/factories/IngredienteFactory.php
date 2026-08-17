@@ -16,17 +16,17 @@ class IngredienteFactory extends Factory
     public function definition(): array
     {
         return [
-            'local_id'       => Local::factory(),
-            'nombre'         => $this->faker->randomElement([
+            'local_id' => Local::factory(),
+            'nombre' => $this->faker->randomElement([
                 'Tortilla maíz', 'Tortilla harina', 'Pollo', 'Res', 'Cerdo',
                 'Tomate', 'Cebolla', 'Cilantro', 'Limón', 'Aguacate',
                 'Queso', 'Lechuga', 'Pepino', 'Aceite',
             ]).' '.$this->faker->numerify('##'),
-            'stock'          => $this->faker->randomFloat(3, 50, 1000),
-            'stock_minimo'   => $this->faker->randomFloat(3, 5, 50),
-            'unidad'         => $this->faker->randomElement(['pz', 'kg', 'g', 'l', 'ml']),
+            'stock' => $this->faker->randomFloat(3, 50, 1000),
+            'stock_minimo' => $this->faker->randomFloat(3, 5, 50),
+            'unidad' => $this->faker->randomElement(['pz', 'kg', 'g', 'l', 'ml']),
             'costo_unitario' => $this->faker->randomFloat(2, 0.50, 100),
-            'activo'         => true,
+            'activo' => true,
         ];
     }
 
@@ -43,7 +43,7 @@ class IngredienteFactory extends Factory
     public function bajoStock(): static
     {
         return $this->state(fn () => [
-            'stock'        => 5,
+            'stock' => 5,
             'stock_minimo' => 10,
         ]);
     }
@@ -51,7 +51,7 @@ class IngredienteFactory extends Factory
     public function conStock(float $stock, ?string $unidad = null): static
     {
         return $this->state(fn () => array_filter([
-            'stock'  => $stock,
+            'stock' => $stock,
             'unidad' => $unidad,
         ]));
     }

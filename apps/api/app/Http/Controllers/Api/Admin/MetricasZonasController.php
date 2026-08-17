@@ -46,17 +46,17 @@ class MetricasZonasController extends Controller
             $tone = $intensity > 0.6 ? 'verde' : ($intensity > 0.2 ? 'amarillo' : 'rojo');
 
             return [
-                'id'             => $l->id,
-                'nombre'         => $l->nombre,
-                'slug'           => $l->slug,
-                'direccion'      => $l->direccion,
-                'lat'            => $l->lat !== null ? (float) $l->lat : null,
-                'lng'            => $l->lng !== null ? (float) $l->lng : null,
-                'logo_url'       => $l->logo_url,
+                'id' => $l->id,
+                'nombre' => $l->nombre,
+                'slug' => $l->slug,
+                'direccion' => $l->direccion,
+                'lat' => $l->lat !== null ? (float) $l->lat : null,
+                'lng' => $l->lng !== null ? (float) $l->lng : null,
+                'logo_url' => $l->logo_url,
                 'color_primario' => $l->color_primario,
-                'ventas_mes'     => $ventas,
-                'pedidos_mes'    => $pedidos,
-                'tone'           => $tone,
+                'ventas_mes' => $ventas,
+                'pedidos_mes' => $pedidos,
+                'tone' => $tone,
             ];
         })->values();
 

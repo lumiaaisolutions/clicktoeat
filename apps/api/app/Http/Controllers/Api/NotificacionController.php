@@ -40,8 +40,8 @@ class NotificacionController extends Controller
         }
 
         return response()->json([
-            'data'            => NotificacionResource::collection($notificaciones),
-            'no_leidas'       => $noLeidas,
+            'data' => NotificacionResource::collection($notificaciones),
+            'no_leidas' => $noLeidas,
             'pedidos_activos' => PedidoResource::collection($pedidosQuery->get()),
         ]);
     }
@@ -49,12 +49,14 @@ class NotificacionController extends Controller
     public function leer(Notificacion $notificacion): NotificacionResource
     {
         $notificacion->marcarLeida();
+
         return new NotificacionResource($notificacion->fresh());
     }
 
     public function leerTodas(): JsonResponse
     {
         Notificacion::noLeidas()->update(['leida_at' => now()]);
+
         return response()->json(['ok' => true]);
     }
 }

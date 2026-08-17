@@ -13,6 +13,7 @@ class RecetaPolicy
         if ($user->isSuperAdmin()) {
             return true;
         }
+
         return null;
     }
 
@@ -29,6 +30,7 @@ class RecetaPolicy
     public function delete(User $user, Receta $receta): bool
     {
         $localOk = $user->local_id === $receta->producto?->local_id;
+
         return $user->isOwner() && $localOk;
     }
 }

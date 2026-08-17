@@ -23,11 +23,15 @@ class LoyaltyService
     public function registrarPedido(Pedido $pedido): bool
     {
         $local = $pedido->local ?? Local::find($pedido->local_id);
-        if (! $local || ! $local->lealtad_activo) return false;
-        if (empty($pedido->cliente_email))     return false;
+        if (! $local || ! $local->lealtad_activo) {
+            return false;
+        }
+        if (empty($pedido->cliente_email)) {
+            return false;
+        }
 
         $email = strtolower(trim($pedido->cliente_email));
-        $meta  = max(1, (int) $local->lealtad_meta);
+        $meta = max(1, (int) $local->lealtad_meta);
 
         return DB::transaction(function () use ($local, $pedido, $email, $meta) {
             $row = DB::table('lealtad_sellos')
@@ -43,20 +47,20 @@ class LoyaltyService
                 DB::table('lealtad_sellos')
                     ->where('id', $row->id)
                     ->update([
-                        'count'          => $nuevoCount,
+                        'count' => $nuevoCount,
                         'cliente_nombre' => $pedido->cliente_nombre ?? $row->cliente_nombre,
                         'last_pedido_at' => now(),
-                        'updated_at'     => now(),
+                        'updated_at' => now(),
                     ]);
             } else {
                 DB::table('lealtad_sellos')->insert([
-                    'local_id'       => $local->id,
-                    'cliente_email'  => $email,
+                    'local_id' => $local->id,
+                    'cliente_email' => $email,
                     'cliente_nombre' => $pedido->cliente_nombre,
-                    'count'          => $nuevoCount,
+                    'count' => $nuevoCount,
                     'last_pedido_at' => now(),
-                    'created_at'     => now(),
-                    'updated_at'     => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
             }
 
@@ -67,7 +71,9 @@ class LoyaltyService
     /** Estado para mostrar al cliente final en la landing. */
     public function statusPara(Local $local, string $email): ?array
     {
-        if (! $local->lealtad_activo) return null;
+        if (! $local->lealtad_activo) {
+            return null;
+        }
         $email = strtolower(trim($email));
         $row = DB::table('lealtad_sellos')
             ->where('local_id', $local->id)
@@ -75,14 +81,14 @@ class LoyaltyService
             ->first();
 
         $count = (int) ($row->count ?? 0);
-        $meta  = max(1, (int) $local->lealtad_meta);
+        $meta = max(1, (int) $local->lealtad_meta);
         $current = $count % $meta; // si ya redimió, el nuevo ciclo arranca en N+1
 
         return [
-            'count'        => $count,
-            'current'      => $current,
-            'meta'         => $meta,
-            'premio'       => $local->lealtad_premio,
+            'count' => $count,
+            'current' => $current,
+            'meta' => $meta,
+            'premio' => $local->lealtad_premio,
             'premios_ganados' => intdiv($count, $meta),
         ];
     }

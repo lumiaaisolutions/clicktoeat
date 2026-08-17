@@ -21,10 +21,13 @@ class PasswordResetController extends Controller
      *     path="/auth/forgot-password",
      *     tags={"Password reset"},
      *     summary="Envía email con link de reset si el email existe (responde 200 siempre — no revela existencia).",
+     *
      *     @OA\RequestBody(required=true, @OA\JsonContent(
      *         required={"email"},
+     *
      *         @OA\Property(property="email", type="string", format="email")
      *     )),
+     *
      *     @OA\Response(response=200, description="Mensaje genérico (no confirma si el email existe)")
      * )
      */
@@ -47,13 +50,16 @@ class PasswordResetController extends Controller
      *     path="/auth/reset-password",
      *     tags={"Password reset"},
      *     summary="Aplica el reset usando el token recibido por email.",
+     *
      *     @OA\RequestBody(required=true, @OA\JsonContent(
      *         required={"token","email","password","password_confirmation"},
+     *
      *         @OA\Property(property="token", type="string"),
      *         @OA\Property(property="email", type="string", format="email"),
      *         @OA\Property(property="password", type="string", format="password", minLength=8),
      *         @OA\Property(property="password_confirmation", type="string")
      *     )),
+     *
      *     @OA\Response(response=200, description="OK"),
      *     @OA\Response(response=422, description="Token inválido o expirado")
      * )
@@ -64,7 +70,7 @@ class PasswordResetController extends Controller
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function (User $user, string $password) {
                 $user->forceFill([
-                    'password'       => Hash::make($password),
+                    'password' => Hash::make($password),
                     'remember_token' => Str::random(60),
                 ])->save();
 
@@ -83,7 +89,7 @@ class PasswordResetController extends Controller
         // Status posibles: INVALID_TOKEN, INVALID_USER
         return response()->json([
             'message' => __($status),
-            'errors'  => ['email' => [__($status)]],
+            'errors' => ['email' => [__($status)]],
         ], 422);
     }
 }

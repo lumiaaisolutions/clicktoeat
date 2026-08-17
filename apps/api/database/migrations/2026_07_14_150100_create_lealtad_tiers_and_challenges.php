@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\Schema;
  * F102 — extiende el módulo de lealtad existente (sellos) hacia
  * tiers/challenges. NO reemplaza `lealtad_sellos` — ver ADR-012 decisión #3.
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::create('lealtad_tiers', function (Blueprint $t) {

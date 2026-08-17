@@ -27,7 +27,7 @@ class RequiresFeature
         if (! $local) {
             return response()->json([
                 'message' => 'Sin tenant identificado.',
-                'code'    => 'NO_TENANT',
+                'code' => 'NO_TENANT',
             ], 403);
         }
 
@@ -41,21 +41,21 @@ class RequiresFeature
 
         if (! $local->hasActivePlan()) {
             return response()->json([
-                'message'       => 'Tu suscripción no está activa.',
-                'code'          => 'PLAN_INACTIVE',
-                'current_plan'  => $local->plan?->slug,
-                'current_status'=> $local->plan_status,
-                'upgrade_url'   => '/admin/billing',
+                'message' => 'Tu suscripción no está activa.',
+                'code' => 'PLAN_INACTIVE',
+                'current_plan' => $local->plan?->slug,
+                'current_status' => $local->plan_status,
+                'upgrade_url' => '/admin/billing',
             ], 402);
         }
 
         if (! Features::has($local, $feature)) {
             return response()->json([
-                'message'          => 'Esta función requiere actualizar tu plan.',
-                'code'             => 'FEATURE_LOCKED',
+                'message' => 'Esta función requiere actualizar tu plan.',
+                'code' => 'FEATURE_LOCKED',
                 'required_feature' => $feature,
-                'current_plan'     => $local->plan?->slug,
-                'upgrade_url'      => '/admin/billing',
+                'current_plan' => $local->plan?->slug,
+                'upgrade_url' => '/admin/billing',
             ], 402);
         }
 

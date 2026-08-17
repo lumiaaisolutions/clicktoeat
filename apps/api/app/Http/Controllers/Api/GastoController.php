@@ -15,6 +15,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Gastos operativos del local — control de OPEX (luz, agua, gas, renta, etc.).
@@ -41,7 +42,7 @@ class GastoController extends Controller
             // mes en formato YYYY-MM
             $mes = $req->string('mes');
             $q->where('fecha', '>=', $mes.'-01')
-              ->where('fecha', '<=', Carbon::parse($mes.'-01')->endOfMonth()->toDateString());
+                ->where('fecha', '<=', Carbon::parse($mes.'-01')->endOfMonth()->toDateString());
         }
 
         return JsonResource::collection($q->paginate(50));
@@ -53,13 +54,13 @@ class GastoController extends Controller
         $data = $req->validated();
 
         $gasto = Gasto::create([
-            'categoria'          => $data['categoria'],
-            'concepto'           => $data['concepto'],
-            'monto_centavos'     => (int) round($data['monto_mxn'] * 100),
-            'fecha'              => $data['fecha'],
-            'recurrente'         => $data['recurrente'] ?? false,
-            'notas'              => $data['notas'] ?? null,
-            'comprobante_url'    => $data['comprobante_url'] ?? null,
+            'categoria' => $data['categoria'],
+            'concepto' => $data['concepto'],
+            'monto_centavos' => (int) round($data['monto_mxn'] * 100),
+            'fecha' => $data['fecha'],
+            'recurrente' => $data['recurrente'] ?? false,
+            'notas' => $data['notas'] ?? null,
+            'comprobante_url' => $data['comprobante_url'] ?? null,
             'created_by_user_id' => $req->user()->id,
         ]);
 
@@ -69,6 +70,7 @@ class GastoController extends Controller
     public function show(Gasto $gasto): JsonResponse
     {
         $this->authorize('view', $gasto);
+
         return response()->json(['data' => $gasto]);
     }
 
@@ -83,6 +85,7 @@ class GastoController extends Controller
         }
 
         $gasto->update($data);
+
         return response()->json(['data' => $gasto->fresh()]);
     }
 
@@ -90,6 +93,7 @@ class GastoController extends Controller
     {
         $this->authorize('delete', $gasto);
         $gasto->delete();
+
         return response()->json(null, 204);
     }
 
@@ -97,7 +101,7 @@ class GastoController extends Controller
      * Exporta los gastos filtrados a CSV (UTF-8 BOM para que Excel los
      * abra con acentos OK). Same filters que `index`.
      */
-    public function exportCsv(Request $req): \Symfony\Component\HttpFoundation\StreamedResponse
+    public function exportCsv(Request $req): StreamedResponse
     {
         $this->authorize('viewAny', Gasto::class);
 
@@ -109,7 +113,7 @@ class GastoController extends Controller
         if ($req->filled('mes')) {
             $mes = $req->string('mes');
             $q->where('fecha', '>=', $mes.'-01')
-              ->where('fecha', '<=', Carbon::parse($mes.'-01')->endOfMonth()->toDateString());
+                ->where('fecha', '<=', Carbon::parse($mes.'-01')->endOfMonth()->toDateString());
         }
         if ($req->filled('desde')) {
             $q->whereDate('fecha', '>=', $req->date('desde'));
@@ -163,7 +167,7 @@ class GastoController extends Controller
         }
 
         $file = $req->file('comprobante');
-        $ext  = strtolower($file->getClientOriginalExtension() ?: $file->extension());
+        $ext = strtolower($file->getClientOriginalExtension() ?: $file->extension());
         $name = 'gasto-'.$gasto->id.'-'.Str::lower(Str::random(8)).'.'.$ext;
         $path = $file->storeAs('uploads/comprobantes', $name, 'public');
 
@@ -199,6 +203,7 @@ class GastoController extends Controller
     {
         $marker = '/storage/';
         $pos = strpos($url, $marker);
+
         return $pos === false ? null : substr($url, $pos + strlen($marker));
     }
 
@@ -216,10 +221,10 @@ class GastoController extends Controller
             ? Carbon::parse($req->string('mes').'-01')
             : now()->startOfMonth();
 
-        $start    = $mes->copy()->startOfMonth()->toDateString();
-        $end      = $mes->copy()->endOfMonth()->toDateString();
-        $prevStart= $mes->copy()->subMonth()->startOfMonth()->toDateString();
-        $prevEnd  = $mes->copy()->subMonth()->endOfMonth()->toDateString();
+        $start = $mes->copy()->startOfMonth()->toDateString();
+        $end = $mes->copy()->endOfMonth()->toDateString();
+        $prevStart = $mes->copy()->subMonth()->startOfMonth()->toDateString();
+        $prevEnd = $mes->copy()->subMonth()->endOfMonth()->toDateString();
 
         $total = (int) Gasto::query()
             ->whereBetween('fecha', [$start, $end])
@@ -242,16 +247,16 @@ class GastoController extends Controller
 
         return response()->json([
             'data' => [
-                'mes'           => $mes->format('Y-m'),
-                'total_mxn'     => round($total / 100, 2),
-                'total_centavos'=> $total,
-                'total_prev_mxn'=> round($totalPrev / 100, 2),
-                'delta_pct'     => $deltaPct,
+                'mes' => $mes->format('Y-m'),
+                'total_mxn' => round($total / 100, 2),
+                'total_centavos' => $total,
+                'total_prev_mxn' => round($totalPrev / 100, 2),
+                'delta_pct' => $deltaPct,
                 'por_categoria' => $porCategoria->map(fn ($r) => [
-                    'categoria'      => $r->categoria,
-                    'total_mxn'      => round($r->total_centavos / 100, 2),
+                    'categoria' => $r->categoria,
+                    'total_mxn' => round($r->total_centavos / 100, 2),
                     'total_centavos' => (int) $r->total_centavos,
-                    'cantidad'       => (int) $r->cantidad,
+                    'cantidad' => (int) $r->cantidad,
                 ]),
             ],
         ]);

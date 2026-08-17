@@ -29,7 +29,7 @@ class StripeClientFactory
         }
 
         $this->client = new StripeClient([
-            'api_key'        => $secret,
+            'api_key' => $secret,
             'stripe_version' => '2024-06-20',
         ]);
 

@@ -22,8 +22,8 @@ class UploadComprobanteRequest extends FormRequest
     {
         return [
             'comprobante.required' => 'Selecciona el archivo del comprobante.',
-            'comprobante.mimes'    => 'El comprobante debe ser una imagen (JPG/PNG/WEBP) o un PDF.',
-            'comprobante.max'      => 'El comprobante no puede pesar más de 5 MB.',
+            'comprobante.mimes' => 'El comprobante debe ser una imagen (JPG/PNG/WEBP) o un PDF.',
+            'comprobante.max' => 'El comprobante no puede pesar más de 5 MB.',
         ];
     }
 }

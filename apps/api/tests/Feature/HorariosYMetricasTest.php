@@ -3,12 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\Categoria;
+use App\Models\DetallePedido;
 use App\Models\Local;
 use App\Models\Pedido;
 use App\Models\Producto;
 use App\Models\User;
 use App\Support\HorarioCalculator;
-use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -18,6 +18,7 @@ class HorariosYMetricasTest extends TestCase
     use RefreshDatabase;
 
     protected Local $local;
+
     protected User $owner;
 
     protected function setUp(): void
@@ -200,12 +201,12 @@ class HorariosYMetricasTest extends TestCase
         ]);
 
         // Detalles snapshot (no requieren producto vivo)
-        \App\Models\DetallePedido::create([
+        DetallePedido::create([
             'pedido_id' => $pedido->id, 'producto_id' => null,
             'producto_nombre' => 'Taco', 'precio_unitario' => 30,
             'cantidad' => 5, 'subtotal' => 150,
         ]);
-        \App\Models\DetallePedido::create([
+        DetallePedido::create([
             'pedido_id' => $pedido->id, 'producto_id' => null,
             'producto_nombre' => 'Refresco', 'precio_unitario' => 20,
             'cantidad' => 2, 'subtotal' => 40,
@@ -215,8 +216,8 @@ class HorariosYMetricasTest extends TestCase
             ->getJson('/api/v1/metricas?preset=7d');
 
         $top = $resp->json('data.top_productos');
-        $this->assertSame('Taco',     $top[0]['producto_nombre']);
-        $this->assertSame(5.0,        (float) $top[0]['cantidad']);
+        $this->assertSame('Taco', $top[0]['producto_nombre']);
+        $this->assertSame(5.0, (float) $top[0]['cantidad']);
         $this->assertSame('Refresco', $top[1]['producto_nombre']);
     }
 
@@ -248,10 +249,10 @@ class HorariosYMetricasTest extends TestCase
         ]);
 
         $resp = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente'        => ['nombre' => 'Cliente', 'telefono' => '5215511111111'],
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111'],
             'metodo_entrega' => 'pickup',
-            'metodo_pago'    => 'efectivo',
-            'items'          => [['producto_id' => $prod->id, 'cantidad' => 1]],
+            'metodo_pago' => 'efectivo',
+            'items' => [['producto_id' => $prod->id, 'cantidad' => 1]],
         ]);
 
         $resp->assertStatus(409)
@@ -291,10 +292,10 @@ class HorariosYMetricasTest extends TestCase
         ]);
 
         $resp = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente'        => ['nombre' => 'Cliente', 'telefono' => '5215511111111'],
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111'],
             'metodo_entrega' => 'pickup',
-            'metodo_pago'    => 'efectivo',
-            'items'          => [['producto_id' => $prod->id, 'cantidad' => 1]],
+            'metodo_pago' => 'efectivo',
+            'items' => [['producto_id' => $prod->id, 'cantidad' => 1]],
         ]);
 
         $resp->assertStatus(409)->assertJsonPath('estado.abierto', false);
@@ -316,10 +317,10 @@ class HorariosYMetricasTest extends TestCase
         ]);
 
         $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente'        => ['nombre' => 'Cliente', 'telefono' => '5215511111111'],
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111'],
             'metodo_entrega' => 'pickup',
-            'metodo_pago'    => 'efectivo',
-            'items'          => [['producto_id' => $prod->id, 'cantidad' => 1]],
+            'metodo_pago' => 'efectivo',
+            'items' => [['producto_id' => $prod->id, 'cantidad' => 1]],
         ])->assertCreated();
     }
 
@@ -338,10 +339,10 @@ class HorariosYMetricasTest extends TestCase
 
         $this->actingAs($this->owner, 'sanctum')
             ->postJson('/api/v1/pedidos', [
-                'cliente'        => ['nombre' => 'Mostrador'],
+                'cliente' => ['nombre' => 'Mostrador'],
                 'metodo_entrega' => 'sucursal',
-                'metodo_pago'    => 'efectivo',
-                'items'          => [['producto_id' => $prod->id, 'cantidad' => 1]],
+                'metodo_pago' => 'efectivo',
+                'items' => [['producto_id' => $prod->id, 'cantidad' => 1]],
             ])
             ->assertCreated();
     }

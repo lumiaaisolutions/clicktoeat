@@ -33,8 +33,11 @@ class SaasMetricsController extends Controller
         $active = 0;
         foreach ($activos as $l) {
             $mrrCentavos += (int) ($planMap[$l->plan_id] ?? 0);
-            if ($l->plan_status === 'trialing') $trialing++;
-            else $active++;
+            if ($l->plan_status === 'trialing') {
+                $trialing++;
+            } else {
+                $active++;
+            }
         }
 
         // Distribución por plan
@@ -46,11 +49,12 @@ class SaasMetricsController extends Controller
             ->get()
             ->map(function ($row) {
                 $plan = Plan::find($row->plan_id);
+
                 return [
-                    'plan_slug'   => $plan?->slug ?? '—',
+                    'plan_slug' => $plan?->slug ?? '—',
                     'plan_nombre' => $plan?->nombre ?? '—',
-                    'status'      => $row->plan_status,
-                    'count'       => (int) $row->total,
+                    'status' => $row->plan_status,
+                    'count' => (int) $row->total,
                 ];
             });
 
@@ -81,16 +85,16 @@ class SaasMetricsController extends Controller
             ->get(['id', 'local_id', 'type', 'processed_at', 'created_at']);
 
         return response()->json([
-            'mrr_mxn'        => round($mrrCentavos / 100, 2),
-            'arr_mxn'        => round($mrrCentavos / 100 * 12, 2),
+            'mrr_mxn' => round($mrrCentavos / 100, 2),
+            'arr_mxn' => round($mrrCentavos / 100 * 12, 2),
             'trialing_count' => $trialing,
-            'active_count'   => $active,
-            'churn_30d_pct'  => $churn,
+            'active_count' => $active,
+            'churn_30d_pct' => $churn,
             'conversion_30d_pct' => $conv,
-            'distribucion'   => $distribucion,
+            'distribucion' => $distribucion,
             'eventos_recientes' => $eventos,
-            'cohorts'        => $this->cohorts(),
-            'generated_at'   => now()->toIso8601String(),
+            'cohorts' => $this->cohorts(),
+            'generated_at' => now()->toIso8601String(),
         ]);
     }
 
@@ -110,7 +114,7 @@ class SaasMetricsController extends Controller
         $cohorts = [];
         for ($i = $monthsBack - 1; $i >= 0; $i--) {
             $monthStart = $now->copy()->subMonths($i);
-            $monthEnd   = $monthStart->copy()->endOfMonth();
+            $monthEnd = $monthStart->copy()->endOfMonth();
 
             $altas = Local::query()
                 ->withoutGlobalScopes()
@@ -119,20 +123,27 @@ class SaasMetricsController extends Controller
 
             $cohortSize = $altas->count();
             $row = [
-                'cohort'       => $monthStart->format('Y-m'),
+                'cohort' => $monthStart->format('Y-m'),
                 'cohort_label' => $monthStart->locale('es_MX')->isoFormat('MMM YYYY'),
-                'size'         => $cohortSize,
-                'retencion'    => [],
+                'size' => $cohortSize,
+                'retencion' => [],
             ];
 
             // 2. Para cada mes posterior, qué % seguía activo
             for ($m = 0; $m <= $i; $m++) {
                 $cutoff = $monthStart->copy()->addMonths($m)->endOfMonth();
-                if ($cutoff->isAfter($now->copy()->endOfMonth())) break;
+                if ($cutoff->isAfter($now->copy()->endOfMonth())) {
+                    break;
+                }
 
                 $sigueActivo = $altas->filter(function ($l) use ($cutoff) {
-                    if ($l->pago_externo) return true;
-                    if ($l->canceled_at && $l->canceled_at->lte($cutoff)) return false;
+                    if ($l->pago_externo) {
+                        return true;
+                    }
+                    if ($l->canceled_at && $l->canceled_at->lte($cutoff)) {
+                        return false;
+                    }
+
                     return in_array($l->plan_status, ['active', 'trialing'], true);
                 })->count();
 

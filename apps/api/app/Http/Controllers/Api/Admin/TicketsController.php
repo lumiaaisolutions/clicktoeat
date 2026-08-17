@@ -18,8 +18,11 @@ class TicketsController extends Controller
         $q = SupportTicket::query()
             ->with(['local:id,nombre,slug', 'user:id,nombre,email', 'messages'])
             ->orderByDesc('id');
-        if ($e = $req->input('estado')) $q->where('estado', $e);
+        if ($e = $req->input('estado')) {
+            $q->where('estado', $e);
+        }
         $perPage = min((int) $req->input('per_page', 30), 100);
+
         return response()->json($q->paginate($perPage));
     }
 
@@ -27,9 +30,9 @@ class TicketsController extends Controller
     {
         $data = $req->validate(['mensaje' => ['required', 'string', 'max:5000']]);
         SupportMessage::create([
-            'ticket_id'  => $ticket->id,
-            'user_id'    => $req->user()->id,
-            'mensaje'    => $data['mensaje'],
+            'ticket_id' => $ticket->id,
+            'user_id' => $req->user()->id,
+            'mensaje' => $data['mensaje'],
             'from_super' => true,
             'created_at' => now(),
         ]);
@@ -38,15 +41,18 @@ class TicketsController extends Controller
         // Notifica al owner: email + push (best-effort, no rompe si falla)
         $ticket->load('user');
         if ($ticket->user?->email) {
-            try { Mail::to($ticket->user->email)->send(new TicketReplyMail($ticket, $data['mensaje'])); }
-            catch (\Throwable $e) { report($e); }
+            try {
+                Mail::to($ticket->user->email)->send(new TicketReplyMail($ticket, $data['mensaje']));
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
         if ($ticket->user_id) {
             app(WebPushSender::class)->sendToUser($ticket->user_id, [
                 'title' => "Respuesta a tu ticket #{$ticket->id}",
-                'body'  => mb_strimwidth($data['mensaje'], 0, 120, '…'),
-                'url'   => '/admin/ayuda/contactar',
-                'tag'   => "ticket-{$ticket->id}",
+                'body' => mb_strimwidth($data['mensaje'], 0, 120, '…'),
+                'url' => '/admin/ayuda/contactar',
+                'tag' => "ticket-{$ticket->id}",
             ]);
         }
 
@@ -56,6 +62,7 @@ class TicketsController extends Controller
     public function cerrar(SupportTicket $ticket): JsonResponse
     {
         $ticket->update(['estado' => 'cerrado', 'cerrado_at' => now()]);
+
         return response()->json(['data' => $ticket->fresh()]);
     }
 
@@ -68,39 +75,40 @@ class TicketsController extends Controller
             ->with(['messages'])
             ->orderByDesc('id')
             ->get();
+
         return response()->json(['data' => $items]);
     }
 
     public function storeForOwner(Request $req): JsonResponse
     {
         $data = $req->validate([
-            'asunto'    => ['required', 'string', 'max:200'],
-            'mensaje'   => ['required', 'string', 'max:5000'],
+            'asunto' => ['required', 'string', 'max:200'],
+            'mensaje' => ['required', 'string', 'max:5000'],
             'categoria' => ['nullable', 'string', 'max:40'],
             'prioridad' => ['nullable', 'string', 'max:20'],
         ]);
 
         $ticket = SupportTicket::create([
-            'local_id'  => $req->user()->local_id,
-            'user_id'   => $req->user()->id,
-            'asunto'    => $data['asunto'],
+            'local_id' => $req->user()->local_id,
+            'user_id' => $req->user()->id,
+            'asunto' => $data['asunto'],
             'categoria' => $data['categoria'] ?? 'otro',
             'prioridad' => $data['prioridad'] ?? 'normal',
-            'estado'    => 'abierto',
+            'estado' => 'abierto',
         ]);
         SupportMessage::create([
-            'ticket_id'  => $ticket->id,
-            'user_id'    => $req->user()->id,
-            'mensaje'    => $data['mensaje'],
+            'ticket_id' => $ticket->id,
+            'user_id' => $req->user()->id,
+            'mensaje' => $data['mensaje'],
             'from_super' => false,
         ]);
 
         // Notifica a super admins por push (no email — el super entra al panel)
         app(WebPushSender::class)->sendToSuperAdmins([
             'title' => "Nuevo ticket: {$ticket->asunto}",
-            'body'  => ($req->user()->nombre ?? 'Owner').' · '.($data['categoria'] ?? 'soporte'),
-            'url'   => '/admin/tickets',
-            'tag'   => "ticket-new-{$ticket->id}",
+            'body' => ($req->user()->nombre ?? 'Owner').' · '.($data['categoria'] ?? 'soporte'),
+            'url' => '/admin/tickets',
+            'tag' => "ticket-new-{$ticket->id}",
         ]);
 
         return response()->json(['data' => $ticket->fresh('messages')], 201);
@@ -113,14 +121,15 @@ class TicketsController extends Controller
         }
         $data = $req->validate(['mensaje' => ['required', 'string', 'max:5000']]);
         SupportMessage::create([
-            'ticket_id'  => $ticket->id,
-            'user_id'    => $req->user()->id,
-            'mensaje'    => $data['mensaje'],
+            'ticket_id' => $ticket->id,
+            'user_id' => $req->user()->id,
+            'mensaje' => $data['mensaje'],
             'from_super' => false,
         ]);
         if ($ticket->estado === 'respondido' || $ticket->estado === 'cerrado') {
             $ticket->update(['estado' => 'abierto']);
         }
+
         return response()->json(['data' => $ticket->fresh('messages')]);
     }
 }

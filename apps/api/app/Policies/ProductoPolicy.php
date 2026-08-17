@@ -12,6 +12,7 @@ class ProductoPolicy
         if ($user->isSuperAdmin()) {
             return true;
         }
+
         return null;
     }
 

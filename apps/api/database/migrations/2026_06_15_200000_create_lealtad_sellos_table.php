@@ -4,7 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         // Config por local
@@ -41,7 +42,9 @@ return new class extends Migration {
         Schema::dropIfExists('lealtad_sellos');
         Schema::table('locales', function (Blueprint $t) {
             foreach (['lealtad_premio', 'lealtad_meta', 'lealtad_activo'] as $c) {
-                if (Schema::hasColumn('locales', $c)) $t->dropColumn($c);
+                if (Schema::hasColumn('locales', $c)) {
+                    $t->dropColumn($c);
+                }
             }
         });
     }

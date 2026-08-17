@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\Schema;
  * de cocina) ni `metodo_entrega` (`sucursal` ya significa "consumido en el
  * local" — una mesa es sólo un refinamiento de eso). Ver ADR-012.
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::table('pedidos', function (Blueprint $t) {

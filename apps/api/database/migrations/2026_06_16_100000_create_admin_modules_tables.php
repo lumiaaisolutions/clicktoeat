@@ -13,7 +13,8 @@ use Illuminate\Support\Facades\Schema;
  *
  * F96 (audit log global) usa la tabla audit_logs existente sin scope.
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::create('anuncios_globales', function (Blueprint $t) {
