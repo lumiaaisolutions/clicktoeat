@@ -74,10 +74,72 @@ otros productos, ajenos a esta migración.
 - [x] **Fase 3** — Bases de datos restauradas y verificadas (64 y 45 tablas, datos reales confirmados).
 - [x] **Fase 4** — API + Web de ambos proyectos desplegados y corriendo.
 - [x] **Fase 5** — Validado por HTTP directo contra la IP del VPS (`--resolve`, sin tocar DNS).
-- [ ] **Fase 6** — Cutover de DNS + SSL — **pausada** (2026-08-06), ver hallazgo crítico abajo. Retomar desde aquí.
+- [x] **Fase 6** — Cutover de DNS + SSL — **completada** (2026-08-07). Los 4 subdominios (`clicktoeat`, `clicktoeat-api`, `clicktoshop`, `clicktoshop-api`) apuntan al VPS (`2.24.123.93`) y sirven HTTPS real con certificados Let's Encrypt válidos hasta 2026-11-05.
 - [ ] **Fase 7** — Post-migración: actualizar scripts/docs, decidir qué hacer con el host viejo (pausar, no borrar, por rollback).
 
-## Fase 6 — hallazgo crítico: clicktoeat/clicktoshop NO usan DNS tradicional (2026-08-06)
+## Fase 6 — resuelto: el editor de DNS correcto está por subdominio, no en la zona general (2026-08-07)
+
+El bloqueo documentado abajo (Node.js App Hosting/CDN sin A record editable) se
+resolvió: el mecanismo correcto NO es el editor general de zona DNS
+(`hpanel.hostinger.com/domain/<dominio>/dns` → tab "DNS records", donde buscar
+"clicktoeat" da "Nothing found"), sino el editor **por subdominio**, accesible
+desde `hpanel.hostinger.com/websites/<subdominio>` → Advanced → **DNS Zone
+Editor**, que redirige a la misma pantalla de zona general pero con el tab
+**"Subdomains"** preseleccionado y el subdominio ya elegido — ahí sí aparecen
+sus registros reales:
+
+```
+ALIAS  @    clicktoeat.lumiaaisolutions.com.cdn.hstgr.net   300
+CNAME  www  www.clicktoeat.lumiaaisolutions.com.cdn.hstgr.net  300
+```
+
+Es decir: el CDN/Node-hosting se implementa como un `ALIAS`/`CNAME` apuntando
+al propio CDN de Hostinger (`*.cdn.hstgr.net`), no como una config opaca fuera
+de DNS. No hace falta "desvincular" nada del producto Node Hosting — basta con
+**borrar el `ALIAS`/`CNAME` y crear un registro `A` normal** apuntando al VPS.
+
+**Gotcha de la API de Hostinger**: no se puede editar un `ALIAS` a `A` in-place
+(error `"IN ALIAS must not be used with A on the same name"`, aunque sea el
+mismo registro siendo reemplazado) — hay que **borrar primero, crear el `A`
+después**, en dos pasos separados. Esto abre una ventana de segundos sin
+resolución para ese nombre; aceptable dado el TTL bajo (300s) y que se hace
+nombre por nombre, no de golpe.
+
+**Procedimiento por subdominio** (repetir para cada uno de los 4):
+1. `hpanel.hostinger.com/websites/<subdominio>` → Advanced → DNS Zone Editor.
+2. Borrar el registro `ALIAS @` (o `CNAME <nombre>`) que apunta a `*.cdn.hstgr.net`.
+3. Formulario "Add Record" arriba: `Type=A`, `Name=@` (o el nombre que corresponda), `Value=2.24.123.93`, `TTL=300` → Add Record.
+4. Repetir para el `CNAME www` si existe (borrar + crear `A www → 2.24.123.93`).
+5. Verificar con `dig +short <dominio> @1.1.1.1` (propaga en segundos con TTL 300) y `curl -sI http://<dominio>/` (HTTP, ya sirve desde el VPS).
+6. `ssh deploy@2.24.123.93 "sudo certbot certonly --nginx -d <dominio> [-d www.<dominio>] --non-interactive --agree-tos -m nando.torres0987@gmail.com"` — con `certonly` (no `--nginx` como installer) el certificado se emite pero **no se instala** en el server block automáticamente.
+7. `sudo certbot install --cert-name <dominio> --nginx --non-interactive` — si falla con `Could not automatically find a matching server block for www.<dominio>`, es porque el `server_name` del server block en `/etc/nginx/sites-available/<dominio>` no lista el alias `www` — agregarlo (`sed` o edición manual) y reintentar el install.
+8. `sudo nginx -t && sudo systemctl reload nginx`, luego `curl -sI https://<dominio>/` para confirmar 200 con el certificado correcto (no el de `api.lumiaaisolutions.com`, que es el default del server block sin SSL propio).
+
+**Los 4 subdominios completados con este procedimiento** (2026-08-07), todos
+verificados HTTPS 200 real:
+
+| Subdominio | Apex A | www A | Certificado | Verificado |
+|---|---|---|---|---|
+| `clicktoeat.lumiaaisolutions.com` | ✅ | ✅ | válido hasta 2026-11-05 | `curl -sI https://` → 200, sirve Next.js (`localhost:3004`) |
+| `clicktoeat-api.lumiaaisolutions.com` | ✅ | n/a (API sin www) | válido hasta 2026-11-05 | `curl https://.../up` → 200 |
+| `clicktoshop.lumiaaisolutions.com` | ✅ | ✅ | válido hasta 2026-11-05 | `curl -sI https://` → 200, sirve Next.js (`localhost:3005`) |
+| `clicktoshop-api.lumiaaisolutions.com` | ✅ | n/a (API sin www) | válido hasta 2026-11-05 | `curl https://.../up` → 200 |
+
+Auto-renovación gestionada por certbot (systemd timer, ya confirmado activo
+en el VPS desde el setup previo). Los 2 dominios `-api` no llevan `www` — no
+se usa ese subdominio para las APIs, así que sus `CNAME www → *.cdn.hstgr.net`
+se dejaron intactos (apuntan al viejo CDN, pero nadie los resuelve en la
+práctica; se pueden limpiar en Fase 7 si se quiere prolijidad).
+
+**Fase 6 cerrada.** El host viejo (`86.38.202.72`) ya no recibe tráfico de
+ninguno de los 4 dominios — sigue encendido intacto como rollback (ver
+sección "Plan de rollback" más abajo) hasta confirmar estabilidad del VPS
+nuevo por unos días. Pendiente real: validar flujos con sesión (login real,
+Sanctum) sobre HTTPS real de producción — no se hizo en esta pasada, sólo se
+verificaron health checks (`/up`) y carga de página. Eso es lo primero a
+probar en Fase 7 antes de dar por definitivamente estable el corte.
+
+## Fase 6 — hallazgo crítico (histórico, contexto del bloqueo original): clicktoeat/clicktoshop NO usan DNS tradicional (2026-08-06)
 
 Al intentar cambiar los A records de `clicktoeat`, `clicktoeat-api`, `clicktoshop`,
 `clicktoshop-api` en hPanel → Domains → DNS/Nameservers → DNS records, **ninguno
@@ -212,8 +274,214 @@ sudo -n whoami   # → root (sudo sin contraseña ya configurado para deploy)
 
 ## Rollback
 
-Mientras no se complete la Fase 6, el host viejo (`86.38.202.72`) sigue
-siendo el origen de verdad — la migración corre en paralelo sin tocarlo.
-Después de la Fase 6 (DNS apuntando al VPS nuevo), rollback = revertir los
-A records al host viejo (que se deja pausado, no borrado, hasta confirmar
-estabilidad del VPS nuevo por al menos unos días).
+Fase 6 completada (2026-08-07) — el DNS de los 4 subdominios ya apunta al
+VPS nuevo. El host viejo (`86.38.202.72`) se deja **pausado, no borrado**,
+como rollback, hasta confirmar estabilidad del VPS nuevo por al menos unos
+días. Procedimiento de rollback si hace falta volver: en
+`hpanel.hostinger.com/websites/<subdominio>` → Advanced → DNS Zone Editor
+(tab "Subdomains"), borrar el `A` que apunta a `2.24.123.93` y recrear el
+`ALIAS @` / `CNAME www` hacia `<subdominio>.cdn.hstgr.net` (mecanismo
+original de Node.js App Hosting). El host viejo no fue tocado en ningún
+momento de la migración — sigue funcionando tal cual estaba.
+
+## Incidente post-migración: build de producción con URL de API stale (2026-08-07)
+
+Tras el cutover, ambos sitios (`clicktoeat` y `clicktoshop`) mostraban
+**"Sin locales/tiendas disponibles"** en el directorio público, y el login
+devolvía "No pudimos iniciar sesión" incluso con credenciales reales.
+
+**Causa raíz**: el build de Next.js que quedó corriendo en el VPS (armado
+durante la Fase 4/5 de la migración) se compiló **sin** la variable
+`NEXT_PUBLIC_API_URL` disponible para los Server Components — el código
+tiene un fallback `process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080/api/v1'`
+(`apps/web/src/app/page.tsx`), y ese fallback quedó horneado en
+`.next/server/app/page.js` (confirmado con `grep -c 'localhost:8080'`).
+En runtime, el fetch server-side a `http://localhost:8080` golpeaba el
+puerto SSH del propio VPS (`8080`) en vez de la API — el error en
+`pm2 logs` mostraba literalmente `HPE_INVALID_CONSTANT` con el banner
+`SSH-2.0-OpenSSH_9.6p1...` como respuesta, un síntoma confuso pero
+inequívoco una vez identificado. El chunk **cliente** sí tenía la URL
+correcta (por eso curl a la API funcionaba perfecto) — solo el server
+chunk estaba mal, lo cual explica por qué el síntoma parecía "la API no
+responde" cuando en realidad la API estaba sana.
+
+**Fix**: re-build + redeploy con [`scripts/deploy-web.sh`](../../scripts/deploy-web.sh)
+ya corregido (Fase 7), que exporta `NEXT_PUBLIC_API_URL` explícitamente
+antes de `npm run build`. Verificado en ambos: `grep` en el nuevo
+`page.js` ya no tiene `localhost:8080`, sí tiene la URL real de la API, y
+el directorio público carga los locales/tiendas reales.
+
+**Lección para futuros deploys manuales** (fuera de `deploy-web.sh`): si
+se compila Next.js a mano durante una migración/emergencia, **siempre**
+exportar `NEXT_PUBLIC_API_URL` en el shell antes de `npm run build`, no
+asumir que `.env.production` alcanza — en este caso sí estaba committeado
+correctamente, pero algo en el build manual de esa sesión no lo levantó
+para el bundle server-side (no se determinó la causa exacta del builder
+manual, pero el fix — usar el script en vez de build manual — la evita
+de raíz).
+
+## Incidente post-migración: uploads de ClickToShop no migrados (2026-08-07)
+
+Las imágenes (logos/banners/productos) de ClickToShop no cargaban en
+producción (ícono roto) tras el cutover, mientras que ClickToEat sí
+mostraba sus imágenes normalmente.
+
+**Causa raíz**: el backup de Fase 1 (`clicktoshop-storage-app-public.tar.gz`,
+tomado ~17:46 del 2026-08-06) capturó el directorio de uploads **vacío**
+(180 bytes, solo el header del tar) — en ese momento el negocio real
+(LEBE, Bellísima Boutique) aún no tenía imágenes subidas. Entre ese
+backup y el cutover de DNS (Fase 6, muchas horas después, ya 2026-08-07),
+el host viejo **seguía siendo el origen real** — el dueño del negocio
+subió sus logos/banners/fotos de producto ahí durante esa ventana
+(confirmado por `Last-Modified: 2026-08-06 21:10` en el archivo real).
+Al cortar el DNS al VPS, esas subidas nunca se sincronizaron — el VPS
+solo tenía el snapshot vacío de las 17:46.
+
+**Cómo se detectó**: el usuario reportó imágenes rotas específicamente en
+ClickToShop tras recargar. Se comparó `find .../uploads -type f | wc -l`
+entre ambos proyectos en el VPS: ClickToEat 33 archivos, ClickToShop 0.
+
+**Cómo se recuperó** (SSH al host viejo seguía caído, mismo incidente de
+cuota de recursos de siempre):
+1. Se probó el archivo directo contra el origen real con
+   `curl --resolve <dominio>:443:86.38.202.72` (bypass de DNS) → 200 OK,
+   confirmando que el archivo SÍ existía en el host viejo pese a que el
+   backup de Fase 1 no lo tenía.
+2. Se usó el **File Manager de hPanel** (`Access files of
+   clicktoshop-api.lumiaaisolutions.com`) para navegar a
+   `public_html/public/storage/uploads/` — **no** `storage/app/public/uploads/`
+   (el host viejo escribe directo ahí, sin symlink — ver nota en
+   `docs/infra/deploy-hostinger.md`).
+3. Se seleccionaron `banners/`, `logos/`, `productos/`, se comprimieron a
+   `.tar.gz` (5.5 MB) desde el propio File Manager, y se descargaron al
+   navegador local.
+4. `scp` del tarball al VPS + extracción directa en
+   `/var/www/clicktoshop/api/storage/app/public/uploads/` (con symlink
+   correcto en destino) → verificado con `curl` HTTPS real → 200 OK.
+
+**Verificado — sin gap de BD**: se comparó `COUNT(*)` y `MAX(updated_at)`
+de `productos`, `pedidos`, `locales`, `categorias`, `users` entre el
+MySQL real del host viejo (vía phpMyAdmin, conexión `127.0.0.1:3306` —
+en vivo, no un snapshot) y el MySQL del VPS (vía `php artisan tinker`).
+Los counts coinciden exactamente en las 5 tablas (ej. `productos: 3=3`,
+`categorias: 3=3`, `users: 3=3`). La única discrepancia de timestamps
+(`locales.max(updated_at)` 6 horas distinto) es simple diferencia de
+timezone de display entre phpMyAdmin y `tinker`, no un gap real — y el
+valor más reciente en el VPS (`2026-08-07 10:42:21`, ya después del
+cutover) confirma que ediciones reales post-migración se están guardando
+correctamente ahí. **Conclusión: la única pérdida real de la migración
+fueron los archivos de uploads de ClickToShop (ya recuperados arriba) —
+la base de datos no tuvo ningún gap.**
+
+## Fase 7 — post-migración (2026-08-07, completada)
+
+- **Scripts actualizados** para apuntar al VPS nuevo (host `2.24.123.93`,
+  puerto `8080`, usuario `deploy`, paths `/var/www/<proyecto>/{api,web}`,
+  restart via `pm2 restart <proyecto>-web` en vez de `passenger-config
+  restart-app`): `deploy-api.sh`, `deploy-web.sh`, `rollback-web.sh` en
+  ambos repos (clicktoeat y clicktoshop). `backup-mysql.sh` actualizado en
+  el header (target VPS con cron real vía `crontab -e`, ya no hPanel →
+  "Trabajos Cron") — la lógica de `mysqldump` en sí no cambió, ya era
+  host-agnóstica.
+- **`docs/infra/deploy-hostinger.md` reescrito completo** en ambos repos —
+  la versión anterior describía el host viejo (Passenger, LiteSpeed, CageFS,
+  `/home/u221820910/...`) de punta a punta; quedaba activamente engañosa
+  para cualquiera (incluido un futuro Claude) que la leyera antes de tocar
+  producción, que es justo lo que `CLAUDE.md` pide hacer primero.
+- **Pendiente real, no cerrado en esta pasada**: validar un login completo
+  con sesión (Sanctum) de un usuario de negocio real sobre el VPS nuevo. Se
+  verificó que el stack completo responde correctamente (422 limpio en
+  credenciales inválidas, no 500) y que la BD migrada tiene datos reales
+  (7 usuarios, 4 locales en ClickToEat) — pero no se forzó un login exitoso
+  porque no hay credenciales reales de negocio a mano y no correspondía
+  adivinarlas.
+- **Decisión sobre el host viejo**: se mantiene pausado (sin tráfico, sin
+  tocar) como rollback. No se decidió aún si se da de baja o se reutiliza —
+  eso queda para cuando se confirme la estabilidad del VPS nuevo, tema
+  fuera del alcance de esta migración.
+
+## Backup automático (2026-08-07, completado)
+
+- **`backup-mysql.sh` adaptado a modo local-only** en ambos repos: el
+  upload a Backblaze B2 (vía rclone) ahora es **opcional** — si
+  `B2_REMOTE`/`B2_BUCKET` no están seteados, el script hace el dump,
+  gzip -9, manifest con sha256, y retención local (14 días sin off-site vs
+  3 con off-site), sin fallar por falta de cuenta B2. Antes el script
+  exigía B2 con `${VAR:?required}`, bloqueando cualquier uso sin cuenta de
+  terceros. Decisión explícita del usuario: **nada de pago**, y crear una
+  cuenta B2 (aunque tenga free tier) está fuera de lo que Claude puede
+  hacer por su cuenta (política de no crear cuentas de terceros).
+- **Configurado y probado en el VPS**: `~/.config/{clicktoeat,clicktoshop}-backup.env`
+  con las credenciales reales de cada `.env` de Laravel (permisos 600,
+  escritos server-side sin que el password pasara por el transcript de
+  Claude — el intento inicial de `grep`/`cat` sobre el `.env` fue bloqueado
+  por el clasificador de seguridad, correctamente). Corrida manual de
+  prueba en ambos: dump OK (28.8 KB clicktoeat, 32.8 KB clicktoshop).
+- **Cron activado** vía `crontab -e` (sin tocar las líneas existentes de
+  `lumia-hq-cron.sh`): `clicktoeat` a las 03:00 UTC, `clicktoshop` a las
+  03:15 UTC, logs en `/var/www/<proyecto>/logs/backup.log`.
+- **Pendiente real si se quiere off-site**: el usuario tendría que crear su
+  propia cuenta Backblaze B2 (free tier, 10 GB) y setear `B2_REMOTE`/
+  `B2_BUCKET` en los archivos de config — el script ya soporta ambos modos
+  sin cambios adicionales.
+
+## Host viejo — decisión final (2026-08-07)
+
+Se investigó apagar el host viejo específicamente para clicktoeat/clicktoshop
+(sin afectar los otros ~11 sitios que comparten esa cuenta de hosting —
+`clicktobarber`, `clicktodo`, `gokonfirma`, etc.). Hallazgos:
+
+- El dashboard de Node.js App Hosting (`hpanel.hostinger.com/websites/<dominio>`)
+  **confirma por sí solo** que el DNS cutover funcionó: muestra el aviso
+  *"Domain isn't connected to your website"* para `clicktoeat.lumiaaisolutions.com`
+  — es decir, el host viejo ya no recibe tráfico real de ese dominio, pase
+  lo que pase con el proceso Node interno.
+- No existe un botón de "Stop" para el proceso — el dropdown de estado solo
+  ofrece "Restart". La única forma de detenerlo del todo sería borrar el
+  deployment, lo cual es difícil de revertir (perdería el rollback
+  instantáneo documentado en la sección "Rollback" de este runbook).
+- **Decisión del usuario, con la información anterior**: dejarlo tal cual.
+  Ya está efectivamente desconectado del tráfico real (lo cual cumple el
+  objetivo de "que solo trabaje el VPS"), y mantiene el rollback disponible
+  sin costo adicional (la cuenta ya estaba pagada).
+
+### Actualización (2026-08-07) — decommission ejecutado tras confirmar estabilidad
+
+El usuario confirmó que todo funcionaba correctamente en el VPS y pidió dar
+de baja el host viejo. Se borraron los 4 "Website" del hPanel compartido
+(`clicktoeat.lumiaaisolutions.com`, `clicktoeat-api.lumiaaisolutions.com`,
+`clicktoshop.lumiaaisolutions.com`, `clicktoshop-api.lumiaaisolutions.com`)
+vía `Websites → ⋮ → Delete`. Los otros ~11 sitios de la cuenta no se
+tocaron.
+
+## Incidente: borrar el "Website" en hPanel también borró el DNS (2026-08-07)
+
+**Síntoma**: ~15 min después del decommission de arriba, UptimeRobot marcó
+los 4 monitores (ClickToEat Web/API, ClickToShop Web/API) como DOWN
+simultáneamente.
+
+**Causa raíz**: se asumió — incorrectamente — que "Delete Website" en el
+hPanel del hosting compartido solo elimina el hosting (Node.js App Hosting
+container, DB, archivos), sin tocar DNS, ya que el dominio raíz
+(`lumiaaisolutions.com`) sigue gestionado por `ns1/ns2.dns-parking.com`
+(Hostinger) independientemente del hosting real. **Falso**: al borrar el
+"Website" del subdominio, Hostinger también eliminó su registro `A` en la
+zona DNS. Confirmado con `dig <subdominio> @8.8.8.8` → sin respuesta (vs.
+`dig lumiaaisolutions.com @8.8.8.8` → sí resolvía, confirmando que solo los
+4 subdominios afectados perdieron su registro, no la zona completa).
+
+**Fix**: recreados los 4 registros `A` en
+`hpanel.hostinger.com/domain/lumiaaisolutions.com/dns` apuntando a
+`2.24.123.93` (IP del VPS). Verificado:
+- `dig <subdominio> @8.8.8.8` → `2.24.123.93` en los 4 casos.
+- `curl --resolve <subdominio>:443:2.24.123.93 https://<subdominio>/...` →
+  `200 OK` en los 4 casos (bypass de DNS, confirma que nginx/certbot en el
+  VPS seguían intactos — el problema fue 100% DNS, no el servidor).
+
+**Lección para futuros decommissions de "Website" en Hostinger shared
+hosting**: si el dominio/subdominio ya fue migrado a otro servidor vía A
+record manual, borrar el "Website" en hPanel puede arrastrarse también el
+registro DNS aunque el hosting real esté en otro lado. Verificar
+`dig <dominio> @8.8.8.8` inmediatamente después de cualquier "Delete
+Website" que involucre un dominio con tráfico real, y no solo confiar en
+que el cutover de DNS ya hecho es inmune a esto.

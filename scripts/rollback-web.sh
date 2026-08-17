@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 #
 # ClickToEat — Rollback rápido del frontend Next.js a la versión anterior.
+# Corre en el VPS dedicado (Hostinger KVM 2) bajo PM2 — migrado 2026-08-07,
+# ver docs/runbook/migracion-vps-dedicado-2026-08-06.md.
 #
 # Lo que hace:
-#   1. SSH al VPS Hostinger.
+#   1. SSH al VPS.
 #   2. Renombra `.next` a `.next.failed-<timestamp>` (preserva el bundle roto
 #      para diagnóstico forense).
 #   3. Restaura `.next.previous` → `.next`.
 #   4. Mismo swap para `public` y `public.previous`.
-#   5. `touch tmp/restart.txt` → Passenger recarga.
+#   5. `pm2 restart clicktoeat-web` → recarga el nuevo bundle.
 #   6. Health check.
 #
 # Uso:
@@ -17,7 +19,7 @@
 #   scripts/rollback-web.sh --no-health-check  # no espera health post-rollback
 #
 # Requisitos:
-#   - SSH key en ~/.ssh/hostinger_clicktoeat (o vía SSH_KEY env)
+#   - SSH key en ~/.ssh/id_ed25519 (usuario `deploy`, o vía SSH_KEY env)
 #   - El deploy anterior debe haber dejado .next.previous / public.previous
 #     (deploy-web.sh los crea en cada deploy)
 #
@@ -27,11 +29,12 @@
 set -Eeuo pipefail
 
 # ─── Config ────────────────────────────────────────────────────
-SSH_HOST="86.38.202.72"
-SSH_PORT="65002"
-SSH_USER="u221820910"
-SSH_KEY="${SSH_KEY:-$HOME/.ssh/hostinger_clicktoeat}"
-REMOTE_NODE_PATH="/home/u221820910/domains/clicktoeat.lumiaaisolutions.com/nodejs"
+SSH_HOST="2.24.123.93"
+SSH_PORT="8080"
+SSH_USER="deploy"
+SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_ed25519}"
+REMOTE_NODE_PATH="/var/www/clicktoeat/web"
+PM2_APP_NAME="clicktoeat-web"
 HEALTH_URL="https://clicktoeat.lumiaaisolutions.com/"
 
 # ─── Args ──────────────────────────────────────────────────────
@@ -93,8 +96,8 @@ mv public ".public-tmp-${TIMESTAMP}"
 mv public.previous public
 mv ".public-tmp-${TIMESTAMP}" "public.failed-${TIMESTAMP}"
 
-# Restart Passenger
-touch tmp/restart.txt 2>/dev/null || mkdir -p tmp && touch tmp/restart.txt
+# Restart via PM2
+pm2 restart ${PM2_APP_NAME}
 
 echo "=== Estado tras rollback ==="
 ls -la | grep -E "^d.*\.next|^d.*public" | head -10
@@ -125,7 +128,7 @@ if [[ ${SKIP_HEALTH} -eq 1 ]]; then
     exit 0
 fi
 
-log "Esperando 8s a que Passenger reinicie..."
+log "Esperando 8s a que PM2 reinicie..."
 sleep 8
 
 log "Health check ${HEALTH_URL}..."
@@ -136,8 +139,8 @@ if [[ "${HTTP_CODE}" == "200" ]]; then
     exit 0
 else
     log "⚠️  Rollback aplicado pero health check devolvió HTTP ${HTTP_CODE}"
-    log "   Posibles causas: Passenger todavía iniciando (espera 30s y reintenta), "
+    log "   Posibles causas: PM2 todavía reiniciando (espera 30s y reintenta), "
     log "   o el bundle .next.previous también está roto."
-    log "   Verifica logs en VPS: ${REMOTE_NODE_PATH}/stderr.log"
+    log "   Verifica logs en VPS: pm2 logs ${PM2_APP_NAME}"
     exit 2
 fi

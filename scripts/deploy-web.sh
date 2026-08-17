@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 #
-# ClickToEat — Deploy del Frontend (Next.js standalone) a Hostinger Business Shared.
+# ClickToEat — Deploy del Frontend (Next.js standalone) al VPS dedicado
+# (Hostinger KVM 2), corriendo bajo PM2. Migrado desde el hosting compartido
+# el 2026-08-07 — ver docs/runbook/migracion-vps-dedicado-2026-08-06.md.
 #
 # Lo que hace:
 #   1. Build local con NEXT_PUBLIC_API_URL apuntando a prod.
 #   2. Empaqueta .next/standalone + .next/static + public en un tar.gz.
-#   3. Sube el tar al servidor (~/nodejs/).
+#   3. Sube el tar al servidor.
 #   4. Extrae en el servidor, limpia caché viejo.
-#   5. Reinicia la app via Passenger (lsnode).
+#   5. Reinicia la app via PM2 (`pm2 restart clicktoeat-web`).
 #   6. Health check post-deploy (GET https://clicktoeat.lumiaaisolutions.com).
 #
 # Uso:
@@ -16,7 +18,7 @@
 #   scripts/deploy-web.sh --dry-run          # no sube nada
 #
 # Requisitos:
-#   - SSH key en ~/.ssh/hostinger_clicktoeat
+#   - SSH key en ~/.ssh/id_ed25519 (usuario `deploy`, ya autorizado en el VPS)
 #   - Node 20 + npm en local
 #   - rsync/scp en local
 #   - Estar en la raíz del repo
@@ -24,11 +26,12 @@
 set -Eeuo pipefail
 
 # ─── Config ────────────────────────────────────────────────────
-SSH_HOST="86.38.202.72"
-SSH_PORT="65002"
-SSH_USER="u221820910"
-SSH_KEY="${SSH_KEY:-$HOME/.ssh/hostinger_clicktoeat}"
-REMOTE_NODE_PATH="/home/u221820910/domains/clicktoeat.lumiaaisolutions.com/nodejs"
+SSH_HOST="2.24.123.93"
+SSH_PORT="8080"
+SSH_USER="deploy"
+SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_ed25519}"
+REMOTE_NODE_PATH="/var/www/clicktoeat/web"
+PM2_APP_NAME="clicktoeat-web"
 API_URL="${API_URL:-https://clicktoeat-api.lumiaaisolutions.com/api/v1}"
 APP_URL="${APP_URL:-https://clicktoeat.lumiaaisolutions.com}"
 HEALTH_URL="${APP_URL}/"
@@ -155,13 +158,8 @@ tar -xzf web-build.tar.gz
 # Limpiar caché de Next
 rm -rf .next/cache
 
-# Restart de Passenger
-if command -v passenger-config >/dev/null 2>&1; then
-    passenger-config restart-app ${REMOTE_NODE_PATH}
-else
-    # Fallback: tocar tmp/restart.txt (mecanismo estándar de Passenger)
-    mkdir -p tmp && touch tmp/restart.txt
-fi
+# Restart via PM2
+pm2 restart ${PM2_APP_NAME}
 
 # Limpiar tarball
 rm -f web-build.tar.gz
@@ -179,5 +177,5 @@ fi
 
 log "✅ Deploy Frontend completado y health check OK"
 log "💡 Rollback rápido si algo falla más tarde:"
-log "   ssh ... 'cd ${REMOTE_NODE_PATH} && rm -rf .next public && mv .next.previous .next && mv public.previous public && touch tmp/restart.txt'"
+log "   ssh ... 'cd ${REMOTE_NODE_PATH} && rm -rf .next public && mv .next.previous .next && mv public.previous public && pm2 restart ${PM2_APP_NAME}'"
 exit 0

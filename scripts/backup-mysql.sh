@@ -2,24 +2,28 @@
 #
 # ClickToEat — Backup diario de MySQL a almacenamiento off-site.
 #
-# Target: Hostinger Business Shared Hosting.
-#   - Usuario SSH: u221820910
-#   - Host: 86.38.202.72 (puerto 65002)
-#   - PHP 8.3, MySQL managed (localhost)
-#   - SIN sudo, SIN /etc/cron.d, SIN apt/yum, SIN systemctl
-#   - Crons se configuran desde hPanel → "Trabajos Cron"
+# Target: VPS dedicado (Hostinger KVM 2), corre localmente en el servidor
+# (usuario `deploy`, sudo passwordless). Migrado desde el hosting compartido
+# el 2026-08-07 — ver docs/runbook/migracion-vps-dedicado-2026-08-06.md.
+#   - MySQL 8 local (127.0.0.1:3306, root sin password vía `sudo mysql`)
+#   - Cron real disponible (`crontab -e`) — ya NO hace falta hPanel → "Trabajos Cron"
 #
 # Lo que hace:
 #   1. mysqldump de la BD productiva (lee credenciales del .env de Laravel
 #      o de variables exportadas).
 #   2. Comprime con gzip -9.
-#   3. Sube a Backblaze B2 vía rclone (binario standalone en ~/bin/rclone).
-#   4. Escribe manifest JSON con sha256 + tamaño.
-#   5. Aplica retención local (default: 3 archivos en ~/backups/).
+#   3. Escribe manifest JSON con sha256 + tamaño.
+#   4. Aplica retención local (default: 14 días en ~/backups/).
+#   5. Sube a Backblaze B2 vía rclone SOLO SI B2_REMOTE/B2_BUCKET están
+#      configurados — opcional, requiere que el usuario cree su propia
+#      cuenta B2 (free tier 10GB, Claude no puede crear cuentas de
+#      terceros). Sin esas variables, el backup queda solo local en el VPS
+#      — sigue siendo válido como backup, solo sin copia off-site.
 #   6. Pinga heartbeat (Healthchecks.io) y/o webhook Slack en fallo.
 #
 # ANTES DEL PRIMER USO en el servidor — ver scripts/README.md para procedimiento
-# detallado de instalación de rclone, creación de remote B2 y configuración del cron.
+# detallado de instalación de rclone, creación de remote B2 y configuración del cron
+# (todo eso es opcional; el modo local-only funciona sin ninguna cuenta externa).
 
 set -Eeuo pipefail
 
@@ -42,14 +46,18 @@ DB_PASSWORD="${DB_PASSWORD:?DB_PASSWORD requerido}"
 DB_HOST="${DB_HOST:-localhost}"
 DB_PORT="${DB_PORT:-3306}"
 
-B2_REMOTE="${B2_REMOTE:?B2_REMOTE requerido (nombre del remote rclone)}"
-B2_BUCKET="${B2_BUCKET:?B2_BUCKET requerido}"
+# Off-site (B2) es opcional — si no están seteadas, el backup queda local-only.
+B2_REMOTE="${B2_REMOTE:-}"
+B2_BUCKET="${B2_BUCKET:-}"
 B2_PREFIX="${B2_PREFIX:-backups/clicktoeat}"
+OFFSITE_ENABLED=0
+[[ -n "${B2_REMOTE}" && -n "${B2_BUCKET}" ]] && OFFSITE_ENABLED=1
 
 HEARTBEAT_URL="${HEARTBEAT_URL:-}"
 SLACK_WEBHOOK="${SLACK_WEBHOOK:-}"
 
-RETENTION_LOCAL_DAYS="${RETENTION_LOCAL_DAYS:-3}"
+# Sin off-site, retenemos más días localmente (no hay copia externa de respaldo).
+RETENTION_LOCAL_DAYS="${RETENTION_LOCAL_DAYS:-$(( OFFSITE_ENABLED ? 3 : 14 ))}"
 LOCAL_DIR="${LOCAL_DIR:-$HOME/backups}"
 
 # ─── Constantes ─────────────────────────────────────────────────
@@ -92,14 +100,18 @@ command -v mysqldump >/dev/null || fail "mysqldump no está en PATH"
 command -v gzip      >/dev/null || fail "gzip no está en PATH"
 command -v sha256sum >/dev/null || fail "sha256sum no está en PATH"
 
-# rclone: buscar primero en ~/bin/, luego en PATH
-RCLONE_BIN="${RCLONE_BIN:-$HOME/bin/rclone}"
-if [[ ! -x "${RCLONE_BIN}" ]]; then
-    if command -v rclone >/dev/null; then
-        RCLONE_BIN="$(command -v rclone)"
-    else
-        fail "rclone no encontrado. Instalar como binario en ~/bin/rclone (ver scripts/README.md)"
+# rclone solo hace falta si el off-site está habilitado.
+if (( OFFSITE_ENABLED )); then
+    RCLONE_BIN="${RCLONE_BIN:-$HOME/bin/rclone}"
+    if [[ ! -x "${RCLONE_BIN}" ]]; then
+        if command -v rclone >/dev/null; then
+            RCLONE_BIN="$(command -v rclone)"
+        else
+            fail "rclone no encontrado. Instalar como binario en ~/bin/rclone (ver scripts/README.md)"
+        fi
     fi
+else
+    log "B2_REMOTE/B2_BUCKET no configurados — backup local-only (sin off-site)."
 fi
 
 mkdir -p "${LOCAL_DIR}"
@@ -119,8 +131,8 @@ if ! MYSQL_PWD="${DB_PASSWORD}" mysqladmin --user="${DB_USER}" \
     fail "MySQL no responde en ${DB_HOST}:${DB_PORT}"
 fi
 
-# rclone remote existe
-if ! "${RCLONE_BIN}" listremotes 2>/dev/null | grep -q "^${B2_REMOTE}:$"; then
+# rclone remote existe (solo si off-site habilitado)
+if (( OFFSITE_ENABLED )) && ! "${RCLONE_BIN}" listremotes 2>/dev/null | grep -q "^${B2_REMOTE}:$"; then
     fail "rclone remote '${B2_REMOTE}' no configurado (corre '${RCLONE_BIN} config')"
 fi
 
@@ -172,23 +184,27 @@ cat > "${MANIFEST_PATH}" <<EOF
 }
 EOF
 
-# ─── Upload off-site ────────────────────────────────────────────
-YEAR_MONTH="$(date -u +%Y/%m)"
-REMOTE_DIR="${B2_REMOTE}:${B2_BUCKET}/${B2_PREFIX}/${YEAR_MONTH}"
+# ─── Upload off-site (opcional) ──────────────────────────────────
+if (( OFFSITE_ENABLED )); then
+    YEAR_MONTH="$(date -u +%Y/%m)"
+    REMOTE_DIR="${B2_REMOTE}:${B2_BUCKET}/${B2_PREFIX}/${YEAR_MONTH}"
 
-log "Uploading a ${REMOTE_DIR}..."
-START_UP=$(date +%s)
+    log "Uploading a ${REMOTE_DIR}..."
+    START_UP=$(date +%s)
 
-"${RCLONE_BIN}" copy --no-traverse --quiet \
-    "${DUMP_PATH}"     "${REMOTE_DIR}/" \
-    || fail "Upload del dump falló"
+    "${RCLONE_BIN}" copy --no-traverse --quiet \
+        "${DUMP_PATH}"     "${REMOTE_DIR}/" \
+        || fail "Upload del dump falló"
 
-"${RCLONE_BIN}" copy --no-traverse --quiet \
-    "${MANIFEST_PATH}" "${REMOTE_DIR}/" \
-    || fail "Upload del manifest falló"
+    "${RCLONE_BIN}" copy --no-traverse --quiet \
+        "${MANIFEST_PATH}" "${REMOTE_DIR}/" \
+        || fail "Upload del manifest falló"
 
-DURATION_UP=$(( $(date +%s) - START_UP ))
-log "Upload OK: ${DURATION_UP}s"
+    DURATION_UP=$(( $(date +%s) - START_UP ))
+    log "Upload OK: ${DURATION_UP}s"
+else
+    log "Sin off-site configurado — el backup queda solo en ${LOCAL_DIR} (VPS)."
+fi
 
 # ─── Retención local ────────────────────────────────────────────
 log "Aplicando retención local (${RETENTION_LOCAL_DAYS} días)..."
@@ -197,7 +213,11 @@ find "${LOCAL_DIR}" -maxdepth 1 -name "${DB_NAME}-*.manifest.json"  -mtime +${RE
 
 # ─── Cierre ─────────────────────────────────────────────────────
 TOTAL_DURATION=$(( $(date +%s) - START_DUMP ))
-log "✅ Backup completado: total ${TOTAL_DURATION}s, ${DUMP_SIZE} bytes off-site"
+if (( OFFSITE_ENABLED )); then
+    log "✅ Backup completado: total ${TOTAL_DURATION}s, ${DUMP_SIZE} bytes (local + off-site)"
+else
+    log "✅ Backup completado: total ${TOTAL_DURATION}s, ${DUMP_SIZE} bytes (solo local en ${LOCAL_DIR})"
+fi
 
 heartbeat_ok
 exit 0

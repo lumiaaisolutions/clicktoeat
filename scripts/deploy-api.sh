@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 #
-# ClickToEat — Deploy de la API (Laravel) a Hostinger Business Shared.
+# ClickToEat — Deploy de la API (Laravel) al VPS dedicado (Hostinger KVM 2).
+# Migrado desde el hosting compartido el 2026-08-07 — ver
+# docs/runbook/migracion-vps-dedicado-2026-08-06.md.
 #
 # Lo que hace:
 #   1. Valida pre-flight (rama git, tests pasan, SSH key existe).
@@ -17,18 +19,18 @@
 #   scripts/deploy-api.sh --dry-run          # mostrar qué se sincronizaría sin tocar
 #
 # Requisitos:
-#   - SSH key en ~/.ssh/hostinger_clicktoeat
+#   - SSH key en ~/.ssh/id_ed25519 (usuario `deploy`, ya autorizado en el VPS)
 #   - rsync, ssh, curl en local
 #   - Estar en la raíz del repo
 
 set -Eeuo pipefail
 
 # ─── Config ────────────────────────────────────────────────────
-SSH_HOST="86.38.202.72"
-SSH_PORT="65002"
-SSH_USER="u221820910"
-SSH_KEY="${SSH_KEY:-$HOME/.ssh/hostinger_clicktoeat}"
-REMOTE_API_PATH="/home/u221820910/domains/clicktoeat-api.lumiaaisolutions.com/public_html"
+SSH_HOST="2.24.123.93"
+SSH_PORT="8080"
+SSH_USER="deploy"
+SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_ed25519}"
+REMOTE_API_PATH="/var/www/clicktoeat/api"
 HEALTH_URL="https://clicktoeat-api.lumiaaisolutions.com/up"
 
 LOCAL_API_DIR="$(cd "$(dirname "$0")/.." && pwd)/apps/api"
