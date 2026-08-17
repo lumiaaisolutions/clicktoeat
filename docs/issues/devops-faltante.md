@@ -1,5 +1,10 @@
 # Issues — DevOps / Infra faltante
 
+> ⚠️ **Doc histórico (snapshot junio 2026).** Muchos ítems ya están cerrados
+> en el código. Fuente vigente de prioridades:
+> [`plan-fases-2026-08.md`](plan-fases-2026-08.md).
+
+
 > Snapshot al 2026-06-10. Marcador: ✅ = cerrado · 🟡 = parcial (script/diseño listo, falta deploy) · ❌ = abierto
 
 ## Pendientes del equipo (de `datos-deploy.md`)

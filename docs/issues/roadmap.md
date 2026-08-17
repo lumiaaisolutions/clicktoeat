@@ -1,5 +1,10 @@
 # Roadmap actualizado
 
+> ⚠️ **Doc histórico (snapshot junio 2026).** Muchos ítems ya están cerrados
+> en el código. Fuente vigente de prioridades:
+> [`plan-fases-2026-08.md`](plan-fases-2026-08.md).
+
+
 > Sustituye la tabla "Roadmap" del README, que está desactualizada al 2026-06-10.
 
 ## Estado real

@@ -54,10 +54,10 @@ interactivo y conversacional).
   y `pathname` opcional.
 - `App\Http\Controllers\Api\Admin\ClickyController@ask` — arma un system
   prompt fijo (restringe el tema, tono, evita alucinar features/datos del
-  negocio del usuario) y llama a `App\Services\AI\LLMClient` con
-  `provider = 'gemini'` explícito (independiente del `AI_PROVIDER` genérico
-  usado por las otras features de IA planeadas, ver
-  [`ia-features.md`](./ia-features.md)).
+  negocio del usuario) y llama a `App\Services\AI\LLMClient` con el
+  provider de `CLICKY_PROVIDER` (default `gemini`; en prod `ollama` —
+  independiente del `AI_PROVIDER` genérico usado por las otras features de
+  IA planeadas, ver [`ia-features.md`](./ia-features.md)).
 - `LLMClient::gemini()` — llama a
   `generativelanguage.googleapis.com/v1beta/models/{model}:generateContent`.
   Si la llamada falla (red, 4xx, 5xx, cuota) cae a una respuesta mock
@@ -68,9 +68,19 @@ interactivo y conversacional).
 
 ```env
 # apps/api/.env — NO se commitea (gitignored)
+CLICKY_PROVIDER=ollama               # prod: Ollama del propio VPS (sin cuota); alterno: gemini
+OLLAMA_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.1                # ajustar al modelo descargado (curl localhost:11434/api/tags)
 GEMINI_API_KEY=
 GEMINI_MODEL=gemini-2.0-flash-lite   # el más barato/rápido del catálogo Gemini
 ```
+
+**2026-08-17 — provider Ollama**: por el bloqueo de cuota de Gemini (429,
+ver abajo), Clicky en producción usa el **Ollama self-hosted del propio
+VPS** (`localhost:11434`, el mismo que ya usa n8n): sin API key, sin cuota,
+sin costo. `LLMClient::ollama()` soporta el system prompt y temperature vía
+`/api/chat`. Activación en prod:
+[`../runbook/activar-clicky-ollama-vps.md`](../runbook/activar-clicky-ollama-vps.md).
 
 Sin `GEMINI_API_KEY`, el endpoint responde con un mock plausible (igual que
 el resto de `LLMClient`) — útil para tests/CI sin gastar tokens.

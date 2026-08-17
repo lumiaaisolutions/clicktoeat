@@ -7,6 +7,7 @@ use App\Models\Ingrediente;
 use App\Models\Local;
 use App\Models\Pedido;
 use App\Models\Producto;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -16,15 +17,20 @@ class IdempotencyTest extends TestCase
     use RefreshDatabase;
 
     private Local $local;
+
     private Producto $producto;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->local    = Local::factory()->conHorarios()->create();
-        $categoria      = Categoria::factory()->paraLocal($this->local)->create();
-        $ingrediente    = Ingrediente::factory()->paraLocal($this->local)->conStock(1000)->create();
+        // `conHorarios()` no abre domingos: congela el reloj en un miércoles
+        // 15:00 CDMX para que el pedido público no dependa del día real.
+        $this->travelTo(Carbon::parse('next wednesday 15:00', 'America/Mexico_City'));
+
+        $this->local = Local::factory()->conHorarios()->create();
+        $categoria = Categoria::factory()->paraLocal($this->local)->create();
+        $ingrediente = Ingrediente::factory()->paraLocal($this->local)->conStock(1000)->create();
         $this->producto = Producto::factory()
             ->paraLocal($this->local, $categoria)
             ->conReceta($ingrediente, 1)
@@ -34,10 +40,10 @@ class IdempotencyTest extends TestCase
     private function payload(): array
     {
         return [
-            'cliente'        => ['nombre' => 'Xy', 'telefono' => '5215512345678'],
+            'cliente' => ['nombre' => 'Xy', 'telefono' => '5215512345678'],
             'metodo_entrega' => 'pickup',
-            'metodo_pago'    => 'efectivo',
-            'items'          => [['producto_id' => $this->producto->id, 'cantidad' => 1]],
+            'metodo_pago' => 'efectivo',
+            'items' => [['producto_id' => $this->producto->id, 'cantidad' => 1]],
         ];
     }
 
@@ -117,7 +123,7 @@ class IdempotencyTest extends TestCase
     }
 
     /** @test */
-    public function respuesta_de_error_NO_se_cachea(): void
+    public function respuesta_de_error_n_o_se_cachea(): void
     {
         // Cierro temporalmente el local — el pedido falla con 409
         $this->local->update(['cerrado_temporal' => true]);

@@ -6,6 +6,36 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+### Added/Changed — Clicky→Ollama + CI completo + plan por fases (2026-08-17)
+
+**Clicky con Ollama self-hosted (sin cuota)** — por el 429 de Gemini:
+provider `ollama` en `LLMClient` (system prompt + temperature vía
+`/api/chat` del Ollama del VPS, `localhost:11434` — el mismo que usa n8n),
+`CLICKY_PROVIDER` configurable en `services.php`/`.env` (default `gemini`),
+`ClickyController` lo lee de config. Tests nuevos con `Http::fake`
+(responde sin API key; fallback si Ollama cae). Activación prod:
+`docs/runbook/activar-clicky-ollama-vps.md`. Portado a ClickToShop en la
+misma sesión (paridad).
+
+**CI completo**: cleanup masivo de Pint (~300 archivos) + paso `pint --test`
+reactivado; eslint downgradeado a v8 + lint reactivado (fix real de
+rules-of-hooks en `PinnedFoodStory`: `frameOpacity` → `useFrameOpacity`;
+regla cosmética `react/no-unescaped-entities` off); **vitest** agregado al
+frontend con test espejo del mensaje WhatsApp
+(`src/lib/__tests__/whatsapp.test.ts`, 6 tests) + paso en CI.
+
+**Fix — tests dependientes de fecha**: `IdempotencyTest` y
+`EndpointPublicoTamperingTest` fallaban en domingo (la factory
+`conHorarios()` no abre domingos → 409 del guard de horario en pedidos
+públicos). Congelan reloj en miércoles 15:00 CDMX con `travelTo`. Suite
+completa: 332 tests verdes.
+
+**Docs**: CLAUDE.md reescrito post-migración VPS (fuera CageFS/Passenger/
+LiteSpeed) + regla de paridad ClickToEat↔ClickToShop en ambos repos;
+`docs/issues/plan-fases-2026-08.md` (estado real verificado + fases);
+runbooks de Ollama y mail actualizados; docs de issues de junio marcados
+como históricos.
+
 ### Security — Cierre del audit 2026-06-22 (SEV-12 + SEV-18 completos)
 
 - **SEV-12 cerrado completo** (5 commits, `b47dea6` → `c5f64ee`):

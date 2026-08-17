@@ -1,5 +1,10 @@
 # Issues — Funcionalidad faltante
 
+> ⚠️ **Doc histórico (snapshot junio 2026).** Muchos ítems ya están cerrados
+> en el código. Fuente vigente de prioridades:
+> [`plan-fases-2026-08.md`](plan-fases-2026-08.md).
+
+
 > Capabilities ausentes que el negocio/operación va a pedir tarde o temprano. Priorizado por impacto.
 
 ## ✅ Cerrado en Fase 7 (2026-06-10)

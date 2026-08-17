@@ -110,7 +110,7 @@ export function PinnedFoodStory() {
 
 /* Cada frame ocupa el rango [i/total, (i+1)/total]. Cross-fade con la
    anterior/siguiente en sus bordes — ventana de 6%. */
-function frameOpacity(index: number, total: number, progress: MotionValue<number>) {
+function useFrameOpacity(index: number, total: number, progress: MotionValue<number>) {
   const segment = 1 / total;
   const start = index * segment;
   const end = (index + 1) * segment;
@@ -131,7 +131,7 @@ function frameOpacity(index: number, total: number, progress: MotionValue<number
 function FrameImage({
   frame, index, progress, total,
 }: { frame: Frame; index: number; progress: MotionValue<number>; total: number }) {
-  const opacity = frameOpacity(index, total, progress);
+  const opacity = useFrameOpacity(index, total, progress);
   const segment = 1 / total;
   const scale   = useTransform(progress, [index * segment, (index + 1) * segment], [1.05, 1], { clamp: true });
 
@@ -158,7 +158,7 @@ function FrameImage({
 function FrameText({
   frame, index, progress, total,
 }: { frame: Frame; index: number; progress: MotionValue<number>; total: number }) {
-  const opacity = frameOpacity(index, total, progress);
+  const opacity = useFrameOpacity(index, total, progress);
   const segment = 1 / total;
   // El texto sube de 30px → 0 a la vez que aparece — feel editorial
   const y = useTransform(progress, [index * segment - segment * 0.15, index * segment], [30, 0], { clamp: true });

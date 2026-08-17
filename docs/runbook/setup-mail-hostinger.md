@@ -2,6 +2,38 @@
 
 > Sin esto, el reset de contraseña por email (Fase 7b) no envía nada — sólo escribe el email al log. Para producción real necesitamos un mailer funcional.
 
+## ⚡ Actualización 2026-08-17 — procedimiento vigente (VPS)
+
+Las credenciales SMTP **ya existen y funcionan**: el `.env` local de
+`apps/api/` tiene las 8 vars `MAIL_*` configuradas desde F24 (SMTP de
+Hostinger con la cuenta del dominio LUMIA). Solo falta replicarlas al
+`.env` del VPS. El resto de este runbook (crear buzón, rutas del host
+viejo `86.38.202.72`) es histórico — el servidor actual es el VPS
+(`deploy@2.24.123.93 -p 8080`, ver `docs/infra/deploy-hostinger.md`).
+
+```bash
+# Desde la raíz del repo local (las MAIL_* viajan por SSH, no quedan en logs):
+ssh -p 8080 deploy@2.24.123.93 "sed -i '/^MAIL_/d' /var/www/clicktoeat/api/.env"
+grep '^MAIL_' apps/api/.env | ssh -p 8080 deploy@2.24.123.93 "cat >> /var/www/clicktoeat/api/.env"
+ssh -p 8080 deploy@2.24.123.93 "cd /var/www/clicktoeat/api && php artisan config:clear && php artisan config:cache"
+```
+
+Prueba real (envía un mail de verdad):
+
+```bash
+ssh -p 8080 deploy@2.24.123.93 "cd /var/www/clicktoeat/api && php artisan tinker --execute=\"Mail::raw('SMTP OK — ClickToEat prod', fn(\\\$m) => \\\$m->to('nando.torres0987@gmail.com')->subject('Prueba SMTP ClickToEat'));\""
+```
+
+Verifica que llegue a la bandeja (y no a spam). Luego probar el flujo real:
+`/forgot-password` desde el frontend con un usuario existente.
+
+**ClickToShop**: su `.env` local NO tiene `MAIL_*` — copiar las mismas vars
+(mismo SMTP, ajustar `MAIL_FROM_NAME` a "ClickToShop") a
+`/var/www/clicktoshop/api/.env` con el mismo procedimiento (paridad).
+
+---
+
+
 ## Opción recomendada: Hostinger Email (incluido en Business)
 
 Hostinger Business **incluye buzones de email gratis** con el dominio. No requiere proveedor externo.

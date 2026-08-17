@@ -6,23 +6,23 @@
 
 | | |
 |---|---|
-| Frontend | https://clicktoeat.lumiaaisolutions.com |
-| API | https://clicktoeat-api.lumiaaisolutions.com |
-| Hosting | Hostinger **VPS** (Phoenix, AZ) con **CageFS** (usuario SSH enjaulado) |
-| SSH | `ssh -i ~/.ssh/hostinger_clicktoeat -p 65002 u221820910@86.38.202.72` (alterna: `~/.ssh/id_ed25519`) |
-| BD | MySQL managed (`localhost`, BD `u221820910_clicktoeat`) |
-| Web server | **LiteSpeed** — config via `.htaccess` (compat Apache) |
-| Node runtime | **Passenger** (`lsnode`) en `~/domains/clicktoeat.lumiaaisolutions.com/nodejs/` |
-| API root | `~/domains/clicktoeat-api.lumiaaisolutions.com/public_html/` |
-| Uploads | `~/.../public_html/storage/app/public/uploads/` (symlink desde `public/storage` — junio 2026) |
-| Backups | Snapshots semanales en hPanel `/vps/<id>/backups` — **full-restore destructivo** (no parcial). Daily backups = add-on $6/mes |
+| Frontend | https://clicktoeat.lumiaaisolutions.com (Next.js standalone, **PM2** proceso `clicktoeat-web`, puerto 3004) |
+| API | https://clicktoeat-api.lumiaaisolutions.com (Laravel 11 + **PHP 8.4-fpm**) |
+| Hosting | Hostinger **VPS dedicado** KVM 2 (`srv1698236.hstgr.cloud`) — migrado 2026-08-07 desde el shared hosting viejo (ya dado de baja). **Compartido con otros productos LUMIA en vivo** (`lumia-hq`, `lumia-portal`, `lumina-restaurante`, Docker `tradetrove-*`/`n8n`/`ollama`) |
+| SSH | `ssh -p 8080 deploy@2.24.123.93` (key `~/.ssh/id_ed25519`; root bloqueado; `deploy` tiene sudo passwordless) |
+| BD | MySQL 8 local (`127.0.0.1:3306`, BD `u221820910_clicktoeat` — nombre heredado) |
+| Web server | **Nginx** (config por sitio en `/etc/nginx/sites-available/`) + certbot/Let's Encrypt |
+| API root | `/var/www/clicktoeat/api/` |
+| Uploads | `/var/www/clicktoeat/api/storage/app/public/uploads/` (symlink `public/storage` → `storage/app/public`) |
+| Backups | `backup-mysql.sh` vía cron real del VPS (03:00 UTC, log en `/var/www/clicktoeat/logs/backup.log`) — retención local; off-site B2 opcional sin configurar |
+| IA (Clicky) | Ollama self-hosted en el mismo VPS (`localhost:11434`, el mismo que usa n8n) — `CLICKY_PROVIDER=ollama`; Gemini queda de alterno |
 
 **Cualquier cambio que afecte runtime de prod**: leer [`docs/infra/deploy-hostinger.md`](docs/infra/deploy-hostinger.md) primero. Scripts de deploy + rollback en [`scripts/`](scripts/).
 
 **Deploy automatizado** (sustituye al scp manual):
 ```bash
 ./scripts/deploy-api.sh   # rsync + composer + migrate + cache + health check
-./scripts/deploy-web.sh   # next build + tar + scp + restart Passenger + health check
+./scripts/deploy-web.sh   # next build + tar + scp + pm2 restart + health check
 ```
 
 ## Qué es
@@ -125,42 +125,50 @@ Ver [`docs/architecture/multi-tenancy.md`](docs/architecture/multi-tenancy.md) y
 - Si agregas/cambias una columna → actualizar `docs/database/schema.md`.
 - Si tomas una decisión arquitectónica grande → ADR en `docs/decisions/`.
 
-### Hostinger VPS + CageFS — restricciones reales
+### VPS Hostinger (post-migración 2026-08-07) — reglas reales
 
-El producto se llama **VPS Hostinger** (`/vps/<id>` en hPanel) pero el SSH del
-usuario está **enjaulado con CageFS** — funcionalmente comparte casi todas
-las limitaciones de un plan Shared. Asume lo siguiente:
+El sistema vive en un **VPS real** (Ubuntu 24.04, root vía `deploy` + sudo),
+NO en el shared hosting con CageFS de antes (dado de baja). Reglas:
 
-- ❌ **No hay Docker en prod.** El `docker-compose.yml` es para dev local únicamente.
-- ❌ **No hay sudo real** (estás enjaulado). Crons se gestionan desde **hPanel → Trabajos Cron**, no `crontab -e` ni `/etc/cron.d`.
-- ⚠️ **El ejecutor de cron de hPanel no pasa el comando por una shell real** — `cd X && comando`, `>>`, comillas anidadas, todo eso falla o se comporta raro (confirmado jul 2026, ver [`docs/runbook/setup-cron-scheduler.md`](docs/runbook/setup-cron-scheduler.md)). Cualquier cron con lógica no trivial va en un script `.sh` en el servidor (`chmod +x`); el campo "Comando" del cron es solo la ruta a ese script. Y **verificar que el log realmente crece**, no solo que el cron aparece en la lista de hPanel — puede estar "creado" sin ejecutar nada.
-- ❌ **No hay `apt`/`yum`** ni acceso a `/etc/`. Herramientas extras → binarios standalone en `~/bin/` (rclone, etc.).
-- ❌ **No ves procesos del host** (`ps aux`, `ss`, `netstat` solo muestran lo tuyo).
-- ❌ **El usuario MySQL no tiene `SUPER`, `RELOAD`, `--routines`, `--triggers`**. `mysqldump` debe usar `--no-tablespaces`, sin routines/triggers.
-- ⚠️ **Backups del panel = full-restore destructivo del VM completo**. NO se puede restaurar solo un directorio. Para restauración granular hay que SSH al snapshot externamente o pagar plan superior.
-- ✅ **PHP corre como LSPHP** (LiteSpeed PHP). Restart de workers con `touch .htaccess` o desde hPanel.
-- ✅ **Node corre con Passenger** (`lsnode`). Restart con `passenger-config restart-app /path` o `touch tmp/restart.txt`.
-- ✅ **Headers de seguridad** se configuran en `.htaccess` (LiteSpeed lee sintaxis Apache).
-- ✅ **HTTPS** Let's Encrypt auto-renovado por Hostinger (no requiere acción).
-- ✅ **Healthcheck** está en `/up` (Laravel 11 default), NO en `/api/v1/health`.
-- ✅ **Snapshots semanales** automáticos en hPanel `/vps/<id>/backups`. Daily backups = add-on $6/mes.
+- ⚠️ **El VPS es compartido con otros productos LUMIA en producción**
+  (`lumia-hq`, `lumia-portal`, `lumina-restaurante`, Docker `tradetrove-*`,
+  `n8n`, `ollama`). Cualquier acción a nivel sistema (reiniciar `php8.4-fpm`
+  o nginx, `apt install`, tocar `/etc/`) puede afectarlos — **confirmar con
+  el usuario antes** de tocar algo que no sea exclusivo de ClickToEat/ClickToShop.
+- ❌ **No hay Docker para ClickToEat en prod.** El `docker-compose.yml` es dev local. (Sí hay contenedores Docker de OTROS productos en el VPS — no tocarlos.)
+- ✅ **Crons reales** con `crontab -e` del usuario `deploy` (no tocar las líneas de `lumia-hq-cron.sh`). Backup MySQL ya corre a las 03:00 UTC.
+- ✅ **Node corre con PM2** (`pm2 restart clicktoeat-web`, puerto 3004). Sobrevive reboots vía `pm2-deploy.service`.
+- ✅ **PHP 8.4-fpm** compartido con otros sitios del VPS — reiniciarlo requiere confirmación del usuario.
+- ✅ **Nginx** por sitio en `/etc/nginx/sites-available/`; siempre `sudo nginx -t` antes de `reload`.
+- ✅ **HTTPS** certbot con renovación automática (systemd timer).
+- ✅ **Healthcheck** está en `/up` (Laravel 11 default), NO en `/api/v1/health`. Monitoreo externo: UptimeRobot (4 monitores web/api de ambos proyectos).
+- ✅ **Ollama** corre en `localhost:11434` (lo usa n8n y ahora Clicky vía `CLICKY_PROVIDER=ollama`) — sin API key ni cuota.
+- ⚠️ **DNS**: los 4 subdominios tienen registros `A` → `2.24.123.93` en la zona de `lumiaaisolutions.com`. Ojo: borrar un "Website" en el hPanel shared puede arrastrarse el registro DNS (incidente 2026-08-07).
+- Detalle completo: [`docs/infra/deploy-hostinger.md`](docs/infra/deploy-hostinger.md).
 
-### `.htaccess` críticos (NO los borres ni los toques con `touch`)
-
-- `apps/api/.htaccess` (committed) → manda `^(.*)$` a `public/$1` (entry de Laravel).
-- `apps/api/public/.htaccess` (committed) → reescribe a `index.php`.
-- `apps/web/...` (Passenger maneja, NO uses `.htaccess`).
-
-⚠️ **`touch .htaccess` lo SOBRESCRIBE** si lo redirigís a archivo vacío.
-Para reiniciar LSPHP usar `touch -a .htaccess` (solo actualiza atime).
-
-### Uploads de imágenes (junio 2026)
+### Uploads de imágenes
 
 - Disk `public` de Laravel → escribe a `storage/app/public/uploads/`.
 - `public/storage` es **symlink** a `storage/app/public/` (estándar Laravel).
-- LiteSpeed sirve URL `/storage/uploads/...` siguiendo el symlink.
+- Nginx sirve `/storage/uploads/...` siguiendo el symlink.
 - `deploy-api.sh` excluye **ambos paths** del rsync — uploads jamás se tocan por deploy.
 - Si las imágenes desaparecen tras deploy: ver [`docs/runbook/recuperar-uploads-perdidos.md`](docs/runbook/recuperar-uploads-perdidos.md).
+
+### Paridad ClickToEat ↔ ClickToShop (regla persistente)
+
+**ClickToShop (`../clicktoshop/`) es el proyecto hermano**: mismo stack,
+misma arquitectura, distinto dominio (tiendas en vez de restaurantes).
+Las features de plataforma deben mantenerse **a la par** en ambos —
+como se hizo con Clicky (asistente IA + tours) y con el provider Ollama:
+
+- Si implementas o cambias una feature de plataforma aquí (IA/Clicky,
+  billing, auth, infra de deploy, CI, seguridad), **replica el cambio en
+  clicktoshop adaptando solo el contexto de dominio** (copys, módulos,
+  branding) — y viceversa.
+- Si un cambio NO se puede portar en la misma sesión, déjalo registrado
+  como pendiente explícito en el cierre de sesión de AMBOS repos.
+- Lo específico del dominio (recetas/inventario de comida vs. catálogo de
+  tienda) no se fuerza a la par.
 
 ## Convenciones de naming
 

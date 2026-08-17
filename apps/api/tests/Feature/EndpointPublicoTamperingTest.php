@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Categoria;
+use App\Models\DetallePedido;
 use App\Models\Local;
 use App\Models\Producto;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -22,14 +24,19 @@ class EndpointPublicoTamperingTest extends TestCase
     use RefreshDatabase;
 
     private Local $local;
+
     private Producto $producto;
 
     protected function setUp(): void
     {
         parent::setUp();
 
+        // `conHorarios()` no abre domingos: congela el reloj en un miércoles
+        // 15:00 CDMX para que el pedido público no dependa del día real.
+        $this->travelTo(Carbon::parse('next wednesday 15:00', 'America/Mexico_City'));
+
         $this->local = Local::factory()->conHorarios()->create();
-        $categoria   = Categoria::factory()->paraLocal($this->local)->create();
+        $categoria = Categoria::factory()->paraLocal($this->local)->create();
 
         // Producto con extras canónicos:
         //   Tortilla (one, required): Maíz $0 | Harina $5
@@ -44,13 +51,13 @@ class EndpointPublicoTamperingTest extends TestCase
     public function pedido_con_extras_validos_usa_precios_del_catalogo(): void
     {
         $resp = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente'        => ['nombre' => 'Xy', 'telefono' => '5215512345678'],
+            'cliente' => ['nombre' => 'Xy', 'telefono' => '5215512345678'],
             'metodo_entrega' => 'pickup',
-            'metodo_pago'    => 'efectivo',
+            'metodo_pago' => 'efectivo',
             'items' => [[
                 'producto_id' => $this->producto->id,
-                'cantidad'    => 1,
-                'extras'      => [
+                'cantidad' => 1,
+                'extras' => [
                     ['group' => 'Tortilla', 'item' => 'Harina',   'price' => 5],
                     ['group' => 'Salsas',   'item' => 'Habanero', 'price' => 0],
                 ],
@@ -61,20 +68,20 @@ class EndpointPublicoTamperingTest extends TestCase
 
         // precio = 30 (producto) + 5 (Harina) + 0 (Habanero) = 35
         $resp->assertJsonPath('data.subtotal', 35);
-        $resp->assertJsonPath('data.total',    35);
+        $resp->assertJsonPath('data.total', 35);
     }
 
     /** @test */
     public function rechaza_extra_con_grupo_inexistente(): void
     {
         $resp = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente'        => ['nombre' => 'Xy', 'telefono' => '5215512345678'],
+            'cliente' => ['nombre' => 'Xy', 'telefono' => '5215512345678'],
             'metodo_entrega' => 'pickup',
-            'metodo_pago'    => 'efectivo',
+            'metodo_pago' => 'efectivo',
             'items' => [[
                 'producto_id' => $this->producto->id,
-                'cantidad'    => 1,
-                'extras'      => [
+                'cantidad' => 1,
+                'extras' => [
                     ['group' => 'GrupoFantasma', 'item' => 'Harina', 'price' => 5],
                 ],
             ]],
@@ -90,13 +97,13 @@ class EndpointPublicoTamperingTest extends TestCase
     public function rechaza_extra_con_item_inexistente_en_el_grupo(): void
     {
         $resp = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente'        => ['nombre' => 'Xy', 'telefono' => '5215512345678'],
+            'cliente' => ['nombre' => 'Xy', 'telefono' => '5215512345678'],
             'metodo_entrega' => 'pickup',
-            'metodo_pago'    => 'efectivo',
+            'metodo_pago' => 'efectivo',
             'items' => [[
                 'producto_id' => $this->producto->id,
-                'cantidad'    => 1,
-                'extras'      => [
+                'cantidad' => 1,
+                'extras' => [
                     ['group' => 'Tortilla', 'item' => 'Oro Macizo', 'price' => 0],
                 ],
             ]],
@@ -112,13 +119,13 @@ class EndpointPublicoTamperingTest extends TestCase
         // El cliente manda Harina con price=999 (intento de inflar).
         // Backend debe ignorarlo y usar el catálogo (Harina = $5).
         $resp = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente'        => ['nombre' => 'Xy', 'telefono' => '5215512345678'],
+            'cliente' => ['nombre' => 'Xy', 'telefono' => '5215512345678'],
             'metodo_entrega' => 'pickup',
-            'metodo_pago'    => 'efectivo',
+            'metodo_pago' => 'efectivo',
             'items' => [[
                 'producto_id' => $this->producto->id,
-                'cantidad'    => 2,
-                'extras'      => [
+                'cantidad' => 2,
+                'extras' => [
                     ['group' => 'Tortilla', 'item' => 'Harina', 'price' => 999],
                 ],
             ]],
@@ -138,13 +145,13 @@ class EndpointPublicoTamperingTest extends TestCase
         // (Defensa en profundidad: si la validación se rompe, el service
         // también reemplaza por catálogo — ver `ignora_precio_del_cliente`.)
         $resp = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente'        => ['nombre' => 'Xy', 'telefono' => '5215512345678'],
+            'cliente' => ['nombre' => 'Xy', 'telefono' => '5215512345678'],
             'metodo_entrega' => 'pickup',
-            'metodo_pago'    => 'efectivo',
+            'metodo_pago' => 'efectivo',
             'items' => [[
                 'producto_id' => $this->producto->id,
-                'cantidad'    => 1,
-                'extras'      => [
+                'cantidad' => 1,
+                'extras' => [
                     ['group' => 'Tortilla', 'item' => 'Harina', 'price' => -100],
                 ],
             ]],
@@ -157,20 +164,20 @@ class EndpointPublicoTamperingTest extends TestCase
     public function los_extras_persisten_normalizados_en_detalle_pedidos(): void
     {
         $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente'        => ['nombre' => 'Xy', 'telefono' => '5215512345678'],
+            'cliente' => ['nombre' => 'Xy', 'telefono' => '5215512345678'],
             'metodo_entrega' => 'pickup',
-            'metodo_pago'    => 'efectivo',
+            'metodo_pago' => 'efectivo',
             'items' => [[
                 'producto_id' => $this->producto->id,
-                'cantidad'    => 1,
-                'extras'      => [
+                'cantidad' => 1,
+                'extras' => [
                     ['group' => 'Tortilla', 'item' => 'Harina', 'price' => 999],
                 ],
             ]],
         ])->assertCreated();
 
         // El detalle debe tener el extra con precio canónico (5), no el del cliente (999)
-        $detalle = \App\Models\DetallePedido::first();
+        $detalle = DetallePedido::first();
         $this->assertNotNull($detalle);
         $this->assertEquals([
             ['group' => 'Tortilla', 'item' => 'Harina', 'price' => 5],
@@ -180,18 +187,18 @@ class EndpointPublicoTamperingTest extends TestCase
     /** @test */
     public function rechaza_pedido_con_producto_de_otro_local(): void
     {
-        $otroLocal     = Local::factory()->conHorarios()->create();
+        $otroLocal = Local::factory()->conHorarios()->create();
         $otroCategoria = Categoria::factory()->paraLocal($otroLocal)->create();
-        $otroProducto  = Producto::factory()->paraLocal($otroLocal, $otroCategoria)->create();
+        $otroProducto = Producto::factory()->paraLocal($otroLocal, $otroCategoria)->create();
 
         // Intento: pedir un producto de OTRO local desde la landing de éste
         $resp = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente'        => ['nombre' => 'Xy', 'telefono' => '5215512345678'],
+            'cliente' => ['nombre' => 'Xy', 'telefono' => '5215512345678'],
             'metodo_entrega' => 'pickup',
-            'metodo_pago'    => 'efectivo',
+            'metodo_pago' => 'efectivo',
             'items' => [[
                 'producto_id' => $otroProducto->id,
-                'cantidad'    => 1,
+                'cantidad' => 1,
             ]],
         ]);
 

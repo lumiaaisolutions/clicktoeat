@@ -79,13 +79,11 @@ jobs:
         if: steps.changes.outputs.api == 'true'
         run: chmod -R 775 storage bootstrap/cache
 
-      # Pint está temporalmente desactivado: el codebase pre-existente tiene
-      # ~70 archivos con drift de formato (binary_operator_spaces, braces_position,
-      # ordered_imports, etc). Reactivar después de correr `vendor/bin/pint`
-      # en local y commitear el cleanup masivo en un solo paso.
-      # - name: Run Pint (PHP linter — check only)
-      #   if: steps.changes.outputs.api == 'true'
-      #   run: vendor/bin/pint --test
+      # Reactivado 2026-08-17 tras el cleanup masivo de formato (`vendor/bin/pint`
+      # sobre ~300 archivos, suite completa verde después).
+      - name: Run Pint (PHP linter — check only)
+        if: steps.changes.outputs.api == 'true'
+        run: vendor/bin/pint --test
 
       - name: Run PHPUnit (sqlite in-memory)
         if: steps.changes.outputs.api == 'true'
@@ -131,14 +129,17 @@ jobs:
         if: steps.changes.outputs.web == 'true'
         run: npm run typecheck
 
-      # Lint desactivado: eslint@9 (root) usa opciones runtime removidas que
-      # eslint-config-next@14.2.15 todavía referencia (useEslintrc, extensions,
-      # resolvePluginsRelativeTo, rulePaths, ignorePath, reportUnusedDisableDirectives).
-      # Reactivar al subir eslint-config-next@15 o downgrade eslint@8 (requiere
-      # regenerar package-lock.json en local). next build sigue validando sintaxis.
-      # - name: Lint
-      #   if: steps.changes.outputs.web == 'true'
-      #   run: npm run lint
+      # Reactivado 2026-08-17: eslint downgradeado a v8 (compatible con
+      # eslint-config-next@14) + fix de rules-of-hooks en PinnedFoodStory.
+      - name: Lint
+        if: steps.changes.outputs.web == 'true'
+        run: npm run lint
+
+      # Vitest — hoy cubre el espejo TS del mensaje WhatsApp (formato debe
+      # coincidir con WhatsAppLinkBuilder del backend).
+      - name: Unit tests (vitest)
+        if: steps.changes.outputs.web == 'true'
+        run: npm run test
 
       - name: Build (verifica compilación productiva)
         if: steps.changes.outputs.web == 'true'

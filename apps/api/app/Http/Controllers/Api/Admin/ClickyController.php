@@ -49,7 +49,10 @@ PROMPT;
 
     public function ask(AskClickyRequest $req): JsonResponse
     {
-        $client = new LLMClient('gemini', config('services.ai.gemini_api_key'));
+        $client = new LLMClient(
+            config('services.ai.clicky_provider', 'gemini'),
+            config('services.ai.gemini_api_key'),
+        );
 
         $userMessage = sprintf(
             "Pantalla actual del panel: %s\nPregunta del usuario: %s",
@@ -58,10 +61,10 @@ PROMPT;
         );
 
         $reply = $client->complete($userMessage, [
-            'system'      => self::SYSTEM_PROMPT,
-            'max_tokens'  => 220,
+            'system' => self::SYSTEM_PROMPT,
+            'max_tokens' => 220,
             'temperature' => 0.3,
-            'fallback'    => self::FALLBACK_REPLY,
+            'fallback' => self::FALLBACK_REPLY,
         ]);
 
         return response()->json(['data' => ['reply' => trim($reply)]]);
