@@ -45,10 +45,17 @@ expiración de tokens Sanctum (7 días, `config/sanctum.php`), CI en
 - ✅ Confirmado por el usuario: el **login en producción funciona** — se
   cierra el pendiente de validación post-migración de la Fase 7.
 
-## Fase 1 — Cierre operativo en el VPS (requiere SSH; comandos listos)
+## Fase 1 — Cierre operativo en el VPS — ✅ ejecutada 2026-08-17 (salvo mail)
 
-> El SSH desde esta sesión está bloqueado por permisos — los comandos
-> exactos están en [`runbook/activar-clicky-ollama-vps.md`](../runbook/activar-clicky-ollama-vps.md)
+Estado real tras la ejecución: APIs de ambos proyectos desplegadas (health
+OK), Clicky activo con Ollama (`qwen2.5:3b`, respuestas reales en 2-4 s,
+verificado server-side en ambos), backups y cron intactos. **Mail quedó
+bloqueado**: el password SMTP del buzón ya no autentica (535) — se dejó
+`MAIL_MAILER=log` como fallback; falta que el usuario resetee el password
+del buzón (ver runbook de mail). El push a GitHub se hizo en esta misma
+sesión.
+
+> Procedimientos: [`runbook/activar-clicky-ollama-vps.md`](../runbook/activar-clicky-ollama-vps.md)
 > y [`runbook/setup-mail-hostinger.md`](../runbook/setup-mail-hostinger.md).
 
 1. **Deploy del código de esta sesión** (`./scripts/deploy-api.sh` +
@@ -86,8 +93,8 @@ expiración de tokens Sanctum (7 días, `config/sanctum.php`), CI en
 2. **SEO restante**: `sitemap.ts` y `robots.ts` no existen en
    `apps/web/src/app/`; `generateMetadata` por landing SÍ existe. Verificar
    OG dinámico y JSON-LD antes de implementar.
-3. **Reactivar pint/eslint en clicktoshop** si su CI está en el mismo
-   estado (paridad — no verificado hoy).
+3. **Reactivar eslint/vitest en el CI de clicktoshop** (pint ya quedó
+   reactivado hoy por paridad; el lint/tests del frontend siguen pendientes ahí).
 4. **Exports PDF** (CSV ya existe) — solo si el negocio lo pide.
 
 ## Fase 4 — Largo plazo (sin cambios de prioridad)

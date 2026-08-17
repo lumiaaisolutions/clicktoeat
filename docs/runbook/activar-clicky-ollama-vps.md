@@ -6,6 +6,16 @@
 > proveedor externo. El código ya soporta `CLICKY_PROVIDER=ollama` en ambos
 > repos (2026-08-17); esto es solo la activación en producción.
 
+## ✅ EJECUTADO 2026-08-17 — estado real
+
+Activado en producción en **ambos** proyectos con `OLLAMA_MODEL=qwen2.5:3b`
+(el 7b excede el timeout en carga fría: el VPS es KVM 2 con 2 vCPU y RAM
+justa). Verificado end-to-end server-side: respuestas reales de IA en
+**2-4 s** (caliente) por pregunta. El cliente además usa `keep_alive`
+(default 30m, `OLLAMA_KEEP_ALIVE`) para mantener el modelo caliente entre
+preguntas sin dejarlo residente, y timeout de 120 s para absorber la carga
+fría. Lo de abajo queda como referencia del procedimiento.
+
 Aplica a **clicktoeat** y **clicktoshop** (paridad). Rutas por proyecto:
 `/var/www/clicktoeat/api` y `/var/www/clicktoshop/api`.
 

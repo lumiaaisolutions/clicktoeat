@@ -24,6 +24,15 @@ Prueba real (envía un mail de verdad):
 ssh -p 8080 deploy@2.24.123.93 "cd /var/www/clicktoeat/api && php artisan tinker --execute=\"Mail::raw('SMTP OK — ClickToEat prod', fn(\\\$m) => \\\$m->to('nando.torres0987@gmail.com')->subject('Prueba SMTP ClickToEat'));\""
 ```
 
+⚠️ **Intento 2026-08-17**: las vars se replicaron al VPS pero el SMTP de
+Hostinger rechazó la autenticación (`535 authentication failed`) con las
+credenciales del `.env` local (`fernando@lumiaaisolutions.com`) — el
+password ya no es válido. Se dejó **`MAIL_MAILER=log`** en ambos proyectos
+como fallback seguro (el resto de vars `MAIL_*` quedaron listas). Para
+activar: resetear el password del buzón en hPanel → Email, actualizar
+`MAIL_PASSWORD` en `/var/www/{clicktoeat,clicktoshop}/api/.env`, poner
+`MAIL_MAILER=smtp` y `php artisan config:clear && config:cache`.
+
 Verifica que llegue a la bandeja (y no a spam). Luego probar el flujo real:
 `/forgot-password` desde el frontend con un usuario existente.
 
