@@ -125,11 +125,15 @@ class LLMClient
         }
         $messages[] = ['role' => 'user', 'content' => $prompt];
 
-        $res = Http::timeout(60)->post(
+        // timeout 120: la carga fría del modelo en el VPS (2 vCPU, RAM justa)
+        // puede tardar >60s; keep_alive lo mantiene caliente entre preguntas
+        // de una misma sesión sin dejarlo residente para siempre.
+        $res = Http::timeout(120)->post(
             config('services.ai.ollama_url').'/api/chat',
             [
                 'model' => $opts['model'] ?? config('services.ai.ollama_model'),
                 'stream' => false,
+                'keep_alive' => config('services.ai.ollama_keep_alive', '30m'),
                 'messages' => $messages,
                 'options' => [
                     'num_predict' => $opts['max_tokens'] ?? 300,

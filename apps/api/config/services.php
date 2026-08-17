@@ -17,6 +17,7 @@ return [
         // Ollama self-hosted (mismo VPS, el que ya usa n8n) — sin API key.
         'ollama_url' => rtrim(env('OLLAMA_URL', 'http://localhost:11434'), '/'),
         'ollama_model' => env('OLLAMA_MODEL', 'llama3.1'),
+        'ollama_keep_alive' => env('OLLAMA_KEEP_ALIVE', '30m'),
 
         // Clicky (F103): provider propio, independiente del genérico de
         // arriba. En prod se usa `ollama` (VPS local, sin cuota); `gemini`
