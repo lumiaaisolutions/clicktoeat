@@ -5,6 +5,7 @@ import { InitialLoader } from '@/components/ui/InitialLoader';
 import { RouteTransition } from '@/components/ui/RouteTransition';
 import { PwaRegister } from '@/components/pwa/PwaRegister';
 import { RefCapture } from '@/components/referral/RefCapture';
+import { Analytics } from '@/components/analytics/Analytics';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
@@ -33,6 +34,9 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'ClickToEat — Pide por WhatsApp',
     description: 'Tu antojo, a un mensaje de distancia.',
+  },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
   },
 };
 
@@ -66,6 +70,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <PwaRegister />
         <RefCapture />
         {children}
+        <Analytics />
       </body>
     </html>
   );
