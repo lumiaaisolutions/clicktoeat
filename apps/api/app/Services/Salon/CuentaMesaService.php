@@ -6,6 +6,7 @@ use App\Models\CuentaMesa;
 use App\Models\GiftCard;
 use App\Models\Local;
 use App\Models\Mesa;
+use App\Models\MesaEvento;
 use App\Models\Pedido;
 use App\Models\PropinaReparto;
 use App\Models\User;
@@ -45,6 +46,7 @@ class CuentaMesaService
             ]);
 
             $mesa->update(['estado' => 'ocupada']);
+            MesaEvento::registrar($mesa, 'estado_cambio', ['estado_anterior' => 'libre', 'estado_nuevo' => 'ocupada']);
 
             return $cuenta;
         });
@@ -56,6 +58,70 @@ class CuentaMesaService
         DB::transaction(function () use ($cuenta, $pedido) {
             $pedido->update(['cuenta_mesa_id' => $cuenta->id]);
             $this->recalcular($cuenta);
+            MesaEvento::registrar($cuenta->mesa, 'pedido_agregado', ['meta' => ['pedido' => $pedido->codigo, 'total' => $pedido->total]]);
+        });
+    }
+
+    /**
+     * Transfiere una cuenta abierta a otra mesa (los clientes se cambiaron de
+     * lugar). La mesa destino debe estar libre; la origen queda libre. Fase G.
+     */
+    public function transferir(CuentaMesa $cuenta, Mesa $destino): CuentaMesa
+    {
+        if ($cuenta->estado === 'cerrada') {
+            throw new RuntimeException('La cuenta ya está cerrada.');
+        }
+        if ($destino->id === $cuenta->mesa_id) {
+            throw new RuntimeException('La mesa destino es la misma que la actual.');
+        }
+        $ocupada = CuentaMesa::query()
+            ->where('mesa_id', $destino->id)
+            ->whereIn('estado', ['abierta', 'pre_cuenta'])
+            ->exists();
+        if ($ocupada) {
+            throw new RuntimeException('La mesa destino ya tiene una cuenta abierta.');
+        }
+
+        return DB::transaction(function () use ($cuenta, $destino) {
+            $origen = $cuenta->mesa;
+            $cuenta->update(['mesa_id' => $destino->id]);
+            $destino->update(['estado' => 'ocupada']);
+            $origen->update(['estado' => 'libre', 'atendido_por' => null, 'atendido_desde' => null]);
+
+            MesaEvento::registrar($origen, 'estado_cambio', ['estado_anterior' => 'ocupada', 'estado_nuevo' => 'libre', 'meta' => ['transferida_a' => $destino->etiqueta]]);
+            MesaEvento::registrar($destino, 'estado_cambio', ['estado_anterior' => 'libre', 'estado_nuevo' => 'ocupada', 'meta' => ['transferida_de' => $origen->etiqueta]]);
+
+            return $cuenta->fresh(['mesa']);
+        });
+    }
+
+    /**
+     * Une la cuenta `$origen` a la cuenta `$destino` (dos grupos que se juntan):
+     * mueve los pedidos de origen a destino, cierra la cuenta origen y libera su
+     * mesa. Ambas del mismo local. Fase G.
+     */
+    public function unir(CuentaMesa $destino, CuentaMesa $origen): CuentaMesa
+    {
+        if ($destino->id === $origen->id) {
+            throw new RuntimeException('No se puede unir una cuenta consigo misma.');
+        }
+        if ($destino->local_id !== $origen->local_id) {
+            throw new RuntimeException('Las cuentas son de locales distintos.');
+        }
+        if ($destino->estado === 'cerrada' || $origen->estado === 'cerrada') {
+            throw new RuntimeException('No se puede unir una cuenta ya cerrada.');
+        }
+
+        return DB::transaction(function () use ($destino, $origen) {
+            $origen->pedidos()->update(['cuenta_mesa_id' => $destino->id]);
+            $this->recalcular($destino);
+
+            $mesaOrigen = $origen->mesa;
+            $origen->update(['estado' => 'cerrada', 'cerrada_at' => now(), 'subtotal' => 0, 'total' => 0]);
+            $mesaOrigen->update(['estado' => 'libre', 'atendido_por' => null, 'atendido_desde' => null]);
+            MesaEvento::registrar($mesaOrigen, 'estado_cambio', ['estado_anterior' => 'ocupada', 'estado_nuevo' => 'libre', 'meta' => ['unida_a' => $destino->mesa?->etiqueta]]);
+
+            return $destino->fresh(['mesa', 'pedidos']);
         });
     }
 
@@ -65,6 +131,7 @@ class CuentaMesaService
             $this->recalcular($cuenta);
             $cuenta->update(['estado' => 'pre_cuenta']);
             $cuenta->mesa->update(['estado' => 'por_cobrar']);
+            MesaEvento::registrar($cuenta->mesa, 'estado_cambio', ['estado_anterior' => 'ocupada', 'estado_nuevo' => 'por_cobrar']);
 
             return $cuenta->fresh();
         });
@@ -158,7 +225,18 @@ class CuentaMesaService
                 'cerrada_at' => now(),
             ]);
 
-            $cuenta->mesa->update(['estado' => 'libre']);
+            // Integridad de dinero (gap #5): cerrar la cuenta marca sus pedidos como
+            // pagados. `estado_pago`/`pagado_at` dejan de quedar en 'pendiente'.
+            $cuenta->pedidos()->where('estado', '!=', 'cancelado')->update([
+                'estado_pago' => 'pagado',
+                'pagado_at' => now(),
+            ]);
+
+            $cuenta->mesa->update(['estado' => 'libre', 'atendido_por' => null, 'atendido_desde' => null]);
+            MesaEvento::registrar($cuenta->mesa, 'cuenta_cerrada', [
+                'estado_anterior' => 'por_cobrar', 'estado_nuevo' => 'libre',
+                'meta' => ['total' => (float) $cuenta->total, 'propina' => $propina],
+            ]);
 
             if ($propina > 0) {
                 $this->repartirPropina($cuenta, $propina);

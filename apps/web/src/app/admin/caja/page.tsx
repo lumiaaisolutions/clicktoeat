@@ -41,6 +41,22 @@ interface CuentaMesa {
 
 const METODOS = ['efectivo', 'tarjeta_entrega', 'tarjeta_tpv', 'transferencia'] as const;
 
+const ESTADO_CUENTA_COLOR: Record<CuentaMesa['estado'], string> = {
+  abierta: 'bg-blue-100 text-blue-700',
+  pre_cuenta: 'bg-amber-100 text-amber-700',
+  cerrada: 'bg-emerald-100 text-emerald-700',
+};
+
+interface PedidoMostrador {
+  id: number;
+  codigo: string;
+  cliente_nombre: string | null;
+  total: string;
+}
+const METODO_LABEL: Record<string, string> = {
+  efectivo: 'Efectivo', tarjeta_tpv: 'Tarjeta', transferencia: 'Transferencia',
+};
+
 export default function CajaPage() {
   const [cajas, setCajas] = useState<Caja[] | null>(null);
   const [selectedCajaId, setSelectedCajaId] = useState<number | null>(null);
@@ -53,6 +69,23 @@ export default function CajaPage() {
   const [movMotivo, setMovMotivo] = useState('');
   const [cerrandoCorte, setCerrandoCorte] = useState(false);
   const [cobrando, setCobrando] = useState<CuentaMesa | null>(null);
+  const [pendientes, setPendientes] = useState<PedidoMostrador[] | null>(null);
+
+  const refreshPendientes = async () => {
+    const { data } = await api.get<{ data: PedidoMostrador[] }>('/caja/pendientes');
+    setPendientes(data.data);
+  };
+
+  const cobrarMostrador = async (pedidoId: number, metodo: string) => {
+    try {
+      await api.post(`/pedidos/${pedidoId}/cobrar`, { metodo_pago: metodo, corte_caja_id: corte?.id ?? null });
+      toast.success('Pedido cobrado');
+      refreshPendientes();
+      if (selectedCajaId) refreshCorte(selectedCajaId);
+    } catch (e: unknown) {
+      toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'No se pudo cobrar');
+    }
+  };
 
   const refreshCajas = async () => {
     const { data } = await api.get<{ data: Caja[] }>('/cajas');
@@ -71,7 +104,13 @@ export default function CajaPage() {
     setCuentas(data.data);
   };
 
-  useEffect(() => { refreshCajas(); refreshCuentas(); }, []);
+  useEffect(() => {
+    refreshCajas();
+    refreshCuentas();
+    refreshPendientes();
+    const id = setInterval(() => { refreshCuentas(); refreshPendientes(); }, 15_000);
+    return () => clearInterval(id);
+  }, []);
   useEffect(() => { if (selectedCajaId !== null) refreshCorte(selectedCajaId); }, [selectedCajaId]);
 
   const abrirCorte = async (montoInicial: number) => {
@@ -189,6 +228,31 @@ export default function CajaPage() {
         </>
       )}
 
+      <h3 className="ce-display font-bold mb-2">Mostrador — por cobrar</h3>
+      {pendientes === null ? (
+        <Skeleton className="h-20" />
+      ) : pendientes.length === 0 ? (
+        <p className="text-sm text-muted mb-6">Sin pedidos de mostrador pendientes.</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+          {pendientes.map((p) => (
+            <div key={p.id} className="rounded-2xl border border-line bg-white p-4 flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="ce-display font-bold">{p.cliente_nombre || p.codigo}</span>
+                <span className="ce-display font-bold text-xl">${p.total}</span>
+              </div>
+              <div className="flex gap-1 flex-wrap">
+                {(['efectivo', 'tarjeta_tpv', 'transferencia'] as const).map((m) => (
+                  <Button key={m} size="sm" variant={m === 'efectivo' ? 'primary' : 'secondary'} onClick={() => cobrarMostrador(p.id, m)}>
+                    {METODO_LABEL[m]}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <h3 className="ce-display font-bold mb-2">Cuentas de mesa abiertas</h3>
       {cuentas === null ? (
         <Skeleton className="h-24" />
@@ -200,7 +264,7 @@ export default function CajaPage() {
             <div key={c.id} className="rounded-2xl border border-line bg-white p-4 flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <span className="ce-display font-bold">{c.mesa?.etiqueta ?? `Cuenta #${c.id}`}</span>
-                <span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 capitalize">{c.estado}</span>
+                <span className={`text-xs px-1.5 py-0.5 rounded capitalize ${ESTADO_CUENTA_COLOR[c.estado]}`}>{c.estado.replace('_', ' ')}</span>
               </div>
               <p className="ce-display font-bold text-xl">${c.total}</p>
               <div className="flex gap-2">

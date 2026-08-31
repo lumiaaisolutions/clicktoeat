@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PedidoResource;
+use App\Models\DetallePedido;
 use App\Models\LlamadoMesero;
 use App\Models\Pedido;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 /**
@@ -62,6 +64,21 @@ class SalonController extends Controller
             ]);
 
         return response()->json(['data' => $llamados]);
+    }
+
+    /**
+     * KDS por ítem (Fase E): marca una línea del pedido como lista/pendiente.
+     * `DetallePedido` no tiene local_id, así que validamos el tenant vía su pedido.
+     */
+    public function actualizarDetalleEstado(Request $req, DetallePedido $detalle): JsonResponse
+    {
+        $pedido = $detalle->pedido;
+        abort_unless($pedido && $pedido->local_id === $req->user()->local_id, 404);
+
+        $data = $req->validate(['estado' => ['required', 'in:pendiente,listo']]);
+        $detalle->update(['estado' => $data['estado']]);
+
+        return response()->json(['data' => ['id' => $detalle->id, 'estado' => $detalle->estado]]);
     }
 
     public function atenderLlamado(LlamadoMesero $llamado): JsonResponse

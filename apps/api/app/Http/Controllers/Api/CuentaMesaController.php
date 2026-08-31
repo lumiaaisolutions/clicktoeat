@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\CuentaMesa;
 use App\Models\GiftCard;
+use App\Models\Mesa;
 use App\Services\Salon\CuentaMesaService;
 use App\Services\Salon\GiftCardService;
 use Illuminate\Http\JsonResponse;
@@ -36,6 +37,42 @@ class CuentaMesaController extends Controller
         $this->authorize('view', $cuenta);
 
         return response()->json(['data' => $cuenta->load(['mesa', 'pedidos.detalles', 'pagos'])]);
+    }
+
+    /** Transfiere la cuenta a otra mesa (los clientes se cambiaron de lugar). */
+    public function transferir(Request $req, CuentaMesa $cuenta): JsonResponse
+    {
+        $this->authorize('manage', $cuenta);
+        $data = $req->validate([
+            'mesa_destino_id' => ['required', 'integer', Rule::exists('mesas', 'id')->where('local_id', $req->user()->local_id)],
+        ]);
+        $destino = Mesa::findOrFail($data['mesa_destino_id']);
+
+        try {
+            $cuenta = $this->cuentas->transferir($cuenta, $destino);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
+        }
+
+        return response()->json(['data' => $cuenta]);
+    }
+
+    /** Une otra cuenta a esta (dos grupos que se juntan en una sola cuenta). */
+    public function unir(Request $req, CuentaMesa $cuenta): JsonResponse
+    {
+        $this->authorize('manage', $cuenta);
+        $data = $req->validate([
+            'cuenta_origen_id' => ['required', 'integer', Rule::exists('cuentas_mesa', 'id')->where('local_id', $req->user()->local_id)],
+        ]);
+        $origen = CuentaMesa::findOrFail($data['cuenta_origen_id']);
+
+        try {
+            $cuenta = $this->cuentas->unir($cuenta, $origen);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
+        }
+
+        return response()->json(['data' => $cuenta]);
     }
 
     public function preCuenta(CuentaMesa $cuenta): JsonResponse

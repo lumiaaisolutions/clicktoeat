@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
+import { playChime } from '@/lib/chime';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
@@ -28,17 +29,70 @@ interface Llamado {
   created_at: string;
 }
 
+interface Mesa {
+  id: number;
+  etiqueta: string;
+  estado: 'libre' | 'ocupada' | 'por_cobrar' | 'reservada' | 'limpieza';
+  atendido_por: number | null;
+  atiende: string | null;
+}
+
+const ESTADO_MESA: Record<Mesa['estado'], { dot: string; label: string }> = {
+  libre: { dot: 'bg-emerald-500', label: 'Libre' },
+  ocupada: { dot: 'bg-amber-500', label: 'Ocupada' },
+  por_cobrar: { dot: 'bg-red-500', label: 'Por cobrar' },
+  reservada: { dot: 'bg-indigo-500', label: 'Reservada' },
+  limpieza: { dot: 'bg-slate-500', label: 'Limpieza' },
+};
+
 export default function MeseroPage() {
   const [pedidos, setPedidos] = useState<PedidoListo[] | null>(null);
   const [llamados, setLlamados] = useState<Llamado[] | null>(null);
+  const [mesas, setMesas] = useState<Mesa[] | null>(null);
+  const llamadosConocidos = useRef<Set<number> | null>(null);
 
   const refresh = async () => {
-    const [pedidosRes, llamadosRes] = await Promise.all([
+    const [pedidosRes, llamadosRes, mesasRes] = await Promise.all([
       api.get<{ data: PedidoListo[] }>('/salon/mesero/pedidos'),
       api.get<{ data: Llamado[] }>('/salon/llamados'),
+      api.get<{ data: Mesa[] }>('/mesas'),
     ]);
+
+    const llamadoIds = llamadosRes.data.data.map((l) => l.id);
+    if (llamadosConocidos.current === null) {
+      llamadosConocidos.current = new Set(llamadoIds);
+    } else {
+      const nuevos = llamadoIds.filter((id) => !llamadosConocidos.current!.has(id));
+      if (nuevos.length > 0) {
+        playChime();
+        toast.info('Una mesa está llamando');
+      }
+      llamadosConocidos.current = new Set(llamadoIds);
+    }
+
     setPedidos(pedidosRes.data.data);
     setLlamados(llamadosRes.data.data);
+    setMesas(mesasRes.data.data);
+  };
+
+  const tomarMesa = async (m: Mesa) => {
+    try {
+      await api.post(`/mesas/${m.id}/tomar`);
+      toast.success(`Tomaste ${m.etiqueta}`);
+      refresh();
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg ?? 'No se pudo tomar la mesa');
+    }
+  };
+
+  const liberarMesa = async (m: Mesa) => {
+    try {
+      await api.post(`/mesas/${m.id}/liberar`);
+      refresh();
+    } catch {
+      toast.error('No se pudo liberar la mesa');
+    }
   };
 
   useEffect(() => {
@@ -65,7 +119,7 @@ export default function MeseroPage() {
     }
   };
 
-  const loading = pedidos === null || llamados === null;
+  const loading = pedidos === null || llamados === null || mesas === null;
 
   return (
     <div>
@@ -81,6 +135,36 @@ export default function MeseroPage() {
         </div>
       ) : (
         <div className="space-y-6">
+          <section>
+            <h3 className="ce-display font-bold mb-2">Mesas del salón</h3>
+            {mesas!.length === 0 ? (
+              <p className="text-sm text-muted">No hay mesas configuradas.</p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {mesas!.map((m) => {
+                  const est = ESTADO_MESA[m.estado];
+                  return (
+                    <div key={m.id} className="rounded-xl border border-line bg-white p-3 flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2.5 h-2.5 rounded-full ${est.dot}`} />
+                        <span className="font-semibold text-sm">{m.etiqueta}</span>
+                        <span className="text-[11px] text-muted ml-auto">{est.label}</span>
+                      </div>
+                      {m.atendido_por ? (
+                        <>
+                          <p className="text-xs text-muted">Atiende: <span className="font-medium text-ink">{m.atiende}</span></p>
+                          <Button size="sm" variant="ghost" onClick={() => liberarMesa(m)}>Liberar</Button>
+                        </>
+                      ) : (
+                        <Button size="sm" onClick={() => tomarMesa(m)}>Tomar control</Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
           <section>
             <h3 className="ce-display font-bold mb-2">Llamados pendientes</h3>
             {llamados!.length === 0 ? (

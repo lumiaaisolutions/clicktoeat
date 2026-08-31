@@ -18,6 +18,7 @@ class DetallePedidoResource extends JsonResource
             'subtotal' => (float) $this->subtotal,
             'extras_seleccionados' => $this->extras_seleccionados ?? [],
             'notas' => $this->notas,
+            'estado' => $this->estado ?? 'pendiente',
         ];
     }
 }

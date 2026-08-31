@@ -57,6 +57,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'super_admin' => EnsureSuperAdmin::class,
             'idempotent' => Idempotency::class,
             'feature' => RequiresFeature::class,
+            'permiso' => \App\Http\Middleware\EnsurePermiso::class,
         ]);
 
         $middleware->throttleApi();

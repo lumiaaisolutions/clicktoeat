@@ -244,7 +244,7 @@ export default function PuntoVentaPage() {
               disabled={cart.length === 0}
               className="flex-1"
             >
-              Cobrar
+              Enviar a caja
             </Button>
           </div>
         </footer>
@@ -321,12 +321,19 @@ function CheckoutModal({
   const [cliente, setCliente] = useState('');
   const [recibido, setRecibido] = useState(0);
   const [saving, setSaving]   = useState(false);
+  const [mesasLibres, setMesasLibres] = useState<{ id: number; etiqueta: string }[]>([]);
+  const [mesaId, setMesaId] = useState<number | null>(null);
 
   useEffect(() => {
     if (open) {
       setPago('efectivo');
       setCliente('');
       setRecibido(0);
+      setMesaId(null);
+      // Mesas libres para asignar la venta (solo si el plan tiene dine-in).
+      api.get<{ data: { id: number; etiqueta: string; estado: string }[] }>('/mesas')
+        .then((r) => setMesasLibres(r.data.data.filter((m) => m.estado === 'libre')))
+        .catch(() => setMesasLibres([]));
     }
   }, [open]);
 
@@ -338,6 +345,7 @@ function CheckoutModal({
       cliente:        cliente ? { nombre: cliente } : undefined,
       metodo_entrega: 'sucursal' as const,
       metodo_pago:    pago,
+      mesa_id:        mesaId ?? undefined,
       items: cart.map((l) => ({ producto_id: l.producto.id, cantidad: l.cantidad })),
     };
 
@@ -394,11 +402,25 @@ function CheckoutModal({
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Cobrar" size="md">
+    <Modal open={open} onClose={onClose} title="Enviar a caja" size="md">
       <div className="mb-4">
-        <p className="text-xs uppercase tracking-wider text-muted">Total a cobrar</p>
+        <p className="text-xs uppercase tracking-wider text-muted">Total</p>
         <p className="ce-display text-4xl font-bold">{formatMXN(subtotal)}</p>
       </div>
+
+      {mesasLibres.length > 0 && (
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1">Asignar a mesa (opcional)</label>
+          <select
+            value={mesaId ?? ''}
+            onChange={(e) => setMesaId(e.target.value ? Number(e.target.value) : null)}
+            className="w-full px-3 py-2 border border-line rounded-xl"
+          >
+            <option value="">Mostrador (para llevar)</option>
+            {mesasLibres.map((m) => <option key={m.id} value={m.id}>{m.etiqueta}</option>)}
+          </select>
+        </div>
+      )}
 
       <label className="block text-sm font-medium mb-1">Ingresa el nombre del cliente o un identificador</label>
       <input

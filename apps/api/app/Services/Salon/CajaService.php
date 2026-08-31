@@ -6,6 +6,7 @@ use App\Models\Caja;
 use App\Models\CorteCaja;
 use App\Models\MovimientoCaja;
 use App\Models\PagoCuentaMesa;
+use App\Models\Pedido;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -58,6 +59,37 @@ class CajaService
         ]);
     }
 
+    /**
+     * Cobra un pedido de mostrador (no ligado a una cuenta de mesa). "Todo pasa
+     * por caja": Venta arma el pedido sin cobrar y Caja lo cobra. Pago único
+     * (sin split — el split/mixto vive en las cuentas de mesa). El efectivo se
+     * liga al corte para la reconciliación (gap #6).
+     */
+    public function cobrarPedido(Pedido $pedido, string $metodoPago, ?int $corteCajaId = null): Pedido
+    {
+        if ($pedido->cuenta_mesa_id !== null) {
+            throw new RuntimeException('Este pedido pertenece a una cuenta de mesa; cóbralo cerrando la cuenta.');
+        }
+        if ($pedido->estado === 'cancelado') {
+            throw new RuntimeException('No se puede cobrar un pedido cancelado.');
+        }
+        if ($pedido->estado_pago === 'pagado') {
+            throw new RuntimeException('Este pedido ya está cobrado.');
+        }
+
+        return DB::transaction(function () use ($pedido, $metodoPago, $corteCajaId) {
+            $pedido->update([
+                'estado_pago' => 'pagado',
+                'metodo_pago' => $metodoPago,
+                'pagado_at' => now(),
+                // Solo el efectivo mueve dinero físico de la caja.
+                'corte_caja_id' => $metodoPago === 'efectivo' ? $corteCajaId : null,
+            ]);
+
+            return $pedido->fresh();
+        });
+    }
+
     public function cerrarCorte(CorteCaja $corte, User $user, float $montoContado): CorteCaja
     {
         if ($corte->cerrada_at !== null) {
@@ -73,7 +105,14 @@ class CajaService
                 ->where('metodo_pago', 'efectivo')
                 ->sum('monto');
 
-            $montoEsperado = (float) $corte->monto_inicial + $fondos + $efectivoRecibido - $retiros - $vales;
+            // Efectivo de pedidos de mostrador cobrados en este corte (gap #6).
+            $efectivoMostrador = (float) Pedido::query()
+                ->where('corte_caja_id', $corte->id)
+                ->where('metodo_pago', 'efectivo')
+                ->where('estado_pago', 'pagado')
+                ->sum('total');
+
+            $montoEsperado = (float) $corte->monto_inicial + $fondos + $efectivoRecibido + $efectivoMostrador - $retiros - $vales;
             $varianza = round($montoContado - $montoEsperado, 2);
 
             $corte->update([

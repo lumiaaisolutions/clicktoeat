@@ -41,4 +41,18 @@ class MesaPolicy
     {
         return $user->isOwner() && $user->local_id === $mesa->local_id;
     }
+
+    /** Tomar control de la mesa: mesero o dueño del mismo local. */
+    public function tomar(User $user, Mesa $mesa): bool
+    {
+        return $user->local_id === $mesa->local_id
+            && ($user->isOwner() || $user->puedeAcceder('mesero'));
+    }
+
+    /** Liberar: el dueño, o el mesero que la tiene asignada. */
+    public function liberar(User $user, Mesa $mesa): bool
+    {
+        return $user->local_id === $mesa->local_id
+            && ($user->isOwner() || $mesa->atendido_por === $user->id);
+    }
 }

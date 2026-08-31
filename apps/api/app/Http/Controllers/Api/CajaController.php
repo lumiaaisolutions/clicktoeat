@@ -3,17 +3,61 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PedidoResource;
 use App\Models\Caja;
 use App\Models\CorteCaja;
+use App\Models\Pedido;
 use App\Services\Salon\CajaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Validation\Rule;
 
 class CajaController extends Controller
 {
     public function __construct(protected CajaService $cajas) {}
+
+    /** Pedidos de mostrador pendientes de cobro (Venta los mandó a caja). */
+    public function pendientesMostrador(): AnonymousResourceCollection
+    {
+        $this->authorize('viewAny', Caja::class);
+
+        $pedidos = Pedido::query()
+            ->where('metodo_entrega', 'sucursal')
+            ->whereNull('mesa_id')
+            ->whereNull('cuenta_mesa_id')
+            ->where('estado', '!=', 'cancelado')
+            ->where('estado_pago', 'pendiente')
+            ->with('detalles')
+            ->orderBy('created_at')
+            ->get();
+
+        return PedidoResource::collection($pedidos);
+    }
+
+    /** Cobra un pedido de mostrador (pago único). */
+    public function cobrarPedido(Request $req, Pedido $pedido): JsonResponse
+    {
+        $user = $req->user();
+        abort_unless($user->isOwner() || $user->puedeAcceder('caja'), 403);
+        // El binding resuelve cross-tenant (SubstituteBindings corre antes del
+        // contexto); validamos el local explícitamente — es un endpoint de dinero.
+        abort_unless($pedido->local_id === $user->local_id, 404);
+
+        $data = $req->validate([
+            'metodo_pago' => ['required', 'in:efectivo,tarjeta_entrega,tarjeta_tpv,transferencia'],
+            'corte_caja_id' => ['nullable', 'integer', Rule::exists('cortes_caja', 'id')->where('local_id', $user->local_id)],
+        ]);
+
+        try {
+            $pedido = $this->cajas->cobrarPedido($pedido, $data['metodo_pago'], $data['corte_caja_id'] ?? null);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 409);
+        }
+
+        return response()->json(['data' => new PedidoResource($pedido)]);
+    }
 
     public function index(): AnonymousResourceCollection
     {

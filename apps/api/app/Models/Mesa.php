@@ -17,6 +17,11 @@ class Mesa extends Model
 
     protected $fillable = [
         'local_id', 'piso_id', 'etiqueta', 'pos_x', 'pos_y', 'estado', 'qr_token',
+        'atendido_por', 'atendido_desde',
+    ];
+
+    protected $casts = [
+        'atendido_desde' => 'datetime',
     ];
 
     protected static function booted(): void
@@ -36,5 +41,11 @@ class Mesa extends Model
     public function pedidos(): HasMany
     {
         return $this->hasMany(Pedido::class);
+    }
+
+    /** Mesero (o dueño) que tiene el control de la mesa. Null = sin atender. */
+    public function mesero(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'atendido_por');
     }
 }

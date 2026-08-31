@@ -34,6 +34,8 @@ class StoreInternalPedidoRequest extends FormRequest
 
             'metodo_entrega' => ['required', 'in:pickup,delivery,sucursal'],
             'metodo_pago' => ['required', 'in:efectivo,tarjeta_entrega,tarjeta_tpv,transferencia'],
+            // Fase D-2: Venta puede asignar el pedido a una mesa (dine-in).
+            'mesa_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('mesas', 'id')->where('local_id', $this->user()?->local_id)],
 
             'items' => ['required', 'array', 'min:1', 'max:50'],
             'items.*.producto_id' => ['required', 'integer', 'min:1'],
@@ -63,6 +65,7 @@ class StoreInternalPedidoRequest extends FormRequest
             ],
             'metodo_entrega' => $this->input('metodo_entrega'),
             'metodo_pago' => $this->input('metodo_pago'),
+            'mesa_id' => $this->input('mesa_id'),
             'items' => $this->input('items'),
         ];
     }

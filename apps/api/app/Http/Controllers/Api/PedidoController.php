@@ -28,6 +28,7 @@ class PedidoController extends Controller
     public function __construct(
         protected OrderService $orders,
         protected InventoryService $inventory,
+        protected \App\Services\Salon\CuentaMesaService $cuentasMesa,
     ) {}
 
     /**
@@ -70,6 +71,14 @@ class PedidoController extends Controller
         // Pedido de sucursal: marcar como confirmado automáticamente (ya está en caja)
         if ($pedido->metodo_entrega === 'sucursal' && $pedido->estado === 'nuevo') {
             $pedido->forceFill(['estado' => 'confirmado', 'confirmado_at' => now()])->save();
+        }
+
+        // Fase D-2: si Venta asignó una mesa, el pedido se adjunta a la cuenta de
+        // esa mesa (para que se cobre cerrando la cuenta, no como pedido suelto).
+        if ($pedido->mesa_id && $pedido->cuenta_mesa_id === null) {
+            $cuenta = $this->cuentasMesa->abrirParaMesa($pedido->mesa);
+            $this->cuentasMesa->adjuntarPedido($cuenta, $pedido);
+            $pedido->refresh();
         }
 
         return (new PedidoResource($pedido->load('detalles')))->response()->setStatusCode(201);

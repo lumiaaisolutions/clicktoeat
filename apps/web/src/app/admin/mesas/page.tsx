@@ -23,19 +23,53 @@ interface Mesa {
   id: number;
   piso_id: number | null;
   etiqueta: string;
-  estado: 'libre' | 'ocupada' | 'por_cobrar';
+  estado: EstadoMesa;
   qr_token: string;
   pos_x: number;
   pos_y: number;
+  atendido_por?: number | null;
+  atiende?: string | null;
 }
 
-const ESTADO_LABEL: Record<Mesa['estado'], string> = {
-  libre: 'Libre', ocupada: 'Ocupada', por_cobrar: 'Por cobrar',
+type EstadoMesa = 'libre' | 'ocupada' | 'por_cobrar' | 'reservada' | 'limpieza';
+
+interface MesaEvento {
+  id: number;
+  tipo: string;
+  estado_anterior: string | null;
+  estado_nuevo: string | null;
+  usuario: string | null;
+  meta: Record<string, unknown> | null;
+  created_at: string;
+}
+interface CuentaPedido { id: number; codigo: string; total: number; }
+interface MesaDetalle {
+  id: number;
+  etiqueta: string;
+  estado: Mesa['estado'];
+  atiende: string | null;
+  atendido_por: number | null;
+  cuenta: { id: number; estado: string; total: number; pedidos?: CuentaPedido[] } | null;
+  eventos: MesaEvento[];
+}
+
+const EVENTO_LABEL: Record<string, string> = {
+  tomada: 'Mesero tomó la mesa',
+  liberada: 'Mesa liberada',
+  estado_cambio: 'Cambio de estado',
+  pedido_agregado: 'Pedido agregado',
+  cuenta_cerrada: 'Cuenta cobrada',
 };
-const ESTADO_COLOR: Record<Mesa['estado'], string> = {
+
+const ESTADO_LABEL: Record<EstadoMesa, string> = {
+  libre: 'Libre', ocupada: 'Ocupada', por_cobrar: 'Por cobrar', reservada: 'Reservada', limpieza: 'Limpieza',
+};
+const ESTADO_COLOR: Record<EstadoMesa, string> = {
   libre: 'bg-emerald-100 text-emerald-700',
   ocupada: 'bg-amber-100 text-amber-700',
   por_cobrar: 'bg-red-100 text-red-700',
+  reservada: 'bg-indigo-100 text-indigo-700',
+  limpieza: 'bg-slate-100 text-slate-700',
 };
 
 export default function MesasPage() {
@@ -45,6 +79,61 @@ export default function MesasPage() {
   const [creatingMesaPisoId, setCreatingMesaPisoId] = useState<number | null | 'none'>(null);
   const [editingMesa, setEditingMesa] = useState<Mesa | null>(null);
   const [qrMesa, setQrMesa] = useState<Mesa | null>(null);
+  const [detalle, setDetalle] = useState<MesaDetalle | null>(null);
+  const [detalleLoading, setDetalleLoading] = useState(false);
+
+  const cargarDetalle = async (id: number) => {
+    try {
+      const res = await api.get<{ data: MesaDetalle }>(`/mesas/${id}`);
+      setDetalle(res.data.data);
+    } catch {
+      toast.error('No se pudo cargar el detalle');
+    }
+  };
+
+  const abrirDetalle = async (m: Mesa) => {
+    setDetalleLoading(true);
+    setDetalle({ id: m.id, etiqueta: m.etiqueta, estado: m.estado, atiende: m.atiende ?? null, atendido_por: m.atendido_por ?? null, cuenta: null, eventos: [] });
+    await cargarDetalle(m.id);
+    setDetalleLoading(false);
+  };
+
+  const tomarMesa = async (id: number) => {
+    try {
+      await api.post(`/mesas/${id}/tomar`);
+      await Promise.all([refresh(), cargarDetalle(id)]);
+    } catch (e: unknown) {
+      toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'No se pudo tomar la mesa');
+    }
+  };
+
+  const liberarMesa = async (id: number) => {
+    try {
+      await api.post(`/mesas/${id}/liberar`);
+      await Promise.all([refresh(), cargarDetalle(id)]);
+    } catch {
+      toast.error('No se pudo liberar la mesa');
+    }
+  };
+
+  const cambiarEstado = async (id: number, estado: EstadoMesa) => {
+    try {
+      await api.patch(`/mesas/${id}`, { estado });
+      await Promise.all([refresh(), cargarDetalle(id)]);
+    } catch {
+      toast.error('No se pudo cambiar el estado');
+    }
+  };
+
+  const transferirCuenta = async (cuentaId: number, destinoId: number, mesaId: number) => {
+    try {
+      await api.post(`/cuentas-mesa/${cuentaId}/transferir`, { mesa_destino_id: destinoId });
+      toast.success('Cuenta transferida');
+      await Promise.all([refresh(), cargarDetalle(mesaId)]);
+    } catch (e: unknown) {
+      toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'No se pudo transferir');
+    }
+  };
 
   const refresh = async () => {
     const [pisosRes, mesasRes] = await Promise.all([
@@ -55,7 +144,11 @@ export default function MesasPage() {
     setMesas(mesasRes.data.data);
   };
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    refresh();
+    const id = setInterval(refresh, 15_000);
+    return () => clearInterval(id);
+  }, []);
 
   const removeMesa = async (m: Mesa) => {
     if (!confirm(`¿Eliminar "${m.etiqueta}"?`)) return;
@@ -140,7 +233,11 @@ export default function MesasPage() {
                       {ESTADO_LABEL[m.estado]}
                     </span>
                   </div>
+                  {m.atiende && (
+                    <p className="text-[11px] text-muted">Atiende: <span className="font-medium text-ink">{m.atiende}</span></p>
+                  )}
                   <div className="flex gap-1 flex-wrap">
+                    <Button size="sm" variant="secondary" onClick={() => abrirDetalle(m)}>Ver</Button>
                     <Button size="sm" variant="ghost" onClick={() => setQrMesa(m)}>QR</Button>
                     <Button size="sm" variant="ghost" onClick={() => setEditingMesa(m)}>Editar</Button>
                     <Button size="sm" variant="ghost" onClick={() => removeMesa(m)}>Borrar</Button>
@@ -164,6 +261,93 @@ export default function MesasPage() {
       {qrMesa && (
         <Modal open onClose={() => setQrMesa(null)} title={`QR — ${qrMesa.etiqueta}`} size="sm">
           <MesaQrContent mesa={qrMesa} />
+        </Modal>
+      )}
+
+      {detalle && (
+        <Modal open onClose={() => setDetalle(null)} title={`Mesa ${detalle.etiqueta}`} size="md">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <span className={cn('px-2 py-0.5 rounded text-xs font-medium', ESTADO_COLOR[detalle.estado])}>
+                {ESTADO_LABEL[detalle.estado]}
+              </span>
+              {detalle.atiende
+                ? <span className="text-sm text-muted">Atiende: <span className="font-medium text-ink">{detalle.atiende}</span></span>
+                : <span className="text-sm text-muted">Sin mesero asignado</span>}
+            </div>
+
+            <div className="flex gap-2 flex-wrap">
+              {detalle.atendido_por
+                ? <Button size="sm" variant="ghost" onClick={() => liberarMesa(detalle.id)}>Liberar mesa</Button>
+                : <Button size="sm" onClick={() => tomarMesa(detalle.id)}>Tomar control</Button>}
+            </div>
+
+            <div className="flex gap-1 flex-wrap items-center">
+              <span className="text-xs text-muted mr-1">Estado:</span>
+              {(['libre', 'reservada', 'limpieza'] as const).map((e) => (
+                <Button key={e} size="sm" variant={detalle.estado === e ? 'primary' : 'ghost'} onClick={() => cambiarEstado(detalle.id, e)}>
+                  {ESTADO_LABEL[e]}
+                </Button>
+              ))}
+            </div>
+
+            {detalle.cuenta && (
+              <div className="flex gap-2 items-center flex-wrap">
+                <span className="text-xs text-muted">Transferir a:</span>
+                <select
+                  className="border border-line rounded-lg px-2 py-1 text-sm"
+                  defaultValue=""
+                  onChange={(ev) => { const v = Number(ev.target.value); if (v) transferirCuenta(detalle.cuenta!.id, v, detalle.id); }}
+                >
+                  <option value="" disabled>Elegir mesa libre…</option>
+                  {(mesas ?? []).filter((m) => m.estado === 'libre' && m.id !== detalle.id).map((m) => (
+                    <option key={m.id} value={m.id}>{m.etiqueta}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {detalle.cuenta && (
+              <div className="rounded-xl border border-line p-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-semibold">Cuenta actual</span>
+                  <span className="ce-display font-bold">${Number(detalle.cuenta.total).toFixed(2)}</span>
+                </div>
+                <ul className="text-xs text-muted space-y-0.5">
+                  {(detalle.cuenta.pedidos ?? []).map((p) => (
+                    <li key={p.id} className="flex justify-between"><span>{p.codigo}</span><span>${Number(p.total).toFixed(2)}</span></li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div>
+              <p className="text-sm font-semibold mb-2">Historial</p>
+              {detalleLoading ? (
+                <Skeleton className="h-24" />
+              ) : detalle.eventos.length === 0 ? (
+                <p className="text-xs text-muted">Sin movimientos todavía.</p>
+              ) : (
+                <ol className="space-y-2 max-h-64 overflow-y-auto">
+                  {detalle.eventos.map((e) => (
+                    <li key={e.id} className="flex gap-2 text-xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-accent mt-1.5 shrink-0" />
+                      <div>
+                        <span className="font-medium text-ink">{EVENTO_LABEL[e.tipo] ?? e.tipo}</span>
+                        {e.estado_anterior && e.estado_nuevo && (
+                          <span className="text-muted"> · {e.estado_anterior} → {e.estado_nuevo}</span>
+                        )}
+                        <div className="text-muted">
+                          {e.usuario && <span>{e.usuario} · </span>}
+                          {new Date(e.created_at).toLocaleString('es-MX', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          </div>
         </Modal>
       )}
     </div>

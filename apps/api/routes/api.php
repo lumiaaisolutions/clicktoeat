@@ -383,20 +383,32 @@ Route::middleware('throttle:60,1')->group(function () {
         Route::middleware('feature:dine_in')->group(function () {
             Route::apiResource('pisos', PisoController::class)->except(['show']);
             Route::apiResource('mesas', MesaController::class)->except(['show']);
+            Route::get('mesas/{mesa}', [MesaController::class, 'show']);
+            Route::post('mesas/{mesa}/tomar', [MesaController::class, 'tomar'])->middleware('permiso:mesero');
+            Route::post('mesas/{mesa}/liberar', [MesaController::class, 'liberar'])->middleware('permiso:mesero');
 
-            Route::get('salon/cocina/pedidos', [SalonController::class, 'pedidosCocina']);
-            Route::get('salon/mesero/pedidos', [SalonController::class, 'pedidosMesero']);
-            Route::get('salon/llamados', [SalonController::class, 'llamadosPendientes']);
-            Route::post('salon/llamados/{llamado}/atender', [SalonController::class, 'atenderLlamado']);
+            Route::get('salon/cocina/pedidos', [SalonController::class, 'pedidosCocina'])->middleware('permiso:cocina');
+            Route::patch('detalle-pedidos/{detalle}/estado', [SalonController::class, 'actualizarDetalleEstado'])->middleware('permiso:cocina');
+            Route::middleware('permiso:mesero')->group(function () {
+                Route::get('salon/mesero/pedidos', [SalonController::class, 'pedidosMesero']);
+                Route::get('salon/llamados', [SalonController::class, 'llamadosPendientes']);
+                Route::post('salon/llamados/{llamado}/atender', [SalonController::class, 'atenderLlamado']);
+            });
         });
 
-        // F102 — Dinero: cuenta de mesa + caja física. Gated por Premium.
-        Route::middleware('feature:caja_fisica')->group(function () {
+        // F102 — Dinero: cuenta de mesa + caja física. Gated por Premium + permiso caja.
+        Route::middleware(['feature:caja_fisica', 'permiso:caja'])->group(function () {
             Route::get('cuentas-mesa', [CuentaMesaController::class, 'index']);
             Route::get('cuentas-mesa/{cuenta}', [CuentaMesaController::class, 'show']);
             Route::post('cuentas-mesa/{cuenta}/pre-cuenta', [CuentaMesaController::class, 'preCuenta']);
+            Route::post('cuentas-mesa/{cuenta}/transferir', [CuentaMesaController::class, 'transferir']);
+            Route::post('cuentas-mesa/{cuenta}/unir', [CuentaMesaController::class, 'unir']);
             Route::post('cuentas-mesa/{cuenta}/gift-card', [CuentaMesaController::class, 'aplicarGiftCard']);
             Route::post('cuentas-mesa/{cuenta}/cerrar', [CuentaMesaController::class, 'cerrar']);
+
+            // "Todo por caja" (Fase D): mostrador arma pedido en Venta y se cobra aquí.
+            Route::get('caja/pendientes', [CajaController::class, 'pendientesMostrador']);
+            Route::post('pedidos/{pedido}/cobrar', [CajaController::class, 'cobrarPedido']);
 
             Route::get('cajas', [CajaController::class, 'index']);
             Route::post('cajas', [CajaController::class, 'store']);
