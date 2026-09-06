@@ -97,6 +97,9 @@ Route::middleware('throttle:60,1')->group(function () {
 
         Route::get('menu/{slug}', [MenuController::class, 'show'])->name('public.menu.show');
         Route::get('locales', [MenuController::class, 'index'])->name('public.locales.index');
+
+        // Carrusel de login/registro (config global super_admin) — solo lectura pública.
+        Route::get('auth-carousel', [App\Http\Controllers\Api\Public\AuthCarouselController::class, 'index']);
         // Rate limit por tenant (100/min por local) + IP fallback (20/min) + idempotency.
         // Ver: AppServiceProvider::configureRateLimiting + docs/api/rate-limits.md
         Route::post('pedidos/{slug}', [PublicPedidoController::class, 'store'])
@@ -520,5 +523,13 @@ Route::middleware('throttle:60,1')->group(function () {
         Route::patch('email-templates/{template}', [EmailTemplatesController::class, 'update']);
         Route::delete('email-templates/{template}', [EmailTemplatesController::class, 'destroy']);
         Route::post('email-templates/preview', [EmailTemplatesController::class, 'preview']);
+
+        // Carrusel de login/registro (config global de plataforma)
+        Route::get('auth-carousel', [App\Http\Controllers\Api\Admin\AuthCarouselController::class, 'index']);
+        Route::post('auth-carousel', [App\Http\Controllers\Api\Admin\AuthCarouselController::class, 'store']);
+        Route::post('auth-carousel/upload', [App\Http\Controllers\Api\Admin\AuthCarouselController::class, 'upload'])
+            ->middleware('throttle:30,1');
+        Route::patch('auth-carousel/{slide}', [App\Http\Controllers\Api\Admin\AuthCarouselController::class, 'update']);
+        Route::delete('auth-carousel/{slide}', [App\Http\Controllers\Api\Admin\AuthCarouselController::class, 'destroy']);
     });
 });

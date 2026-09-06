@@ -231,6 +231,7 @@ const NAV_SUPER: NavEntry[] = [
   { href: '/admin/tickets',          label: 'Soporte',          icon: 'message-circle' },
   { href: '/admin/zonas',            label: 'Zonas',            icon: 'map-pin' },
   { href: '/admin/email-templates',  label: 'Emails',           icon: 'receipt' },
+  { href: '/admin/carrusel-login',   label: 'Carrusel login',   icon: 'palette' },
 
   { section: 'Auditoría' },
   { href: '/admin/auditoria',        label: 'Auditoría',        icon: 'history' },

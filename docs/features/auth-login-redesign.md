@@ -1,7 +1,7 @@
 # Rediseño de autenticación (login + registro)
 
-> Estado: **Fase 1 (visual) implementada y en producción.** Fase 2 (carrusel
-> editable desde el panel) pendiente. Aplica igual en ClickToShop (paridad).
+> Estado: **Fase 1 (visual) + Fase 2 (carrusel editable) implementadas y en
+> producción.** Aplica igual en ClickToShop (paridad).
 
 ## Qué cambió
 
@@ -42,18 +42,43 @@ testimonios de personas ficticias.
   backend no soporta OAuth, así que serían botones falsos. Si en el futuro se
   agrega OAuth real, van en la columna del formulario.
 
-## Fase 2 — pendiente (carrusel editable)
+## Fase 2 — carrusel editable (implementada)
 
-- Modelo/tabla de config global (`auth_carousel` o similar) con slides
-  (imagen opcional, tags, cita, fuente, rol, orden, activo).
-- Endpoints super-admin (`GET/PUT /api/v1/admin/auth-carousel`) + subida de
-  imágenes al disk `public`.
-- Sección en el panel super-admin para editar slides y subir imágenes.
-- `AuthShell` consume la config (fetch público de solo lectura) con fallback a
-  `DEFAULT_SLIDES`.
+Configuración **global de plataforma** (super_admin), no multi-tenant.
+
+- **Tabla** `auth_carousel_slides` (sin `local_id`): `orden`, `activo`,
+  `imagen_url` (nullable), `tags` (json), `quote`, `source`, `role`.
+  Migración `2026_09_06_120000_create_auth_carousel_slides_table.php`.
+- **Modelo** `App\Models\AuthCarouselSlide` — casts `activo:boolean`,
+  `tags:array`. NO usa `BelongsToTenant`.
+- **Endpoints**:
+  - Público (solo lectura, activos ordenados):
+    `GET /api/v1/public/auth-carousel` → `Api\Public\AuthCarouselController`.
+  - Super-admin CRUD (`auth:sanctum` + `super_admin`):
+    `GET/POST /api/v1/admin/auth-carousel`,
+    `PATCH/DELETE /api/v1/admin/auth-carousel/{slide}`,
+    `POST /api/v1/admin/auth-carousel/upload` (imagen, reusa `ImageUploader`,
+    folder `auth-carousel`) → `Api\Admin\AuthCarouselController`.
+- **Panel**: `apps/web/src/app/admin/carrusel-login/page.tsx` — lista, crea,
+  edita, borra slides; sube imagen; toggle activo; campo orden. Solo visible
+  para super_admin (`NAV_SUPER` → sección "Operación" → "Carrusel login").
+- **Frontend**: `AuthShell` hace `fetch` público del carrusel al montar; si
+  devuelve ≥1 slide activo los usa, si no cae a `DEFAULT_SLIDES`. Si un slide
+  trae `imagen_url`, se renderiza de fondo con scrim para legibilidad.
 
 ## Archivos tocados
 
-- `apps/web/src/components/auth/AuthShell.tsx` (nuevo)
+Backend:
+- `database/migrations/2026_09_06_120000_create_auth_carousel_slides_table.php`
+- `app/Models/AuthCarouselSlide.php`
+- `app/Http/Controllers/Api/Admin/AuthCarouselController.php`
+- `app/Http/Controllers/Api/Public/AuthCarouselController.php`
+- `routes/api.php` (rutas pública + super-admin)
+- `tests/Feature/AuthCarouselTest.php`
+
+Frontend:
+- `apps/web/src/components/auth/AuthShell.tsx` (nuevo + fetch remoto)
 - `apps/web/src/app/login/page.tsx` (refactor a `AuthShell`)
 - `apps/web/src/app/registro/page.tsx` (refactor a `AuthShell`)
+- `apps/web/src/app/admin/carrusel-login/page.tsx` (nuevo — panel super-admin)
+- `apps/web/src/app/admin/layout.tsx` (item de nav)

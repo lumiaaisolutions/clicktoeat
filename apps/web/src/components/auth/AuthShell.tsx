@@ -11,7 +11,7 @@ import { LumiaBadge } from '@/components/ui/LumiaBadge';
  * formulario. El carrusel es por defecto (editable global super-admin en una
  * fase posterior — ver docs/features/auth-login-redesign.md).
  */
-type Slide = { tags: string[]; quote: string; source: string; role: string };
+type Slide = { tags: string[]; quote: string; source: string; role: string; imagen_url?: string | null };
 
 const DEFAULT_SLIDES: Slide[] = [
   {
@@ -34,9 +34,28 @@ const DEFAULT_SLIDES: Slide[] = [
   },
 ];
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080/api/v1';
+
 export function AuthShell({ children }: { children: ReactNode }) {
-  const slides = DEFAULT_SLIDES;
+  const [slides, setSlides] = useState<Slide[]>(DEFAULT_SLIDES);
   const [i, setI] = useState(0);
+
+  // Carrusel editable desde el panel super-admin (config global). Si no hay
+  // slides configurados, se mantienen los DEFAULT_SLIDES.
+  useEffect(() => {
+    let alive = true;
+    fetch(`${API_BASE}/public/auth-carousel`, { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        const remote = (json?.data ?? []) as Slide[];
+        if (alive && remote.length > 0) {
+          setSlides(remote.map((s) => ({ ...s, tags: s.tags ?? [] })));
+          setI(0);
+        }
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   useEffect(() => {
     const id = setInterval(() => setI((n) => (n + 1) % slides.length), 6000);
@@ -88,6 +107,12 @@ export function AuthShell({ children }: { children: ReactNode }) {
                   'linear-gradient(160deg, #F79867 0%, #C24A16 55%, #3A1608 100%)',
               }}
             />
+            {s.imagen_url && (
+              <>
+                <img src={s.imagen_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/40" />
+              </>
+            )}
             <div className="absolute inset-0 p-7 flex flex-col justify-between text-white">
               <div className="flex flex-wrap gap-2">
                 {s.tags.map((t) => (
