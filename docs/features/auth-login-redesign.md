@@ -19,6 +19,17 @@ flotante sobre un fondo con malla de gradiente de marca:
   auto-avance cada 6 s y enlace **"Visitar sitio"**. Oculto en móvil
   (`hidden lg:block`) → en móvil se ve solo el formulario, a ancho completo.
 
+## Fondo (splash suave)
+
+El fondo de página **no** es un color de marca saturado a pantalla completa
+(saturaba demasiado). Es un **splash de color suave** con blobs radiales
+tenues que degrada verticalmente hacia crema/casi-blanco
+(`linear-gradient(180deg, #F7CDAD → #FAE7D8 → #FBF4EE)` en ClickToEat;
+lavanda→blanco en ClickToShop). La tarjeta blanca y el carrusel de color
+quedan como los elementos vivos; el fondo solo los acompaña. El link "Volver
+al inicio" usa texto oscuro sobre pastilla `white/70` para leerse sobre el
+fondo claro.
+
 ## Componente
 
 `apps/web/src/components/auth/AuthShell.tsx` — wrapper reutilizable. Recibe el

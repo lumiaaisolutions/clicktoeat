@@ -67,22 +67,23 @@ export function AuthShell({ children }: { children: ReactNode }) {
   const s = slides[i];
 
   return (
-    <main className="min-h-screen relative overflow-hidden bg-[#F26A1F]">
-      {/* Malla de gradiente de fondo (cálido) */}
+    <main className="min-h-screen relative overflow-hidden bg-[#FBF4EE]">
+      {/* Splash de color suave que degrada a crema — evita saturar el fondo */}
       <div
         aria-hidden
         className="absolute inset-0"
         style={{
           background:
-            'radial-gradient(60% 60% at 15% 20%, #FF8A47 0%, transparent 60%),' +
-            'radial-gradient(55% 55% at 85% 85%, #E85B12 0%, transparent 55%),' +
-            'linear-gradient(135deg, #F26A1F, #E85B12)',
+            'radial-gradient(48% 38% at 18% 12%, rgba(255,150,95,0.50) 0%, transparent 62%),' +
+            'radial-gradient(42% 36% at 88% 16%, rgba(255,190,150,0.42) 0%, transparent 58%),' +
+            'radial-gradient(50% 45% at 75% 100%, rgba(242,106,31,0.20) 0%, transparent 60%),' +
+            'linear-gradient(180deg, #F7CDAD 0%, #FAE7D8 46%, #FBF4EE 100%)',
         }}
       />
 
       <Link
         href="/"
-        className="absolute top-5 left-5 z-20 inline-flex items-center gap-1.5 text-sm font-medium text-white/90 hover:text-white transition px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 backdrop-blur"
+        className="absolute top-5 left-5 z-20 inline-flex items-center gap-1.5 text-sm font-medium text-slate-700 hover:text-slate-900 transition px-3 py-1.5 rounded-lg bg-white/70 hover:bg-white ring-1 ring-black/[0.04] backdrop-blur"
       >
         <Icon name="arrow-right" size={14} className="rotate-180" />
         Volver al inicio
