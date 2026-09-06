@@ -1,12 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/store/auth';
-import { Icon } from '@/components/ui/Icon';
 import { Logo } from '@/components/ui/Logo';
-import { LumiaBadge } from '@/components/ui/LumiaBadge';
+import { AuthShell } from '@/components/auth/AuthShell';
 
 export default function LoginPage() {
   const login = useAuth((s) => s.login);
@@ -41,22 +39,13 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen grid place-items-center px-6 py-10 relative">
-      {/* Volver al inicio */}
-      <Link
-        href="/"
-        className="absolute top-5 left-5 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink transition px-3 py-1.5 rounded-lg hover:bg-line/40"
-      >
-        <Icon name="arrow-right" size={14} className="rotate-180" />
-        Volver al inicio
-      </Link>
-
-      <form onSubmit={onSubmit} className="w-full max-w-sm bg-white rounded-3xl border border-line shadow-soft p-6">
-        <div className="mb-4 flex justify-center">
-          <Logo variant="lockup" size={40} />
+    <AuthShell>
+      <form onSubmit={onSubmit} className="w-full max-w-sm mx-auto lg:mx-0">
+        <div className="mb-4 flex justify-center lg:justify-start">
+          <Logo variant="lockup" size={44} />
         </div>
-        <h1 className="ce-display text-xl font-bold text-center">Entrar al panel</h1>
-        <p className="text-sm text-muted text-center mb-6">Administración del local</p>
+        <h1 className="ce-display text-2xl font-bold text-center lg:text-left">Entrar al panel</h1>
+        <p className="text-sm text-muted text-center lg:text-left mb-6">Administración del local</p>
 
         <label className="block text-sm font-medium mb-1">Email</label>
         <input
@@ -104,23 +93,23 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 rounded-2xl bg-ink text-white font-medium disabled:opacity-40"
+          className="w-full py-3 rounded-2xl text-white font-semibold shadow-lg shadow-[#F26A1F]/30 bg-gradient-to-r from-[#F26A1F] to-[#FF8A47] hover:brightness-105 active:scale-[0.99] transition disabled:opacity-40"
         >
           {loading ? 'Entrando…' : needs2fa ? 'Verificar y entrar' : 'Entrar'}
         </button>
 
         <a
           href="/forgot-password"
-          className="block text-center text-sm text-muted mt-4 hover:text-ink"
+          className="block text-center lg:text-left text-sm text-muted mt-4 hover:text-ink"
         >
           ¿Olvidaste tu contraseña?
         </a>
-      </form>
 
-      {/* Footer LUMIA */}
-      <div className="absolute bottom-5 inset-x-0 flex justify-center px-4">
-        <LumiaBadge />
-      </div>
-    </main>
+        <p className="text-sm text-muted mt-6 text-center lg:text-left">
+          ¿No tienes cuenta?{' '}
+          <a href="/registro" className="font-semibold text-[#F26A1F] hover:underline">Crea tu local</a>
+        </p>
+      </form>
+    </AuthShell>
   );
 }

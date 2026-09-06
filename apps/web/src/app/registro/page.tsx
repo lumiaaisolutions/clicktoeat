@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api, tokenStore } from '@/lib/api';
 import { Logo } from '@/components/ui/Logo';
-import { Icon } from '@/components/ui/Icon';
+import { AuthShell } from '@/components/auth/AuthShell';
 
 interface SignupResponse {
   user:  { id: number; nombre: string; email: string; rol: string };
@@ -44,16 +44,11 @@ export default function RegistroPage() {
   };
 
   return (
-    <main className="min-h-screen grid place-items-center px-6 py-10 relative">
-      <Link href="/" className="absolute top-5 left-5 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink transition px-3 py-1.5 rounded-lg hover:bg-line/40">
-        <Icon name="arrow-right" size={14} className="rotate-180" />
-        Volver al inicio
-      </Link>
-
-      <form onSubmit={submit} className="w-full max-w-sm bg-white rounded-3xl border border-line shadow-soft p-6">
-        <div className="mb-4 flex justify-center"><Logo variant="lockup" size={36} /></div>
-        <h1 className="ce-display text-xl font-bold text-center">Crea tu cuenta</h1>
-        <p className="text-sm text-muted text-center mb-6">14 días gratis, sin tarjeta.</p>
+    <AuthShell>
+      <form onSubmit={submit} className="w-full max-w-sm mx-auto lg:mx-0">
+        <div className="mb-4 flex justify-center lg:justify-start"><Logo variant="lockup" size={44} /></div>
+        <h1 className="ce-display text-2xl font-bold text-center lg:text-left">Crea tu cuenta</h1>
+        <p className="text-sm text-muted text-center lg:text-left mb-6">14 días gratis, sin tarjeta.</p>
 
         <label className="block text-sm font-medium mb-1">Tu nombre</label>
         <input
@@ -103,19 +98,15 @@ export default function RegistroPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 rounded-2xl bg-ink text-white font-medium disabled:opacity-40"
+          className="w-full py-3 rounded-2xl text-white font-semibold shadow-lg shadow-[#F26A1F]/30 bg-gradient-to-r from-[#F26A1F] to-[#FF8A47] hover:brightness-105 active:scale-[0.99] transition disabled:opacity-40"
         >
           {loading ? 'Creando…' : 'Crear cuenta y elegir plan'}
         </button>
 
-        <p className="text-center text-sm text-muted mt-4">
-          ¿Ya tienes cuenta? <Link href="/login" className="text-ink underline">Entra</Link>
+        <p className="text-center lg:text-left text-sm text-muted mt-4">
+          ¿Ya tienes cuenta? <Link href="/login" className="font-semibold text-[#F26A1F] hover:underline">Entra</Link>
         </p>
       </form>
-
-      <p className="absolute bottom-5 inset-x-0 text-center text-xs text-muted">
-        Desarrollado por <a href="https://lumiaaisolutions.com" target="_blank" rel="noopener noreferrer" className="font-semibold text-ink/70 hover:text-ink underline-offset-2 hover:underline">LUMIA</a>
-      </p>
-    </main>
+    </AuthShell>
   );
 }
