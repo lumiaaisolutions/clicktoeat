@@ -26,6 +26,7 @@ import { TourOverlay } from '@/components/help/TourOverlay';
 import { AutoTourTrigger } from '@/components/help/AutoTourTrigger';
 import { ClickyWidget } from '@/components/clicky/ClickyWidget';
 import { Logo } from '@/components/ui/Logo';
+import { LumiaBadge } from '@/components/ui/LumiaBadge';
 import { cn } from '@/lib/utils';
 
 type IconName =
@@ -146,6 +147,9 @@ function UserCard({ user, onLogout }: { user: UserCardData; onLogout: () => void
         </svg>
         Cerrar sesión
       </button>
+      <div className="mt-3 flex justify-center">
+        <LumiaBadge className="scale-90" />
+      </div>
     </div>
   );
 }

@@ -30,6 +30,7 @@ class MenuController extends Controller
     {
         $locales = Local::query()
             ->activos()
+            ->with('plan') // para calcular `destacado` (feature directorio_destacado) sin N+1
             ->withCount(['productos' => fn ($q) => $q->where('disponible', true)])
             ->orderBy('nombre')
             ->get();

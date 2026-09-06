@@ -27,6 +27,8 @@ export interface LocalDirectorio {
   productosCount?: number;
   lat?: number | null;
   lng?: number | null;
+  /** Plan Premium: aparece destacado (en primer plano) en el directorio. */
+  destacado?: boolean;
 }
 
 async function getLocales(): Promise<LocalDirectorio[]> {

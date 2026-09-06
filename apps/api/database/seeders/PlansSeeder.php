@@ -122,6 +122,7 @@ class PlansSeeder extends Seeder
                     F::RRHH_TURNOS,
                     F::SUCURSALES_CONSOLIDADAS,
                     F::CLICKY_ASSISTANT,     // F103 — asistente de IA del panel
+                    F::DIRECTORIO_DESTACADO, // aparece destacado en la home pública
                 ],
             ],
         ];

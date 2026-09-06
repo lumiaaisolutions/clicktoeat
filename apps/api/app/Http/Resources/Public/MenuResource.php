@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Public;
 
+use App\Support\Features;
 use App\Support\HorarioCalculator;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -32,6 +33,8 @@ class MenuResource extends JsonResource
             'lng' => $this->lng !== null ? (float) $this->lng : null,
             'redesSociales' => $this->redes_sociales,
             'productosCount' => $this->whenCounted('productos'),
+            // Destacado = plan Premium: aparece en primer plano en el directorio.
+            'destacado' => Features::has($this->resource, Features::DIRECTORIO_DESTACADO),
         ];
     }
 }

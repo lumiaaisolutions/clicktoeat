@@ -8,6 +8,7 @@ import { buildWhatsAppUrl } from '@/lib/whatsapp';
 import { cn, formatMXN } from '@/lib/utils';
 import type { MenuResponse, MenuProducto } from '@/lib/api';
 import { Icon, type IconName } from '@/components/ui/Icon';
+import { LumiaBadge } from '@/components/ui/LumiaBadge';
 import { ReviewsSection } from '@/components/landing/ReviewsSection';
 import { CuponDestacadoBanner } from '@/components/landing/CuponDestacadoBanner';
 import 'leaflet/dist/leaflet.css';
@@ -1805,17 +1806,7 @@ function Footer({ local, branding }: { local: Local; branding: Branding }) {
           <div className="flex items-center gap-4">
             <a href="/privacidad" className="hover:text-white transition underline-offset-2 hover:underline">Privacidad</a>
             <a href="/terminos"   className="hover:text-white transition underline-offset-2 hover:underline">Términos</a>
-            <a
-              href="https://lumiaaisolutions.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ce-lumia-link group"
-              aria-label="LUMIA — Soluciones digitales para hostelería"
-            >
-              <span className="text-white/70 group-hover:text-white transition">Desarrollado por</span>
-              <span className="ce-lumia text-sm sm:text-base">LUMIA</span>
-              <Icon name="arrow-up-right" size={12} className="text-white/50 group-hover:text-white transition" />
-            </a>
+            <LumiaBadge />
           </div>
         </div>
 

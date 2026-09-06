@@ -15,6 +15,7 @@ import { cn, formatMXN } from '@/lib/utils';
 import { QRCode, downloadQR } from '@/components/ui/QRCode';
 import { Logo } from '@/components/ui/Logo';
 import { Icon } from '@/components/ui/Icon';
+import { LumiaBadge } from '@/components/ui/LumiaBadge';
 import { PinnedFoodStory } from '@/components/landing/PinnedFoodStory';
 import { WhyClickToEatSection } from '@/components/landing/WhyClickToEatSection';
 import { SystemPreviewSection } from '@/components/landing/SystemPreviewSection';
@@ -121,13 +122,21 @@ export function DirectoryClient({ locales }: { locales: LocalDirectorio[] }) {
     const query = norm(q.trim());
     return withDistance.filter((l) => {
       if (onlyOpen && abiertoDe(l) === false) return false;
-      if (!query) return true;
-      return norm(l.nombre).includes(query)
-          || norm(l.tagline ?? '').includes(query)
-          || norm(l.direccion ?? '').includes(query)
-          || norm(l.slug).includes(query);
+      if (query) {
+        // Búsqueda por nombre/zona: aparecen TODOS los que coincidan (cualquier plan).
+        return norm(l.nombre).includes(query)
+            || norm(l.tagline ?? '').includes(query)
+            || norm(l.direccion ?? '').includes(query)
+            || norm(l.slug).includes(query);
+      }
+      // Sin búsqueda ni cercanía: solo aparecen en primer plano las destacadas
+      // (plan Premium). Las demás solo salen al buscar o filtrar por cercanía.
+      // Las que el usuario marcó como favoritas siempre se muestran.
+      return l.destacado === true || favs.has(l.slug);
     });
-  }, [withDistance, q, onlyOpen]);
+  }, [withDistance, q, onlyOpen, favs]);
+
+  const buscando = q.trim().length > 0;
 
   const nearbyList = useMemo(() => {
     if (!userCoords) return [];
@@ -242,9 +251,15 @@ export function DirectoryClient({ locales }: { locales: LocalDirectorio[] }) {
       <section className="px-4 sm:px-6 pt-12 pb-24 max-w-6xl mx-auto">
         <SectionHeader
           kicker="Catálogo"
-          title={favoritos.length > 0 ? 'Otros locales' : 'Locales en la plataforma'}
+          title={buscando ? 'Resultados de tu búsqueda' : (favoritos.length > 0 ? 'Otros destacados' : 'Locales destacados')}
           iconName="utensils"
         />
+
+        {!buscando && (
+          <p className="text-sm text-muted -mt-2 mb-6">
+            Mostrando locales destacados. <span className="text-ink font-medium">Busca por nombre</span> o usa <span className="text-ink font-medium">“cerca de ti”</span> para ver todos.
+          </p>
+        )}
 
         {locales.length === 0 ? (
           <EmptyState
@@ -253,13 +268,13 @@ export function DirectoryClient({ locales }: { locales: LocalDirectorio[] }) {
           />
         ) : resto.length === 0 ? (
           <EmptyState
-            title="Nada encontrado"
+            title={buscando ? 'Nada encontrado' : 'Aún no hay locales destacados'}
             description={
-              q
+              buscando
                 ? `No encontramos locales que coincidan con "${q}".`
                 : onlyOpen
                   ? 'Ninguno de los locales está abierto en este momento.'
-                  : 'Sin locales para mostrar.'
+                  : 'Busca por nombre o activa “cerca de ti” para descubrir todos los locales.'
             }
           />
         ) : (
@@ -887,18 +902,8 @@ function Footer() {
 
         <div>
           <p className="text-xs uppercase tracking-wider text-muted mb-3">Acerca</p>
-          <a
-            href="https://lumiaaisolutions.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="ce-lumia-link"
-            aria-label="LUMIA — Soluciones digitales para hostelería"
-          >
-            <span className="text-sm font-medium">Desarrollado por</span>
-            <span className="ce-lumia text-base">LUMIA</span>
-            <Icon name="arrow-up-right" size={14} />
-          </a>
-          <p className="text-xs text-muted mt-2">Soluciones digitales para la hostelería.</p>
+          <LumiaBadge />
+          <p className="text-xs text-muted mt-3">Soluciones digitales para la hostelería.</p>
         </div>
       </div>
 

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/store/auth';
 import { Icon } from '@/components/ui/Icon';
 import { Logo } from '@/components/ui/Logo';
+import { LumiaBadge } from '@/components/ui/LumiaBadge';
 
 export default function LoginPage() {
   const login = useAuth((s) => s.login);
@@ -117,17 +118,9 @@ export default function LoginPage() {
       </form>
 
       {/* Footer LUMIA */}
-      <p className="absolute bottom-5 inset-x-0 text-center text-xs text-muted">
-        Desarrollado por{' '}
-        <a
-          href="https://lumiaaisolutions.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-semibold text-ink/70 hover:text-ink underline-offset-2 hover:underline"
-        >
-          LUMIA
-        </a>
-      </p>
+      <div className="absolute bottom-5 inset-x-0 flex justify-center px-4">
+        <LumiaBadge />
+      </div>
     </main>
   );
 }

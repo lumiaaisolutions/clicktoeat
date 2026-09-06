@@ -83,6 +83,10 @@ final class Features
     // F103 — Clicky, asistente de IA del panel (guía scripteada + chat Gemini)
     public const CLICKY_ASSISTANT = 'clicky_assistant';
 
+    // Directorio: aparecer destacado (en primer plano) en la home pública.
+    // Solo Premium — los demás locales solo salen por búsqueda o cercanía.
+    public const DIRECTORIO_DESTACADO = 'directorio_destacado';
+
     /** @return list<string> */
     public static function all(): array
     {

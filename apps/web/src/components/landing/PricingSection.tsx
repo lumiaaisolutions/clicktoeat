@@ -55,6 +55,7 @@ const FEATURE_LABELS: Record<string, string> = {
   campanas:                'Campañas de email a tus clientes',
   rrhh_turnos:             'Turnos de tu equipo con forecast de horas pico',
   sucursales_consolidadas: 'Reporte consolidado de tu cadena de sucursales',
+  directorio_destacado:    'Apareces destacado en el directorio — en primer plano de la página de inicio',
 };
 
 const PLAN_HIGHLIGHT: Record<string, string> = {
