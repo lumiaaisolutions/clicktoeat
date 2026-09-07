@@ -456,19 +456,46 @@ public function test_premium_accede_a_todo(): void
 
 Unit tests del store `usePlan.has(...)` y del `<LockedFeature>` con react-testing-library.
 
-## Limitación conocida — sin gate server-side genérico de "plan activo"
+## Gate server-side de "plan activo" — `plan.active` (resuelto 2026-09-07)
 
-El middleware `feature:X` solo protege rutas de features premium específicas
-(`inventario`, `compras`, `metricas_*`, `audit_log`, `notificaciones`,
-`api_webhooks`, `recetas`) — **no existe ningún middleware aplicado
-ampliamente que bloquee CRUD base** (crear pedidos, productos, etc.) cuando
-`plan_status` es `incomplete`/`past_due`/`canceled`. El único bloqueo real
-para esos casos es `PlanInactiveScreen` en el frontend (ver
-`apps/web/src/components/billing/PlanInactiveScreen.tsx`). Un cliente
-pegándole a la API directo (sin pasar por el navegador) con una cuenta sin
-plan activo podría seguir operando. Detectado 2026-07-06, no resuelto —
-requiere diseño cuidadoso de un middleware nuevo aplicado a las rutas base
-sin romper flujos legítimos (ver `docs/PENDIENTES.md`).
+> **Antes** (limitación detectada 2026-07-06): `feature:X` solo protegía rutas
+> premium puntuales; **no había** middleware que bloqueara el CRUD base (crear
+> pedidos/productos) cuando `plan_status` era `incomplete`/`past_due`/`canceled`.
+> El único freno era `PlanInactiveScreen` en el frontend, así que un cliente
+> pegándole a la API directo podía seguir operando sin plan. **Bypass de
+> billing = fuga de ingresos.**
+
+**Solución:** middleware `EnsureActivePlan` (alias `plan.active`,
+`app/Http/Middleware/EnsureActivePlan.php`) aplicado a **todo el grupo tenant
+autenticado** (`['auth:sanctum', 'tenant', 'plan.active']` en `routes/api.php`).
+
+Política (por método + allowlist, no por ruta enumerada — cubre rutas futuras):
+
+| Caso | Resultado |
+|------|-----------|
+| **Lecturas** (GET/HEAD/OPTIONS) | ✅ pasan siempre (ver datos aunque no pague) |
+| **super_admin** | ✅ pasa (opera fuera del billing) |
+| Local **sin `plan_id`** (pre-SaaS / seeders) | ✅ pasa (backwards-compat, igual que `RequiresFeature`) |
+| Local **con plan activo** (`hasActivePlan()`) | ✅ pasa |
+| Escritura + plan inactivo + ruta en **allowlist** | ✅ pasa |
+| Escritura + plan inactivo (resto) | ❌ **402 `PLAN_INACTIVE`** |
+
+**Allowlist** (escrituras que deben seguir accesibles para reactivar/pedir
+ayuda): `*/billing/*` (feedback de cancelación), `*/local` (ajustes),
+`*/me/*` (switch-local, notif-filtro), `*/soporte/*` (tickets). El
+**checkout de pago vive fuera del grupo tenant**, así que jamás se bloquea.
+
+Fuente única de verdad de "plan activo" sigue siendo `Local::hasActivePlan()`
+(compara `trial_ends_at` en tiempo real; no depende solo del cron).
+
+**No gateado a propósito:** los pedidos públicos del cliente final
+(`public/pedidos/{slug}`, `mesa/{qrToken}/pedidos`) viven fuera del grupo
+tenant — suspender la landing/ordering de un local moroso es una decisión de
+producto aparte, no parte de este gate.
+
+Tests: `tests/Feature/Billing/PlanActiveGateTest.php` (bloquea escritura,
+permite lectura, permite ajustes para reactivar, no bloquea plan activo,
+backwards-compat sin plan). Paridad implementada también en ClickToShop.
 
 ## Errores que devuelve la API
 

@@ -58,6 +58,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'idempotent' => Idempotency::class,
             'feature' => RequiresFeature::class,
             'permiso' => \App\Http\Middleware\EnsurePermiso::class,
+            'plan.active' => \App\Http\Middleware\EnsureActivePlan::class,
         ]);
 
         $middleware->throttleApi();

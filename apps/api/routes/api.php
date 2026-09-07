@@ -190,7 +190,10 @@ Route::middleware('throttle:60,1')->group(function () {
     });
 
     // ─── Authenticated (tenant-scoped) ────────────────────────────────
-    Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
+    // `plan.active` cierra el bypass de billing: bloquea escrituras cuando el
+    // plan no está activo (deja pasar GETs, pago, ajustes, soporte). Ver
+    // App\Http\Middleware\EnsureActivePlan.
+    Route::middleware(['auth:sanctum', 'tenant', 'plan.active'])->group(function () {
 
         Route::get('dashboard', function () {
             $user = request()->user();
