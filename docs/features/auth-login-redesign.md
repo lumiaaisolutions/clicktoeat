@@ -76,6 +76,9 @@ Configuración **global de plataforma** (super_admin), no multi-tenant.
 - **Frontend**: `AuthShell` hace `fetch` público del carrusel al montar; si
   devuelve ≥1 slide activo los usa, si no cae a `DEFAULT_SLIDES`. Si un slide
   trae `imagen_url`, se renderiza de fondo con scrim para legibilidad.
+- **Contenido en prod**: `AuthCarouselSlidesSeeder` carga 4 slides curados
+  (idempotente, `updateOrCreate` por `orden`). Editable desde el panel
+  super-admin. Corrido en prod 2026-09-07.
 
 ## Archivos tocados
 
