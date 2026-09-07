@@ -1,4 +1,45 @@
-# Bug — Rate limit 3-capas no se dispara en producción
+# Bug — Rate limit 3-capas no se dispara en producción  → **FALSA ALARMA (RESUELTO 2026-09-07)**
+
+> ## ✅ Resolución (2026-09-07)
+>
+> **No había ningún bug.** El rate limiter de 3 capas funciona correctamente
+> en producción (VPS dedicado, php8.4-fpm, `CACHE_STORE=database`). El
+> "síntoma" era un **error del script de reproducción**: usaba
+> `"password":"bad"` (3 caracteres), pero `LoginRequest` valida
+> `password => min:6`. Por eso **cada request devolvía 422 en la validación
+> del FormRequest, antes de entrar al método** `login()` — el código del
+> rate limiter (que vive en el cuerpo del método) nunca se ejecutaba, así que
+> nunca acumulaba contadores. Las 4 hipótesis de abajo (LSPHP workers, CDN,
+> cache prefix) eran callejones sin salida.
+>
+> **Verificación con password válido (≥6 chars)** el 2026-09-07 en ambos
+> productos: 8 intentos → **5×422 (credenciales inválidas) → 3×429** (rate
+> limit por email a partir del 6º). Exactamente lo esperado.
+>
+> ```bash
+> for i in $(seq 1 8); do curl -s -o /dev/null -w "%{http_code}\n" \
+>   -X POST https://clicktoeat-api.lumiaaisolutions.com/api/v1/auth/login \
+>   -H "Content-Type: application/json" -H "Accept: application/json" \
+>   -d '{"email":"probe@example.com","password":"badpass1"}'; done
+> # → 422 422 422 422 422 429 429 429
+> ```
+>
+> Diagnóstico que lo confirmó: en `tinker` del VPS, `RateLimiter::hit`/
+> `attempts` persisten cross-proceso (attempts=2), y `Cache` database
+> persiste cross-proceso — pero los 8 logins con password corto dejaban
+> **0 keys** `login:*` en la tabla `cache` (nunca corrían). Con password
+> válido, los contadores aparecen y el 429 dispara.
+>
+> **Lección:** todo test de rate limit de login debe usar un password que
+> pase la validación del `LoginRequest` (`min:6`), o estará midiendo la
+> validación, no el limiter. La defensa anti-credential-stuffing por email
+> (5/15min) **sí está activa**.
+>
+> ---
+> _Lo de abajo es el análisis original de 2026-06-22 (obsoleto), conservado
+> como registro._
+
+# (Histórico) Bug — Rate limit 3-capas no se dispara en producción
 
 > Detectado al verificar el deploy del 2026-06-22. El código de SEV-10
 > (rate limit 3 capas en login) está deployado correctamente pero no
