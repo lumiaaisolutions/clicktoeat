@@ -1,8 +1,13 @@
-# Incidente/Runbook — El scheduler de Laravel NO corre en prod (ClickToEat + ClickToShop)
+# Incidente/Runbook — El scheduler de Laravel NO corría en prod (ClickToEat + ClickToShop)
+
+> **Estado: RESUELTO 2026-09-07.** Se agregaron las 2 líneas de `schedule:run`
+> al crontab de `deploy` (backup previo en `~/crontab.backup.20260907.txt`).
+> Verificado: `schedule:list` registra las tareas y `schedule:run` sale 0 en
+> ambos. Este doc queda como referencia del incidente y del fix.
 
 > Detectado 2026-09-07 auditando "el bug de cron de los repos hermanos". El
 > hallazgo fue el inverso al esperado: **los hermanos (`clicktobarber`,
-> `clicktodo`) SÍ tienen su `schedule:run`; ClickToEat y ClickToShop NO.**
+> `clicktodo`) SÍ tenían su `schedule:run`; ClickToEat y ClickToShop NO.**
 
 ## Qué pasa
 
