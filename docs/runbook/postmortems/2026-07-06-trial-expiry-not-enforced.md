@@ -152,3 +152,21 @@ el archivo de log realmente crece).
 - Suite completa `php artisan test` (265 tests) y `npm run typecheck` en
   verde tras el fix de gating.
 - Relacionado: [`2026-07-06-locales-huerfanos-stripe.md`](2026-07-06-locales-huerfanos-stripe.md) — el incidente que llevó a descubrir este.
+
+## Prevención añadida (2026-09-07)
+
+Además del fix en tiempo real (`hasActivePlan()` compara `trial_ends_at` en
+vivo, no depende del cron) y de haber restaurado el `schedule:run` del VPS
+(ver [`scheduler-cron-faltante.md`](../scheduler-cron-faltante.md)), se agregó
+un **detector de red de seguridad**:
+
+- Comando `trials:alert-stuck` (`app/Console/Commands/AlertStuckTrialsCommand.php`)
+  — busca locales que siguen `plan_status='trialing'` >24h después de vencer
+  su `trial_ends_at` (excluye `pago_externo`). **No muta** (de expirar se
+  encarga `trials:expire-manual`); solo **alerta a Sentry + `Log::warning`**
+  (el mail SMTP está caído). Si dispara, significa que el scheduler o un webhook
+  de Stripe fallaron → investigar.
+- Agendado diario a las 11:00 (después de `trials:expire-manual` a las 10:30):
+  `->name('alert-stuck-trials')`.
+- Tests: `tests/Feature/Billing/AlertStuckTrialsTest.php` (detecta sin mutar;
+  no alerta si vigente o `pago_externo`). Paridad implementada en ClickToShop.

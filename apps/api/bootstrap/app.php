@@ -123,6 +123,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('trials:expire-manual')
             ->daily()->at('10:30')->name('expire-manual-trials')->onOneServer();
 
+        // Red de seguridad: alerta (Sentry+log) si algún trial sigue colgado
+        // tras vencer >24h — detecta que expire-manual/scheduler o un webhook
+        // de Stripe fallaron. Corre después de expire-manual.
+        $schedule->command('trials:alert-stuck')
+            ->daily()->at('11:00')->name('alert-stuck-trials')->onOneServer();
+
         // ─── Carrito abandonado (F75) — cada 15 min ────────────────────
         $schedule->call(function () {
             CarritoAbandonadoDispatcher::dispatchPending();
