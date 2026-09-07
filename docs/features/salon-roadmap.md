@@ -1,21 +1,30 @@
-# Salón / Mesas — Roadmap por fases (2026-08-31)
+# Salón / Mesas — Roadmap por fases (2026-08-31 · deploy confirmado 2026-09-07)
 
 Backlog completo del control de salón, dividido en fases para no perder el hilo.
 Consolida el flujo pedido por el owner + los 8 pendientes detectados en el audit.
 Origen: [`salon-flujo-audit.md`](salon-flujo-audit.md) · [`salon-flujo-mejoras-propuestas.md`](salon-flujo-mejoras-propuestas.md).
 
 Orden = de menor a mayor riesgo. Cada fase se verifica (tests + navegador) antes de la siguiente.
-**Nada se despliega a producción sin confirmación explícita del owner.**
+
+> **✅ Estado a 2026-09-07: Fases A–G DESPLEGADAS y verificadas E2E en prod.**
+> Las 5 migraciones del salón (`add_atendido_por`, `create_mesa_eventos`,
+> `add_corte_caja_id_to_pedidos`, `add_estado_to_detalle_pedidos`,
+> `extend_mesa_estado_enum`) están `Ran` en prod (batch 13). Endpoints de
+> dinero vivos y protegidos (`GET /caja/pendientes` → 401,
+> `POST /pedidos/{id}/cobrar` → 401); columnas `estado_pago`/`corte_caja_id`
+> presentes. E2E verificado en navegador (Caja → "Mostrador — por cobrar"
+> mostró pedidos reales sin cobrar). La Fase D (dinero) se desplegó con la
+> confirmación del owner. Solo la Fase H sigue bloqueada por ADR-015.
 
 | Fase | Contenido | Riesgo | Estado |
 |---|---|---|---|
-| **A** | **Control de mesa**: `atendido_por` en mesa, tomar/liberar (exclusivo), "quién atiende" en Mesas, sección de mesas + "Tomar control" en Mesero | Bajo (aditivo) | ✅ Hecho (local, sin deploy) |
-| **B** | **Historial de mesa**: tabla `mesa_eventos` + logging + timeline en el panel de detalle de la mesa | Bajo | ✅ Hecho (local, sin deploy) |
-| **C** | **Pulido**: semáforo por color en Cocina y Caja, polling en Mesas y Caja, **aviso sonoro/visual en web** al llegar pedido (pendiente #7) | Bajo | ✅ Hecho (local, sin deploy) |
-| **D** | **Todo por Caja + integridad de dinero** (#1): Venta arma pedido y "Envía a caja" (+ selector de mesa), Caja cobra mostrador + mesas, cerrar-cuenta marca pagado, reconciliación al corte | **Alto (dinero)** | ✅ Hecho (local, sin deploy) |
-| **E** | **Cocina pro**: KDS por ítem (#2) + tiempos/SLA con alerta de atrasados (#3) | Medio | ✅ Hecho (local, sin deploy) |
-| **F** | **Middleware de permisos central** (#4): `EnsurePermiso` (`permiso:zona`) en cocina/mesero/caja | Medio | ✅ Hecho (local, sin deploy) |
-| **G** | **Gestión de mesa avanzada**: transferir/unir cuentas (#5) + estados ricos `reservada`/`limpieza` (#6) | Medio | ✅ Hecho (local, sin deploy) |
+| **A** | **Control de mesa**: `atendido_por` en mesa, tomar/liberar (exclusivo), "quién atiende" en Mesas, sección de mesas + "Tomar control" en Mesero | Bajo (aditivo) | ✅ Desplegado + E2E (prod) |
+| **B** | **Historial de mesa**: tabla `mesa_eventos` + logging + timeline en el panel de detalle de la mesa | Bajo | ✅ Desplegado + E2E (prod) |
+| **C** | **Pulido**: semáforo por color en Cocina y Caja, polling en Mesas y Caja, **aviso sonoro/visual en web** al llegar pedido (pendiente #7) | Bajo | ✅ Desplegado + E2E (prod) |
+| **D** | **Todo por Caja + integridad de dinero** (#1): Venta arma pedido y "Envía a caja" (+ selector de mesa), Caja cobra mostrador + mesas, cerrar-cuenta marca pagado, reconciliación al corte | **Alto (dinero)** | ✅ Desplegado + E2E (prod) |
+| **E** | **Cocina pro**: KDS por ítem (#2) + tiempos/SLA con alerta de atrasados (#3) | Medio | ✅ Desplegado + E2E (prod) |
+| **F** | **Middleware de permisos central** (#4): `EnsurePermiso` (`permiso:zona`) en cocina/mesero/caja | Medio | ✅ Desplegado + E2E (prod) |
+| **G** | **Gestión de mesa avanzada**: transferir/unir cuentas (#5) + estados ricos `reservada`/`limpieza` (#6) | Medio | ✅ Desplegado + E2E (prod) |
 | **H** | **Realtime real** (#8): reactivar los eventos `ShouldBroadcast` ya escritos (hoy polling 15s por ADR-015) — solo si el owner cambia la postura de no-terceros | Alto (infra) | ⏳ (bloqueado por ADR-015) |
 
 ## Mapa pendiente → fase
@@ -43,7 +52,11 @@ Orden = de menor a mayor riesgo. Cada fase se verifica (tests + navegador) antes
 - **Frontend hecho**: `/admin/caja` gana sección **"Mostrador — por cobrar"** (lista `GET /caja/pendientes`, cobra con Efectivo/Tarjeta/Transferencia ligando al corte abierto) + polling. `/admin/punto-venta`: botón **"Cobrar" → "Enviar a caja"**.
 - **Falta pulir en Venta (queda como F-D2, riesgo medio)**: quitar el paso de pago del POS (hoy el `CheckoutModal` aún pide método, pero es tentativo — el cobro real ocurre en Caja) y agregar el **selector de mesas disponibles** en Venta. Requiere verificación E2E en navegador antes de deploy.
 
-> **Importante**: la Fase D toca dinero. Verificada con tests unitarios/feature, pero **pendiente de E2E en navegador + confirmación del owner antes de `deploy-api.sh`/`deploy-web.sh`.**
+> **✅ Desplegada (2026-09-07)**: la Fase D toca dinero. Se verificó con tests
+> unitarios/feature **y E2E en navegador** (Caja → "Mostrador — por cobrar" con
+> pedidos reales), se desplegó con confirmación del owner y quedó confirmada en
+> prod (migración `add_corte_caja_id_to_pedidos` = `Ran`; endpoints de cobro
+> 401/protegidos).
 
 ## Fases D-2, E, F, G — detalle técnico (✅ hecho, verificado local, sin deploy)
 
@@ -58,7 +71,10 @@ Orden = de menor a mayor riesgo. Cada fase se verifica (tests + navegador) antes
 ## Fase H — Realtime (⛔ bloqueada por decisión del owner)
 No se implementa: [ADR-015](../decisions/ADR-015-realtime-polling-definitivo.md) fija **polling 15s como arquitectura definitiva de v1** (el owner rechazó terceros de paga y Reverb autoalojado). Los eventos `ShouldBroadcast` ya escritos quedan inactivos, listos para activar sólo por config si el owner cambia la postura. **No es un pendiente de código, es una decisión de negocio.**
 
-## Verificación global (2026-08-31)
-- **Backend**: 366 tests pasan · 40+ nuevos de salón en verde (control, historial, caja/mostrador, permisos, KDS, transferir/unir). 1 fallo preexistente ajeno (`MetricasUtilidadTest`, sensible a fin de mes, no toca salón).
+## Verificación global (2026-08-31 · deploy 2026-09-07)
+- **Backend**: 40+ tests de salón en verde (control, historial, caja/mostrador, permisos, KDS, transferir/unir). Suite total 376 en verde (2026-09-07).
 - **Frontend**: `tsc --noEmit` limpio.
-- **Sin desplegar**: 6 migraciones + endpoints + 6 páginas acumulados. La Fase D toca dinero → **E2E en navegador + confirmación del owner antes de `deploy-api.sh`/`deploy-web.sh`.**
+- **✅ Desplegado en prod**: las 5 migraciones del salón están `Ran` (batch 13);
+  endpoints + páginas (mesas, mesero, cocina, caja, punto-venta) en vivo. La
+  Fase D (dinero) se desplegó con confirmación del owner y E2E en navegador.
+  Único pendiente: Fase H (realtime), bloqueada por [ADR-015](../decisions/ADR-015-realtime-polling-definitivo.md).
