@@ -170,3 +170,20 @@ un **detector de red de seguridad**:
   `->name('alert-stuck-trials')`.
 - Tests: `tests/Feature/Billing/AlertStuckTrialsTest.php` (detecta sin mutar;
   no alerta si vigente o `pago_externo`). Paridad implementada en ClickToShop.
+
+### Primer disparo real de la alerta (2026-09-10)
+
+Al desplegar `trials:alert-stuck`, su primera corrida en prod detectó **1 caso
+real**: local id=6 `pendiente-ig62i6CPiY` ("Las Cazuelas Locas", 1 user, 0
+productos/pedidos — onboarding abandonado). Su `stripe_subscription_id`
+(`sub_1TqHMBRxHYFQWlidbwQjZOpy`) es la sub cancelada el 2026-07-06 (ver
+[`2026-07-06-locales-huerfanos-stripe.md`](2026-07-06-locales-huerfanos-stripe.md)),
+pero el webhook de cancelación nunca actualizó su `plan_status`, que quedó
+colgado en `trialing`. Sin exposición de negocio: `hasActivePlan()` ya lo
+trataba como inactivo en tiempo real (trial vencido en julio).
+
+**Resolución (con OK del owner):** se alineó a la realidad de Stripe →
+`plan_status='canceled'`, `canceled_at=now()` (guardas: solo si seguía
+`trialing` y el slug coincidía; `current_period_ends_at` ya estaba en el pasado,
+así que no otorga gracia). `hasActivePlan()` sigue `false`. La alerta volvió a
+"Sin trials colgados". ClickToShop estaba limpio.
