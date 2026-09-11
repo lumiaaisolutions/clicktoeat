@@ -263,18 +263,18 @@ function IngredienteModal({
   return (
     <Modal open={open} onClose={onClose} title={ingrediente ? 'Editar ingrediente' : 'Nuevo ingrediente'}>
       <form onSubmit={onSubmit}>
-        <Field data-tour="inventario-modal-nombre" label="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} error={errors.nombre} required maxLength={80} />
+        <Field data-tour="inventario-modal-nombre" label="Nombre del insumo" placeholder="ej. Tortillas, Carne, Queso" value={nombre} onChange={(e) => setNombre(e.target.value)} error={errors.nombre} required maxLength={80} />
         <div className="grid grid-cols-2 gap-3">
-          <Field data-tour="inventario-modal-stock" label="Stock actual" type="number" step="0.001" value={stock} onChange={(e) => setStock(Number(e.target.value))} error={errors.stock} required />
+          <Field data-tour="inventario-modal-stock" label="¿Cuánto tienes ahora?" type="number" step="0.001" value={stock} onChange={(e) => setStock(Number(e.target.value))} error={errors.stock} required />
           <Select label="Unidad" value={unidad} onChange={(e) => setUnidad(e.target.value as any)} error={errors.unidad}>
             {UNIDADES.map((u) => <option key={u} value={u}>{u}</option>)}
           </Select>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <Field data-tour="inventario-modal-minimo" label="Stock mínimo" type="number" step="0.001" value={stockMin} onChange={(e) => setStockMin(Number(e.target.value))} error={errors.stock_minimo} hint="Para alerta de bajo stock" />
-          <Field label="Costo unitario (MXN)" type="number" step="0.01" value={costo} onChange={(e) => setCosto(Number(e.target.value))} error={errors.costo_unitario} />
+          <Field data-tour="inventario-modal-minimo" label="Avisarme cuando queden" type="number" step="0.001" value={stockMin} onChange={(e) => setStockMin(Number(e.target.value))} error={errors.stock_minimo} hint="Te avisamos al llegar a esta cantidad." />
+          <Field label="Costo por unidad ($)" type="number" step="0.01" value={costo} onChange={(e) => setCosto(Number(e.target.value))} error={errors.costo_unitario} hint="Lo que te cuesta a ti. Opcional." />
         </div>
-        <Switch label="Activo" checked={activo} onChange={setActivo} />
+        <Switch label="En uso" hint="Apágalo si dejaste de usar este insumo (no se borra)." checked={activo} onChange={setActivo} />
         <div className="flex gap-2 justify-end mt-4">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
           <Button data-tour="inventario-modal-guardar" type="submit" loading={saving}>Guardar</Button>
@@ -304,12 +304,16 @@ function AjusteModal({
 
   if (!ingrediente) return null;
 
-  const cantidadFirmada = tipo === 'merma' ? -Math.abs(cantidad) : Math.abs(cantidad);
-  const nuevoStock = Math.max(0, ingrediente.stock + cantidadFirmada);
+  // "Corregir" fija el total → mandamos el delta (backend suma un valor firmado).
+  const cantidadFirmada =
+    tipo === 'merma' ? -Math.abs(cantidad)
+      : tipo === 'ajuste' ? (cantidad - ingrediente.stock)
+        : Math.abs(cantidad);
+  const nuevoStock = tipo === 'ajuste' ? Math.max(0, cantidad) : Math.max(0, ingrediente.stock + cantidadFirmada);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (cantidad === 0) return;
+    if (cantidadFirmada === 0) return;
     setSaving(true);
     try {
       await api.post(`/ingredientes/${ingrediente.id}/ajuste`, {
@@ -330,18 +334,34 @@ function AjusteModal({
     <Modal open={open} onClose={onClose} title={`Ajustar stock — ${ingrediente.nombre}`}>
       <form onSubmit={onSubmit}>
         <p className="text-sm text-muted mb-3">
-          Stock actual: <strong>{ingrediente.stock} {ingrediente.unidad}</strong>
+          Ahora tienes: <strong>{ingrediente.stock} {ingrediente.unidad}</strong>
         </p>
 
-        <Select data-tour="inventario-ajuste-tipo" label="Tipo de movimiento" value={tipo} onChange={(e) => setTipo(e.target.value as any)}>
-          <option value="entrada">Entrada (suma)</option>
-          <option value="merma">Merma (resta)</option>
-          <option value="ajuste">Ajuste manual</option>
-        </Select>
+        <p className="block text-sm font-medium mb-2">¿Qué pasó?</p>
+        <div data-tour="inventario-ajuste-tipo" className="grid grid-cols-3 gap-2 mb-4">
+          {([
+            { v: 'entrada', emoji: '📥', label: 'Me llegó más' },
+            { v: 'merma',   emoji: '📉', label: 'Se dañó o acabó' },
+            { v: 'ajuste',  emoji: '✏️', label: 'Corregir cantidad' },
+          ] as const).map((o) => (
+            <button
+              key={o.v}
+              type="button"
+              onClick={() => setTipo(o.v)}
+              className={cn(
+                'rounded-2xl border-2 px-2 py-3 text-center transition',
+                tipo === o.v ? 'border-[#F26A1F] bg-[#F26A1F]/10' : 'border-line hover:border-[#F26A1F]/40',
+              )}
+            >
+              <span className="block text-xl">{o.emoji}</span>
+              <span className="block text-xs font-semibold mt-1 leading-tight">{o.label}</span>
+            </button>
+          ))}
+        </div>
 
         <Field
           data-tour="inventario-ajuste-cantidad"
-          label={`Cantidad en ${ingrediente.unidad}`}
+          label={tipo === 'ajuste' ? `Deja el total en (${ingrediente.unidad})` : `¿Cuántas ${ingrediente.unidad}?`}
           type="number"
           step="0.001"
           min={0}
@@ -350,15 +370,15 @@ function AjusteModal({
           required
         />
 
-        <Field label="Motivo (opcional)" value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={200} />
+        <Field label="Nota (opcional)" placeholder="ej. Compra al proveedor, se echó a perder…" value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={200} />
 
         <div className="rounded-xl bg-line/30 px-4 py-3 mb-3 text-sm">
-          Nuevo stock: <strong>{nuevoStock} {ingrediente.unidad}</strong>
+          Van a quedar: <strong>{nuevoStock} {ingrediente.unidad}</strong>
         </div>
 
         <div className="flex gap-2 justify-end">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button data-tour="inventario-ajuste-confirmar" type="submit" loading={saving} disabled={cantidad === 0}>Confirmar</Button>
+          <Button data-tour="inventario-ajuste-confirmar" type="submit" loading={saving} disabled={cantidadFirmada === 0}>Confirmar</Button>
         </div>
       </form>
     </Modal>

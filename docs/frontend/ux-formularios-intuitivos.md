@@ -230,3 +230,61 @@ Hoy no hay módulo de Compras; la entrada de mercancía se hace en Inventario �
 > Nota de paridad: implementar primero en un producto, validar con usuarios reales
 > y portar al hermano adaptando vocabulario (ClickToEat: producto/receta/
 > ingredientes; ClickToShop: artículo/variante/opción).
+
+---
+
+# Implementación — asistente por pasos (2026-09-10, ClickToEat)
+
+Primera tanda implementada y desplegada en ClickToEat. Componente reutilizable
+`Wizard` + rediseño de los formularios más confusos a **asistente por pasos**,
+con lenguaje humano y responsive.
+
+## Componente `Wizard` (`src/components/ui/Wizard.tsx`)
+Chrome reutilizable de un formulario por pasos:
+- **Desktop:** rail lateral con pasos numerados (actual resaltado, ✓ completado,
+  pendiente en gris). Se puede volver a pasos ya vistos; adelante solo con
+  "Siguiente".
+- **Móvil:** el rail se oculta y aparece **"Paso X de N" + barra de progreso**
+  de N segmentos + nombre del paso.
+- Footer contextual: **Cancelar → ← Atrás / Siguiente → → Guardar** en el último.
+- Presentacional: la validación/navegación vive en cada form. Acento configurable
+  (ClickToEat usa `#F26A1F`).
+
+## Alta de producto — 4 pasos (`components/admin/catalogo/ProductoModal.tsx`)
+Extraído a su propio componente. Pasos:
+1. **Lo básico** — "¿Qué platillo es?": Foto, Nombre del platillo, Categoría,
+   Precio ($). Valida antes de avanzar.
+2. **Presentación** — "¿Cómo se ve en tu menú?": Descripción, Etiqueta,
+   *Mostrar en el menú*.
+3. **Extras** — "¿Se puede personalizar?": grupos de extras/toppings.
+4. **Inventario** — "¿Qué ingredientes usa?": receta simple (ingrediente +
+   cantidad) que descuenta inventario con cada venta. **Se guarda tras crear el
+   producto** (POST producto → PUT recetas con el id nuevo). Si el local no tiene
+   ingredientes, muestra un aviso amable y se puede saltar.
+
+## Gastos — 2 pasos (`app/admin/gastos/page.tsx`)
+1. **El gasto** — "¿Qué gastaste?": categoría, concepto, monto ($), fecha.
+2. **Detalles** — "¿Algo más?": *se paga cada mes*, notas, **comprobante**.
+   - **Arreglado el flujo de dos tiempos**: ahora se puede **elegir el recibo
+     antes de guardar** (se sube tras crear el gasto). Antes obligaba a guardar
+     primero.
+   - "Eliminar gasto" quedó como enlace discreto en el paso 1 (al editar).
+
+## Categorías — relabels (`app/admin/categorias/page.tsx`)
+Formulario corto (no amerita pasos): lenguaje simple. "Nombre de la categoría"
+(+ejemplo), icono "Aparece junto al nombre en tu menú", "Orden en el menú"
+("El número más bajo aparece primero"), "Mostrar en el menú".
+
+## Inventario — relabels + tarjetas de acción (`app/admin/inventario/page.tsx`)
+- **Ingrediente**: "Nombre del insumo" (+ejemplo), "¿Cuánto tienes ahora?",
+  "Avisarme cuando queden", "Costo por unidad ($)", "En uso".
+- **Ajuste de stock**: el select técnico "Tipo de movimiento" (Entrada/Merma/
+  Ajuste) se reemplazó por **3 tarjetas**: 📥 *Me llegó más* · 📉 *Se dañó o
+  acabó* · ✏️ *Corregir cantidad*. "Merma" desaparece como palabra. Cantidad
+  siempre positiva; la resta la decide la tarjeta. **"Corregir" fija el total**
+  (manda el delta; el backend suma un valor firmado). Preview: "Van a quedar: N".
+
+## Pendiente / siguiente
+- Portar el patrón a ClickToShop (paridad) adaptando vocabulario
+  (artículo/variante/opción).
+- Ventas/POS y otros formularios largos: evaluar pasos si el negocio lo pide.

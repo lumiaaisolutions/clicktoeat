@@ -6,6 +6,7 @@ import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
 import { Field, Select, Switch, Textarea } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
+import { Wizard } from '@/components/ui/Wizard';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
@@ -301,6 +302,18 @@ function GastoModal({
   const [comprobanteUrl, setComprobanteUrl] = useState<string | null>(gasto?.comprobante_url ?? null);
   const [busy, setBusy]           = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [paso, setPaso]           = useState(1);
+  // Para un gasto NUEVO: guardamos el archivo elegido y lo subimos tras crear
+  // (el endpoint de comprobante necesita el id). Así el usuario adjunta antes
+  // de guardar, en un solo flujo.
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+
+  const STEPS = ['El gasto', 'Detalles'];
+  const paso1Valido = concepto.trim() !== '' && parseFloat(montoMxn || '0') > 0;
+  const next = () => {
+    if (paso === 1 && !paso1Valido) { toast.error('Escribe el concepto y un monto mayor a 0.'); return; }
+    setPaso(2);
+  };
 
   const subirComprobante = async (file: File) => {
     if (!gasto) {
@@ -345,13 +358,24 @@ function GastoModal({
         recurrente,
         notas: notas.trim() || null,
       };
+      let gastoId = gasto?.id;
       if (gasto) {
         await api.patch(`/gastos/${gasto.id}`, payload);
-        toast.success('Gasto actualizado');
       } else {
-        await api.post('/gastos', payload);
-        toast.success('Gasto registrado');
+        const { data } = await api.post<{ data: Gasto }>('/gastos', payload);
+        gastoId = data.data.id;
       }
+      // Sube el comprobante elegido (gasto nuevo) tras crear.
+      if (pendingFile && gastoId) {
+        try {
+          const fd = new FormData();
+          fd.append('comprobante', pendingFile);
+          await api.post(`/gastos/${gastoId}/comprobante`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        } catch {
+          toast.error('El gasto se guardó, pero el comprobante no. Adjúntalo en Editar.');
+        }
+      }
+      toast.success(gasto ? 'Gasto actualizado' : 'Gasto registrado');
       onSaved();
     } catch (e: any) {
       toast.error(e?.response?.data?.message ?? 'Error al guardar');
@@ -371,109 +395,96 @@ function GastoModal({
     } finally { setBusy(false); }
   };
 
+  const q = paso === 1
+    ? { title: '¿Qué gastaste?', subtitle: undefined as string | undefined }
+    : { title: '¿Algo más?', subtitle: 'Comprobante y detalles. Todo esto es opcional.' };
+
   return (
     <Modal open onClose={onClose} title={gasto ? 'Editar gasto' : 'Registrar gasto'}>
-      <Select label="Categoría" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
-        {CATEGORIAS.map((c) => (
-          <option key={c.slug} value={c.slug}>{c.emoji} {c.label}</option>
-        ))}
-      </Select>
-
-      <Field
-        label="Concepto"
-        placeholder="CFE bimestral mayo-junio"
-        value={concepto}
-        onChange={(e) => setConcepto(e.target.value)}
-        required
-      />
-
-      <Field
-        label="Monto (MXN)"
-        type="number"
-        step="0.01"
-        min="0.01"
-        placeholder="1234.56"
-        value={montoMxn}
-        onChange={(e) => setMontoMxn(e.target.value)}
-        required
-      />
-
-      <Field
-        label="Fecha del gasto"
-        type="date"
-        max={new Date().toISOString().slice(0, 10)}
-        value={fecha}
-        onChange={(e) => setFecha(e.target.value)}
-        required
-      />
-
-      <Switch
-        label="Es un gasto recurrente"
-        hint="Marca esto si se paga cada mes (renta, servicios, etc.)"
-        checked={recurrente}
-        onChange={setRecurrente}
-      />
-
-      <Textarea
-        label="Notas (opcional)"
-        rows={2}
-        placeholder="Comparativo con mes anterior, número de factura, etc."
-        value={notas}
-        onChange={(e) => setNotas(e.target.value)}
-      />
-
-      {/* Comprobante — disponible una vez que el gasto existe */}
-      <div className="mb-3">
-        <label className="block text-sm font-medium mb-1">Comprobante (opcional)</label>
-        {!gasto ? (
-          <p className="text-xs text-muted">Guarda el gasto primero, luego podrás adjuntar la foto o el PDF del recibo.</p>
-        ) : comprobanteUrl ? (
-          <div className="flex items-center gap-3 rounded-xl border border-line p-2 bg-bg/40">
-            {/^https?:.+\.(png|jpe?g|webp)$/i.test(comprobanteUrl) ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={comprobanteUrl} alt="Comprobante" className="w-14 h-14 object-cover rounded-lg border border-line" />
-            ) : (
-              <span className="w-14 h-14 grid place-items-center rounded-lg border border-line bg-white text-2xl">📄</span>
+      <Wizard
+        steps={STEPS}
+        current={paso}
+        onStep={(n) => setPaso(n)}
+        kicker={`Paso ${paso} de ${STEPS.length}`}
+        title={q.title}
+        subtitle={q.subtitle}
+        onCancel={onClose}
+        onBack={() => setPaso(1)}
+        onNext={paso === 1 ? next : save}
+        saving={busy}
+        isLast={paso === 2}
+        submitLabel={gasto ? 'Guardar cambios' : 'Registrar gasto'}
+      >
+        {paso === 1 && (
+          <>
+            {gasto && (
+              <div className="flex justify-end -mt-2 mb-1">
+                <button type="button" onClick={remove} disabled={busy} className="text-xs text-red-600 hover:underline">
+                  Eliminar gasto
+                </button>
+              </div>
             )}
-            <div className="flex-1 min-w-0">
-              <a href={comprobanteUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium underline truncate block">
-                Ver comprobante
-              </a>
-              <p className="text-xs text-muted">Click para abrir en una pestaña nueva.</p>
+            <Select label="¿En qué fue el gasto?" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
+              {CATEGORIAS.map((c) => <option key={c.slug} value={c.slug}>{c.emoji} {c.label}</option>)}
+            </Select>
+            <Field label="Concepto" placeholder="ej. Recibo de luz de mayo" value={concepto} onChange={(e) => setConcepto(e.target.value)} required />
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Monto ($)" type="number" step="0.01" min="0.01" placeholder="1234.56" value={montoMxn} onChange={(e) => setMontoMxn(e.target.value)} required />
+              <Field label="Fecha del gasto" type="date" max={new Date().toISOString().slice(0, 10)} value={fecha} onChange={(e) => setFecha(e.target.value)} required />
             </div>
-            <Button variant="ghost" size="sm" onClick={borrarComprobante} disabled={uploading} className="text-red-600">
-              Quitar
-            </Button>
-          </div>
-        ) : (
-          <label className="block">
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp,application/pdf"
-              disabled={uploading}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void subirComprobante(f);
-                e.target.value = '';
-              }}
-              className="block w-full text-sm file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-ink file:text-white file:cursor-pointer file:font-medium hover:file:bg-ink/80 disabled:opacity-50"
-            />
-            <p className="text-xs text-muted mt-1">Imagen JPG/PNG/WEBP o PDF, máx 5 MB.</p>
-          </label>
+          </>
         )}
-      </div>
 
-      <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-line">
-        <Button onClick={save} loading={busy} disabled={!concepto || !montoMxn}>
-          {gasto ? 'Guardar cambios' : 'Registrar'}
-        </Button>
-        <Button variant="secondary" onClick={onClose} disabled={busy}>Cancelar</Button>
-        {gasto && (
-          <Button variant="ghost" onClick={remove} disabled={busy} className="ml-auto text-red-600">
-            Eliminar
-          </Button>
+        {paso === 2 && (
+          <>
+            <Switch label="Se paga cada mes" hint="Actívalo para gastos fijos como renta o servicios." checked={recurrente} onChange={setRecurrente} />
+            <Textarea label="Notas (opcional)" rows={2} placeholder="Número de factura, comparativo con el mes pasado, etc." value={notas} onChange={(e) => setNotas(e.target.value)} />
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Recibo o comprobante (opcional)</label>
+              {comprobanteUrl ? (
+                <div className="flex items-center gap-3 rounded-xl border border-line p-2 bg-bg/40">
+                  {/^https?:.+\.(png|jpe?g|webp)$/i.test(comprobanteUrl) ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={comprobanteUrl} alt="Comprobante" className="w-14 h-14 object-cover rounded-lg border border-line" />
+                  ) : (
+                    <span className="w-14 h-14 grid place-items-center rounded-lg border border-line bg-white text-2xl">📄</span>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <a href={comprobanteUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium underline truncate block">Ver comprobante</a>
+                    <p className="text-xs text-muted">Se abre en una pestaña nueva.</p>
+                  </div>
+                  {gasto && <Button variant="ghost" size="sm" onClick={borrarComprobante} disabled={uploading} className="text-red-600">Quitar</Button>}
+                </div>
+              ) : pendingFile ? (
+                <div className="flex items-center gap-3 rounded-xl border border-line p-2 bg-bg/40">
+                  <span className="w-14 h-14 grid place-items-center rounded-lg border border-line bg-white text-2xl">📎</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{pendingFile.name}</p>
+                    <p className="text-xs text-muted">Se subirá al guardar.</p>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setPendingFile(null)} className="text-red-600">Quitar</Button>
+                </div>
+              ) : (
+                <label className="block">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    disabled={uploading}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) { if (gasto) void subirComprobante(f); else setPendingFile(f); }
+                      e.target.value = '';
+                    }}
+                    className="block w-full text-sm file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-ink file:text-white file:cursor-pointer file:font-medium hover:file:bg-ink/80 disabled:opacity-50"
+                  />
+                  <p className="text-xs text-muted mt-1">Foto (JPG/PNG/WEBP) o PDF del recibo, máx 5 MB.</p>
+                </label>
+              )}
+            </div>
+          </>
         )}
-      </div>
+      </Wizard>
     </Modal>
   );
 }
