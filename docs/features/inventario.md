@@ -11,6 +11,18 @@ movimientos_inventario (tipo, cantidad, stock_resultante, referencia)
 
 Cada cambio de stock se acompaña de **una fila en `movimientos_inventario`**. Eso permite reconstruir el historial, calcular movimientos por periodo y mantener auditoría.
 
+### Unidades de medida
+
+`unidad` acepta `pz, kg, g, l, ml, oz, lb` (validado en
+`Store/UpdateIngredienteRequest`). En el frontend la fuente única es
+`apps/web/src/lib/unidades.ts` (`UNIDADES` con etiqueta explicativa entre
+paréntesis — ej. "g (gramos)" — y `unidadCorta()` para mostrar inline, `l`→`L`).
+El selector de unidad vive en el alta de ingrediente (`IngredienteModal`); las
+recetas de topping/producto muestran la unidad del ingrediente. **Recomendación
+al usuario:** elegir la unidad que evite decimales (ej. gramos en vez de kilos,
+así la receta usa `111 g` en lugar de `0.111 kg`). Para agregar una unidad:
+añadirla a `unidades.ts` **y** a la validación de ambos requests.
+
 ## Diagrama de flujo del stock
 
 ```mermaid

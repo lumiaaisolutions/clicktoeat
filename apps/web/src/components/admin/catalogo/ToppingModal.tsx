@@ -10,6 +10,7 @@ import { Wizard } from '@/components/ui/Wizard';
 import { InfoBox } from '@/components/ui/InfoBox';
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/lib/utils';
+import { unidadCorta } from '@/lib/unidades';
 
 type RecetaRow = { ingrediente_id: number; cantidad: number };
 type ItemRow = { name: string; price: number; receta: RecetaRow[] };
@@ -202,7 +203,7 @@ export function ToppingModal({
                             onChange={(e) => updateReceta(i, ri, { cantidad: Number(e.target.value) })}
                             className="w-20 px-2 py-1.5 rounded-lg border border-line bg-white text-sm text-right tabular-nums"
                           />
-                          <span className="text-xs text-muted">{ing?.unidad ?? ''} de</span>
+                          <span className="text-xs text-muted">{ing ? unidadCorta(ing.unidad) : ''} de</span>
                           <select
                             value={rr.ingrediente_id}
                             onChange={(e) => updateReceta(i, ri, { ingrediente_id: Number(e.target.value) })}

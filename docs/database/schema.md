@@ -128,7 +128,7 @@ MySQL 8 · charset `utf8mb4` · collation `utf8mb4_unicode_ci` · engine `InnoDB
 | `nombre`          | varchar(255)                    |
 | `stock`           | decimal(12,3) default 0         |
 | `stock_minimo`    | decimal(12,3) default 0         |
-| `unidad`          | varchar(16) default `pz`         |
+| `unidad`          | varchar(16) default `pz` — `in:pz,kg,g,l,ml,oz,lb` (validado) |
 | `costo_unitario`  | decimal(10,2) default 0         |
 | `activo`          | tinyint default 1               |
 | timestamps        |                                  |

@@ -8,8 +8,7 @@ import { Field, Select, Switch } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
 import { Wizard } from '@/components/ui/Wizard';
 import { InfoBox } from '@/components/ui/InfoBox';
-
-const UNIDADES = ['pz', 'kg', 'g', 'l', 'ml'] as const;
+import { UNIDADES, type Unidad } from '@/lib/unidades';
 
 const STEPS = ['Lo básico', 'Alertas y costo'];
 const QUESTIONS: Record<number, { title: string; subtitle?: string }> = {
@@ -29,7 +28,7 @@ export function IngredienteModal({
   const [nombre, setNombre] = useState('');
   const [stock, setStock] = useState(0);
   const [stockMin, setStockMin] = useState(0);
-  const [unidad, setUnidad] = useState<typeof UNIDADES[number]>('pz');
+  const [unidad, setUnidad] = useState<Unidad>('pz');
   const [costo, setCosto] = useState(0);
   const [activo, setActivo] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -115,8 +114,8 @@ export function IngredienteModal({
             <Field data-tour="inventario-modal-nombre" label="Nombre del insumo" placeholder="ej. Tortillas, Carne, Queso" value={nombre} onChange={(e) => setNombre(e.target.value)} error={errors.nombre} required maxLength={80} />
             <div className="grid grid-cols-2 gap-3">
               <Field data-tour="inventario-modal-stock" label="¿Cuánto tienes ahora?" type="number" step="0.001" value={stock} onChange={(e) => setStock(Number(e.target.value))} error={errors.stock} required />
-              <Select label="Unidad" value={unidad} onChange={(e) => setUnidad(e.target.value as any)} error={errors.unidad}>
-                {UNIDADES.map((u) => <option key={u} value={u}>{u}</option>)}
+              <Select label="Unidad de medida" value={unidad} onChange={(e) => setUnidad(e.target.value as Unidad)} error={errors.unidad} hint="Elige la que evite decimales (ej. gramos en vez de kilos).">
+                {UNIDADES.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
               </Select>
             </div>
           </div>

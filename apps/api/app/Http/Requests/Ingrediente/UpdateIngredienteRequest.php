@@ -17,7 +17,7 @@ class UpdateIngredienteRequest extends FormRequest
             'nombre' => ['sometimes', 'required', 'string', 'min:1', 'max:80'],
             'stock' => ['sometimes', 'numeric', 'min:0', 'max:999999.999'],
             'stock_minimo' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:999999.999'],
-            'unidad' => ['sometimes', 'in:pz,kg,g,l,ml'],
+            'unidad' => ['sometimes', 'in:pz,kg,g,l,ml,oz,lb'],
             'costo_unitario' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:999999.99'],
             'activo' => ['sometimes', 'boolean'],
         ];

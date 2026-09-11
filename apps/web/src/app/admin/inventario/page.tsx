@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import type { Ingrediente, Resource } from '@/lib/types';
 import { toast } from '@/store/toast';
+import { unidadCorta } from '@/lib/unidades';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Button } from '@/components/ui/Button';
 import { Field, Select, Switch } from '@/components/ui/FormField';
@@ -14,8 +15,6 @@ import { IngredienteModal } from '@/components/admin/catalogo/IngredienteModal';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/lib/utils';
-
-const UNIDADES = ['pz', 'kg', 'g', 'l', 'ml'] as const;
 
 export default function InventarioPage() {
   const [items, setItems] = useState<Ingrediente[] | null>(null);
@@ -110,10 +109,10 @@ export default function InventarioPage() {
                       'text-lg font-bold mt-1',
                       i.bajo_stock ? 'text-red-600' : 'text-ink',
                     )}>
-                      {i.stock} <span className="text-sm text-muted">{i.unidad}</span>
+                      {i.stock} <span className="text-sm text-muted">{unidadCorta(i.unidad)}</span>
                     </p>
                     <p className="text-xs text-muted mt-0.5">
-                      mín {i.stock_minimo} {i.unidad} · costo ${i.costo_unitario.toFixed(2)}
+                      mín {i.stock_minimo} {unidadCorta(i.unidad)} · costo ${i.costo_unitario.toFixed(2)}
                     </p>
                   </div>
                   {i.bajo_stock && (
@@ -156,10 +155,10 @@ export default function InventarioPage() {
                     <td className="px-4 py-3 font-medium">{i.nombre}</td>
                     <td className="px-4 py-3 text-right">
                       <span className={cn(i.bajo_stock && 'text-red-600 font-bold')}>
-                        {i.stock} {i.unidad}
+                        {i.stock} {unidadCorta(i.unidad)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right text-muted">{i.stock_minimo} {i.unidad}</td>
+                    <td className="px-4 py-3 text-right text-muted">{i.stock_minimo} {unidadCorta(i.unidad)}</td>
                     <td className="px-4 py-3 text-right text-muted">${i.costo_unitario.toFixed(2)}</td>
                     <td className="px-4 py-3 text-center">
                       {i.bajo_stock ? (
@@ -258,7 +257,7 @@ function AjusteModal({
     <Modal open={open} onClose={onClose} title={`Ajustar stock — ${ingrediente.nombre}`}>
       <form onSubmit={onSubmit}>
         <p className="text-sm text-muted mb-3">
-          Ahora tienes: <strong>{ingrediente.stock} {ingrediente.unidad}</strong>
+          Ahora tienes: <strong>{ingrediente.stock} {unidadCorta(ingrediente.unidad)}</strong>
         </p>
 
         <p className="block text-sm font-medium mb-2">¿Qué pasó?</p>
@@ -285,7 +284,7 @@ function AjusteModal({
 
         <Field
           data-tour="inventario-ajuste-cantidad"
-          label={tipo === 'ajuste' ? `Deja el total en (${ingrediente.unidad})` : `¿Cuántas ${ingrediente.unidad}?`}
+          label={tipo === 'ajuste' ? `Deja el total en (${unidadCorta(ingrediente.unidad)})` : `¿Cuántas ${unidadCorta(ingrediente.unidad)}?`}
           type="number"
           step="0.001"
           min={0}
@@ -297,7 +296,7 @@ function AjusteModal({
         <Field label="Nota (opcional)" placeholder="ej. Compra al proveedor, se echó a perder…" value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={200} />
 
         <div className="rounded-xl bg-line/30 px-4 py-3 mb-3 text-sm">
-          Van a quedar: <strong>{nuevoStock} {ingrediente.unidad}</strong>
+          Van a quedar: <strong>{nuevoStock} {unidadCorta(ingrediente.unidad)}</strong>
         </div>
 
         <div className="flex gap-2 justify-end">

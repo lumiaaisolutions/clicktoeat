@@ -199,7 +199,7 @@ export interface Ingrediente {
   nombre: string;
   stock: number;
   stock_minimo: number;
-  unidad: 'pz' | 'kg' | 'g' | 'l' | 'ml';
+  unidad: 'pz' | 'kg' | 'g' | 'l' | 'ml' | 'oz' | 'lb';
   costo_unitario: number;
   activo: boolean;
   bajo_stock: boolean;

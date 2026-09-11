@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
 import type { Compra, Ingrediente, Paginated, Resource } from '@/lib/types';
 import { toast } from '@/store/toast';
+import { unidadCorta } from '@/lib/unidades';
 import { Button } from '@/components/ui/Button';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Field, Textarea } from '@/components/ui/FormField';
@@ -329,7 +330,7 @@ function CompraModal({
                       <option value="">Selecciona…</option>
                       {ingredientes.map((i) => (
                         <option key={i.id} value={i.id}>
-                          {i.nombre} ({i.unidad}) · stock {i.stock}
+                          {i.nombre} ({unidadCorta(i.unidad)}) · stock {i.stock}
                         </option>
                       ))}
                     </select>

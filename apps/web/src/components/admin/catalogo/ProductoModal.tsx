@@ -10,6 +10,7 @@ import { Icon } from '@/components/ui/Icon';
 import { ImageUpload } from '@/components/admin/ImageUpload';
 import { Wizard } from '@/components/ui/Wizard';
 import { InfoBox } from '@/components/ui/InfoBox';
+import { unidadCorta } from '@/lib/unidades';
 import { cn } from '@/lib/utils';
 
 interface RecetaLinea { ingrediente_id: number | null; cantidad: number }
@@ -314,7 +315,7 @@ function InventarioStep({
                   className="w-24 px-3 py-2 border border-line rounded-xl bg-white text-right tabular-nums"
                   aria-label="Cantidad por platillo"
                 />
-                <span className="text-xs text-muted w-10 shrink-0">{ing?.unidad ?? ''}</span>
+                <span className="text-xs text-muted w-10 shrink-0">{ing ? unidadCorta(ing.unidad) : ''}</span>
                 <button type="button" onClick={() => remove(i)} className="text-red-500 hover:bg-red-50 rounded-lg w-8 h-8 grid place-items-center shrink-0" title="Quitar">
                   <Icon name="x" size={13} />
                 </button>

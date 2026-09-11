@@ -18,7 +18,7 @@ class StoreIngredienteRequest extends FormRequest
             'nombre' => ['required', 'string', 'min:1', 'max:80'],
             'stock' => ['required', 'numeric', 'min:0', 'max:999999.999'],
             'stock_minimo' => ['nullable', 'numeric', 'min:0', 'max:999999.999'],
-            'unidad' => ['required', 'in:pz,kg,g,l,ml'],
+            'unidad' => ['required', 'in:pz,kg,g,l,ml,oz,lb'],
             'costo_unitario' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
             'activo' => ['nullable', 'boolean'],
         ];
