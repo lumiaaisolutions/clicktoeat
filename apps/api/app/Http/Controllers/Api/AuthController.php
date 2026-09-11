@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Models\User;
 use App\Support\AuthCookie;
+use App\Support\TurnstileVerifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -40,6 +41,16 @@ class AuthController extends Controller
      */
     public function register(RegisterRequest $request): JsonResponse
     {
+        // Anti-bot: con Turnstile configurado, el registro exige token SIEMPRE
+        // (los bots crean cuentas al primer intento). Sin secret → no-op.
+        if (filled(config('services.turnstile.secret'))
+            && ! app(TurnstileVerifier::class)->verify($request->input('turnstile_token'), $request->ip())) {
+            return response()->json([
+                'message' => 'Verificación de seguridad requerida.',
+                'code' => 'CAPTCHA_REQUIRED',
+            ], 422);
+        }
+
         $user = User::create([
             'nombre' => $request->string('nombre'),
             'email' => $request->string('email'),
@@ -105,6 +116,22 @@ class AuthController extends Controller
             }
         }
 
+        // Anti-bot tras fallos: con Turnstile configurado, si esta cuenta/IP
+        // ya acumuló ≥3 fallos en la ventana actual exigimos un token válido
+        // antes de siquiera probar la contraseña. Usuarios normales (0-2
+        // fallos) NUNCA ven el captcha. Sin secret configurado → no-op.
+        $captchaEnabled = filled(config('services.turnstile.secret'));
+        $threshold = 3;
+        $priorFailures = max(RateLimiter::attempts($emailKey), RateLimiter::attempts($ipKey));
+
+        if ($captchaEnabled && $priorFailures >= $threshold
+            && ! app(TurnstileVerifier::class)->verify($request->input('turnstile_token'), $request->ip())) {
+            return response()->json([
+                'message' => 'Verificación de seguridad requerida.',
+                'code' => 'CAPTCHA_REQUIRED',
+            ], 422);
+        }
+
         $user = User::where('email', $email)->first();
 
         if (! $user || ! Hash::check($request->string('password'), $user->password)) {
@@ -114,6 +141,18 @@ class AuthController extends Controller
             RateLimiter::hit($emailKey, $emailWindow);
             RateLimiter::hit($ipKey, $ipWindow);
             RateLimiter::hit($globalKey, $globalWindow);
+
+            // Si con este fallo ya alcanzamos el umbral, avisamos al frontend
+            // para que muestre el widget en el próximo intento.
+            $failuresNow = max(RateLimiter::attempts($emailKey), RateLimiter::attempts($ipKey));
+            if ($captchaEnabled && $failuresNow >= $threshold) {
+                return response()->json([
+                    'message' => 'Credenciales incorrectas.',
+                    'errors' => ['email' => ['Credenciales incorrectas.']],
+                    'captcha_required' => true,
+                ], 422);
+            }
+
             throw ValidationException::withMessages([
                 'email' => ['Credenciales incorrectas.'],
             ]);

@@ -26,4 +26,10 @@ return [
         'gemini_api_key' => env('GEMINI_API_KEY'),
         'gemini_model' => env('GEMINI_MODEL', 'gemini-2.0-flash-lite'),
     ],
+
+    // Cloudflare Turnstile (anti-bot CAPTCHA). Si `secret` está vacío la
+    // verificación es un no-op (auth se comporta exactamente como sin captcha).
+    'turnstile' => [
+        'secret' => env('TURNSTILE_SECRET_KEY'),
+    ],
 ];

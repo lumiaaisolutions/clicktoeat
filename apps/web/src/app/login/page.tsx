@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/store/auth';
 import { Logo } from '@/components/ui/Logo';
 import { AuthShell } from '@/components/auth/AuthShell';
+import { Turnstile, turnstileEnabled } from '@/components/ui/Turnstile';
 
 export default function LoginPage() {
   const login = useAuth((s) => s.login);
@@ -15,25 +16,39 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [needs2fa, setNeeds2fa] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState('');
+  const [showCaptcha, setShowCaptcha] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     try {
-      const res = await login(email, password, needs2fa ? otp : undefined);
+      const res = await login(email, password, needs2fa ? otp : undefined, captchaToken || undefined);
       if (res.twoFactorRequired) {
         setNeeds2fa(true);
         return;
       }
       router.push('/admin');
     } catch (err: any) {
-      const otpErr = err?.response?.data?.errors?.otp?.[0];
+      const data = err?.response?.data;
+      // El server pide verificación anti-bot (tras varios fallos o token inválido).
+      if (data?.code === 'CAPTCHA_REQUIRED' || data?.captcha_required) {
+        setShowCaptcha(true);
+        setCaptchaToken('');
+        setError(
+          data?.code === 'CAPTCHA_REQUIRED'
+            ? 'Completa la verificación de seguridad e intenta de nuevo.'
+            : (data?.errors?.email?.[0] ?? 'Credenciales incorrectas.'),
+        );
+        return;
+      }
+      const otpErr = data?.errors?.otp?.[0];
       if (otpErr) {
         setNeeds2fa(true);
         setError(otpErr);
       } else {
-        setError(err?.response?.data?.errors?.email?.[0] ?? 'No pudimos iniciar sesión.');
+        setError(data?.errors?.email?.[0] ?? 'No pudimos iniciar sesión.');
       }
     }
   };
@@ -85,6 +100,12 @@ export default function LoginPage() {
             <p className="text-[11px] text-amber-700 mt-1.5">
               Abre Google Authenticator / 1Password y escribe el código actual. También aceptamos códigos de recuperación.
             </p>
+          </div>
+        )}
+
+        {turnstileEnabled && showCaptcha && (
+          <div className="mb-4">
+            <Turnstile onToken={setCaptchaToken} />
           </div>
         )}
 

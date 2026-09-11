@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\AuthCookie;
+use App\Support\TurnstileVerifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -29,7 +30,18 @@ class SignupController extends Controller
             'nombre' => ['required', 'string', 'min:2', 'max:120'],
             'email' => ['required', 'email:rfc', 'unique:users,email'],
             'password' => ['required', 'confirmed', Password::min(8)],
+            'turnstile_token' => ['nullable', 'string'],
         ]);
+
+        // Anti-bot: con Turnstile configurado, el alta de cuenta exige token
+        // SIEMPRE (los bots crean cuentas al primer intento). Sin secret → no-op.
+        if (filled(config('services.turnstile.secret'))
+            && ! app(TurnstileVerifier::class)->verify($req->input('turnstile_token'), $req->ip())) {
+            return response()->json([
+                'message' => 'Verificación de seguridad requerida.',
+                'code' => 'CAPTCHA_REQUIRED',
+            ], 422);
+        }
 
         $user = User::create([
             'nombre' => $data['nombre'],

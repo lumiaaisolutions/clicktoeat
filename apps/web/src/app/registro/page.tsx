@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { api, tokenStore } from '@/lib/api';
 import { Logo } from '@/components/ui/Logo';
 import { AuthShell } from '@/components/auth/AuthShell';
+import { Turnstile, turnstileEnabled } from '@/components/ui/Turnstile';
 
 interface SignupResponse {
   user:  { id: number; nombre: string; email: string; rol: string };
@@ -20,6 +21,7 @@ export default function RegistroPage() {
   const [confirm,  setConfirm]  = useState('');
   const [errors,   setErrors]   = useState<Record<string, string>>({});
   const [loading,  setLoading]  = useState(false);
+  const [captchaToken, setCaptchaToken] = useState('');
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,11 +34,18 @@ export default function RegistroPage() {
     try {
       const { data } = await api.post<SignupResponse>('/auth/signup-prospect', {
         nombre, email, password, password_confirmation: confirm,
+        turnstile_token: captchaToken || undefined,
       });
       tokenStore.set(data.token);
       router.push('/onboarding/elegir-plan');
     } catch (err: any) {
-      const apiErrors = err?.response?.data?.errors ?? {};
+      const data = err?.response?.data;
+      if (data?.code === 'CAPTCHA_REQUIRED') {
+        setCaptchaToken('');
+        setErrors({ turnstile_token: 'Completa la verificación de seguridad e intenta de nuevo.' });
+        return;
+      }
+      const apiErrors = data?.errors ?? {};
       const flat: Record<string, string> = {};
       for (const [k, v] of Object.entries(apiErrors)) flat[k] = (v as string[])[0];
       setErrors(flat);
@@ -94,6 +103,13 @@ export default function RegistroPage() {
           className="w-full mb-3 px-3 py-2 border border-line rounded-xl"
         />
         {errors.password_confirmation && <p className="text-xs text-red-600 mb-2">{errors.password_confirmation}</p>}
+
+        {turnstileEnabled && (
+          <div className="mt-3 mb-2">
+            <Turnstile onToken={setCaptchaToken} />
+            {errors.turnstile_token && <p className="text-xs text-red-600 mt-1">{errors.turnstile_token}</p>}
+          </div>
+        )}
 
         <button
           type="submit"

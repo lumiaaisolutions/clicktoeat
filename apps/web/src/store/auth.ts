@@ -22,7 +22,12 @@ interface AuthState {
   user: AuthUser | null;
   loading: boolean;
 
-  login: (email: string, password: string, otp?: string) => Promise<{ twoFactorRequired?: boolean }>;
+  login: (
+    email: string,
+    password: string,
+    otp?: string,
+    turnstileToken?: string,
+  ) => Promise<{ twoFactorRequired?: boolean }>;
   logout: () => Promise<void>;
   hydrate: () => Promise<void>;
   setTokenAndHydrate: (token: string) => Promise<void>;
@@ -34,13 +39,14 @@ export const useAuth = create<AuthState>()(
       user: null,
       loading: false,
 
-      async login(email, password, otp) {
+      async login(email, password, otp, turnstileToken) {
         set({ loading: true });
         try {
           const { data } = await api.post<LoginPayload & { two_factor_required?: boolean }>('/auth/login', {
             email,
             password,
             otp: otp ?? undefined,
+            turnstile_token: turnstileToken ?? undefined,
             device: 'web',
           });
           // Servidor pidió 2FA → no hay token todavía

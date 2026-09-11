@@ -18,6 +18,7 @@ class RegisterRequest extends FormRequest
             'nombre' => ['required', 'string', 'min:2', 'max:120'],
             'email' => ['required', 'email:rfc', 'unique:users,email'],
             'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
+            'turnstile_token' => ['nullable', 'string'],
         ];
     }
 }
