@@ -37,6 +37,9 @@ class User extends Authenticatable implements CanResetPassword
     protected $fillable = [
         'nombre', 'email', 'password', 'rol', 'local_id', 'permisos', 'notif_filtro',
         'two_factor_secret', 'two_factor_confirmed_at', 'two_factor_recovery_codes',
+        // Se asigna explícitamente en alta de cuenta (SignupController@prospect);
+        // sin esto, en prod se descartaba silencioso y el usuario quedaba sin verificar.
+        'email_verified_at',
     ];
 
     protected $hidden = [
