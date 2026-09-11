@@ -8,8 +8,23 @@ import { Button } from '@/components/ui/Button';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { Icon } from '@/components/ui/Icon';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { formatMXN, cn } from '@/lib/utils';
+
+// Etiqueta e ícono legibles por estado (nada de snake_case crudo en la UI).
+const ESTADO_LABEL: Record<PedidoEstado, string> = {
+  nuevo: 'Nuevo', confirmado: 'Confirmado', preparando: 'Preparando', listo: 'Listo',
+  en_camino: 'En camino', entregado: 'Entregado', cancelado: 'Cancelado',
+};
+const ESTADO_ICON: Record<PedidoEstado, IconName> = {
+  nuevo: 'sparkles', confirmado: 'check', preparando: 'flame', listo: 'package',
+  en_camino: 'truck', entregado: 'check-circle', cancelado: 'x',
+};
+// Color sólido (para el nodo activo/completado del timeline y el CTA).
+const ESTADO_SOLID: Record<PedidoEstado, string> = {
+  nuevo: '#2563eb', confirmado: '#4f46e5', preparando: '#d97706', listo: '#0d9488',
+  en_camino: '#7c3aed', entregado: '#059669', cancelado: '#dc2626',
+};
 
 const ESTADOS: { value: PedidoEstado | ''; label: string }[] = [
   { value: '',           label: 'Todos' },
@@ -237,8 +252,9 @@ export default function PedidosPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold truncate">{p.cliente_nombre}</span>
-                      <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider', ESTADO_COLOR[p.estado])}>
-                        {p.estado}
+                      <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider inline-flex items-center gap-1', ESTADO_COLOR[p.estado])}>
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: ESTADO_SOLID[p.estado] }} />
+                        {ESTADO_LABEL[p.estado]}
                       </span>
                       {p.lealtad_premio_listo && (
                         <span className="text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 inline-flex items-center gap-1">
@@ -428,6 +444,83 @@ function labelEntrega(m: Pedido['metodo_entrega']): string {
   return { pickup: 'Recoger', delivery: 'Entrega', sucursal: 'Sucursal' }[m] ?? m;
 }
 
+function fmtHora(iso?: string | null): string | null {
+  if (!iso) return null;
+  return new Date(iso).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+}
+
+/** Timeline visual del avance del pedido (interactivo/llamativo, sólo lectura). */
+function EstadoTimeline({ pedido }: { pedido: Pedido }) {
+  const esDelivery = pedido.metodo_entrega === 'delivery';
+  const FLOW: PedidoEstado[] = ['nuevo', 'confirmado', 'preparando', 'listo', ...(esDelivery ? (['en_camino'] as PedidoEstado[]) : []), 'entregado'];
+  const cancelado = pedido.estado === 'cancelado';
+  const curIdx = cancelado ? -1 : FLOW.indexOf(pedido.estado);
+
+  const tiempo = (e: PedidoEstado): string | null =>
+    e === 'nuevo' ? fmtHora(pedido.created_at)
+      : e === 'confirmado' ? fmtHora(pedido.confirmado_at)
+        : e === 'entregado' ? fmtHora(pedido.entregado_at)
+          : null;
+
+  return (
+    <div className={cn('rounded-2xl border p-4', cancelado ? 'border-red-200 bg-red-50/40' : 'border-line bg-gradient-to-b from-[#FBF7F1] to-white')}>
+      <div className="flex items-start">
+        {FLOW.map((e, i) => {
+          const done = i < curIdx;
+          const current = i === curIdx;
+          const active = done || current;
+          const color = ESTADO_SOLID[e];
+          const t = tiempo(e);
+          return (
+            <div key={e} className="flex-1 flex flex-col items-center relative min-w-0">
+              {i < FLOW.length - 1 && (
+                <span
+                  className="absolute top-5 left-1/2 w-full h-[3px] rounded-full"
+                  style={{ background: i < curIdx ? color : 'var(--ce-line,#e7e5e4)' }}
+                />
+              )}
+              <span
+                className={cn('relative z-10 w-10 h-10 rounded-full grid place-items-center transition-all duration-300', current && !cancelado && 'animate-pulse')}
+                style={
+                  active
+                    ? { background: color, color: '#fff', boxShadow: current ? `0 0 0 5px ${color}22` : undefined }
+                    : { background: '#fff', border: '2px solid var(--ce-line,#e7e5e4)', color: 'var(--ce-muted,#a8a29e)' }
+                }
+              >
+                <Icon name={done ? 'check' : ESTADO_ICON[e]} size={16} />
+              </span>
+              <span className={cn('mt-1.5 text-[11px] font-semibold text-center leading-tight', active ? 'text-ink' : 'text-muted')}>
+                {ESTADO_LABEL[e]}
+              </span>
+              {t && <span className="text-[10px] text-muted tabular-nums">{t}</span>}
+            </div>
+          );
+        })}
+      </div>
+      {cancelado && (
+        <p className="mt-3 text-center text-xs font-semibold text-red-600 inline-flex items-center gap-1.5 justify-center w-full">
+          <Icon name="x" size={12} /> Este pedido fue cancelado
+        </p>
+      )}
+    </div>
+  );
+}
+
+function InfoCell({ icon, label, value, sub }: { icon: IconName; label: string; value: string; sub?: string }) {
+  return (
+    <div className="rounded-2xl border border-line bg-white p-3 flex items-start gap-2.5">
+      <span className="w-8 h-8 rounded-full bg-line/40 grid place-items-center shrink-0 text-ink/70">
+        <Icon name={icon} size={15} />
+      </span>
+      <div className="min-w-0">
+        <p className="text-[10px] uppercase tracking-wider text-muted">{label}</p>
+        <p className="font-semibold text-sm break-words">{value}</p>
+        {sub && <p className="text-xs text-muted break-words">{sub}</p>}
+      </div>
+    </div>
+  );
+}
+
 function PedidoDetalle({
   pedido, onChange,
 }: { pedido: Pedido; onChange: (p: Pedido, next: PedidoEstado) => void }) {
@@ -442,59 +535,89 @@ function PedidoDetalle({
 
   const transiciones = TRANSICIONES[pedido.estado] ?? [];
   const retrocesos   = TRANSICIONES_ATRAS[pedido.estado] ?? [];
+  const siguiente    = transiciones.find((t) => t !== 'cancelado');
+  const puedeCancelar = transiciones.includes('cancelado');
 
   return (
     <div>
-      <div className="flex flex-wrap gap-2 items-center mb-4">
-        <span className={cn('text-xs px-2 py-1 rounded-full font-medium', ESTADO_COLOR[pedido.estado])}>
-          {pedido.estado}
-        </span>
-        {transiciones.length === 0 && retrocesos.length === 0 && (
-          <span className="text-xs text-muted">Estado final</span>
+      {/* Progreso visual del pedido */}
+      <EstadoTimeline pedido={pedido} />
+
+      {/* Acción principal + secundarias */}
+      <div className="mt-5 mb-5">
+        {pedido.estado === 'cancelado' ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 flex items-center gap-3">
+            <span className="w-9 h-9 rounded-full bg-red-100 grid place-items-center shrink-0"><Icon name="x" size={16} className="text-red-600" /></span>
+            <div className="text-sm"><p className="font-bold text-red-900">Pedido cancelado</p><p className="text-red-700 text-xs">Este pedido ya no está activo.</p></div>
+          </div>
+        ) : siguiente ? (
+          <button
+            onClick={() => onChange(pedido, siguiente)}
+            className="w-full h-14 rounded-2xl text-white font-extrabold text-base inline-flex items-center justify-center gap-2.5 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98]"
+            style={{ background: ESTADO_SOLID[siguiente], boxShadow: `0 12px 26px -12px ${ESTADO_SOLID[siguiente]}` }}
+          >
+            <Icon name={ESTADO_ICON[siguiente]} size={18} /> Marcar como {ESTADO_LABEL[siguiente].toLowerCase()}
+          </button>
+        ) : (
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex items-center gap-3">
+            <span className="w-9 h-9 rounded-full bg-emerald-100 grid place-items-center shrink-0"><Icon name="check-circle" size={18} className="text-emerald-600" /></span>
+            <div className="text-sm"><p className="font-bold text-emerald-900">¡Pedido entregado!</p><p className="text-emerald-700 text-xs">Pídele su calificación al cliente desde la lista.</p></div>
+          </div>
         )}
-        {transiciones.map((t) => (
-          <Button key={t} size="sm" variant="secondary" onClick={() => onChange(pedido, t)}>
-            → {t.replace('_', ' ')}
-          </Button>
-        ))}
-        {retrocesos.length > 0 && (
-          <>
-            <span className="text-[10px] text-muted uppercase tracking-wider ml-2">¿Te equivocaste?</span>
-            {retrocesos.map((t) => (
-              <Button key={t} size="sm" variant="ghost" onClick={() => {
-                if (confirm(`Regresar el estado a "${t.replace('_', ' ')}"? Solo úsalo si avanzaste por error.`)) {
-                  onChange(pedido, t);
-                }
-              }}>
-                ← {t.replace('_', ' ')}
-              </Button>
-            ))}
-          </>
+
+        {(puedeCancelar || retrocesos.length > 0) && (
+          <div className="flex flex-wrap items-center gap-2 mt-3">
+            {puedeCancelar && (
+              <button
+                onClick={() => { if (confirm('¿Cancelar este pedido?')) onChange(pedido, 'cancelado'); }}
+                className="px-3 py-1.5 rounded-full border border-red-200 text-red-600 text-xs font-semibold hover:bg-red-50 inline-flex items-center gap-1.5"
+              >
+                <Icon name="x" size={12} /> Cancelar pedido
+              </button>
+            )}
+            {retrocesos.length > 0 && (
+              <div className="flex items-center gap-1.5 ml-auto flex-wrap">
+                <span className="text-[10px] text-muted uppercase tracking-wider">¿Te equivocaste?</span>
+                {retrocesos.map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => { if (confirm(`¿Regresar a "${ESTADO_LABEL[t]}"?`)) onChange(pedido, t); }}
+                    className="px-2.5 py-1 rounded-full border border-line text-xs hover:bg-line/40 inline-flex items-center gap-1"
+                  >
+                    <Icon name="arrow-left" size={11} /> {ESTADO_LABEL[t]}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-sm">
-        <div>
-          <p className="text-xs uppercase text-muted">Cliente</p>
-          <p className="font-medium">{pedido.cliente_nombre}</p>
-          <p>{pedido.cliente_telefono}</p>
-        </div>
-        <div>
-          <p className="text-xs uppercase text-muted">Entrega</p>
-          <p className="font-medium">{pedido.metodo_entrega === 'delivery' ? 'A domicilio' : 'Recoger en sucursal'}</p>
-          {pedido.direccion && <p>{pedido.direccion}</p>}
-        </div>
-        <div>
-          <p className="text-xs uppercase text-muted">Pago</p>
-          <p>{pedido.metodo_pago.replace('_', ' ')}</p>
-        </div>
-        <div>
-          <p className="text-xs uppercase text-muted">Total</p>
-          <p className="font-bold text-lg">{formatMXN(pedido.total)}</p>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+        <InfoCell icon="users" label="Cliente" value={pedido.cliente_nombre} sub={pedido.cliente_telefono} />
+        <InfoCell
+          icon={pedido.metodo_entrega === 'delivery' ? 'truck' : 'store'}
+          label="Entrega"
+          value={pedido.metodo_entrega === 'delivery' ? 'A domicilio' : 'Recoger en sucursal'}
+          sub={pedido.direccion ?? undefined}
+        />
+        <InfoCell icon="card" label="Pago" value={pedido.metodo_pago.replace(/_/g, ' ')} />
+        <InfoCell icon="clock" label="Recibido" value={new Date(pedido.created_at).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })} />
       </div>
 
-      <h3 className="ce-display font-bold mb-2">Items</h3>
+      {pedido.notas && (
+        <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-[11px] uppercase tracking-wider font-bold text-amber-700 mb-0.5 inline-flex items-center gap-1.5">
+            <Icon name="lightbulb" size={12} /> Especificaciones del cliente
+          </p>
+          <p className="text-sm text-amber-900">{pedido.notas}</p>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="ce-display font-bold">Items</h3>
+        <span className="text-sm font-extrabold tabular-nums">{formatMXN(pedido.total)}</span>
+      </div>
       <ul className="divide-y divide-line border border-line rounded-xl">
         {detalles.map((d) => (
           <li key={d.id} className="p-3 text-sm">
