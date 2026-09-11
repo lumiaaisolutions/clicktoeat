@@ -9,6 +9,7 @@ import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Button } from '@/components/ui/Button';
 import { Field, Select, Switch } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
+import { InfoBox } from '@/components/ui/InfoBox';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/lib/utils';
@@ -263,6 +264,11 @@ function IngredienteModal({
   return (
     <Modal open={open} onClose={onClose} title={ingrediente ? 'Editar ingrediente' : 'Nuevo ingrediente'}>
       <form onSubmit={onSubmit}>
+        <InfoBox className="mb-4">
+          Un insumo es lo que usas para <strong>preparar tus platillos</strong>
+          (tortillas, carne, refrescos…). Llevar su inventario te avisa cuándo
+          reponer y se descuenta solo con cada venta.
+        </InfoBox>
         <Field data-tour="inventario-modal-nombre" label="Nombre del insumo" placeholder="ej. Tortillas, Carne, Queso" value={nombre} onChange={(e) => setNombre(e.target.value)} error={errors.nombre} required maxLength={80} />
         <div className="grid grid-cols-2 gap-3">
           <Field data-tour="inventario-modal-stock" label="¿Cuánto tienes ahora?" type="number" step="0.001" value={stock} onChange={(e) => setStock(Number(e.target.value))} error={errors.stock} required />

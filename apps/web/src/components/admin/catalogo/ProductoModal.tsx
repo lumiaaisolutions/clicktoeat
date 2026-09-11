@@ -9,6 +9,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Icon } from '@/components/ui/Icon';
 import { ImageUpload } from '@/components/admin/ImageUpload';
 import { Wizard } from '@/components/ui/Wizard';
+import { InfoBox } from '@/components/ui/InfoBox';
 
 interface RecetaLinea { ingrediente_id: number | null; cantidad: number }
 const STEPS = ['Lo básico', 'Presentación', 'Extras', 'Inventario'];
@@ -143,7 +144,10 @@ export function ProductoModal({
 
   return (
     <Modal open={open} onClose={onClose} title={producto ? 'Editar producto' : 'Nuevo producto'} size="lg">
-      <p className="text-sm text-muted -mt-1 mb-5">Llena estos pasos y tu platillo queda listo en tu menú.</p>
+      <InfoBox className="-mt-1 mb-5">
+        Un producto es cada <strong>platillo que vendes</strong>. Aparece en tu menú
+        dentro de su categoría. Llena estos pasos y queda listo.
+      </InfoBox>
       <Wizard
         steps={STEPS}
         current={paso}

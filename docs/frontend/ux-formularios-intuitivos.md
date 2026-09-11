@@ -288,3 +288,22 @@ Formulario corto (no amerita pasos): lenguaje simple. "Nombre de la categoría"
 - Portar el patrón a ClickToShop (paridad) adaptando vocabulario
   (artículo/variante/opción).
 - Ventas/POS y otros formularios largos: evaluar pasos si el negocio lo pide.
+
+## Explicadores de concepto "para qué sirve" (2026-09-10)
+
+Componente `InfoBox` (`src/components/ui/InfoBox.tsx`): caja "💡 …" en lenguaje
+simple que aparece **arriba de cada creador/editor** para que cualquier usuario
+entienda el concepto antes de llenar el formulario. Aplicado en:
+- **Categorías** — "Las categorías son las secciones de tu menú (Tacos, Bebidas,
+  Postres). Agrupan tus platillos para que tus clientes encuentren todo fácil."
+  (también en la descripción del encabezado de la página).
+- **Producto** — "Un producto es cada platillo que vendes. Aparece en tu menú
+  dentro de su categoría."
+- **Inventario** — "Un insumo es lo que usas para preparar tus platillos… se
+  descuenta solo con cada venta."
+- **Gastos** — "Un gasto es lo que pagas para operar tu negocio… ver cuánto
+  gastas y cuánto te queda."
+
+Además: `CategoriaModal` se extrajo a `components/admin/catalogo/CategoriaModal.tsx`
+(consistencia con `ProductoModal`). **Tutorial en GIF** del alta de producto +
+categoría generado en localhost (entregado al owner en su Desktop).

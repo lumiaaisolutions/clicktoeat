@@ -6,6 +6,7 @@ import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
 import { Field, Select, Switch, Textarea } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
+import { InfoBox } from '@/components/ui/InfoBox';
 import { Wizard } from '@/components/ui/Wizard';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
@@ -417,6 +418,10 @@ function GastoModal({
       >
         {paso === 1 && (
           <>
+            <InfoBox className="mb-4">
+              Un gasto es lo que <strong>pagas para operar</strong> tu negocio (luz,
+              renta, sueldos…). Registrarlos te ayuda a ver cuánto gastas y cuánto te queda.
+            </InfoBox>
             {gasto && (
               <div className="flex justify-end -mt-2 mb-1">
                 <button type="button" onClick={remove} disabled={busy} className="text-xs text-red-600 hover:underline">
