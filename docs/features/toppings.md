@@ -130,3 +130,16 @@ Se aplicó el patrón de wizard (`components/ui/Wizard`, rail "1·2·3", "PASO X
 N") a los formularios de alta: **producto** (4 pasos), **toppings** (Lo básico /
 Opciones / Límite y disponibilidad), **ingredientes** (2 pasos) y **categorías**
 (2 pasos). Consistencia visual en todo el catálogo.
+
+## Snapshot legible + especificaciones (sept 2026)
+
+- **Nombre, no id**: `OrderService::validarYNormalizarExtras` ahora guarda en
+  `extras_seleccionados` el **nombre canónico** de la opción (ej. "Queso extra"),
+  nunca el id interno (`item-…`). El cliente puede mandar id o nombre; el backend
+  resuelve contra el catálogo. Así el mensaje de WhatsApp y el panel muestran texto
+  legible. Test: `el_snapshot_guarda_el_nombre_de_la_opcion_no_el_id`.
+- **Precio del extra en el mensaje**: el builder de WhatsApp (y su espejo TS
+  `lib/whatsapp.ts`) muestra `↳ Grupo: Opción (+$X)` cuando la opción tiene costo.
+- **Especificaciones del pedido**: el checkout del landing tiene un campo
+  "Especificaciones adicionales (opcional)" → `cliente.notas` → `pedido->notas`,
+  que aparece en el mensaje de WhatsApp como "Especificaciones: …".

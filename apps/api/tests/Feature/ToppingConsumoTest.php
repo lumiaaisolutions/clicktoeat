@@ -85,4 +85,37 @@ class ToppingConsumoTest extends TestCase
         // La receta interna NO se filtra al cliente.
         $this->assertArrayNotHasKey('receta', $items[0]);
     }
+
+    /** @test */
+    public function el_snapshot_guarda_el_nombre_de_la_opcion_no_el_id(): void
+    {
+        $local = Local::create([
+            'nombre' => 'T', 'slug' => 'top-nombre', 'whatsapp' => '5215512345678',
+            'color_primario' => '#000', 'color_secundario' => '#000', 'color_fondo' => '#fff',
+            'tipografia' => 'sans', 'activo' => true,
+        ]);
+        $cat = Categoria::create(['local_id' => $local->id, 'nombre' => 'Tacos', 'slug' => 'tacos', 'orden' => 0, 'activo' => true]);
+        $taco = Producto::create([
+            'local_id' => $local->id, 'categoria_id' => $cat->id, 'nombre' => 'Taco', 'slug' => 'taco',
+            'precio' => 30, 'disponible' => true,
+            'extras' => [[
+                'group' => 'Extras', 'kind' => 'many',
+                'items' => [['id' => 'item-1789093107532', 'name' => 'Queso extra', 'price' => 15]],
+            ]],
+        ]);
+
+        // El cliente manda el ID interno de la opción (como hace el front).
+        $this->postJson("/api/v1/public/pedidos/{$local->slug}", [
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111'],
+            'metodo_entrega' => 'pickup', 'metodo_pago' => 'efectivo',
+            'items' => [[
+                'producto_id' => $taco->id, 'cantidad' => 1,
+                'extras' => [['group' => 'Extras', 'item' => 'item-1789093107532', 'price' => 15]],
+            ]],
+        ])->assertCreated();
+
+        $extra = \App\Models\DetallePedido::withoutGlobalScopes()->latest('id')->first()->extras_seleccionados[0];
+        $this->assertSame('Queso extra', $extra['item']);   // nombre, no el id
+        $this->assertStringNotContainsString('item-', $extra['item']);
+    }
 }

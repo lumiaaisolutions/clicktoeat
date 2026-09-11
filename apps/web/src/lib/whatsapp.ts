@@ -29,7 +29,8 @@ export function buildWhatsAppUrl(
     subtotal += lineTotal;
     lines.push(`• ${item.cantidad}× ${item.nombre} — ${formatMXN(lineTotal)}`);
     for (const extra of item.extras ?? []) {
-      lines.push(`    ↳ ${extra.group}: ${extra.item}`);
+      const sufijo = extra.price > 0 ? ` (+${formatMXN(extra.price)})` : '';
+      lines.push(`    ↳ ${extra.group}: ${extra.item}${sufijo}`);
     }
     if (item.notas) lines.push(`    ↳ Nota: ${item.notas}`);
   }
@@ -50,6 +51,10 @@ export function buildWhatsAppUrl(
     lines.push('Entrega:   Recoger en sucursal');
   }
   lines.push(`Pago:      ${labelPago(payload.metodoPago)}`);
+  if (payload.cliente.notas) {
+    lines.push('');
+    lines.push(`Especificaciones: ${payload.cliente.notas}`);
+  }
   if (payload.folio) lines.push(`Folio:     ${payload.folio}`);
 
   const phone = local.whatsapp.replace(/\D+/g, '');

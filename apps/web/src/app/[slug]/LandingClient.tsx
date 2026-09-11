@@ -443,16 +443,22 @@ export function LandingClient({ menu }: Props) {
         onClose={() => setDetail(null)}
         onAdd={(qty, extras) => {
           if (!detail) return;
-          const extrasTotal = extras.reduce((s, e) => s + e.price, 0);
-          const key = extras.length
-            ? `${detail.id}:${[...extras].map((e) => `${e.group}=${e.item}`).sort().join(',')}`
+          // Traduce el id interno de cada opción a su NOMBRE legible (el
+          // catálogo del producto), para que el carrito y el mensaje jamás
+          // muestren "item-123…".
+          const nombrePorId: Record<string, string> = {};
+          (detail.extras ?? []).forEach((g) => g.items.forEach((it) => { nombrePorId[it.id] = it.name; }));
+          const extrasNombrados = extras.map((e) => ({ ...e, item: nombrePorId[e.item] ?? e.item }));
+          const extrasTotal = extrasNombrados.reduce((s, e) => s + e.price, 0);
+          const key = extrasNombrados.length
+            ? `${detail.id}:${[...extrasNombrados].map((e) => `${e.group}=${e.item}`).sort().join(',')}`
             : `${detail.id}`;
           cart.add({
             productoId: detail.id,
             nombre:     detail.nombre,
             precio:     detail.precio + extrasTotal,
             imagen:     detail.imagen ?? null,
-            extras,
+            extras:     extrasNombrados,
             lineKey:    key,
             cantidad:   qty,
           });
@@ -1227,6 +1233,7 @@ function CheckoutSheet({
   const [email,          setEmail]          = useState('');
   const [telefono,       setTelefono]       = useState('');
   const [direccion,      setDireccion]      = useState('');
+  const [notas,          setNotas]          = useState('');
 
   // F75 — track carrito abandonado al tener email válido + items
   useTrackAbandonedCart({
@@ -1310,6 +1317,7 @@ function CheckoutSheet({
           direccion: metodo === 'delivery' ? direccion : null,
           lat:       metodo === 'delivery' ? clienteLat : null,
           lng:       metodo === 'delivery' ? clienteLng : null,
+          notas:     notas.trim() || null,
         },
         metodo_entrega: metodo,
         metodo_pago:    pago,
@@ -1343,7 +1351,7 @@ function CheckoutSheet({
       }
       if (!res.ok) {
         const fallbackUrl = buildWhatsAppUrl(local, cart.items, {
-          cliente: { nombre, telefono, direccion },
+          cliente: { nombre, telefono, direccion, notas: notas.trim() || undefined },
           metodoEntrega: metodo, metodoPago: pago,
         });
         window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
@@ -1353,7 +1361,7 @@ function CheckoutSheet({
       }
       const body = await res.json();
       const url  = body.whatsapp_url ?? buildWhatsAppUrl(local, cart.items, {
-        cliente:       { nombre, telefono, direccion },
+        cliente:       { nombre, telefono, direccion, notas: notas.trim() || undefined },
         metodoEntrega: metodo,
         metodoPago:    pago,
         folio:         body.data?.codigo,
@@ -1587,6 +1595,21 @@ function CheckoutSheet({
                       </option>
                     ))}
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-[12.5px] font-bold mb-1.5" style={{ color: 'var(--ce-muted)' }}>
+                    Especificaciones adicionales (opcional)
+                  </label>
+                  <textarea
+                    className={inputCls + ' h-auto py-3 resize-none'}
+                    style={{ borderColor: 'rgba(35,25,15,0.08)' }}
+                    rows={3}
+                    maxLength={500}
+                    placeholder="Ej. sin cebolla, salsa aparte, tocar el timbre…"
+                    value={notas}
+                    onChange={(e) => setNotas(e.target.value)}
+                  />
                 </div>
 
                 {/* F25 — Código de descuento */}

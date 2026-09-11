@@ -26,7 +26,13 @@ class WhatsAppLinkBuilder
             $lines[] = "• {$d->cantidad}× {$d->producto_nombre} — \${$d->subtotal}";
 
             foreach (($d->extras_seleccionados ?? []) as $extra) {
-                $lines[] = "    ↳ {$extra['group']}: {$extra['item']}";
+                $precio = (float) ($extra['price'] ?? 0);
+                $sufijo = $precio > 0 ? ' (+$'.number_format($precio, 2).')' : '';
+                $lines[] = "    ↳ {$extra['group']}: {$extra['item']}{$sufijo}";
+            }
+
+            if (! empty($d->notas)) {
+                $lines[] = "    ↳ Nota: {$d->notas}";
             }
         }
 
@@ -49,6 +55,12 @@ class WhatsAppLinkBuilder
         }
 
         $lines[] = 'Pago:      '.$this->labelPago($pedido->metodo_pago);
+
+        if (! empty($pedido->notas)) {
+            $lines[] = '';
+            $lines[] = "Especificaciones: {$pedido->notas}";
+        }
+
         $lines[] = "Folio:     {$pedido->codigo}";
 
         $phone = preg_replace('/\D+/', '', $local->whatsapp);

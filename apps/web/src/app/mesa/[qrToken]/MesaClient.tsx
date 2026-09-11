@@ -111,7 +111,7 @@ export function MesaClient({
           items: cart.map((l) => ({
             producto_id: l.productoId,
             cantidad: l.cantidad,
-            extras: l.extras.map((e) => ({ group: e.group, item: e.item, price: e.price })),
+            extras: l.extras.map((e) => ({ group: e.group, item: e.itemLabel ?? e.item, price: e.price })),
           })),
         }),
       });

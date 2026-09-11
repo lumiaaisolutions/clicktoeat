@@ -297,13 +297,14 @@ class OrderService
                 'maximo' => isset($grupo['maximo']) && $grupo['maximo'] !== null ? (int) $grupo['maximo'] : null,
             ];
             foreach (($grupo['items'] ?? []) as $catItem) {
-                // Permitir match por `id` o por `name`
-                $price = (float) ($catItem['price'] ?? 0);
+                // Permitir match por `id` o por `name`; guardamos el NOMBRE canónico
+                // para el snapshot (nunca el id interno tipo "item-123…").
+                $entry = ['name' => (string) ($catItem['name'] ?? ''), 'price' => (float) ($catItem['price'] ?? 0)];
                 if (isset($catItem['id'])) {
-                    $byGroup[$groupName][$catItem['id']] = $price;
+                    $byGroup[$groupName][$catItem['id']] = $entry;
                 }
                 if (isset($catItem['name'])) {
-                    $byGroup[$groupName][$catItem['name']] = $price;
+                    $byGroup[$groupName][$catItem['name']] = $entry;
                 }
             }
         }
@@ -330,11 +331,13 @@ class OrderService
                 );
             }
 
-            // Snapshot con el precio canónico del catálogo (ignora lo que vino del cliente)
+            // Snapshot con el NOMBRE y el precio canónicos del catálogo (ignora
+            // el id/price que vino del cliente). `item` = nombre legible.
+            $catItem = $byGroup[$group][$item];
             $normalizados[] = [
                 'group' => $group,
-                'item' => $item,
-                'price' => $byGroup[$group][$item],
+                'item' => $catItem['name'] !== '' ? $catItem['name'] : $item,
+                'price' => $catItem['price'],
             ];
             $idxPorGrupo[$group][] = array_key_last($normalizados);
         }
