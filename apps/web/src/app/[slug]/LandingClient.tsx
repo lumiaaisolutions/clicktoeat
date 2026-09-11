@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
-import { useCart } from '@/store/cart';
+import { useCart, type CartExtra } from '@/store/cart';
 import { buildWhatsAppUrl } from '@/lib/whatsapp';
 import { cn, formatMXN } from '@/lib/utils';
 import type { MenuResponse, MenuProducto } from '@/lib/api';
@@ -396,6 +396,8 @@ export function LandingClient({ menu }: Props) {
                 cerrado={cerrado}
                 onOpen={(p) => setDetail(p)}
                 onAdd={(p) => {
+                  // Si el producto tiene opciones, abre el detalle para elegirlas.
+                  if (p.extras?.length) { setDetail(p); return; }
                   cart.add({
                     productoId: p.id,
                     nombre:     p.nombre,
@@ -439,15 +441,19 @@ export function LandingClient({ menu }: Props) {
         cerrado={cerrado}
         slug={local.slug}
         onClose={() => setDetail(null)}
-        onAdd={(qty) => {
+        onAdd={(qty, extras) => {
           if (!detail) return;
+          const extrasTotal = extras.reduce((s, e) => s + e.price, 0);
+          const key = extras.length
+            ? `${detail.id}:${[...extras].map((e) => `${e.group}=${e.item}`).sort().join(',')}`
+            : `${detail.id}`;
           cart.add({
             productoId: detail.id,
             nombre:     detail.nombre,
-            precio:     detail.precio,
+            precio:     detail.precio + extrasTotal,
             imagen:     detail.imagen ?? null,
-            extras:     [],
-            lineKey:    `${detail.id}`,
+            extras,
+            lineKey:    key,
             cantidad:   qty,
           });
           setDetail(null);
@@ -742,10 +748,36 @@ function ProductDetailSheet({
   cerrado:  boolean;
   slug:     string;
   onClose:  () => void;
-  onAdd:    (qty: number) => void;
+  onAdd:    (qty: number, extras: CartExtra[]) => void;
 }) {
   const [qty, setQty] = useState(1);
-  useEffect(() => { if (producto) setQty(1); }, [producto]);
+  const [selected, setSelected] = useState<Record<string, CartExtra[]>>({});
+  useEffect(() => { if (producto) { setQty(1); setSelected({}); } }, [producto]);
+
+  const grupos = producto?.extras ?? [];
+
+  const toggleOne = (group: string, it: { id: string; name: string; price: number }) =>
+    setSelected((p) => ({ ...p, [group]: [{ group, item: it.id, price: it.price }] }));
+  const toggleMany = (group: string, it: { id: string; name: string; price: number }, maximo?: number | null) =>
+    setSelected((p) => {
+      const cur = p[group] ?? [];
+      const has = cur.some((e) => e.item === it.id);
+      if (!has && maximo != null && cur.length >= maximo) return p;
+      return { ...p, [group]: has ? cur.filter((e) => e.item !== it.id) : [...cur, { group, item: it.id, price: it.price }] };
+    });
+
+  // "Los N más caros gratis" (incluidos) por grupo — mismo criterio que el backend.
+  const conPrecioEfectivo = (group: string, incluidos: number | null | undefined): CartExtra[] => {
+    const sel = selected[group] ?? [];
+    if (!incluidos || incluidos <= 0) return sel;
+    const gratis = new Set([...sel].sort((a, b) => b.price - a.price).slice(0, incluidos).map((e) => e.item));
+    return sel.map((e) => (gratis.has(e.item) ? { ...e, price: 0 } : e));
+  };
+
+  const extrasEfectivos = grupos.flatMap((g) => conPrecioEfectivo(g.group, g.incluidos));
+  const extrasTotal = extrasEfectivos.reduce((s, e) => s + e.price, 0);
+  const faltanRequeridos = grupos.some((g) => g.required && !(selected[g.group]?.length));
+  const totalUnitario = (producto?.precio ?? 0) + extrasTotal;
 
   return (
     <AnimatePresence>
@@ -832,10 +864,73 @@ function ProductDetailSheet({
                 </div>
               </div>
 
+              {/* Toppings / opciones para personalizar */}
+              {grupos.map((grupo) => {
+                const sel = selected[grupo.group] ?? [];
+                const gratisSet = new Set(
+                  grupo.incluidos && grupo.incluidos > 0
+                    ? [...sel].sort((a, b) => b.price - a.price).slice(0, grupo.incluidos).map((e) => e.item)
+                    : [],
+                );
+                const topeLleno = grupo.maximo != null && sel.length >= grupo.maximo;
+                return (
+                  <div key={grupo.group} className="mb-5">
+                    <div className="flex items-baseline justify-between mb-2">
+                      <p className="text-sm font-bold m-0">
+                        {grupo.group} {grupo.required && <span style={{ color: 'var(--ce-accent)' }}>*</span>}
+                      </p>
+                      {grupo.kind === 'many' && (grupo.incluidos || grupo.maximo) ? (
+                        <span className="text-[11px]" style={{ color: 'var(--ce-muted)' }}>
+                          {grupo.incluidos ? `${grupo.incluidos} gratis` : ''}
+                          {grupo.incluidos && grupo.maximo ? ' · ' : ''}
+                          {grupo.maximo ? `máx ${grupo.maximo}` : ''}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="space-y-1.5">
+                      {grupo.items.map((it) => {
+                        const isSel = sel.some((e) => e.item === it.id);
+                        const agotado = it.disponible === false;
+                        const bloqueado = grupo.kind === 'many' && !isSel && topeLleno;
+                        const esGratis = isSel && gratisSet.has(it.id);
+                        const disabled = agotado || bloqueado;
+                        return (
+                          <label
+                            key={it.id}
+                            className={cn(
+                              'flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border transition',
+                              isSel ? 'border-[var(--ce-accent)]' : 'border-line',
+                              disabled ? 'opacity-45 cursor-not-allowed' : 'cursor-pointer hover:border-[var(--ce-accent)]/50',
+                            )}
+                            style={isSel ? { background: 'color-mix(in srgb, var(--ce-accent) 8%, transparent)' } : undefined}
+                          >
+                            <span className="flex items-center gap-2.5 text-[14px]">
+                              <input
+                                type={grupo.kind === 'one' ? 'radio' : 'checkbox'}
+                                name={grupo.group}
+                                checked={isSel}
+                                disabled={disabled}
+                                onChange={() => (grupo.kind === 'one' ? toggleOne(grupo.group, it) : toggleMany(grupo.group, it, grupo.maximo))}
+                                style={{ accentColor: 'var(--ce-accent)' }}
+                              />
+                              {it.name}
+                              {agotado && <span className="text-[11px] font-semibold text-red-500">· agotado</span>}
+                            </span>
+                            {esGratis
+                              ? <span className="text-[12px] font-bold text-emerald-600">incluido</span>
+                              : it.price > 0 && <span className="text-[12px]" style={{ color: 'var(--ce-muted)' }}>+{formatMXN(it.price)}</span>}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+
               <button
                 type="button"
-                onClick={() => !cerrado && onAdd(qty)}
-                disabled={cerrado}
+                onClick={() => !cerrado && !faltanRequeridos && onAdd(qty, extrasEfectivos)}
+                disabled={cerrado || faltanRequeridos}
                 className={cn(
                   'w-full h-14 rounded-2xl text-white ce-body font-extrabold text-base inline-flex items-center justify-center gap-2.5 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed tap-target',
                 )}
@@ -848,8 +943,10 @@ function ProductDetailSheet({
               >
                 {cerrado ? (
                   <><Icon name="alert-triangle" size={16} /> Local cerrado</>
+                ) : faltanRequeridos ? (
+                  <>Elige las opciones obligatorias</>
                 ) : (
-                  <><Icon name="plus" size={16} /> Añadir · {formatMXN(producto.precio * qty)}</>
+                  <><Icon name="plus" size={16} /> Añadir · {formatMXN(totalUnitario * qty)}</>
                 )}
               </button>
 
