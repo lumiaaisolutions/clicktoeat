@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Public;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Public\MenuResource;
+use App\Models\Ingrediente;
 use App\Models\Local;
 use App\Support\HorarioCalculator;
 use Illuminate\Http\JsonResponse;
@@ -73,6 +74,15 @@ class MenuController extends Controller
             throw new NotFoundHttpException('Local no encontrado o no disponible.');
         }
 
+        // Stock por ingrediente del local → para marcar toppings agotados.
+        // Ruta pública (sin TenantContext): filtramos por local_id explícito.
+        $stock = Ingrediente::query()
+            ->withoutGlobalScopes()
+            ->where('local_id', $local->id)
+            ->pluck('stock', 'id')
+            ->map(fn ($v) => (float) $v)
+            ->all();
+
         return response()->json([
             'data' => [
                 'local' => [
@@ -134,7 +144,7 @@ class MenuController extends Controller
                     'esCombo' => $p->es_combo,
                     'esPromocion' => $p->es_promocion,
                     'tag' => $p->tag,
-                    'extras' => $p->extras ?? [],
+                    'extras' => $this->enriquecerExtras($p->extras ?? [], $stock),
                     'categoria' => [
                         'id' => $p->categoria?->id,
                         'slug' => $p->categoria?->slug,
@@ -145,6 +155,46 @@ class MenuController extends Controller
                 ]),
             ],
         ]);
+    }
+
+    /**
+     * Enriquece los grupos de extras de un producto para el menú público:
+     * agrega `disponible` por opción según el stock de los ingredientes de su
+     * receta, y **elimina la receta** (IDs de ingrediente son internos, no van
+     * al cliente). Una opción se marca `disponible: false` si algún ingrediente
+     * de su receta no tiene stock suficiente para una porción.
+     *
+     * @param  array<int, array<string, mixed>>  $extras
+     * @param  array<int, float>  $stock  ingrediente_id => stock
+     * @return array<int, array<string, mixed>>
+     */
+    private function enriquecerExtras(array $extras, array $stock): array
+    {
+        return collect($extras)->map(function (array $grupo) use ($stock) {
+            $items = collect($grupo['items'] ?? [])->map(function (array $it) use ($stock) {
+                $disponible = true;
+                foreach (($it['receta'] ?? []) as $r) {
+                    if (($stock[$r['ingrediente_id']] ?? 0.0) < (float) $r['cantidad']) {
+                        $disponible = false;
+                        break;
+                    }
+                }
+
+                return [
+                    'id' => $it['id'] ?? null,
+                    'name' => $it['name'] ?? '',
+                    'price' => (float) ($it['price'] ?? 0),
+                    'disponible' => $disponible,
+                ];
+            })->all();
+
+            return [
+                'group' => $grupo['group'] ?? '',
+                'kind' => $grupo['kind'] ?? 'many',
+                'required' => (bool) ($grupo['required'] ?? false),
+                'items' => $items,
+            ];
+        })->all();
     }
 
     /**

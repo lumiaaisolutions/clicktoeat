@@ -190,7 +190,7 @@ export interface MenuProducto {
     group: string;
     kind: 'one' | 'many';
     required?: boolean;
-    items: Array<{ id: string; name: string; price: number }>;
+    items: Array<{ id: string; name: string; price: number; disponible?: boolean }>;
   }>;
   categoria: { id: number | null; slug: string | null };
   /** F37 — Rating de reseñas publicadas (null si aún no hay) */

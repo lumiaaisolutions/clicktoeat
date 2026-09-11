@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { MenuProducto } from '@/lib/api';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Modal } from '@/components/ui/Modal';
@@ -277,16 +278,25 @@ function ExtrasModal({
             <div className="space-y-1">
               {grupo.items.map((item) => {
                 const isSelected = (selected[grupo.group] ?? []).some((e) => e.item === item.id);
+                const agotado = item.disponible === false;
                 return (
-                  <label key={item.id} className="flex items-center justify-between gap-2 p-2 rounded-lg border border-line cursor-pointer">
+                  <label
+                    key={item.id}
+                    className={cn(
+                      'flex items-center justify-between gap-2 p-2 rounded-lg border border-line',
+                      agotado ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
+                    )}
+                  >
                     <span className="flex items-center gap-2 text-sm">
                       <input
                         type={grupo.kind === 'one' ? 'radio' : 'checkbox'}
                         name={grupo.group}
                         checked={isSelected}
+                        disabled={agotado}
                         onChange={() => (grupo.kind === 'one' ? toggleOne(grupo.group, item) : toggleMany(grupo.group, item))}
                       />
                       {item.name}
+                      {agotado && <span className="text-[11px] font-semibold text-red-500">· agotado</span>}
                     </span>
                     {item.price > 0 && <span className="text-xs text-muted">+${item.price.toFixed(2)}</span>}
                   </label>
