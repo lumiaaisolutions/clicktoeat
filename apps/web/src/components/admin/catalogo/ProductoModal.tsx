@@ -155,7 +155,7 @@ export function ProductoModal({
       group: t.nombre,
       kind: t.kind,
       required: t.required,
-      items: t.items.map((it, i) => ({ id: `t${t.id}-${i}`, name: it.name, price: it.price })),
+      items: t.items.map((it, i) => ({ id: `t${t.id}-${i}`, name: it.name, price: it.price, receta: it.receta })),
     }]);
   };
 

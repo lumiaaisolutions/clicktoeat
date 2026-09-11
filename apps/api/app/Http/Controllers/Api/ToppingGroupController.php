@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ToppingGroup\StoreToppingGroupRequest;
 use App\Http\Requests\ToppingGroup\UpdateToppingGroupRequest;
 use App\Http\Resources\ToppingGroupResource;
+use App\Models\Ingrediente;
 use App\Models\ToppingGroup;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -19,6 +20,12 @@ class ToppingGroupController extends Controller
     public function index(): AnonymousResourceCollection
     {
         $this->authorize('viewAny', ToppingGroup::class);
+
+        // Mapa de stock (tenant-scoped) para calcular disponibilidad de cada opción.
+        ToppingGroupResource::$stock = Ingrediente::query()
+            ->pluck('stock', 'id')
+            ->map(fn ($v) => (float) $v)
+            ->all();
 
         return ToppingGroupResource::collection(
             ToppingGroup::query()->orderBy('nombre')->get()

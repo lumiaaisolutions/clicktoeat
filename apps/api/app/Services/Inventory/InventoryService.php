@@ -45,6 +45,8 @@ class InventoryService
         }
 
         $consumo = $this->calcularConsumo($lineas);
+        // Sumar el consumo de los toppings elegidos (recetas por opción).
+        $this->agregarConsumoToppings($pedido->local_id, $lineas, $consumo);
         if (empty($consumo)) {
             return;
         }
@@ -189,6 +191,56 @@ class InventoryService
         }
 
         return $consumo;
+    }
+
+    /**
+     * Suma al consumo los ingredientes de los toppings elegidos en cada línea.
+     * Resuelve la receta desde el catálogo (topping_groups) por nombre de grupo
+     * y de opción, con local_id explícito (robusto sin importar el tenant scope).
+     *
+     * @param  array<int, array{producto_id:int, cantidad:int, extras?:mixed}>  $lineas
+     * @param  array<int, float>  $consumo  (por referencia)
+     */
+    protected function agregarConsumoToppings(int $localId, array $lineas, array &$consumo): void
+    {
+        $productos = null;  // se carga sólo si alguna línea trae extras
+
+        foreach ($lineas as $linea) {
+            $extras = $linea['extras'] ?? null;
+            if (empty($extras) || ! is_array($extras)) {
+                continue;
+            }
+
+            if ($productos === null) {
+                $productos = Producto::withoutGlobalScopes()
+                    ->whereIn('id', array_column($lineas, 'producto_id'))
+                    ->get()
+                    ->keyBy('id');
+            }
+
+            $prod = $productos->get((int) $linea['producto_id']);
+            if (! $prod) {
+                continue;
+            }
+            $catalogo = collect($prod->extras ?? [])->keyBy(fn ($g) => $g['group'] ?? '');
+            $cantLinea = (float) ($linea['cantidad'] ?? 1);
+
+            foreach ($extras as $ex) {
+                $grupo = $catalogo->get($ex['group'] ?? '');
+                if (! $grupo) {
+                    continue;
+                }
+                // Mismo match que validarYNormalizarExtras: por name O por id.
+                $item = collect($grupo['items'] ?? [])->first(
+                    fn ($it) => ($it['name'] ?? null) === ($ex['item'] ?? null)
+                        || ($it['id'] ?? null) === ($ex['item'] ?? null),
+                );
+                foreach (($item['receta'] ?? []) as $r) {
+                    $ingId = (int) $r['ingrediente_id'];
+                    $consumo[$ingId] = ($consumo[$ingId] ?? 0.0) + $cantLinea * (float) $r['cantidad'];
+                }
+            }
+        }
     }
 
     /**

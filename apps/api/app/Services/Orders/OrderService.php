@@ -109,7 +109,11 @@ class OrderService
             // Inventario — lanza InsufficientStockException → rollback automático
             $this->inventory->descontarParaPedido(
                 $pedido,
-                array_map(fn ($l) => ['producto_id' => $l['producto_id'], 'cantidad' => $l['cantidad']], $lineas),
+                array_map(fn ($l) => [
+                    'producto_id' => $l['producto_id'],
+                    'cantidad' => $l['cantidad'],
+                    'extras' => $l['extras'] ?? null,
+                ], $lineas),
             );
 
             // 4. WhatsApp URL — sólo para pickup/delivery (el cliente la abre).

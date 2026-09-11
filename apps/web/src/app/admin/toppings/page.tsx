@@ -70,9 +70,21 @@ export default function ToppingsPage() {
                     {t.required && <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Obligatorio</span>}
                     {!t.activo && <span className="text-[11px] px-2 py-0.5 rounded-full bg-line/60">Inactivo</span>}
                   </div>
-                  <p className="text-sm text-muted mt-1">
-                    {t.items.map((it) => it.price > 0 ? `${it.name} +${formatMXN(it.price)}` : it.name).join(' · ')}
-                  </p>
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    {t.items.map((it, k) => (
+                      <span
+                        key={k}
+                        className={cn(
+                          'text-xs px-2 py-0.5 rounded-full',
+                          it.disponible === false ? 'bg-red-50 text-red-600' : 'bg-line/50',
+                        )}
+                        title={it.disponible === false ? 'Sin ingredientes en inventario' : undefined}
+                      >
+                        {it.name}{it.price > 0 ? ` +${formatMXN(it.price)}` : ''}
+                        {it.disponible === false && ' · agotado'}
+                      </span>
+                    ))}
+                  </div>
                 </div>
                 <div className="flex gap-1 shrink-0">
                   <button onClick={() => setEditing(t)} className="px-3 h-9 rounded-lg text-sm font-medium hover:bg-line/50">Editar</button>

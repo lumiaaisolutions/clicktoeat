@@ -77,4 +77,45 @@ class ToppingGroupTest extends TestCase
             'nombre' => 'X', 'kind' => 'many', 'items' => [['name' => 'A', 'price' => 0]],
         ])->assertForbidden();
     }
+
+    /** @test */
+    public function opcion_con_receta_marca_disponibilidad_segun_stock(): void
+    {
+        [$local, $owner] = $this->localOwner();
+        $ing = \App\Models\Ingrediente::create([
+            'local_id' => $local->id, 'nombre' => 'Queso', 'stock' => 0.5, 'unidad' => 'kg',
+            'stock_minimo' => 0, 'costo_unitario' => 100,
+        ]);
+        \App\Models\ToppingGroup::create([
+            'local_id' => $local->id, 'nombre' => 'Extras', 'kind' => 'many',
+            'items' => [
+                ['name' => 'Queso extra', 'price' => 15, 'receta' => [['ingrediente_id' => $ing->id, 'cantidad' => 0.1]]],
+                ['name' => 'Doble queso', 'price' => 25, 'receta' => [['ingrediente_id' => $ing->id, 'cantidad' => 1.0]]],
+            ],
+        ]);
+        Sanctum::actingAs($owner);
+
+        $data = $this->getJson('/api/v1/toppings')->assertOk()->json('data.0.items');
+        // 0.1 kg alcanza (stock 0.5) → disponible; 1.0 kg NO alcanza → agotado.
+        $this->assertTrue($data[0]['disponible']);
+        $this->assertFalse($data[1]['disponible']);
+    }
+
+    /** @test */
+    public function receta_rechaza_ingrediente_de_otro_local(): void
+    {
+        [$l1] = $this->localOwner();
+        $ajeno = \App\Models\Ingrediente::create([
+            'local_id' => $l1->id, 'nombre' => 'Ajeno', 'stock' => 1, 'unidad' => 'kg',
+            'stock_minimo' => 0, 'costo_unitario' => 1,
+        ]);
+        [$l2, $o2] = $this->localOwner();
+        Sanctum::actingAs($o2);
+
+        $this->postJson('/api/v1/toppings', [
+            'nombre' => 'X', 'kind' => 'many',
+            'items' => [['name' => 'A', 'price' => 0, 'receta' => [['ingrediente_id' => $ajeno->id, 'cantidad' => 1]]]],
+        ])->assertStatus(422);
+    }
+
 }

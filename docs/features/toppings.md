@@ -56,3 +56,27 @@ local). Ruta `apiResource('toppings')->except(['show'])`. Tests:
 
 Página y modales responsive (el modal es bottom-sheet en móvil vía el componente
 `Modal`; los chips y grids hacen wrap). Verificado en localhost.
+
+## Vínculo con inventario (recetas por opción) — 2026-09-10
+
+Cada **opción** de un topping puede tener su propia **mini-receta**
+(`items[].receta = [{ingrediente_id, cantidad}]`), tenant-safe (el ingrediente
+debe ser del local). Con esto:
+
+- **Disponibilidad**: `GET /toppings` calcula `disponible` por opción según el
+  stock (mapa `ingrediente_id => stock` inyectado al `ToppingGroupResource`).
+  En el panel, las opciones sin stock se muestran como **"agotado"**.
+- **Consumo al vender**: al crear un pedido, `InventoryService::agregarConsumoToppings`
+  suma el consumo de los toppings elegidos al descuento normal. Resuelve la
+  receta desde el **snapshot de `extras` del producto** (que ahora copia la
+  receta al seleccionar un topping), con el mismo match (name/id) que
+  `validarYNormalizarExtras`. Los movimientos son `salida` normales → la
+  **cancelación reintegra** el stock sin cambios extra. Tests:
+  `ToppingConsumoTest` + recetas/aislamiento en `ToppingGroupTest`.
+
+El editor de topping (`ToppingModal`) permite, por opción, agregar
+"Usa X {unidad} de {ingrediente}". El picker del producto copia la receta al
+snapshot para que el descuento sea estable aunque el catálogo cambie después.
+
+> Pendiente (fase siguiente): bloquear en el **menú del cliente** los toppings
+> agotados (marcarlos y no dejar elegirlos).

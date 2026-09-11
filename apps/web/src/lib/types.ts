@@ -33,7 +33,21 @@ export interface ExtraGroup {
   group: string;
   kind: 'one' | 'many';
   required?: boolean;
-  items: { id: string; name: string; price: number }[];
+  items: { id: string; name: string; price: number; receta?: { ingrediente_id: number; cantidad: number }[] }[];
+}
+
+export interface ToppingReceta {
+  ingrediente_id: number;
+  cantidad: number;
+}
+
+export interface ToppingItem {
+  name: string;
+  price: number;
+  /** Ingredientes que consume esta opción del inventario (opcional). */
+  receta?: ToppingReceta[];
+  /** Calculado por el backend: cuántas porciones alcanzan con el stock actual. */
+  disponible?: boolean;
 }
 
 export interface ToppingGroup {
@@ -41,7 +55,7 @@ export interface ToppingGroup {
   nombre: string;
   kind: 'one' | 'many';
   required: boolean;
-  items: { name: string; price: number }[];
+  items: ToppingItem[];
   activo: boolean;
 }
 

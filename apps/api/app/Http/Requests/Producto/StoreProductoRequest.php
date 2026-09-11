@@ -44,6 +44,9 @@ class StoreProductoRequest extends FormRequest
             'extras.*.items.*.id' => ['required', 'string', 'max:40'],
             'extras.*.items.*.name' => ['required', 'string', 'max:60'],
             'extras.*.items.*.price' => ['required', 'numeric', 'min:0'],
+            'extras.*.items.*.receta' => ['nullable', 'array', 'max:20'],
+            'extras.*.items.*.receta.*.ingrediente_id' => ['required', 'integer'],
+            'extras.*.items.*.receta.*.cantidad' => ['required', 'numeric', 'min:0.001'],
         ];
     }
 
