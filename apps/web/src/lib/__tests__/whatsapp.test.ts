@@ -112,4 +112,29 @@ describe('buildWhatsAppUrl (espejo de WhatsAppLinkBuilder PHP)', () => {
     );
     expect(text).not.toContain('Folio:');
   });
+
+  it('extra con costo muestra el precio "(+$X)"; el gratis no', () => {
+    const conExtraPago: CartItem[] = [{
+      productoId: 3, nombre: 'Fresas con crema', precio: 55, cantidad: 1, imagen: null,
+      extras: [
+        { group: 'Toppings', item: 'Nuez', price: 0 },       // incluido (gratis)
+        { group: 'Toppings', item: 'Lechera', price: 6 },     // extra con costo
+      ],
+      lineKey: '3-c',
+    }];
+    const text = decodedText(buildWhatsAppUrl(local, conExtraPago, basePayload));
+    expect(text).toContain('    ↳ Toppings: Nuez');           // sin sufijo
+    expect(text).not.toContain('Nuez (+');
+    expect(text).toContain('    ↳ Toppings: Lechera (+$6.00)'); // con precio
+  });
+
+  it('las especificaciones del pedido (cliente.notas) salen como "Especificaciones:"', () => {
+    const text = decodedText(
+      buildWhatsAppUrl(local, items, { ...basePayload, cliente: { ...basePayload.cliente, notas: 'Sin cebolla, tocar el timbre' } }),
+    );
+    expect(text).toContain('Especificaciones: Sin cebolla, tocar el timbre');
+    // sin notas, no aparece la línea
+    const sinNotas = decodedText(buildWhatsAppUrl(local, items, basePayload));
+    expect(sinNotas).not.toContain('Especificaciones:');
+  });
 });

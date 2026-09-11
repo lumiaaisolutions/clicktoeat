@@ -29,7 +29,8 @@ export function buildWhatsAppUrl(
     subtotal += lineTotal;
     lines.push(`• ${item.cantidad}× ${item.nombre} — ${formatMXN(lineTotal)}`);
     for (const extra of item.extras ?? []) {
-      const sufijo = extra.price > 0 ? ` (+${formatMXN(extra.price)})` : '';
+      // Espejo del backend: '(+$'.number_format($precio, 2).')' → siempre 2 decimales.
+      const sufijo = extra.price > 0 ? ` (+$${extra.price.toFixed(2)})` : '';
       lines.push(`    ↳ ${extra.group}: ${extra.item}${sufijo}`);
     }
     if (item.notas) lines.push(`    ↳ Nota: ${item.notas}`);
