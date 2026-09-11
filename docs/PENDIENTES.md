@@ -476,3 +476,15 @@ features". Abre sesión cuando:
 - Hayan **≥10 locales pagando** y quieras analizar qué falta priorizar
 
 Antes de eso = optimización prematura.
+
+## 📌 Pendientes abiertos — handoff 2026-09-10
+
+1. **SMTP en prod** — `MAIL_MAILER=log`; el password del buzón está caído (535).
+   Fix = resetear password del buzón → flip a `smtp` + `config:cache` + test.
+   Runbook: [runbook/configurar-smtp-prod.md](runbook/configurar-smtp-prod.md).
+2. **Bot n8n de WhatsApp (ClickToEat)** — a diferencia de ClickToShop (que ya
+   tiene su workflow listo), aquí el bot que registra pedidos está incompleto:
+   falta el nodo IF/Code/HTTP que haga `POST /api/v1/pedidos` cuando el LLM marca
+   `pedido_listo` (y que el JSON incluya `producto_id`), y **no existe un JSON
+   base del workflow en el repo**. Pendiente: armar ese workflow. El endpoint de
+   pedidos ya existe; el de disponibilidad/recomendación del bot también.
