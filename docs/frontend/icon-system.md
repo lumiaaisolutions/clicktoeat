@@ -41,9 +41,18 @@ Props:
 | **Food — postres** | `cake`, `ice-cream`, `cherry`, `popsicle`, `apple` |
 | **Food — bebidas** | `coffee`, `beer`, `wine`, `martini-glass`, `cup-soda`, `milk` |
 | **Food — conceptos** | `salad`, `sprout`, `wheat`, `flame` |
+| **Flechas / navegación (sept 2026)** | `arrow-left`, `arrow-up`, `arrow-down`, `corner-down-right`, `refresh-cw`, `menu` |
+| **Gastos / operación (sept 2026)** | `droplet`, `globe`, `wrench`, `megaphone`, `clipboard`, `landmark`, `file-text`, `paperclip`, `pencil`, `trending-down`, `trending-up` |
+| **Conceptos (sept 2026)** | `lightbulb`, `smartphone`, `hand` |
 
-> Total al 2026-06-13: **~50 iconos**. Cobertura amplia de food/restaurant
-> tras la expansión de junio 2026 para el sistema de categorías.
+> Total al 2026-09-10: **~110 iconos**. La tanda de junio cubrió food/categorías;
+> la de septiembre 2026 se agregó para el **barrido total de emojis→íconos**
+> (flechas, categorías de gasto, acciones de inventario, InfoBox, etc.).
+>
+> **Mapa de categorías de gasto** (`/admin/gastos`): luz→`zap`, agua→`droplet`,
+> gas→`flame`, internet→`globe`, teléfono→`phone`, renta→`home`, nómina→`users`,
+> mantenimiento→`wrench`, marketing→`megaphone`, impuestos→`file-text`,
+> seguros→`shield`, comisiones bancarias→`landmark`, otros→`circle`.
 
 ## IconPicker — selector visual para admin
 
@@ -94,8 +103,11 @@ Stroke 1.5 da sensación más editorial; 2 es el default Lucide.
 
 ## Reglas
 
-- **NO usar emojis en código de producción.** El sistema entero está limpio
-  (ver historial de PR de junio 2026 — "feat(landing): rediseño …").
+- **NO usar emojis en código de producción.** Barrido total ejecutado en
+  sept 2026 (panel + landing + glifos `✓ ✕ ★`). Excepción consciente: los
+  emojis del **mensaje de WhatsApp** (`lib/whatsapp.ts` y su espejo backend)
+  son parte del texto del pedido que recibe el local, no íconos de UI — no se
+  tocan. Si agregas UI nueva, usa `<Icon>`, nunca un emoji literal.
 - Si necesitas un icono que **no está**, agrégalo a `Icon.tsx` en vez de
   hacer inline SVG suelto en la página. Mantiene consistencia.
 - **Respeta `currentColor`**. No pongas `fill="#XXX"` hard-coded en los paths.

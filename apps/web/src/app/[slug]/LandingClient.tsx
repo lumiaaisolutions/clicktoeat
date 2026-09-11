@@ -885,7 +885,7 @@ function ResenasSection({ slug, productoId }: { slug: string; productoId: number
       <div className="flex items-center gap-2 mb-3">
         <div className="flex items-center gap-0.5 text-amber-500">
           {Array.from({ length: 5 }).map((_, i) => (
-            <span key={i} className={i < Math.round(data.avg) ? '' : 'opacity-30'}>★</span>
+            <span key={i} className={i < Math.round(data.avg) ? '' : 'opacity-30'}><Icon name="star-filled" size={16} /></span>
           ))}
         </div>
         <span className="text-sm font-bold tabular-nums">{data.avg.toFixed(1)}</span>
@@ -898,7 +898,7 @@ function ResenasSection({ slug, productoId }: { slug: string; productoId: number
             <div className="flex items-center gap-2 mb-1">
               <div className="flex items-center text-amber-500 text-xs">
                 {Array.from({ length: 5 }).map((_, k) => (
-                  <span key={k} className={k < r.calificacion ? '' : 'opacity-30'}>★</span>
+                  <span key={k} className={k < r.calificacion ? '' : 'opacity-30'}><Icon name="star-filled" size={14} /></span>
                 ))}
               </div>
               {r.nombre_cliente && <span className="text-[11px] font-semibold text-ink/80 truncate">{r.nombre_cliente}</span>}

@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { Icon } from '@/components/ui/Icon';
 
 /**
  * Ilustraciones SVG animadas para los tours del admin. Cada `name` produce
@@ -133,7 +134,7 @@ function QrIllustration() {
       >
         <rect x="190" y="36" width="50" height="80" rx="8" fill="#0B0B0F" />
         <rect x="194" y="40" width="42" height="72" rx="3" fill="#F26A1F" opacity={0.15} />
-        <text x="215" y="80" textAnchor="middle" fontSize="22">📱</text>
+        <Icon name="smartphone" x={202} y={67} size={26} stroke="#FFFFFF" />
       </motion.g>
     </svg>
   );

@@ -252,7 +252,7 @@ function ProductRow({
       </button>
       <div className="flex gap-1 shrink-0">
         {trashed ? (
-          <Button variant="ghost" size="sm" onClick={() => onRestore(p)}>↺ Restaurar</Button>
+          <Button variant="ghost" size="sm" onClick={() => onRestore(p)}><Icon name="refresh-cw" size={14} className="mr-1" />Restaurar</Button>
         ) : (
           <>
             <Button data-tour="producto-receta" variant="ghost" size="sm" onClick={() => onReceta(p)}>Receta</Button>
@@ -495,7 +495,7 @@ function RecetaModal({
                         )}
                       />
                       <span className="text-xs text-muted w-8 shrink-0">{ing?.unidad}</span>
-                      <Button variant="ghost" size="sm" onClick={() => remove(idx)} aria-label="Quitar">✕</Button>
+                      <Button variant="ghost" size="sm" onClick={() => remove(idx)} aria-label="Quitar"><Icon name="x" size={14} /></Button>
                     </div>
                     {ing && (
                       <div className="mt-1.5 ml-1 text-xs">
@@ -541,7 +541,7 @@ function RecetaModal({
                         className="w-24 px-2 py-1.5 border border-line rounded-lg bg-white text-right"
                       />
                       <span className="text-xs text-muted w-8 shrink-0">pz</span>
-                      <Button variant="ghost" size="sm" onClick={() => remove(idx)} aria-label="Quitar">✕</Button>
+                      <Button variant="ghost" size="sm" onClick={() => remove(idx)} aria-label="Quitar"><Icon name="x" size={14} /></Button>
                     </div>
                     <div className="mt-1.5 ml-1 text-xs text-muted">
                       Expande recursivamente la receta de <strong>{comp?.nombre ?? '?'}</strong> al vender este producto.

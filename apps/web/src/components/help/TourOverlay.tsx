@@ -352,7 +352,7 @@ function TourStepView({
               transition={{ delay: 0.2, duration: 0.3 }}
               className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mt-3 inline-flex items-center gap-1.5"
             >
-              👆 Haz click en el botón resaltado para abrirlo de verdad
+              <Icon name="arrow-up" size={14} /> Haz click en el botón resaltado para abrirlo de verdad
             </motion.p>
           )}
 

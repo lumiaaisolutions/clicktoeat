@@ -18,7 +18,7 @@ export interface ClickyQuickAction {
 export const CLICKY_QUICK_ACTIONS: ClickyQuickAction[] = [
   {
     question: '¿Cómo agrego un producto?',
-    reply: 'Fácil, te lo muestro paso a paso 👇',
+    reply: 'Fácil, te lo muestro paso a paso.',
     tourSlug: 'productos',
     route: '/admin/productos',
     icon: 'package',

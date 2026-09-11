@@ -95,7 +95,7 @@ const LECCIONES: Leccion[] = [
     duracion: '1 min',
     pasos: [
       'Ve a Productos → filtro "Borrados"',
-      'Toca el botón "↺ Restaurar" en el producto',
+      'Toca el botón "Restaurar" en el producto',
       'Vuelve a la lista normal',
     ],
     cta: { href: '/admin/productos', label: 'Ir a Productos' },

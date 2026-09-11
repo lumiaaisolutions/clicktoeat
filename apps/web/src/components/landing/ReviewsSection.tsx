@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { Icon } from '@/components/ui/Icon';
 
 interface Review {
   id: number;
@@ -29,7 +30,7 @@ export function ReviewsSection({ slug }: { slug: string }) {
     <section className="px-4 sm:px-6 py-12 max-w-3xl mx-auto">
       <div className="text-center mb-6">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-50 border border-amber-200">
-          <span className="text-2xl">★</span>
+          <span className="text-2xl"><Icon name="star-filled" size={24} /></span>
           <span className="ce-display text-xl font-bold text-amber-900">{data.average}</span>
           <span className="text-xs text-amber-700">/ 5 · {data.total} {data.total === 1 ? 'opinión' : 'opiniones'}</span>
         </div>
@@ -41,7 +42,7 @@ export function ReviewsSection({ slug }: { slug: string }) {
           <article key={r.id} className="rounded-3xl border border-line bg-white p-5">
             <div className="flex items-center gap-1 mb-2">
               {[1, 2, 3, 4, 5].map((n) => (
-                <span key={n} className={cn(n <= r.rating ? 'text-amber-400' : 'text-zinc-200')}>★</span>
+                <span key={n} className={cn(n <= r.rating ? 'text-amber-400' : 'text-zinc-200')}><Icon name="star-filled" size={16} /></span>
               ))}
             </div>
             {r.comentario && <p className="text-sm leading-relaxed mb-3">"{r.comentario}"</p>}

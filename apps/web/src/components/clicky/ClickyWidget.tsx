@@ -17,7 +17,7 @@ interface ChatMessage {
 
 const GREETING: ChatMessage = {
   role: 'clicky',
-  text: '¡Hola! Soy Clicky 👋 Pregúntame cómo hacer algo en tu panel, o elige una de estas dudas comunes.',
+  text: '¡Hola! Soy Clicky. Pregúntame cómo hacer algo en tu panel, o elige una de estas dudas comunes.',
 };
 
 /**
@@ -90,7 +90,7 @@ export function ClickyWidget() {
     } catch (err: any) {
       const status = err?.response?.status;
       const msg = status === 429
-        ? 'Has hecho muchas preguntas por hoy, dame un rato y vuelve a intentar 🙏'
+        ? 'Has hecho muchas preguntas por hoy, dame un rato y vuelve a intentar.'
         : 'No pude responder ahora mismo. Intenta de nuevo en un momento.';
       setMessages((m) => [...m, { role: 'clicky', text: msg }]);
     } finally {

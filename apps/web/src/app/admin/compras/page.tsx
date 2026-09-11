@@ -9,6 +9,7 @@ import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Field, Textarea } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { Icon } from '@/components/ui/Icon';
 import { cn, formatMXN } from '@/lib/utils';
 
 type EstadoFilter = 'todos' | 'registrada' | 'anulada';
@@ -349,7 +350,7 @@ function CompraModal({
                       placeholder="$/unidad"
                     />
                     <span className="ml-auto font-mono text-sm">{formatMXN(subtotalLinea)}</span>
-                    <Button variant="ghost" size="sm" onClick={() => removeLinea(idx)} aria-label="Quitar">✕</Button>
+                    <Button variant="ghost" size="sm" onClick={() => removeLinea(idx)} aria-label="Quitar"><Icon name="x" size={14} /></Button>
                   </div>
                   {ing && l.costo_unitario > 0 && Number(ing.costo_unitario) > 0 && (
                     <div className="mt-1.5 ml-1 text-xs text-muted">

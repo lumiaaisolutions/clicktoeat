@@ -120,8 +120,8 @@ export function IconPicker({ value, onChange, label, hint }: IconPickerProps) {
             >
               <Icon name={opt.value} size={20} />
               {active && (
-                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-500 text-white grid place-items-center text-[10px] font-bold shadow-md">
-                  ✓
+                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-500 text-white grid place-items-center shadow-md">
+                  <Icon name="check" size={12} />
                 </span>
               )}
             </button>

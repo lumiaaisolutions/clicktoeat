@@ -9,7 +9,7 @@ import { Modal } from '@/components/ui/Modal';
 import { InfoBox } from '@/components/ui/InfoBox';
 import { Wizard } from '@/components/ui/Wizard';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { Icon } from '@/components/ui/Icon';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { cn } from '@/lib/utils';
 
@@ -41,20 +41,20 @@ interface Resumen {
 }
 
 // Catálogo de categorías — el slug coincide con el backend (Gasto::CATEGORIAS).
-const CATEGORIAS: { slug: string; label: string; emoji: string }[] = [
-  { slug: 'luz',                   label: 'Luz',                    emoji: '💡' },
-  { slug: 'agua',                  label: 'Agua',                   emoji: '💧' },
-  { slug: 'gas',                   label: 'Gas',                    emoji: '🔥' },
-  { slug: 'internet',              label: 'Internet',               emoji: '🌐' },
-  { slug: 'telefono',              label: 'Teléfono',               emoji: '📞' },
-  { slug: 'renta',                 label: 'Renta',                  emoji: '🏠' },
-  { slug: 'nomina',                label: 'Nómina',                 emoji: '👥' },
-  { slug: 'mantenimiento',         label: 'Mantenimiento',          emoji: '🔧' },
-  { slug: 'marketing',             label: 'Marketing',              emoji: '📣' },
-  { slug: 'impuestos',             label: 'Impuestos',              emoji: '📋' },
-  { slug: 'seguros',               label: 'Seguros',                emoji: '🛡️' },
-  { slug: 'comisiones_bancarias',  label: 'Comisiones bancarias',   emoji: '🏦' },
-  { slug: 'otros',                 label: 'Otros',                  emoji: '📦' },
+const CATEGORIAS: { slug: string; label: string; icon: IconName }[] = [
+  { slug: 'luz',                   label: 'Luz',                    icon: 'zap' },
+  { slug: 'agua',                  label: 'Agua',                   icon: 'droplet' },
+  { slug: 'gas',                   label: 'Gas',                    icon: 'flame' },
+  { slug: 'internet',              label: 'Internet',               icon: 'globe' },
+  { slug: 'telefono',              label: 'Teléfono',               icon: 'phone' },
+  { slug: 'renta',                 label: 'Renta',                  icon: 'home' },
+  { slug: 'nomina',                label: 'Nómina',                 icon: 'users' },
+  { slug: 'mantenimiento',         label: 'Mantenimiento',          icon: 'wrench' },
+  { slug: 'marketing',             label: 'Marketing',              icon: 'megaphone' },
+  { slug: 'impuestos',             label: 'Impuestos',              icon: 'file-text' },
+  { slug: 'seguros',               label: 'Seguros',                icon: 'shield' },
+  { slug: 'comisiones_bancarias',  label: 'Comisiones bancarias',   icon: 'landmark' },
+  { slug: 'otros',                 label: 'Otros',                  icon: 'circle' },
 ];
 
 const SLUG_TO_META = Object.fromEntries(CATEGORIAS.map((c) => [c.slug, c]));
@@ -162,7 +162,7 @@ export default function GastosPage() {
               catFiltro === c.slug ? 'bg-ink text-white border-ink' : 'bg-white border-line hover:border-ink/40',
             )}
           >
-            <span>{c.emoji}</span>
+            <Icon name={c.icon} size={13} />
             {c.label}
           </button>
         ))}
@@ -185,7 +185,7 @@ export default function GastosPage() {
           <ul className="space-y-2">
             {gastos.map((g) => (
               <li key={g.id} className="rounded-2xl border border-line bg-white p-4 flex items-start gap-3">
-                <span className="text-2xl shrink-0">{SLUG_TO_META[g.categoria]?.emoji ?? '📦'}</span>
+                <span className="shrink-0 w-9 h-9 grid place-items-center rounded-xl bg-line/40 text-ink/70"><Icon name={SLUG_TO_META[g.categoria]?.icon ?? 'package'} size={18} /></span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline justify-between gap-2">
                     <p className="font-bold truncate">{g.concepto}</p>
@@ -195,7 +195,7 @@ export default function GastosPage() {
                     <span>{SLUG_TO_META[g.categoria]?.label ?? g.categoria}</span>
                     <span>·</span>
                     <span>{new Date(g.fecha + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}</span>
-                    {g.recurrente && <><span>·</span><span className="text-amber-700">🔁 Recurrente</span></>}
+                    {g.recurrente && <><span>·</span><span className="text-amber-700 inline-flex items-center gap-1"><Icon name="refresh-cw" size={11} /> Recurrente</span></>}
                   </div>
                   {g.notas && <p className="text-xs text-ink/70 mt-1 line-clamp-2">{g.notas}</p>}
                 </div>
@@ -270,7 +270,7 @@ function ResumenCard({
             return (
               <div key={c.categoria}>
                 <div className="flex items-center justify-between text-xs mb-0.5">
-                  <span>{meta?.emoji ?? '📦'} {meta?.label ?? c.categoria}</span>
+                  <span className="inline-flex items-center gap-1"><Icon name={meta?.icon ?? 'package'} size={12} /> {meta?.label ?? c.categoria}</span>
                   <span className="font-semibold tabular-nums">{mxn(c.total_mxn)} <span className="text-muted">· {c.cantidad}</span></span>
                 </div>
                 <div className="h-2 bg-line/50 rounded-full overflow-hidden">
@@ -430,7 +430,7 @@ function GastoModal({
               </div>
             )}
             <Select label="¿En qué fue el gasto?" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
-              {CATEGORIAS.map((c) => <option key={c.slug} value={c.slug}>{c.emoji} {c.label}</option>)}
+              {CATEGORIAS.map((c) => <option key={c.slug} value={c.slug}>{c.label}</option>)}
             </Select>
             <Field label="Concepto" placeholder="ej. Recibo de luz de mayo" value={concepto} onChange={(e) => setConcepto(e.target.value)} required />
             <div className="grid grid-cols-2 gap-3">
@@ -453,7 +453,7 @@ function GastoModal({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={comprobanteUrl} alt="Comprobante" className="w-14 h-14 object-cover rounded-lg border border-line" />
                   ) : (
-                    <span className="w-14 h-14 grid place-items-center rounded-lg border border-line bg-white text-2xl">📄</span>
+                    <span className="w-14 h-14 grid place-items-center rounded-lg border border-line bg-white text-muted"><Icon name="file-text" size={24} /></span>
                   )}
                   <div className="flex-1 min-w-0">
                     <a href={comprobanteUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium underline truncate block">Ver comprobante</a>
@@ -463,7 +463,7 @@ function GastoModal({
                 </div>
               ) : pendingFile ? (
                 <div className="flex items-center gap-3 rounded-xl border border-line p-2 bg-bg/40">
-                  <span className="w-14 h-14 grid place-items-center rounded-lg border border-line bg-white text-2xl">📎</span>
+                  <span className="w-14 h-14 grid place-items-center rounded-lg border border-line bg-white text-muted"><Icon name="paperclip" size={24} /></span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{pendingFile.name}</p>
                     <p className="text-xs text-muted">Se subirá al guardar.</p>

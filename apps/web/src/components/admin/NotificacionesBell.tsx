@@ -54,7 +54,7 @@ export function NotificacionesBell() {
                       Marcar todas
                     </button>
                   )}
-                  <button onClick={() => setOpen(false)} aria-label="Cerrar" className="w-9 h-9 rounded-xl hover:bg-line/50">✕</button>
+                  <button onClick={() => setOpen(false)} aria-label="Cerrar" className="w-9 h-9 rounded-xl hover:bg-line/50 grid place-items-center"><Icon name="x" size={18} /></button>
                 </div>
               </header>
 

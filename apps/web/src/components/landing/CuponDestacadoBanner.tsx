@@ -94,7 +94,7 @@ export function CuponDestacadoBanner({ slug, productos }: Props) {
         <Icon name="sparkles" size={16} className="shrink-0 animate-pulse" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold leading-tight">
-            🔥 ¡Promo activa ahora! <span className="font-mono bg-white/20 px-1.5 py-0.5 rounded ml-1 text-xs">{cupon.codigo}</span>
+            <Icon name="flame" size={14} className="inline-block align-[-2px]" /> ¡Promo activa ahora! <span className="font-mono bg-white/20 px-1.5 py-0.5 rounded ml-1 text-xs">{cupon.codigo}</span>
           </p>
           <p className="text-[11px] opacity-90 leading-tight mt-0.5">
             {cupon.descripcion_corta}

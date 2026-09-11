@@ -2,6 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
+import { Icon } from '@/components/ui/Icon';
 
 /**
  * Chrome reutilizable de un formulario por pasos (asistente):
@@ -82,7 +83,7 @@ export function Wizard({
                           : { border: '1px solid var(--ce-line,#e7e5e4)', color: 'var(--ce-muted,#78716c)' }
                       }
                     >
-                      {hecho ? '✓' : num}
+                      {hecho ? <Icon name="check" size={14} /> : num}
                     </span>
                     <span className={cn('text-sm font-medium', activo ? 'text-ink' : 'text-muted')}>{label}</span>
                   </button>

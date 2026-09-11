@@ -85,7 +85,7 @@ export default function ReviewPage() {
                 <span className={cn(
                   'transition',
                   (hover || rating) >= n ? 'text-amber-400' : 'text-zinc-200',
-                )}>★</span>
+                )}><Icon name="star-filled" size={28} /></span>
               </button>
             ))}
           </div>

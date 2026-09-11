@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useState, type ReactNode } from 'react';
 import { api } from '@/lib/api';
 import type { AuditLog, Paginated } from '@/lib/types';
 import { toast } from '@/store/toast';
@@ -231,9 +231,9 @@ export default function AuditLogPage() {
   );
 }
 
-function formatVal(v: unknown): string {
+function formatVal(v: unknown): ReactNode {
   if (v === null || v === undefined) return '∅';
-  if (typeof v === 'boolean') return v ? '✓' : '✗';
+  if (typeof v === 'boolean') return v ? <Icon name="check" size={14} /> : <Icon name="x" size={14} />;
   if (typeof v === 'object') return JSON.stringify(v);
   return String(v);
 }

@@ -106,7 +106,7 @@ export default function ReviewsAdminPage() {
                     {r.rating > 0 ? (
                       <span className="inline-flex items-center gap-0.5">
                         {[1, 2, 3, 4, 5].map((n) => (
-                          <span key={n} className={cn(n <= r.rating ? 'text-amber-400' : 'text-zinc-200')}>★</span>
+                          <span key={n} className={cn(n <= r.rating ? 'text-amber-400' : 'text-zinc-200')}><Icon name="star" size={14} /></span>
                         ))}
                       </span>
                     ) : (

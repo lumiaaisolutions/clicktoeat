@@ -687,7 +687,7 @@ export const TOURS: Record<string, TourStep[]> = {
     },
     {
       title: 'Manda el link',
-      body: 'En /admin/pedidos toca el chip "⭐ Link de calificación" en un pedido entregado para copiar el link y mandarlo al cliente por WhatsApp.',
+      body: 'En /admin/pedidos toca el chip "Link de calificación" en un pedido entregado para copiar el link y mandarlo al cliente por WhatsApp.',
       placement: 'center',
       icon: 'message-circle',
     },

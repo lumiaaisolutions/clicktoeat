@@ -264,9 +264,9 @@ function AjusteModal({
         <p className="block text-sm font-medium mb-2">¿Qué pasó?</p>
         <div data-tour="inventario-ajuste-tipo" className="grid grid-cols-3 gap-2 mb-4">
           {([
-            { v: 'entrada', emoji: '📥', label: 'Me llegó más' },
-            { v: 'merma',   emoji: '📉', label: 'Se dañó o acabó' },
-            { v: 'ajuste',  emoji: '✏️', label: 'Corregir cantidad' },
+            { v: 'entrada', icon: 'arrow-down',    label: 'Me llegó más' },
+            { v: 'merma',   icon: 'trending-down',  label: 'Se dañó o acabó' },
+            { v: 'ajuste',  icon: 'pencil',         label: 'Corregir cantidad' },
           ] as const).map((o) => (
             <button
               key={o.v}
@@ -277,7 +277,7 @@ function AjusteModal({
                 tipo === o.v ? 'border-[#F26A1F] bg-[#F26A1F]/10' : 'border-line hover:border-[#F26A1F]/40',
               )}
             >
-              <span className="block text-xl">{o.emoji}</span>
+              <Icon name={o.icon} size={20} className="mx-auto" />
               <span className="block text-xs font-semibold mt-1 leading-tight">{o.label}</span>
             </button>
           ))}

@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { Icon } from '@/components/ui/Icon';
 
 interface Props {
   open: boolean;
@@ -84,7 +85,7 @@ export function Modal({ open, onClose, title, children, size = 'md' }: Props) {
                   aria-label="Cerrar"
                   className="tap-target rounded-xl hover:bg-line/50 grid place-items-center shrink-0"
                 >
-                  ✕
+                  <Icon name="x" size={20} />
                 </button>
               </header>
             )}

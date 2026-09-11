@@ -434,7 +434,7 @@ function SuperAdminHome() {
             {metrics.eventos_recientes.slice(0, 5).map((e) => (
               <li key={e.id} className="flex items-center gap-3 py-2 border-b border-line last:border-0">
                 <span className="w-7 h-7 rounded-lg grid place-items-center bg-emerald-50 text-emerald-700 text-sm shrink-0">
-                  ✓
+                  <Icon name="check" size={14} />
                 </span>
                 <p className="flex-1 text-sm font-medium truncate">{friendlyStripeEvent(e.type)}</p>
                 <span className="text-[11px] text-muted shrink-0">

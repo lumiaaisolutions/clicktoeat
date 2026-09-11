@@ -27,6 +27,7 @@ import { AutoTourTrigger } from '@/components/help/AutoTourTrigger';
 import { ClickyWidget } from '@/components/clicky/ClickyWidget';
 import { Logo } from '@/components/ui/Logo';
 import { LumiaBadge } from '@/components/ui/LumiaBadge';
+import { Icon as UiIcon } from '@/components/ui/Icon';
 import { cn } from '@/lib/utils';
 
 type IconName =
@@ -451,7 +452,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             aria-label="Abrir menú"
             className="tap-target rounded-xl hover:bg-line/50 grid place-items-center"
           >
-            <span className="text-xl">☰</span>
+            <UiIcon name="menu" size={22} />
           </button>
           <Link href="/admin" className="flex-1 truncate">
             <Logo variant="lockup" size={24} />
@@ -492,7 +493,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     aria-label="Cerrar menú"
                     className="tap-target rounded-xl hover:bg-line/50 grid place-items-center"
                   >
-                    ✕
+                    <UiIcon name="x" size={18} />
                   </button>
                 </div>
                 <NavLinks items={nav} pathname={pathname ?? ''} dense />

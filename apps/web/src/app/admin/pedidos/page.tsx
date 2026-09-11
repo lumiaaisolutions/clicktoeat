@@ -290,7 +290,7 @@ export default function PedidosPage() {
                         onClick={(e) => { e.stopPropagation(); handleRestore(p); }}
                         className="px-2.5 py-1 rounded-full border border-line hover:bg-bg"
                       >
-                        ↺ Restaurar
+                        <Icon name="refresh-cw" size={13} className="inline-block mr-1 align-[-2px]" />Restaurar
                       </button>
                     )}
                     <button
@@ -369,7 +369,7 @@ export default function PedidosPage() {
 function LinkCalificacionModal({ pedido, onClose }: { pedido: Pedido; onClose: () => void }) {
   const FRONTEND = process.env.NEXT_PUBLIC_FRONTEND_URL ?? (typeof window !== 'undefined' ? window.location.origin : '');
   const link = `${FRONTEND}/review/${pedido.review_token}`;
-  const mensaje = `Hola ${pedido.cliente_nombre} 👋 ¡Gracias por tu pedido en nuestro local! Nos encantaría saber qué te pareció. Califícanos en 30 segundos aquí: ${link}`;
+  const mensaje = `Hola ${pedido.cliente_nombre} ¡Gracias por tu pedido en nuestro local! Nos encantaría saber qué te pareció. Califícanos en 30 segundos aquí: ${link}`;
   const telefonoLimpio = (pedido.cliente_telefono || '').replace(/\D/g, '');
   const waUrl = telefonoLimpio
     ? `https://wa.me/${telefonoLimpio}?text=${encodeURIComponent(mensaje)}`

@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import type { UploadResult, Resource } from '@/lib/types';
 import { toast } from '@/store/toast';
 import { cn } from '@/lib/utils';
+import { Icon } from '@/components/ui/Icon';
 
 interface Props {
   value: string | null;            // URL actual
@@ -73,7 +74,7 @@ export function ImageUpload({
               className="absolute top-2 right-2 bg-black/60 text-white rounded-full w-8 h-8"
               aria-label="Quitar imagen"
             >
-              ✕
+              <Icon name="x" size={16} />
             </button>
           </>
         ) : (

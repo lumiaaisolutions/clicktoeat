@@ -427,7 +427,7 @@ function CobrarCuentaModal({
             {METODOS.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
           {pagos.length > 1 && (
-            <Button size="sm" variant="ghost" onClick={() => setPagos((prev) => prev.filter((_, idx) => idx !== i))}>✕</Button>
+            <Button size="sm" variant="ghost" onClick={() => setPagos((prev) => prev.filter((_, idx) => idx !== i))}><Icon name="x" size={14} /></Button>
           )}
         </div>
       ))}

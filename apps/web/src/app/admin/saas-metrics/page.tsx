@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { api } from '@/lib/api';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
@@ -183,11 +183,11 @@ function Kpi({ label, value, sub, highlight }: { label: string; value: string; s
 /* ─────────── Friendly labels para eventos de Stripe ─────────── */
 type EventTone = 'success' | 'warning' | 'danger' | 'neutral';
 
-function describeStripeEvent(type: string): { label: string; icon: string; hint?: string; tone: EventTone } {
-  const map: Record<string, { label: string; icon: string; hint?: string; tone: EventTone }> = {
+function describeStripeEvent(type: string): { label: string; icon: ReactNode; hint?: string; tone: EventTone } {
+  const map: Record<string, { label: string; icon: ReactNode; hint?: string; tone: EventTone }> = {
     // Pagos exitosos
-    'invoice.payment_succeeded':         { label: 'Pago recibido',                icon: '✓', tone: 'success', hint: 'Una factura mensual fue cobrada con éxito.' },
-    'invoice.paid':                       { label: 'Factura pagada',               icon: '✓', tone: 'success' },
+    'invoice.payment_succeeded':         { label: 'Pago recibido',                icon: <Icon name="check" size={14} />, tone: 'success', hint: 'Una factura mensual fue cobrada con éxito.' },
+    'invoice.paid':                       { label: 'Factura pagada',               icon: <Icon name="check" size={14} />, tone: 'success' },
     'invoice.finalized':                  { label: 'Factura emitida',              icon: '$', tone: 'neutral', hint: 'Stripe generó el comprobante mensual.' },
     'invoice.created':                    { label: 'Nueva factura generada',       icon: '$', tone: 'neutral' },
 
@@ -196,23 +196,23 @@ function describeStripeEvent(type: string): { label: string; icon: string; hint?
     'invoice.payment_action_required':    { label: 'Pago requiere autenticación',   icon: '!', tone: 'warning', hint: 'El banco pidió un 3D Secure.' },
 
     // Suscripción
-    'customer.subscription.created':      { label: 'Nueva suscripción',             icon: '★', tone: 'success', hint: 'Un local activó su plan.' },
-    'customer.subscription.updated':      { label: 'Suscripción actualizada',       icon: '↻', tone: 'neutral' },
+    'customer.subscription.created':      { label: 'Nueva suscripción',             icon: <Icon name="star" size={14} />, tone: 'success', hint: 'Un local activó su plan.' },
+    'customer.subscription.updated':      { label: 'Suscripción actualizada',       icon: <Icon name="refresh-cw" size={14} />, tone: 'neutral' },
     'customer.subscription.deleted':      { label: 'Suscripción cancelada',          icon: '×', tone: 'danger',  hint: 'El local dio de baja su plan.' },
     'customer.subscription.trial_will_end': { label: 'Prueba por terminar',         icon: '⏱', tone: 'warning', hint: 'Quedan menos de 3 días de trial.' },
 
     // Cliente
     'customer.created':                   { label: 'Cliente nuevo en Stripe',       icon: '+', tone: 'neutral' },
-    'customer.updated':                   { label: 'Datos del cliente actualizados', icon: '↻', tone: 'neutral' },
+    'customer.updated':                   { label: 'Datos del cliente actualizados', icon: <Icon name="refresh-cw" size={14} />, tone: 'neutral' },
     'customer.deleted':                   { label: 'Cliente eliminado',              icon: '×', tone: 'danger'  },
 
     // Checkout
-    'checkout.session.completed':         { label: 'Checkout completado',           icon: '✓', tone: 'success', hint: 'Un local completó el alta y entró al panel.' },
+    'checkout.session.completed':         { label: 'Checkout completado',           icon: <Icon name="check" size={14} />, tone: 'success', hint: 'Un local completó el alta y entró al panel.' },
     'checkout.session.expired':           { label: 'Checkout expirado',             icon: '⏱', tone: 'warning' },
 
     // Portal
-    'billing_portal.session.created':     { label: 'Acceso al portal de facturación', icon: '↗', tone: 'neutral', hint: 'El cliente abrió su panel de Stripe.' },
-    'billing_portal.configuration.created': { label: 'Portal de facturación configurado', icon: '⚙', tone: 'neutral' },
+    'billing_portal.session.created':     { label: 'Acceso al portal de facturación', icon: <Icon name="arrow-up-right" size={14} />, tone: 'neutral', hint: 'El cliente abrió su panel de Stripe.' },
+    'billing_portal.configuration.created': { label: 'Portal de facturación configurado', icon: <Icon name="settings" size={14} />, tone: 'neutral' },
   };
 
   return map[type] ?? { label: type.replace(/_/g, ' ').replace(/\./g, ' · '), icon: '•', tone: 'neutral' };

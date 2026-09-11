@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import type { LocalAdmin, Resource } from '@/lib/types';
@@ -351,12 +351,12 @@ function CardAction({ href, icon, label }: { href: string; icon: 'palette' | 'us
 }
 
 /* ─────────── Badge de facturación ─────────── */
-function computeBillingBadge(l: LocalAdmin): { label: string; tone: string; icon: string } {
+function computeBillingBadge(l: LocalAdmin): { label: string; tone: string; icon: ReactNode } {
   if (l.pago_externo) {
     return { label: 'Pago externo', tone: 'bg-violet-50 text-violet-700 border-violet-200', icon: '$' };
   }
   switch (l.plan_status) {
-    case 'active':   return { label: 'Al corriente',   tone: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: '✓' };
+    case 'active':   return { label: 'Al corriente',   tone: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: <Icon name="check" size={14} /> };
     case 'trialing': return { label: 'En prueba',      tone: 'bg-amber-50 text-amber-700 border-amber-200',       icon: '·' };
     case 'past_due': return { label: 'Pago atrasado',  tone: 'bg-red-50 text-red-700 border-red-200',             icon: '!' };
     case 'canceled': return { label: 'Cancelado',      tone: 'bg-zinc-100 text-zinc-600 border-zinc-200',         icon: '×' };
