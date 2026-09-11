@@ -10,9 +10,11 @@ import { Wizard } from '@/components/ui/Wizard';
 import { InfoBox } from '@/components/ui/InfoBox';
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/lib/utils';
-import { unidadCorta } from '@/lib/unidades';
+import { unidadCorta, unidadesCompatibles, mejorUnidadEntrada, convertirCantidad, type Unidad } from '@/lib/unidades';
 
-type RecetaRow = { ingrediente_id: number; cantidad: number };
+// `cantidad` es SIEMPRE canónica (en la unidad del ingrediente). `_u` es la
+// unidad de ENTRADA sólo para mostrar/editar sin decimales; no se persiste.
+type RecetaRow = { ingrediente_id: number; cantidad: number; _u?: Unidad };
 type ItemRow = { name: string; price: number; receta: RecetaRow[] };
 
 const STEPS = ['Lo básico', 'Opciones', 'Límite y disponibilidad'];
@@ -52,6 +54,22 @@ export function ToppingModal({
       .catch(() => { /* preview/offline: conserva initialIngredientes */ });
   }, []);
 
+  // Al llegar los ingredientes, elige por línea la unidad de entrada que evita
+  // decimales (0.111 kg → se edita como "111 g"). Sólo fija `_u` (no toca la
+  // cantidad canónica). Idempotente: no re-normaliza líneas que ya tienen `_u`.
+  useEffect(() => {
+    if (!ingredientes.length) return;
+    const byId = new Map(ingredientes.map((x) => [x.id, x]));
+    setRows((prev) => prev.map((item) => ({
+      ...item,
+      receta: item.receta.map((r) => {
+        if (r._u) return r;
+        const ing = byId.get(r.ingrediente_id);
+        return ing ? { ...r, _u: mejorUnidadEntrada(r.cantidad, ing.unidad as Unidad) } : r;
+      }),
+    })));
+  }, [ingredientes]);
+
   const updateRow = (i: number, patch: Partial<ItemRow>) => setRows(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   const addRow = () => setRows([...rows, { name: '', price: 0, receta: [] }]);
   const removeRow = (i: number) => setRows(rows.filter((_, j) => j !== i));
@@ -71,7 +89,9 @@ export function ToppingModal({
       .map((r) => ({
         name: r.name.trim(),
         price: Number(r.price) || 0,
-        receta: r.receta.filter((rr) => rr.ingrediente_id && rr.cantidad > 0),
+        receta: r.receta
+          .filter((rr) => rr.ingrediente_id && rr.cantidad > 0)
+          .map((rr) => ({ ingrediente_id: rr.ingrediente_id, cantidad: Math.round(rr.cantidad * 1000) / 1000 })),
       }))
       .filter((r) => r.name);
     if (!nombre.trim()) { toast.error('Ponle un nombre al grupo (ej. Tamaño).'); return; }
@@ -194,26 +214,46 @@ export function ToppingModal({
                       const ing = ingMap.get(rr.ingrediente_id);
                       const usados = new Set(r.receta.map((x, j) => (j === ri ? -1 : x.ingrediente_id)));
                       const opciones = ingredientes.filter((x) => x.id === rr.ingrediente_id || !usados.has(x.id));
+                      const ingUnit = (ing?.unidad ?? 'pz') as Unidad;
+                      const entrada = (rr._u ?? ingUnit) as Unidad;
+                      const display = ing ? convertirCantidad(rr.cantidad, ingUnit, entrada) : rr.cantidad;
+                      const compat = ing ? unidadesCompatibles(ingUnit) : [entrada];
                       return (
-                        <div key={ri} className="flex items-center gap-2 mb-1.5 flex-wrap pl-2">
-                          <span className="text-xs text-muted">Usa</span>
-                          <input
-                            type="number" step="0.001" min={0.001}
-                            value={rr.cantidad}
-                            onChange={(e) => updateReceta(i, ri, { cantidad: Number(e.target.value) })}
-                            className="w-20 px-2 py-1.5 rounded-lg border border-line bg-white text-sm text-right tabular-nums"
-                          />
-                          <span className="text-xs text-muted">{ing ? unidadCorta(ing.unidad) : ''} de</span>
-                          <select
-                            value={rr.ingrediente_id}
-                            onChange={(e) => updateReceta(i, ri, { ingrediente_id: Number(e.target.value) })}
-                            className="flex-1 min-w-[130px] px-2 py-1.5 rounded-lg border border-line bg-white text-sm"
-                          >
-                            {opciones.map((x) => <option key={x.id} value={x.id}>{x.nombre}</option>)}
-                          </select>
-                          <button type="button" onClick={() => removeReceta(i, ri)} className="text-red-500 hover:bg-red-50 rounded-lg w-7 h-7 grid place-items-center shrink-0" title="Quitar ingrediente">
-                            <Icon name="x" size={11} />
-                          </button>
+                        <div key={ri} className="mb-1.5 pl-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs text-muted">Usa</span>
+                            <input
+                              type="number" step="any" min={0}
+                              value={display}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                updateReceta(i, ri, { cantidad: ing ? convertirCantidad(val, entrada, ingUnit) : val });
+                              }}
+                              className="w-20 px-2 py-1.5 rounded-lg border border-line bg-white text-sm text-right tabular-nums"
+                            />
+                            <select
+                              value={entrada}
+                              onChange={(e) => updateReceta(i, ri, { _u: e.target.value as Unidad })}
+                              className="px-2 py-1.5 rounded-lg border border-line bg-white text-sm"
+                              title="Unidad de la receta"
+                            >
+                              {compat.map((u) => <option key={u} value={u}>{unidadCorta(u)}</option>)}
+                            </select>
+                            <span className="text-xs text-muted">de</span>
+                            <select
+                              value={rr.ingrediente_id}
+                              onChange={(e) => updateReceta(i, ri, { ingrediente_id: Number(e.target.value), _u: undefined })}
+                              className="flex-1 min-w-[120px] px-2 py-1.5 rounded-lg border border-line bg-white text-sm"
+                            >
+                              {opciones.map((x) => <option key={x.id} value={x.id}>{x.nombre}</option>)}
+                            </select>
+                            <button type="button" onClick={() => removeReceta(i, ri)} className="text-red-500 hover:bg-red-50 rounded-lg w-7 h-7 grid place-items-center shrink-0" title="Quitar ingrediente">
+                              <Icon name="x" size={11} />
+                            </button>
+                          </div>
+                          {ing && entrada !== ingUnit && (
+                            <p className="text-[10.5px] text-muted mt-0.5 pl-8 tabular-nums">= {rr.cantidad} {unidadCorta(ingUnit)} (así se guarda)</p>
+                          )}
                         </div>
                       );
                     })}

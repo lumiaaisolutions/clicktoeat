@@ -143,3 +143,16 @@ Opciones / Límite y disponibilidad), **ingredientes** (2 pasos) y **categorías
 - **Especificaciones del pedido**: el checkout del landing tiene un campo
   "Especificaciones adicionales (opcional)" → `cliente.notas` → `pedido->notas`,
   que aparece en el mensaje de WhatsApp como "Especificaciones: …".
+
+## Unidad por línea de receta (entrada sin decimales) — sept 2026
+
+En los editores de receta (topping y producto) cada línea tiene un **selector de
+unidad** con las unidades compatibles del ingrediente (masa: g/kg/oz/lb ·
+volumen: ml/L · pz). Así puedes escribir "111 g" de una Crema que está en **kg**
+sin teclear `0.111`. Decisión de diseño: **se guarda en la unidad del ingrediente**
+(no cambia el backend ni el JSON — la conversión ocurre en el front al escribir).
+Para que **al recargar tampoco veas decimales**, el editor auto-elige la unidad de
+entrada que minimiza decimales (`mejorUnidadEntrada` en `lib/unidades.ts`) y muestra
+un hint "= 0.111 kg (así se guarda)". La cantidad en estado es siempre canónica
+(unidad del ingrediente); `_u` es sólo de display y no se persiste. Aplica en
+`ToppingModal` y en el paso Inventario de `ProductoModal` (receta del platillo).

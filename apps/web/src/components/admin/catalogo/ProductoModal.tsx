@@ -10,10 +10,11 @@ import { Icon } from '@/components/ui/Icon';
 import { ImageUpload } from '@/components/admin/ImageUpload';
 import { Wizard } from '@/components/ui/Wizard';
 import { InfoBox } from '@/components/ui/InfoBox';
-import { unidadCorta } from '@/lib/unidades';
+import { unidadCorta, unidadesCompatibles, mejorUnidadEntrada, convertirCantidad, type Unidad } from '@/lib/unidades';
 import { cn } from '@/lib/utils';
 
-interface RecetaLinea { ingrediente_id: number | null; cantidad: number }
+// `cantidad` canónica (unidad del ingrediente); `_u` = unidad de entrada (display, no se persiste).
+interface RecetaLinea { ingrediente_id: number | null; cantidad: number; _u?: Unidad }
 const STEPS = ['Lo básico', 'Presentación', 'Extras', 'Inventario'];
 const QUESTIONS: Record<number, { title: string; subtitle?: string }> = {
   1: { title: '¿Qué platillo es?' },
@@ -128,7 +129,7 @@ export function ProductoModal({
       if (prodId && ingredientes.length > 0) {
         const limpio = recetaLineas
           .filter((r) => r.ingrediente_id && r.cantidad > 0)
-          .map((r) => ({ ingrediente_id: r.ingrediente_id, cantidad: r.cantidad }));
+          .map((r) => ({ ingrediente_id: r.ingrediente_id, cantidad: Math.round(r.cantidad * 1000) / 1000 }));
         try {
           await api.put(`/productos/${prodId}/recetas`, { recetas: limpio });
         } catch {
@@ -267,6 +268,23 @@ function InventarioStep({
   onChange: (v: RecetaLinea[]) => void;
   nombrePlatillo: string;
 }) {
+  // Elige por línea la unidad de entrada sin decimales (0.111 kg → "111 g").
+  // Debe ir ANTES de cualquier return (rules-of-hooks). Idempotente.
+  useEffect(() => {
+    if (!ingredientes.length) return;
+    const byId = new Map(ingredientes.map((x) => [x.id, x]));
+    let changed = false;
+    const next = lineas.map((l) => {
+      if (l._u || !l.ingrediente_id) return l;
+      const ing = byId.get(l.ingrediente_id);
+      if (!ing) return l;
+      changed = true;
+      return { ...l, _u: mejorUnidadEntrada(l.cantidad, ing.unidad as Unidad) };
+    });
+    if (changed) onChange(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ingredientes, lineas]);
+
   if (ingredientes.length === 0) {
     return (
       <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm">
@@ -299,26 +317,45 @@ function InventarioStep({
           {lineas.map((l, i) => {
             const ing = l.ingrediente_id ? ingMap.get(l.ingrediente_id) : null;
             const opciones = ingredientes.filter((x) => x.id === l.ingrediente_id || !usados.has(x.id));
+            const ingUnit = (ing?.unidad ?? 'pz') as Unidad;
+            const entrada = (l._u ?? ingUnit) as Unidad;
+            const display = ing ? convertirCantidad(l.cantidad, ingUnit, entrada) : l.cantidad;
+            const compat = ing ? unidadesCompatibles(ingUnit) : [entrada];
             return (
-              <li key={i} className="flex items-center gap-2 flex-wrap">
-                <select
-                  value={l.ingrediente_id ?? ''}
-                  onChange={(e) => update(i, { ingrediente_id: Number(e.target.value) })}
-                  className="flex-1 min-w-[150px] px-3 py-2 border border-line rounded-xl bg-white text-sm"
-                >
-                  {opciones.map((x) => <option key={x.id} value={x.id}>{x.nombre}</option>)}
-                </select>
-                <input
-                  type="number" step="0.001" min={0.001}
-                  value={l.cantidad}
-                  onChange={(e) => update(i, { cantidad: Number(e.target.value) })}
-                  className="w-24 px-3 py-2 border border-line rounded-xl bg-white text-right tabular-nums"
-                  aria-label="Cantidad por platillo"
-                />
-                <span className="text-xs text-muted w-10 shrink-0">{ing ? unidadCorta(ing.unidad) : ''}</span>
-                <button type="button" onClick={() => remove(i)} className="text-red-500 hover:bg-red-50 rounded-lg w-8 h-8 grid place-items-center shrink-0" title="Quitar">
-                  <Icon name="x" size={13} />
-                </button>
+              <li key={i}>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <select
+                    value={l.ingrediente_id ?? ''}
+                    onChange={(e) => update(i, { ingrediente_id: Number(e.target.value), _u: undefined })}
+                    className="flex-1 min-w-[150px] px-3 py-2 border border-line rounded-xl bg-white text-sm"
+                  >
+                    {opciones.map((x) => <option key={x.id} value={x.id}>{x.nombre}</option>)}
+                  </select>
+                  <input
+                    type="number" step="any" min={0}
+                    value={display}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      update(i, { cantidad: ing ? convertirCantidad(val, entrada, ingUnit) : val });
+                    }}
+                    className="w-20 px-3 py-2 border border-line rounded-xl bg-white text-right tabular-nums"
+                    aria-label="Cantidad por platillo"
+                  />
+                  <select
+                    value={entrada}
+                    onChange={(e) => update(i, { _u: e.target.value as Unidad })}
+                    className="px-2 py-2 border border-line rounded-xl bg-white text-sm"
+                    title="Unidad de la receta"
+                  >
+                    {compat.map((u) => <option key={u} value={u}>{unidadCorta(u)}</option>)}
+                  </select>
+                  <button type="button" onClick={() => remove(i)} className="text-red-500 hover:bg-red-50 rounded-lg w-8 h-8 grid place-items-center shrink-0" title="Quitar">
+                    <Icon name="x" size={13} />
+                  </button>
+                </div>
+                {ing && entrada !== ingUnit && (
+                  <p className="text-[10.5px] text-muted mt-0.5 tabular-nums">= {l.cantidad} {unidadCorta(ingUnit)} (así se guarda)</p>
+                )}
               </li>
             );
           })}

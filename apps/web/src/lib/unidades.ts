@@ -47,3 +47,36 @@ export const convertirCantidad = (v: number, desde: Unidad, hasta: Unidad): numb
 /** Convierte un costo POR unidad (sentido inverso a la cantidad). */
 export const convertirCosto = (v: number, desde: Unidad, hasta: Unidad): number =>
   Math.round((v * FACTOR[hasta]) / FACTOR[desde] * 10000) / 10000;
+
+// ── Unidades por línea de receta (entrada sin decimales) ──
+const FAMILIA_UNIDADES: Record<'masa' | 'volumen' | 'conteo', Unidad[]> = {
+  masa: ['g', 'kg', 'oz', 'lb'],
+  volumen: ['ml', 'l'],
+  conteo: ['pz'],
+};
+
+/** Unidades en las que se puede expresar una receta de este ingrediente (misma familia). */
+export const unidadesCompatibles = (base: Unidad): Unidad[] => FAMILIA_UNIDADES[FAMILIA[base]];
+
+const decimalesDe = (v: number): number => {
+  const s = String(Math.round(v * 1000) / 1000);
+  return s.includes('.') ? s.split('.')[1].length : 0;
+};
+
+/**
+ * Dada una cantidad en la unidad del ingrediente, elige la unidad compatible que
+ * la muestra con **menos decimales** (y valor ≥ 1 cuando se pueda). Así el editor
+ * enseña "111 g" en vez de "0.111 kg" aunque el guardado sea en kg.
+ */
+export const mejorUnidadEntrada = (cantidadBase: number, base: Unidad): Unidad => {
+  if (!cantidadBase || cantidadBase <= 0) return base;
+  let best = base;
+  let bestScore = Infinity;
+  for (const u of unidadesCompatibles(base)) {
+    const v = convertirCantidad(cantidadBase, base, u);
+    // menos decimales = mejor; penaliza valores < 1; a igualdad, prefiere la del ingrediente.
+    const score = decimalesDe(v) * 10 + (v < 1 ? 4 : 0) + (u === base ? 0 : 1);
+    if (score < bestScore) { bestScore = score; best = u; }
+  }
+  return best;
+};
