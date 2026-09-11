@@ -179,3 +179,24 @@ Ver [`api/tenant.md`](../api/tenant.md#ingredientes--apiresource--ajustes).
 - **Stock fraccional**: `decimal(12,3)` permite hasta 9 decimales después del punto (3 decimales reales). Pensado para `kg` y `l` con 3 decimales.
 - **Borrar un ingrediente con recetas**: el controller bloquea (409). Si quieres borrarlo, primero quita las recetas que lo referencian.
 - **Borrar un ingrediente sin recetas**: cascadea `movimientos_inventario` y `detalle_compras` (pierdes el histórico). En la práctica casi nunca conviene; usa `activo=false`.
+
+### Conversión automática al cambiar de unidad (sept 2026)
+
+Si al **editar** un ingrediente cambias su unidad a otra de la **misma familia**
+(masa: g↔kg↔oz↔lb · volumen: ml↔l), el sistema convierte automáticamente, en una
+transacción, **todo lo que depende de esa unidad**:
+
+- `stock`, `stock_minimo` y `costo_unitario` del ingrediente (el costo en sentido
+  inverso: kg→g abarata el costo por unidad).
+- `recetas.cantidad` (sólo las sin `unidad_consumo` propia).
+- Snapshots JSON de receta en `topping_groups.items[].receta[]` y
+  `productos.extras[].items[].receta[]`.
+
+Motor: `App\Services\Inventory\UnitConverter` (`canConvert` + `convertir`,
+factores masa/volumen); orquestado en `IngredienteController@update`. El front
+(`IngredienteModal`) muestra un **aviso con vista previa** antes de guardar (los
+factores en `lib/unidades.ts` son espejo del PHP). Cambios entre familias
+distintas (ej. kg→l) o hacia/desde `pz` **no** se convierten: sólo se cambia la
+etiqueta y se avisa que revise. `ingredientes.costo_unitario` se amplió a
+decimal(12,4) para no perder precisión al pasar a unidades chicas. Test:
+`ConversionUnidadTest`.

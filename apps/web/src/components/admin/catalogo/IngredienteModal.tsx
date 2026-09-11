@@ -8,7 +8,7 @@ import { Field, Select, Switch } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
 import { Wizard } from '@/components/ui/Wizard';
 import { InfoBox } from '@/components/ui/InfoBox';
-import { UNIDADES, type Unidad } from '@/lib/unidades';
+import { UNIDADES, type Unidad, puedeConvertir, convertirCantidad, convertirCosto, unidadCorta } from '@/lib/unidades';
 
 const STEPS = ['Lo básico', 'Alertas y costo'];
 const QUESTIONS: Record<number, { title: string; subtitle?: string }> = {
@@ -89,6 +89,13 @@ export function IngredienteModal({
 
   const isLast = step === STEPS.length;
 
+  // Al editar y cambiar la unidad: aviso de conversión automática (la hace el
+  // backend al guardar) o advertencia si el cambio no es convertible.
+  const unidadOriginal = ingrediente?.unidad as Unidad | undefined;
+  const cambioUnidad = !!(unidadOriginal && unidadOriginal !== unidad);
+  const conv = cambioUnidad && puedeConvertir(unidadOriginal!, unidad);
+  const cambioIncompatible = cambioUnidad && !conv;
+
   return (
     <Modal open={open} onClose={onClose} title={ingrediente ? 'Editar ingrediente' : 'Nuevo ingrediente'}>
       <Wizard
@@ -118,6 +125,23 @@ export function IngredienteModal({
                 {UNIDADES.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
               </Select>
             </div>
+
+            {conv && unidadOriginal && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-[12.5px] text-emerald-800">
+                <p className="font-semibold mb-0.5">Convertiremos las cantidades de {unidadCorta(unidadOriginal)} a {unidadCorta(unidad)} al guardar:</p>
+                <p className="tabular-nums">
+                  Stock {stock} {unidadCorta(unidadOriginal)} → <strong>{convertirCantidad(stock, unidadOriginal, unidad)} {unidadCorta(unidad)}</strong>
+                  {' · '}mín {stockMin} → <strong>{convertirCantidad(stockMin, unidadOriginal, unidad)} {unidadCorta(unidad)}</strong>
+                  {costo > 0 && <> {' · '}costo ${costo}/{unidadCorta(unidadOriginal)} → <strong>${convertirCosto(costo, unidadOriginal, unidad)}/{unidadCorta(unidad)}</strong></>}
+                </p>
+                <p className="mt-0.5 opacity-80">También ajustamos las recetas de tus productos y toppings que usan este insumo.</p>
+              </div>
+            )}
+            {cambioIncompatible && unidadOriginal && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12.5px] text-amber-800">
+                Cambiaste de tipo de unidad ({unidadCorta(unidadOriginal)} → {unidadCorta(unidad)}). No podemos convertir automáticamente entre distintos tipos; revisa el stock y las recetas.
+              </div>
+            )}
           </div>
         )}
 

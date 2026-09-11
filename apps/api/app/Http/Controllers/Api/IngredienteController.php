@@ -10,6 +10,10 @@ use App\Http\Resources\IngredienteResource;
 use App\Http\Resources\MovimientoInventarioResource;
 use App\Models\Ingrediente;
 use App\Models\MovimientoInventario;
+use App\Models\Producto;
+use App\Models\Receta;
+use App\Models\ToppingGroup;
+use App\Services\Inventory\UnitConverter;
 use App\Support\CsvResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -78,9 +82,104 @@ class IngredienteController extends Controller
 
     public function update(UpdateIngredienteRequest $request, Ingrediente $ingrediente): IngredienteResource
     {
-        $ingrediente->update($request->validated());
+        $data = $request->validated();
+        $desde = $ingrediente->unidad;
+        $hasta = $data['unidad'] ?? $desde;
+        $convertir = isset($data['unidad']) && UnitConverter::canConvert($desde, $hasta);
+
+        DB::transaction(function () use ($ingrediente, $data, $convertir, $desde, $hasta) {
+            if ($convertir) {
+                // Los valores del formulario vienen en la unidad ANTERIOR; los
+                // convertimos a la nueva. El costo por unidad se convierte en
+                // sentido inverso (kg → g abarata el costo por unidad).
+                if (array_key_exists('stock', $data)) {
+                    $data['stock'] = UnitConverter::convertir((float) $data['stock'], $desde, $hasta);
+                }
+                if (array_key_exists('stock_minimo', $data)) {
+                    $data['stock_minimo'] = UnitConverter::convertir((float) $data['stock_minimo'], $desde, $hasta);
+                }
+                if (array_key_exists('costo_unitario', $data)) {
+                    $data['costo_unitario'] = UnitConverter::convertir((float) $data['costo_unitario'], $hasta, $desde);
+                }
+                $this->convertirRecetas($ingrediente, $desde, $hasta);
+            }
+
+            $ingrediente->update($data);
+        });
 
         return new IngredienteResource($ingrediente->fresh());
+    }
+
+    /**
+     * Convierte las cantidades de receta que referencian este ingrediente,
+     * de la unidad `$desde` a `$hasta`, para que el descuento de inventario
+     * siga siendo correcto tras el cambio de unidad. Cubre:
+     *  - `recetas.cantidad` (sólo las interpretadas en la unidad del ingrediente,
+     *     es decir sin `unidad_consumo` propia).
+     *  - snapshots JSON en `topping_groups.items[].receta[]`.
+     *  - snapshots JSON en `productos.extras[].items[].receta[]`.
+     */
+    private function convertirRecetas(Ingrediente $ing, string $desde, string $hasta): void
+    {
+        $id = $ing->id;
+
+        // 1. Recetas (tabla). Sólo las que usan la unidad del ingrediente.
+        Receta::query()
+            ->where('ingrediente_id', $id)
+            ->whereNull('unidad_consumo')
+            ->get()
+            ->each(function (Receta $r) use ($desde, $hasta) {
+                $r->cantidad = UnitConverter::convertir((float) $r->cantidad, $desde, $hasta);
+                $r->save();
+            });
+
+        // 2. Toppings del catálogo (JSON items[].receta[]).
+        ToppingGroup::query()->withoutGlobalScopes()->where('local_id', $ing->local_id)->get()
+            ->each(function (ToppingGroup $g) use ($id, $desde, $hasta) {
+                [$items, $tocado] = $this->convertirItemsReceta($g->items ?? [], $id, $desde, $hasta);
+                if ($tocado) {
+                    $g->items = $items;
+                    $g->save();
+                }
+            });
+
+        // 3. Productos (JSON extras[].items[].receta[]).
+        Producto::query()->withoutGlobalScopes()->where('local_id', $ing->local_id)->get()
+            ->each(function (Producto $p) use ($id, $desde, $hasta) {
+                $extras = $p->extras ?? [];
+                $tocadoGrupo = false;
+                foreach ($extras as $gi => $grupo) {
+                    [$items, $tocado] = $this->convertirItemsReceta($grupo['items'] ?? [], $id, $desde, $hasta);
+                    if ($tocado) {
+                        $extras[$gi]['items'] = $items;
+                        $tocadoGrupo = true;
+                    }
+                }
+                if ($tocadoGrupo) {
+                    $p->extras = $extras;
+                    $p->save();
+                }
+            });
+    }
+
+    /**
+     * Convierte las cantidades de receta dentro de un arreglo de items (opciones).
+     *
+     * @return array{0: array<int, mixed>, 1: bool} items actualizados + si hubo cambios
+     */
+    private function convertirItemsReceta(array $items, int $ingredienteId, string $desde, string $hasta): array
+    {
+        $tocado = false;
+        foreach ($items as $ii => $item) {
+            foreach (($item['receta'] ?? []) as $ri => $r) {
+                if ((int) ($r['ingrediente_id'] ?? 0) === $ingredienteId) {
+                    $items[$ii]['receta'][$ri]['cantidad'] = UnitConverter::convertir((float) $r['cantidad'], $desde, $hasta);
+                    $tocado = true;
+                }
+            }
+        }
+
+        return [$items, $tocado];
     }
 
     public function destroy(Ingrediente $ingrediente): JsonResponse
