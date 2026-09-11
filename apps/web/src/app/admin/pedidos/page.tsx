@@ -26,6 +26,31 @@ const ESTADO_SOLID: Record<PedidoEstado, string> = {
   en_camino: '#7c3aed', entregado: '#059669', cancelado: '#dc2626',
 };
 
+// Modo de entrega — cambia el flujo, el texto del botón y las etiquetas del timeline.
+type Modo = 'delivery' | 'pickup' | 'sucursal';
+const MODO_META: Record<Modo, { label: string; icon: IconName }> = {
+  delivery: { label: 'A domicilio', icon: 'truck' },
+  pickup: { label: 'Recoger en sucursal', icon: 'store' },
+  sucursal: { label: 'Para comer aquí', icon: 'utensils' },
+};
+
+/** Flujo de estados según el modo: sólo a domicilio pasa por "en camino". */
+function flowDe(modo: Modo): PedidoEstado[] {
+  return modo === 'delivery'
+    ? ['nuevo', 'confirmado', 'preparando', 'listo', 'en_camino', 'entregado']
+    : ['nuevo', 'confirmado', 'preparando', 'listo', 'entregado'];
+}
+
+/** Etiqueta del estado adaptada al modo: "Listo para recoger/entregar". */
+function estadoLabelModo(estado: PedidoEstado, modo: Modo): string {
+  if (estado === 'listo') {
+    return modo === 'delivery' ? 'Listo'
+      : modo === 'pickup' ? 'Listo para recoger'
+        : 'Listo para entregar';
+  }
+  return ESTADO_LABEL[estado];
+}
+
 const ESTADOS: { value: PedidoEstado | ''; label: string }[] = [
   { value: '',           label: 'Todos' },
   { value: 'nuevo',      label: 'Nuevos' },
@@ -451,10 +476,12 @@ function fmtHora(iso?: string | null): string | null {
 
 /** Timeline visual del avance del pedido (interactivo/llamativo, sólo lectura). */
 function EstadoTimeline({ pedido }: { pedido: Pedido }) {
-  const esDelivery = pedido.metodo_entrega === 'delivery';
-  const FLOW: PedidoEstado[] = ['nuevo', 'confirmado', 'preparando', 'listo', ...(esDelivery ? (['en_camino'] as PedidoEstado[]) : []), 'entregado'];
+  const modo = pedido.metodo_entrega as Modo;
+  const FLOW = flowDe(modo);
   const cancelado = pedido.estado === 'cancelado';
   const curIdx = cancelado ? -1 : FLOW.indexOf(pedido.estado);
+  // % de avance para la barra de progreso (0 en nuevo → 100 en el último).
+  const pct = cancelado ? 0 : Math.max(0, Math.min(100, (curIdx / (FLOW.length - 1)) * 100));
 
   const tiempo = (e: PedidoEstado): string | null =>
     e === 'nuevo' ? fmtHora(pedido.created_at)
@@ -463,42 +490,61 @@ function EstadoTimeline({ pedido }: { pedido: Pedido }) {
           : null;
 
   return (
-    <div className={cn('rounded-2xl border p-4', cancelado ? 'border-red-200 bg-red-50/40' : 'border-line bg-gradient-to-b from-[#FBF7F1] to-white')}>
-      <div className="flex items-start">
-        {FLOW.map((e, i) => {
-          const done = i < curIdx;
-          const current = i === curIdx;
-          const active = done || current;
-          const color = ESTADO_SOLID[e];
-          const t = tiempo(e);
-          return (
-            <div key={e} className="flex-1 flex flex-col items-center relative min-w-0">
-              {i < FLOW.length - 1 && (
-                <span
-                  className="absolute top-5 left-1/2 w-full h-[3px] rounded-full"
-                  style={{ background: i < curIdx ? color : 'var(--ce-line,#e7e5e4)' }}
-                />
-              )}
-              <span
-                className={cn('relative z-10 w-10 h-10 rounded-full grid place-items-center transition-all duration-300', current && !cancelado && 'animate-pulse')}
-                style={
-                  active
-                    ? { background: color, color: '#fff', boxShadow: current ? `0 0 0 5px ${color}22` : undefined }
-                    : { background: '#fff', border: '2px solid var(--ce-line,#e7e5e4)', color: 'var(--ce-muted,#a8a29e)' }
-                }
-              >
-                <Icon name={done ? 'check' : ESTADO_ICON[e]} size={16} />
-              </span>
-              <span className={cn('mt-1.5 text-[11px] font-semibold text-center leading-tight', active ? 'text-ink' : 'text-muted')}>
-                {ESTADO_LABEL[e]}
-              </span>
-              {t && <span className="text-[10px] text-muted tabular-nums">{t}</span>}
-            </div>
-          );
-        })}
+    <div className={cn('rounded-2xl border p-4 pt-3', cancelado ? 'border-red-200 bg-red-50/40' : 'border-line bg-gradient-to-b from-[#FBF7F1] to-white')}>
+      {/* Chip del modo de entrega */}
+      <div className="flex justify-center mb-3">
+        <span className={cn(
+          'inline-flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border',
+          cancelado ? 'bg-white border-red-200 text-red-500' : 'bg-white border-line text-ink/70',
+        )}>
+          <Icon name={MODO_META[modo].icon} size={12} /> {MODO_META[modo].label}
+        </span>
       </div>
+
+      <div className="relative">
+        {/* Riel base + barra de avance continua detrás de los nodos */}
+        <span className="absolute top-5 left-[10%] right-[10%] h-[3px] rounded-full bg-line/70" />
+        {!cancelado && (
+          <span
+            className="absolute top-5 left-[10%] h-[3px] rounded-full transition-all duration-500"
+            style={{ width: `calc(${pct}% * 0.8)`, background: `linear-gradient(90deg, ${ESTADO_SOLID.nuevo}, ${ESTADO_SOLID[FLOW[Math.max(0, curIdx)]] ?? ESTADO_SOLID.nuevo})` }}
+          />
+        )}
+
+        <div className="relative flex items-start">
+          {FLOW.map((e, i) => {
+            const done = i < curIdx;
+            const current = i === curIdx;
+            const active = done || current;
+            const color = ESTADO_SOLID[e];
+            const t = tiempo(e);
+            return (
+              <div key={e} className="flex-1 flex flex-col items-center relative min-w-0">
+                <span
+                  className={cn('relative z-10 w-10 h-10 rounded-full grid place-items-center transition-all duration-300')}
+                  style={
+                    active
+                      ? { background: color, color: '#fff', boxShadow: current ? `0 0 0 5px ${color}26` : `0 4px 10px -4px ${color}` }
+                      : { background: '#fff', border: '2px solid var(--ce-line,#e7e5e4)', color: 'var(--ce-muted,#a8a29e)' }
+                  }
+                >
+                  {current && !cancelado && (
+                    <span className="absolute inset-0 rounded-full animate-ping" style={{ background: color, opacity: 0.35 }} />
+                  )}
+                  <Icon name={done ? 'check' : ESTADO_ICON[e]} size={16} className="relative" />
+                </span>
+                <span className={cn('mt-1.5 text-[11px] font-semibold text-center leading-tight px-0.5 break-words', active ? 'text-ink' : 'text-muted')}>
+                  {estadoLabelModo(e, modo)}
+                </span>
+                {t && <span className="text-[10px] text-muted tabular-nums">{t}</span>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {cancelado && (
-        <p className="mt-3 text-center text-xs font-semibold text-red-600 inline-flex items-center gap-1.5 justify-center w-full">
+        <p className="mt-3 text-center text-xs font-semibold text-red-600 flex items-center gap-1.5 justify-center">
           <Icon name="x" size={12} /> Este pedido fue cancelado
         </p>
       )}
@@ -533,9 +579,17 @@ function PedidoDetalle({
     }
   }, [pedido.id, pedido.detalles]);
 
+  const modo = pedido.metodo_entrega as Modo;
   const transiciones = TRANSICIONES[pedido.estado] ?? [];
   const retrocesos   = TRANSICIONES_ATRAS[pedido.estado] ?? [];
-  const siguiente    = transiciones.find((t) => t !== 'cancelado');
+  // El "siguiente" natural sale del flujo del MODO (así "en camino" sólo
+  // aparece a domicilio; pickup/mesa saltan directo a entregado desde listo).
+  const flow = flowDe(modo);
+  const idxFlow = flow.indexOf(pedido.estado);
+  const siguienteFlujo = idxFlow >= 0 && idxFlow < flow.length - 1 ? flow[idxFlow + 1] : undefined;
+  const siguiente = siguienteFlujo && transiciones.includes(siguienteFlujo)
+    ? siguienteFlujo
+    : transiciones.find((t) => t !== 'cancelado');
   const puedeCancelar = transiciones.includes('cancelado');
 
   return (
@@ -556,7 +610,7 @@ function PedidoDetalle({
             className="w-full h-14 rounded-2xl text-white font-extrabold text-base inline-flex items-center justify-center gap-2.5 transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98]"
             style={{ background: ESTADO_SOLID[siguiente], boxShadow: `0 12px 26px -12px ${ESTADO_SOLID[siguiente]}` }}
           >
-            <Icon name={ESTADO_ICON[siguiente]} size={18} /> Marcar como {ESTADO_LABEL[siguiente].toLowerCase()}
+            <Icon name={ESTADO_ICON[siguiente]} size={18} /> Marcar como {estadoLabelModo(siguiente, modo).toLowerCase()}
           </button>
         ) : (
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex items-center gap-3">
@@ -596,9 +650,9 @@ function PedidoDetalle({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
         <InfoCell icon="users" label="Cliente" value={pedido.cliente_nombre} sub={pedido.cliente_telefono} />
         <InfoCell
-          icon={pedido.metodo_entrega === 'delivery' ? 'truck' : 'store'}
+          icon={MODO_META[modo].icon}
           label="Entrega"
-          value={pedido.metodo_entrega === 'delivery' ? 'A domicilio' : 'Recoger en sucursal'}
+          value={MODO_META[modo].label}
           sub={pedido.direccion ?? undefined}
         />
         <InfoCell icon="card" label="Pago" value={pedido.metodo_pago.replace(/_/g, ' ')} />

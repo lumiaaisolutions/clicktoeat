@@ -267,3 +267,26 @@ Ver [`features/pos.md`](pos.md) para el interno.
 ## Soft delete
 
 `DELETE /pedidos/{id}` hace soft-delete. **No reintegra inventario** automáticamente (un pedido borrado es ruido, no una cancelación). Si quieres reintegrar primero, cambiar a `cancelado` y luego borrar.
+
+## Rediseño de estado + timeline por modo de entrega (sept 2026)
+
+El detalle del pedido (`app/admin/pedidos/page.tsx`) muestra un **timeline
+visual interactivo** del ciclo, con **CTA prominente** para avanzar. El flujo,
+el texto del botón y las etiquetas del timeline dependen del **modo de entrega**
+(`pedido.metodo_entrega`):
+
+| Modo (`metodo_entrega`) | Significado | Flujo | "Listo" dice |
+|---|---|---|---|
+| `delivery` | A domicilio (landing) | nuevo→confirmado→preparando→listo→**en camino**→entregado | "Listo" |
+| `pickup` | Recoger en sucursal (landing) | nuevo→confirmado→preparando→listo→entregado | "Listo para recoger" |
+| `sucursal` | Comer aquí / mesa QR / POS | nuevo→confirmado→preparando→listo→entregado | "Listo para entregar" |
+
+- **"Marcar como en camino" sólo aparece a domicilio** — el `siguiente` del CTA se
+  deriva de `flowDe(modo)` (no de la primera transición), así pickup/sucursal
+  saltan de `listo` directo a `entregado` y el nodo "en camino" ni existe en su
+  timeline. Fix del bug donde un pedido de sucursal ofrecía "en camino".
+- Helpers: `flowDe(modo)`, `estadoLabelModo(estado, modo)`, `MODO_META` (label +
+  ícono del modo, mostrado como chip arriba del timeline y en la celda Entrega).
+- Timeline: barra de avance continua + nodos con ícono, nodo actual con `ping`,
+  horas (recibido/confirmado/entregado). Cancelado → banner rojo. Las
+  transiciones (adelante/atrás) y el endpoint `/pedidos/{id}/estado` no cambian.
