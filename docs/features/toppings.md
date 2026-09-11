@@ -78,5 +78,28 @@ El editor de topping (`ToppingModal`) permite, por opción, agregar
 "Usa X {unidad} de {ingrediente}". El picker del producto copia la receta al
 snapshot para que el descuento sea estable aunque el catálogo cambie después.
 
-> Pendiente (fase siguiente): bloquear en el **menú del cliente** los toppings
-> agotados (marcarlos y no dejar elegirlos).
+## Bloqueo en el menú del cliente (fase 3) — 2026-09-10
+
+`MenuController::show` (menú público) enriquece los `extras` de cada producto
+con `disponible` por opción (según el stock de los ingredientes de su receta) y
+**elimina la receta** del payload (los `ingrediente_id` son internos, no van al
+cliente). En el flujo de mesa QR (`MesaClient` → `ExtrasModal`), la opción con
+`disponible === false` se muestra **deshabilitada** con la etiqueta "· agotado"
+y no se puede seleccionar. Test: `menu_publico_marca_topping_agotado_sin_stock`.
+
+> Nota: el landing principal (`ProductDetailSheet`) aún no expone selector de
+> extras (solo cantidad); el picker de toppings vive en el flujo de mesa. Si se
+> agrega selector de extras al landing, reutilizar el mismo `disponible`.
+
+## Estado del flujo completo (fases 1–3, en producción)
+
+1. **Alta de ingredientes** (`/admin/inventario`) — stock por unidad.
+2. **Alta de toppings** (`/admin/toppings`) — grupo + opciones, cada opción con
+   su mini-receta ligada a ingredientes → se ve "agotado" si falta stock.
+3. **Producto** (`/admin/productos`, paso 3 "Extras") — elige toppings guardados
+   (copia la receta al snapshot) o define uno a mano.
+4. **Venta** — al crear el pedido se descuenta el inventario de los toppings
+   elegidos; el menú del cliente bloquea los agotados.
+
+Pendiente aparte de este feature: barrido de emojis→íconos en todo el sistema
+(solicitado por el usuario, aún sin ejecutar).
