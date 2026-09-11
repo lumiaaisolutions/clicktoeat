@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
-import type { Categoria, ExtraGroup, Ingrediente, Producto, Receta } from '@/lib/types';
+import type { Categoria, ExtraGroup, Ingrediente, Producto, Receta, ToppingGroup } from '@/lib/types';
 import { toast } from '@/store/toast';
 import { Field, Textarea, Select, Switch } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
@@ -10,6 +10,7 @@ import { Icon } from '@/components/ui/Icon';
 import { ImageUpload } from '@/components/admin/ImageUpload';
 import { Wizard } from '@/components/ui/Wizard';
 import { InfoBox } from '@/components/ui/InfoBox';
+import { cn } from '@/lib/utils';
 
 interface RecetaLinea { ingrediente_id: number | null; cantidad: number }
 const STEPS = ['Lo básico', 'Presentación', 'Extras', 'Inventario'];
@@ -21,13 +22,15 @@ const QUESTIONS: Record<number, { title: string; subtitle?: string }> = {
 };
 
 export function ProductoModal({
-  open, onClose, onSaved, producto, categorias,
+  open, onClose, onSaved, producto, categorias, initialToppings,
 }: {
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
   producto?: Producto;
   categorias: Categoria[];
+  /** Solo para preview/tests: precarga los toppings sin depender del fetch. */
+  initialToppings?: ToppingGroup[];
 }) {
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
@@ -39,6 +42,7 @@ export function ProductoModal({
   const [extras, setExtras] = useState<ExtraGroup[]>([]);
   const [ingredientes, setIngredientes] = useState<Ingrediente[]>([]);
   const [recetaLineas, setRecetaLineas] = useState<RecetaLinea[]>([]);
+  const [savedToppings, setSavedToppings] = useState<ToppingGroup[]>(initialToppings ?? []);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [paso, setPaso] = useState(1);
@@ -74,6 +78,11 @@ export function ProductoModal({
     });
     setExtras(producto?.extras ?? []);
     setErrors({});
+
+    // Toppings guardados (paso 3): para elegirlos sin re-escribirlos.
+    api.get<{ data: ToppingGroup[] }>('/toppings')
+      .then(({ data }) => setSavedToppings(data.data.filter((t) => t.activo)))
+      .catch(() => { /* preview/offline: conserva initialToppings */ });
 
     // Inventario (paso 4): ingredientes del local + receta actual si es edición.
     api.get<{ data: Ingrediente[] }>('/ingredientes')
@@ -139,6 +148,17 @@ export function ProductoModal({
     }
   };
 
+  const toppingYaAgregado = (t: ToppingGroup) => extras.some((e) => e.group === t.nombre);
+  const agregarTopping = (t: ToppingGroup) => {
+    if (toppingYaAgregado(t)) return;
+    setExtras([...extras, {
+      group: t.nombre,
+      kind: t.kind,
+      required: t.required,
+      items: t.items.map((it, i) => ({ id: `t${t.id}-${i}`, name: it.name, price: it.price })),
+    }]);
+  };
+
   const isLast = paso === STEPS.length;
   const q = QUESTIONS[paso];
 
@@ -190,6 +210,34 @@ export function ProductoModal({
 
         {paso === 3 && (
           <div data-tour="producto-modal-extras">
+            {savedToppings.length > 0 && (
+              <div className="mb-4">
+                <p className="text-sm font-medium mb-2">Elige de tus toppings guardados</p>
+                <div className="flex flex-wrap gap-2">
+                  {savedToppings.map((t) => {
+                    const added = toppingYaAgregado(t);
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => agregarTopping(t)}
+                        disabled={added}
+                        className={cn(
+                          'px-3 py-1.5 rounded-full border text-sm transition inline-flex items-center gap-1.5',
+                          added ? 'border-[#F26A1F] bg-[#F26A1F]/10 text-[#F26A1F] cursor-default' : 'border-line hover:border-[#F26A1F]/50',
+                        )}
+                      >
+                        <Icon name={added ? 'check' : 'plus'} size={13} />
+                        {t.nombre}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted mt-2">
+                  ¿Falta alguno? Créalo en <a href="/admin/toppings" className="underline">Toppings</a>. Abajo puedes ajustarlos o agregar uno solo para este platillo.
+                </p>
+              </div>
+            )}
             <ExtrasEditor value={extras} onChange={setExtras} />
           </div>
         )}
@@ -310,9 +358,9 @@ function ExtrasEditor({ value, onChange }: { value: ExtraGroup[]; onChange: (v: 
     <section>
       <header className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div>
-          <p className="ce-display font-bold text-base">Extras / Toppings</p>
+          <p className="ce-display font-bold text-base">Extras y opciones para personalizar</p>
           <p className="text-xs text-muted">
-            Permite que el cliente personalice el pedido (ej. extra queso $15, sin cebolla, doble carne $25).
+            Deja que el cliente arme su platillo a su gusto al pedir.
           </p>
         </div>
         <button
@@ -321,13 +369,20 @@ function ExtrasEditor({ value, onChange }: { value: ExtraGroup[]; onChange: (v: 
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-line text-xs font-semibold hover:bg-line/40"
         >
           <Icon name="plus" size={12} />
-          Agregar grupo
+          Agregar un grupo
         </button>
       </header>
 
+      <InfoBox className="mb-3">
+        Un <strong>grupo</strong> es un tipo de elección que el cliente hace al pedir.
+        Ejemplos: un grupo <strong>“Tamaño”</strong> con Chico / Mediano / Grande, o un grupo
+        <strong> “Extras”</strong> con Queso +$15, Tocino +$20. Crea un grupo por cada elección.
+      </InfoBox>
+
       {value.length === 0 ? (
         <div className="rounded-xl border border-dashed border-line p-6 text-center text-sm text-muted">
-          Sin extras configurados. Agrega un grupo para empezar.
+          Aún no hay opciones. Pulsa <strong>“Agregar un grupo”</strong> para crear la primera
+          (ej. “Tamaño” o “Salsas”). Si tu platillo no se personaliza, déjalo así y sigue.
         </div>
       ) : (
         <div className="space-y-3">
@@ -338,7 +393,7 @@ function ExtrasEditor({ value, onChange }: { value: ExtraGroup[]; onChange: (v: 
                   type="text"
                   value={g.group}
                   onChange={(e) => updateGroup(gi, { group: e.target.value })}
-                  placeholder="Nombre del grupo (ej. Toppings, Tamaño, Salsas)"
+                  placeholder="¿Cómo se llama? (ej. Tamaño, Salsas, Extras)"
                   className="px-3 py-2 rounded-xl border border-line bg-white text-sm font-semibold"
                   maxLength={40}
                 />
@@ -346,12 +401,12 @@ function ExtrasEditor({ value, onChange }: { value: ExtraGroup[]; onChange: (v: 
                   value={g.kind}
                   onChange={(e) => updateGroup(gi, { kind: e.target.value as 'one' | 'many' })}
                   className="px-2 py-2 rounded-xl border border-line bg-white text-xs"
-                  title="Cuántas opciones puede elegir el cliente"
+                  title="¿Cuántas opciones puede elegir el cliente?"
                 >
-                  <option value="many">Varios (toppings)</option>
-                  <option value="one">Sólo uno (tamaño)</option>
+                  <option value="many">Puede elegir varias</option>
+                  <option value="one">Solo puede elegir una</option>
                 </select>
-                <label className="text-xs text-muted inline-flex items-center gap-1.5 px-2">
+                <label className="text-xs text-muted inline-flex items-center gap-1.5 px-2" title="El cliente está obligado a elegir una opción de este grupo">
                   <input
                     type="checkbox"
                     checked={!!g.required}
@@ -376,7 +431,7 @@ function ExtrasEditor({ value, onChange }: { value: ExtraGroup[]; onChange: (v: 
                       type="text"
                       value={it.name}
                       onChange={(e) => updateItem(gi, ii, { name: e.target.value })}
-                      placeholder="Nombre (ej. Queso extra)"
+                      placeholder="Opción (ej. Grande, Queso extra)"
                       className="px-3 py-2 rounded-lg border border-line bg-white text-sm"
                       maxLength={60}
                     />
@@ -388,7 +443,7 @@ function ExtrasEditor({ value, onChange }: { value: ExtraGroup[]; onChange: (v: 
                         min="0"
                         value={it.price}
                         onChange={(e) => updateItem(gi, ii, { price: Number(e.target.value) })}
-                        placeholder="Precio extra"
+                        placeholder="Costo extra (0 = gratis)"
                         className="w-full pl-6 pr-2 py-2 rounded-lg border border-line bg-white text-sm tabular-nums"
                       />
                     </div>

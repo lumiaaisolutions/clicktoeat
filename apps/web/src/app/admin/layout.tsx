@@ -178,6 +178,7 @@ const NAV_OWNER: NavEntry[] = [
   { section: 'Catálogo' },
   { href: '/admin/productos',    label: 'Productos',   icon: 'package', permiso: 'productos' },
   { href: '/admin/categorias',   label: 'Categorías',  icon: 'list',    permiso: 'categorias' },
+  { href: '/admin/toppings',     label: 'Toppings',    icon: 'sparkles', permiso: 'productos' },
   { href: '/admin/inventario',   label: 'Inventario',  icon: 'box',     permiso: 'inventario', feature: 'inventario',       requiredPlan: 'professional' },
   { href: '/admin/compras',      label: 'Compras',     icon: 'receipt', permiso: 'compras',    feature: 'compras',          requiredPlan: 'professional' },
   { href: '/admin/gastos',       label: 'Gastos',      icon: 'wallet',  ownerOnly: true },

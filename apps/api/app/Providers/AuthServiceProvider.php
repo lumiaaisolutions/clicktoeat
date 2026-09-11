@@ -27,6 +27,7 @@ class AuthServiceProvider extends ServiceProvider
     protected $policies = [
         Local::class => LocalPolicy::class,
         Categoria::class => CategoriaPolicy::class,
+        \App\Models\ToppingGroup::class => \App\Policies\ToppingGroupPolicy::class,
         Compra::class => CompraPolicy::class,
         Producto::class => ProductoPolicy::class,
         Pedido::class => PedidoPolicy::class,

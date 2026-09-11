@@ -335,6 +335,11 @@ Route::middleware('throttle:60,1')->group(function () {
         // Categorías
         Route::apiResource('categorias', CategoriaController::class);
 
+        // Toppings — catálogo reutilizable de grupos de opciones
+        Route::apiResource('toppings', \App\Http\Controllers\Api\ToppingGroupController::class)
+            ->parameters(['toppings' => 'topping'])
+            ->except(['show']);
+
         // Productos
         Route::apiResource('productos', ProductoController::class);
         Route::post('productos/{id}/restore', [ProductoController::class, 'restore']);

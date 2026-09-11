@@ -36,6 +36,15 @@ export interface ExtraGroup {
   items: { id: string; name: string; price: number }[];
 }
 
+export interface ToppingGroup {
+  id: number;
+  nombre: string;
+  kind: 'one' | 'many';
+  required: boolean;
+  items: { name: string; price: number }[];
+  activo: boolean;
+}
+
 export interface Producto {
   id: number;
   local_id: number;
