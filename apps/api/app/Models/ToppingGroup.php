@@ -16,13 +16,15 @@ class ToppingGroup extends Model
 
     protected $table = 'topping_groups';
 
-    protected $fillable = ['local_id', 'nombre', 'kind', 'required', 'items', 'activo'];
+    protected $fillable = ['local_id', 'nombre', 'kind', 'required', 'incluidos', 'maximo', 'items', 'activo'];
 
     protected function casts(): array
     {
         return [
             'required' => 'boolean',
             'activo' => 'boolean',
+            'incluidos' => 'integer',
+            'maximo' => 'integer',
             'items' => 'array',
         ];
     }

@@ -269,6 +269,12 @@ class OrderService
      *   ]
      *
      * Match se hace por `group` (exacto) + `item` (matchea con item.name O item.id).
+     *
+     * Límite por grupo (opcional):
+     *   - `maximo`: si el cliente elige más de N opciones del grupo, se rechaza.
+     *   - `incluidos`: las N opciones **más caras** del grupo se incluyen gratis
+     *     (precio 0); las demás cobran su precio. Determinista y a prueba de
+     *     manipulación (no depende del orden de selección del cliente).
      */
     protected function validarYNormalizarExtras(array $extrasCliente, Producto $producto): array
     {
@@ -279,12 +285,17 @@ class OrderService
         $catalogo = $producto->extras ?? [];
         // Index del catálogo: ['Tortilla' => ['harina' => price, 'maiz' => price, ...]]
         $byGroup = [];
+        $cfgGroup = [];   // ['Extras' => ['incluidos' => 2, 'maximo' => 4]]
         foreach ($catalogo as $grupo) {
             $groupName = $grupo['group'] ?? null;
             if (! $groupName) {
                 continue;
             }
             $byGroup[$groupName] = [];
+            $cfgGroup[$groupName] = [
+                'incluidos' => isset($grupo['incluidos']) && $grupo['incluidos'] !== null ? (int) $grupo['incluidos'] : null,
+                'maximo' => isset($grupo['maximo']) && $grupo['maximo'] !== null ? (int) $grupo['maximo'] : null,
+            ];
             foreach (($grupo['items'] ?? []) as $catItem) {
                 // Permitir match por `id` o por `name`
                 $price = (float) ($catItem['price'] ?? 0);
@@ -297,7 +308,10 @@ class OrderService
             }
         }
 
+        // Paso 1: validar y capturar cada selección con su precio de catálogo,
+        // agrupando los índices por grupo para aplicar límites después.
         $normalizados = [];
+        $idxPorGrupo = [];
         foreach ($extrasCliente as $extra) {
             $group = $extra['group'] ?? null;
             $item = $extra['item'] ?? null;
@@ -322,6 +336,27 @@ class OrderService
                 'item' => $item,
                 'price' => $byGroup[$group][$item],
             ];
+            $idxPorGrupo[$group][] = array_key_last($normalizados);
+        }
+
+        // Paso 2: por grupo, aplicar `maximo` y `incluidos` (más caros gratis).
+        foreach ($idxPorGrupo as $group => $indices) {
+            $maximo = $cfgGroup[$group]['maximo'] ?? null;
+            if ($maximo !== null && count($indices) > $maximo) {
+                throw new RuntimeException(
+                    "En '{$group}' puedes elegir máximo {$maximo} opción(es).",
+                );
+            }
+
+            $incluidos = $cfgGroup[$group]['incluidos'] ?? null;
+            if ($incluidos !== null && $incluidos > 0) {
+                // Ordenar los índices de este grupo por precio desc; los primeros
+                // `incluidos` se incluyen gratis (precio 0).
+                usort($indices, fn ($a, $b) => $normalizados[$b]['price'] <=> $normalizados[$a]['price']);
+                foreach (array_slice($indices, 0, $incluidos) as $freeIdx) {
+                    $normalizados[$freeIdx]['price'] = 0.0;
+                }
+            }
         }
 
         return $normalizados;

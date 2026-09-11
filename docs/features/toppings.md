@@ -103,3 +103,30 @@ y no se puede seleccionar. Test: `menu_publico_marca_topping_agotado_sin_stock`.
 
 Pendiente aparte de este feature: barrido de emojis→íconos en todo el sistema
 (solicitado por el usuario, aún sin ejecutar).
+
+## Límite por grupo: incluidos gratis + máximo (sept 2026)
+
+Cada grupo de toppings (kind `many`) admite dos reglas opcionales:
+
+- **`incluidos`** — cuántas opciones van **gratis**. Regla de cobro:
+  **las `incluidos` opciones más caras se incluyen gratis**; las demás cobran su
+  precio. Es determinista y a prueba de manipulación (no depende del orden que
+  mande el cliente). Ej.: fresas con crema, 2 incluidos; si el cliente elige
+  Nuez $12, Chocolate $8 y Lechera $6 → Nuez y Chocolate gratis, cobra $6.
+- **`maximo`** — tope de cuántas puede elegir. `null` = sin tope.
+
+Dónde vive: columnas `incluidos`/`maximo` en `topping_groups` (default del
+catálogo) y en el snapshot JSON `extras` del producto (por grupo, ajustable por
+producto). Motor de cobro: `OrderService::validarYNormalizarExtras` (aplica
+`maximo` como guard y pone a 0 el precio de los `incluidos` más caros). El menú
+público (`MenuController`) expone ambos para que el cliente los aplique en vivo.
+Cliente (flujo mesa): bloquea al llegar al máximo y marca "incluido" los gratis,
+mostrando el subtotal de extras real (coincide con el server). Tests:
+`ToppingLimiteTest` (incluidos, sin incluidos, máximo rechaza).
+
+## Vista escalonada (wizard) en el panel — sept 2026
+
+Se aplicó el patrón de wizard (`components/ui/Wizard`, rail "1·2·3", "PASO X DE
+N") a los formularios de alta: **producto** (4 pasos), **toppings** (Lo básico /
+Opciones / Límite y disponibilidad), **ingredientes** (2 pasos) y **categorías**
+(2 pasos). Consistencia visual en todo el catálogo.

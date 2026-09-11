@@ -40,6 +40,8 @@ class StoreProductoRequest extends FormRequest
             'extras.*.group' => ['required_with:extras', 'string', 'max:40'],
             'extras.*.kind' => ['required_with:extras', 'in:one,many'],
             'extras.*.required' => ['nullable', 'boolean'],
+            'extras.*.incluidos' => ['nullable', 'integer', 'min:0', 'max:50'],
+            'extras.*.maximo' => ['nullable', 'integer', 'min:1', 'max:50'],
             'extras.*.items' => ['required_with:extras', 'array', 'min:1'],
             'extras.*.items.*.id' => ['required', 'string', 'max:40'],
             'extras.*.items.*.name' => ['required', 'string', 'max:60'],

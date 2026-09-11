@@ -31,6 +31,8 @@ class ToppingGroupResource extends JsonResource
             'nombre' => $this->nombre,
             'kind' => $this->kind,
             'required' => (bool) $this->required,
+            'incluidos' => $this->incluidos !== null ? (int) $this->incluidos : null,
+            'maximo' => $this->maximo !== null ? (int) $this->maximo : null,
             'items' => $items,
             'activo' => (bool) $this->activo,
             'created_at' => $this->created_at?->toIso8601String(),

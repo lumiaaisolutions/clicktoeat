@@ -4,15 +4,22 @@ import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import type { Ingrediente, ToppingGroup } from '@/lib/types';
 import { toast } from '@/store/toast';
-import { Button } from '@/components/ui/Button';
 import { Field, Switch } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
+import { Wizard } from '@/components/ui/Wizard';
 import { InfoBox } from '@/components/ui/InfoBox';
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/lib/utils';
 
 type RecetaRow = { ingrediente_id: number; cantidad: number };
 type ItemRow = { name: string; price: number; receta: RecetaRow[] };
+
+const STEPS = ['Lo básico', 'Opciones', 'Límite y disponibilidad'];
+const QUESTIONS: Record<number, { title: string; subtitle?: string }> = {
+  1: { title: '¿Cómo se llama el grupo?' },
+  2: { title: '¿Qué opciones tiene?' },
+  3: { title: '¿Hay un límite?' },
+};
 
 export function ToppingModal({
   topping, onClose, onSaved, initialIngredientes,
@@ -32,8 +39,11 @@ export function ToppingModal({
       ? topping.items.map((it) => ({ name: it.name, price: it.price, receta: (it.receta ?? []).map((r) => ({ ...r })) }))
       : [{ name: '', price: 0, receta: [] }],
   );
+  const [incluidos, setIncluidos] = useState<number | ''>(topping?.incluidos ?? '');
+  const [maximo, setMaximo] = useState<number | ''>(topping?.maximo ?? '');
   const [ingredientes, setIngredientes] = useState<Ingrediente[]>(initialIngredientes ?? []);
   const [saving, setSaving] = useState(false);
+  const [paso, setPaso] = useState(1);
 
   useEffect(() => {
     api.get<{ data: Ingrediente[] }>('/ingredientes')
@@ -67,7 +77,11 @@ export function ToppingModal({
     if (items.length === 0) { toast.error('Agrega al menos una opción (ej. Chico).'); return; }
     setSaving(true);
     try {
-      const payload = { nombre: nombre.trim(), kind, required, activo, items };
+      const payload = {
+        nombre: nombre.trim(), kind, required, activo, items,
+        incluidos: incluidos === '' ? null : Number(incluidos),
+        maximo: maximo === '' ? null : Number(maximo),
+      };
       if (topping) await api.patch(`/toppings/${topping.id}`, payload);
       else await api.post('/toppings', payload);
       toast.success('Grupo guardado');
@@ -77,44 +91,75 @@ export function ToppingModal({
     } finally { setSaving(false); }
   };
 
+  const next = () => {
+    if (paso === 1 && !nombre.trim()) {
+      toast.error('Ponle un nombre al grupo (ej. Tamaño).');
+      return;
+    }
+    if (paso === 2 && !rows.some((r) => r.name.trim())) {
+      toast.error('Agrega al menos una opción (ej. Chico).');
+      return;
+    }
+    setPaso((p) => Math.min(STEPS.length, p + 1));
+  };
+
   const ingMap = new Map(ingredientes.map((i) => [i.id, i]));
+  const isLast = paso === STEPS.length;
+  const q = QUESTIONS[paso];
 
   return (
     <Modal open onClose={onClose} title={topping ? 'Editar grupo de opciones' : 'Nuevo grupo de opciones'} size="lg">
-      <div className="space-y-4">
-        <InfoBox>
-          Un grupo agrupa <strong>opciones que el cliente elige al pedir</strong> (ej. “Tamaño”:
-          Chico / Grande, o “Extras”: Queso +$15). A cada opción puedes ligarle los <strong>ingredientes
-          que usa</strong>: así se descuentan del inventario con cada venta y sabes su disponibilidad.
-        </InfoBox>
+      <InfoBox className="-mt-1 mb-5">
+        Un grupo agrupa <strong>opciones que el cliente elige al pedir</strong> (ej. “Tamaño”:
+        Chico / Grande, o “Extras”: Queso +$15). A cada opción puedes ligarle los <strong>ingredientes
+        que usa</strong>: así se descuentan del inventario con cada venta y sabes su disponibilidad.
+      </InfoBox>
+      <Wizard
+        steps={STEPS}
+        current={paso}
+        onStep={(n) => { if (n <= paso || nombre.trim()) setPaso(n); }}
+        kicker={`Paso ${paso} de ${STEPS.length}`}
+        title={q.title}
+        subtitle={q.subtitle}
+        onCancel={onClose}
+        onBack={() => setPaso((p) => p - 1)}
+        onNext={isLast ? save : next}
+        saving={saving}
+        isLast={isLast}
+        submitLabel="Guardar grupo"
+      >
+        {paso === 1 && (
+          <div className="space-y-4">
+            <Field label="¿Cómo se llama el grupo?" placeholder="ej. Tamaño, Salsas, Extras" value={nombre} onChange={(e) => setNombre(e.target.value)} required maxLength={80} />
 
-        <Field label="¿Cómo se llama el grupo?" placeholder="ej. Tamaño, Salsas, Extras" value={nombre} onChange={(e) => setNombre(e.target.value)} required maxLength={80} />
+            <div>
+              <p className="block text-sm font-medium mb-1">¿Cuántas puede elegir el cliente?</p>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  { v: 'many', label: 'Varias', ej: 'ej. Extras, Salsas' },
+                  { v: 'one', label: 'Solo una', ej: 'ej. Tamaño' },
+                ] as const).map((o) => (
+                  <button
+                    key={o.v}
+                    type="button"
+                    onClick={() => setKind(o.v)}
+                    className={cn('rounded-2xl border-2 px-3 py-2.5 text-left transition', kind === o.v ? 'border-[#F26A1F] bg-[#F26A1F]/10' : 'border-line hover:border-[#F26A1F]/40')}
+                  >
+                    <span className="block text-sm font-semibold">{o.label}</span>
+                    <span className="block text-xs text-muted">{o.ej}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        <div>
-          <p className="block text-sm font-medium mb-1">¿Cuántas puede elegir el cliente?</p>
-          <div className="grid grid-cols-2 gap-2">
-            {([
-              { v: 'many', label: 'Varias', ej: 'ej. Extras, Salsas' },
-              { v: 'one', label: 'Solo una', ej: 'ej. Tamaño' },
-            ] as const).map((o) => (
-              <button
-                key={o.v}
-                type="button"
-                onClick={() => setKind(o.v)}
-                className={cn('rounded-2xl border-2 px-3 py-2.5 text-left transition', kind === o.v ? 'border-[#F26A1F] bg-[#F26A1F]/10' : 'border-line hover:border-[#F26A1F]/40')}
-              >
-                <span className="block text-sm font-semibold">{o.label}</span>
-                <span className="block text-xs text-muted">{o.ej}</span>
-              </button>
-            ))}
+            <Switch label="Obligatorio" hint="El cliente debe elegir una opción de este grupo para poder pedir." checked={required} onChange={setRequired} />
           </div>
-        </div>
+        )}
 
-        <Switch label="Obligatorio" hint="El cliente debe elegir una opción de este grupo para poder pedir." checked={required} onChange={setRequired} />
-
-        <div>
-          <p className="block text-sm font-medium mb-2">Opciones</p>
-          <div className="space-y-2">
+        {paso === 2 && (
+          <div>
+            <p className="block text-sm font-medium mb-2">Opciones</p>
+            <div className="space-y-2">
             {rows.map((r, i) => (
               <div key={i} className="rounded-2xl border border-line p-3 bg-line/10">
                 <div className="grid grid-cols-[1fr_120px_auto] gap-2 items-center">
@@ -188,18 +233,45 @@ export function ToppingModal({
               </div>
             ))}
           </div>
-          <button type="button" onClick={addRow} className="mt-2 inline-flex items-center gap-1.5 text-xs text-ink/70 hover:text-ink">
-            <Icon name="plus" size={11} /> Agregar opción
-          </button>
-        </div>
+            <button type="button" onClick={addRow} className="mt-2 inline-flex items-center gap-1.5 text-xs text-ink/70 hover:text-ink">
+              <Icon name="plus" size={11} /> Agregar opción
+            </button>
+          </div>
+        )}
 
-        <Switch label="Activo" hint="Si lo apagas, no aparece para elegir al crear productos (pero no se borra)." checked={activo} onChange={setActivo} />
+        {paso === 3 && (
+          <div className="space-y-4">
+            {kind === 'many' ? (
+              <>
+                <InfoBox>
+                  Puedes incluir algunos toppings <strong>gratis</strong> y cobrar los que sobren.
+                  Ej.: incluye 2 gratis; si el cliente elige más, cada topping adicional cobra su precio.
+                </InfoBox>
+                <Field
+                  label="¿Cuántos van incluidos gratis?"
+                  type="number" min="0" step="1"
+                  value={incluidos}
+                  onChange={(e) => setIncluidos(e.target.value === '' ? '' : Number(e.target.value))}
+                  hint="Los toppings más caros se incluyen gratis; los demás cobran su precio."
+                />
+                <Field
+                  label="¿Máximo que puede elegir?"
+                  type="number" min="1" step="1"
+                  value={maximo}
+                  onChange={(e) => setMaximo(e.target.value === '' ? '' : Number(e.target.value))}
+                  hint="Deja vacío para sin tope."
+                />
+              </>
+            ) : (
+              <p className="text-sm text-muted rounded-2xl border border-line bg-line/10 p-3">
+                El límite no aplica cuando el cliente solo elige una opción.
+              </p>
+            )}
 
-        <div className="flex justify-end gap-2 pt-3 border-t border-line">
-          <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button onClick={save} loading={saving}>Guardar grupo</Button>
-        </div>
-      </div>
+            <Switch label="Activo" hint="Si lo apagas, no aparece para elegir al crear productos (pero no se borra)." checked={activo} onChange={setActivo} />
+          </div>
+        )}
+      </Wizard>
     </Modal>
   );
 }

@@ -18,6 +18,8 @@ class UpdateToppingGroupRequest extends FormRequest
             'nombre' => ['sometimes', 'required', 'string', 'min:1', 'max:80'],
             'kind' => ['sometimes', 'required', 'in:one,many'],
             'required' => ['sometimes', 'boolean'],
+            'incluidos' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:50'],
+            'maximo' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:50'],
             'activo' => ['sometimes', 'boolean'],
             'items' => ['sometimes', 'required', 'array', 'min:1', 'max:50'],
             'items.*.name' => ['required', 'string', 'max:60'],

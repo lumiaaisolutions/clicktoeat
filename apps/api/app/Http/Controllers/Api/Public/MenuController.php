@@ -192,6 +192,8 @@ class MenuController extends Controller
                 'group' => $grupo['group'] ?? '',
                 'kind' => $grupo['kind'] ?? 'many',
                 'required' => (bool) ($grupo['required'] ?? false),
+                'incluidos' => isset($grupo['incluidos']) && $grupo['incluidos'] !== null ? (int) $grupo['incluidos'] : null,
+                'maximo' => isset($grupo['maximo']) && $grupo['maximo'] !== null ? (int) $grupo['maximo'] : null,
                 'items' => $items,
             ];
         })->all();

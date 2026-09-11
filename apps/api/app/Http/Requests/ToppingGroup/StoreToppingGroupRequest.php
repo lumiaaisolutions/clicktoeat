@@ -19,6 +19,8 @@ class StoreToppingGroupRequest extends FormRequest
             'nombre' => ['required', 'string', 'min:1', 'max:80'],
             'kind' => ['required', 'in:one,many'],
             'required' => ['nullable', 'boolean'],
+            'incluidos' => ['nullable', 'integer', 'min:0', 'max:50'],
+            'maximo' => ['nullable', 'integer', 'min:1', 'max:50'],
             'activo' => ['nullable', 'boolean'],
             'items' => ['required', 'array', 'min:1', 'max:50'],
             'items.*.name' => ['required', 'string', 'max:60'],

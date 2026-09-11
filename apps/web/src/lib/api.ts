@@ -190,6 +190,8 @@ export interface MenuProducto {
     group: string;
     kind: 'one' | 'many';
     required?: boolean;
+    incluidos?: number | null;
+    maximo?: number | null;
     items: Array<{ id: string; name: string; price: number; disponible?: boolean }>;
   }>;
   categoria: { id: number | null; slug: string | null };

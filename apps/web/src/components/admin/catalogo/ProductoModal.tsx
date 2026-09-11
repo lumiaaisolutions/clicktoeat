@@ -155,6 +155,8 @@ export function ProductoModal({
       group: t.nombre,
       kind: t.kind,
       required: t.required,
+      incluidos: t.incluidos ?? null,
+      maximo: t.maximo ?? null,
       items: t.items.map((it, i) => ({ id: `t${t.id}-${i}`, name: it.name, price: it.price, receta: it.receta })),
     }]);
   };
@@ -466,6 +468,31 @@ function ExtrasEditor({ value, onChange }: { value: ExtraGroup[]; onChange: (v: 
                   Agregar opción
                 </button>
               </div>
+
+              {g.kind === 'many' && (
+                <div className="mt-3 pt-3 border-t border-line grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <label className="text-xs text-muted flex flex-col gap-1">
+                    <span>Incluidos gratis <span className="opacity-60">(los más caros)</span></span>
+                    <input
+                      type="number" min="0" step="1"
+                      value={g.incluidos ?? ''}
+                      onChange={(e) => updateGroup(gi, { incluidos: e.target.value === '' ? null : Math.max(0, Number(e.target.value)) })}
+                      placeholder="0 = todos cobran"
+                      className="px-3 py-2 rounded-lg border border-line bg-white text-sm tabular-nums"
+                    />
+                  </label>
+                  <label className="text-xs text-muted flex flex-col gap-1">
+                    <span>Máximo que puede elegir</span>
+                    <input
+                      type="number" min="1" step="1"
+                      value={g.maximo ?? ''}
+                      onChange={(e) => updateGroup(gi, { maximo: e.target.value === '' ? null : Math.max(1, Number(e.target.value)) })}
+                      placeholder="Sin tope"
+                      className="px-3 py-2 rounded-lg border border-line bg-white text-sm tabular-nums"
+                    />
+                  </label>
+                </div>
+              )}
             </div>
           ))}
         </div>

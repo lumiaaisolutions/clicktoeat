@@ -33,6 +33,10 @@ export interface ExtraGroup {
   group: string;
   kind: 'one' | 'many';
   required?: boolean;
+  /** Cuántas opciones van gratis (las más caras); las demás cobran su precio. null = todas cobran. */
+  incluidos?: number | null;
+  /** Tope de cuántas puede elegir el cliente. null = sin tope. */
+  maximo?: number | null;
   items: { id: string; name: string; price: number; receta?: { ingrediente_id: number; cantidad: number }[] }[];
 }
 
@@ -55,6 +59,10 @@ export interface ToppingGroup {
   nombre: string;
   kind: 'one' | 'many';
   required: boolean;
+  /** Cuántas opciones van gratis (las más caras); las demás cobran su precio. */
+  incluidos?: number | null;
+  /** Tope de cuántas puede elegir el cliente. */
+  maximo?: number | null;
   items: ToppingItem[];
   activo: boolean;
 }

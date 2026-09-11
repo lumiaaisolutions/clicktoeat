@@ -251,40 +251,71 @@ function ExtrasModal({
     setSelected((prev) => ({ ...prev, [group]: [{ group, item: item.id, price: item.price, itemLabel: item.name }] }));
   };
 
-  const toggleMany = (group: string, item: { id: string; name: string; price: number }) => {
+  const toggleMany = (group: string, item: { id: string; name: string; price: number }, maximo?: number | null) => {
     setSelected((prev) => {
       const current = prev[group] ?? [];
       const exists = current.some((e) => e.item === item.id);
+      // Al agregar, respeta el tope máximo del grupo.
+      if (!exists && maximo != null && current.length >= maximo) return prev;
       const next = exists ? current.filter((e) => e.item !== item.id) : [...current, { group, item: item.id, price: item.price, itemLabel: item.name }];
       return { ...prev, [group]: next };
     });
   };
 
+  // Aplica "los N más caros gratis" (incluidos) por grupo → precio efectivo.
+  // Mismo criterio que el backend, así el total mostrado coincide con el cobrado.
+  const conPrecioEfectivo = (grupoGroup: string, incluidos: number | null | undefined): CartExtra[] => {
+    const sel = selected[grupoGroup] ?? [];
+    if (!incluidos || incluidos <= 0) return sel;
+    const gratis = new Set(
+      [...sel].sort((a, b) => b.price - a.price).slice(0, incluidos).map((e) => e.item),
+    );
+    return sel.map((e) => (gratis.has(e.item) ? { ...e, price: 0 } : e));
+  };
+
   const faltanRequeridos = producto.extras.some((g) => g.required && !(selected[g.group]?.length));
 
-  const confirmar = () => {
-    const extras = Object.values(selected).flat();
-    onConfirm(extras);
-  };
+  const extrasEfectivos = producto.extras.flatMap((g) => conPrecioEfectivo(g.group, g.incluidos));
+  const extrasTotal = extrasEfectivos.reduce((s, e) => s + e.price, 0);
+
+  const confirmar = () => onConfirm(extrasEfectivos);
 
   return (
     <Modal open onClose={onClose} title={producto.nombre} size="sm">
       <div className="space-y-4">
-        {producto.extras.map((grupo) => (
+        {producto.extras.map((grupo) => {
+          const sel = selected[grupo.group] ?? [];
+          const gratisSet = new Set(
+            grupo.incluidos && grupo.incluidos > 0
+              ? [...sel].sort((a, b) => b.price - a.price).slice(0, grupo.incluidos).map((e) => e.item)
+              : [],
+          );
+          const topeLleno = grupo.maximo != null && sel.length >= grupo.maximo;
+          return (
           <div key={grupo.group}>
-            <p className="text-sm font-semibold mb-1">
-              {grupo.group} {grupo.required && <span className="text-red-500">*</span>}
+            <p className="text-sm font-semibold mb-1 flex items-center gap-2 flex-wrap">
+              <span>{grupo.group} {grupo.required && <span className="text-red-500">*</span>}</span>
+              {grupo.kind === 'many' && (grupo.incluidos || grupo.maximo) && (
+                <span className="text-[11px] font-normal text-muted">
+                  {grupo.incluidos ? `${grupo.incluidos} incluido${grupo.incluidos > 1 ? 's' : ''} gratis` : ''}
+                  {grupo.incluidos && grupo.maximo ? ' · ' : ''}
+                  {grupo.maximo ? `máx ${grupo.maximo}` : ''}
+                </span>
+              )}
             </p>
             <div className="space-y-1">
               {grupo.items.map((item) => {
-                const isSelected = (selected[grupo.group] ?? []).some((e) => e.item === item.id);
+                const isSelected = sel.some((e) => e.item === item.id);
                 const agotado = item.disponible === false;
+                const bloqueadoPorTope = grupo.kind === 'many' && !isSelected && topeLleno;
+                const esGratis = isSelected && gratisSet.has(item.id);
+                const disabled = agotado || bloqueadoPorTope;
                 return (
                   <label
                     key={item.id}
                     className={cn(
                       'flex items-center justify-between gap-2 p-2 rounded-lg border border-line',
-                      agotado ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
+                      disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
                     )}
                   >
                     <span className="flex items-center gap-2 text-sm">
@@ -292,23 +323,31 @@ function ExtrasModal({
                         type={grupo.kind === 'one' ? 'radio' : 'checkbox'}
                         name={grupo.group}
                         checked={isSelected}
-                        disabled={agotado}
-                        onChange={() => (grupo.kind === 'one' ? toggleOne(grupo.group, item) : toggleMany(grupo.group, item))}
+                        disabled={disabled}
+                        onChange={() => (grupo.kind === 'one' ? toggleOne(grupo.group, item) : toggleMany(grupo.group, item, grupo.maximo))}
                       />
                       {item.name}
                       {agotado && <span className="text-[11px] font-semibold text-red-500">· agotado</span>}
                     </span>
-                    {item.price > 0 && <span className="text-xs text-muted">+${item.price.toFixed(2)}</span>}
+                    {esGratis
+                      ? <span className="text-xs font-semibold text-emerald-600">incluido</span>
+                      : item.price > 0 && <span className="text-xs text-muted">+${item.price.toFixed(2)}</span>}
                   </label>
                 );
               })}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
-      <div className="flex justify-end gap-2 pt-4 mt-4 border-t border-line">
-        <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-        <Button onClick={confirmar} disabled={faltanRequeridos}>Agregar</Button>
+      <div className="flex items-center justify-between gap-2 pt-4 mt-4 border-t border-line">
+        {extrasTotal > 0
+          ? <span className="text-sm text-muted">Extras: <strong className="text-ink">+${extrasTotal.toFixed(2)}</strong></span>
+          : <span />}
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+          <Button onClick={confirmar} disabled={faltanRequeridos}>Agregar</Button>
+        </div>
       </div>
     </Modal>
   );
