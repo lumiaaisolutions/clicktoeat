@@ -7,6 +7,7 @@ import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Modal } from '@/components/ui/Modal';
+import { Select } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { formatMXN, cn } from '@/lib/utils';
@@ -213,24 +214,25 @@ export default function PedidosPage() {
         tourSlug="pedidos"
         actions={
           <div data-tour="pedidos-filtros" className="flex gap-2 flex-wrap">
-            <select
+            <Select
               data-tour="pedidos-filtro-estado"
               value={estado}
-              onChange={(e) => setEstado(e.target.value as PedidoEstado | '')}
-              className="px-3 py-2 border border-line rounded-xl bg-white text-sm"
+              onChange={(v) => setEstado(v as PedidoEstado | '')}
+              className="text-sm"
+              aria-label="Filtrar por estado del pedido"
             >
               {ESTADOS.map((e) => <option key={e.value} value={e.value}>{e.label}</option>)}
-            </select>
-            <select
+            </Select>
+            <Select
               value={trashed}
-              onChange={(e) => setTrashed(e.target.value as '' | 'only' | 'with')}
-              className="px-3 py-2 border border-line rounded-xl bg-white text-sm"
-              title="Filtro de pedidos eliminados"
+              onChange={(v) => setTrashed(v as '' | 'only' | 'with')}
+              className="text-sm"
+              aria-label="Filtro de pedidos eliminados"
             >
               <option value="">Activos</option>
               <option value="with">Activos + eliminados</option>
               <option value="only">Sólo eliminados</option>
-            </select>
+            </Select>
             <Button
               variant="secondary"
               size="sm"

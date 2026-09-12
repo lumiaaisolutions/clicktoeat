@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
 import { Field, Textarea } from '@/components/ui/FormField';
+import { Select } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { cn } from '@/lib/utils';
@@ -64,21 +65,21 @@ export default function ContactarPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="text-sm font-medium block mb-1">Categoría</label>
-            <select value={categoria} onChange={(e) => setCategoria(e.target.value)} className="w-full px-3 py-2 border border-line rounded-xl bg-white">
+            <Select value={categoria} onChange={(v) => setCategoria(v)} className="w-full">
               <option value="soporte">Soporte general</option>
               <option value="bug">Reportar un bug</option>
               <option value="facturacion">Facturación / pago</option>
               <option value="feature">Sugerir mejora</option>
-            </select>
+            </Select>
           </div>
           <div>
             <label className="text-sm font-medium block mb-1">Prioridad</label>
-            <select value={prioridad} onChange={(e) => setPrioridad(e.target.value)} className="w-full px-3 py-2 border border-line rounded-xl bg-white">
+            <Select value={prioridad} onChange={(v) => setPrioridad(v)} className="w-full">
               <option value="baja">Baja</option>
               <option value="media">Media</option>
               <option value="alta">Alta</option>
               <option value="urgente">Urgente</option>
-            </select>
+            </Select>
           </div>
         </div>
         <Textarea label="Cuéntanos qué pasa" value={body} onChange={(e) => setBody(e.target.value)} required maxLength={5000} rows={6} />

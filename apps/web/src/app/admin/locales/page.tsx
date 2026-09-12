@@ -7,6 +7,7 @@ import type { LocalAdmin, Resource } from '@/lib/types';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
 import { Field, Textarea, Switch } from '@/components/ui/FormField';
+import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
@@ -654,14 +655,15 @@ function CreateLocalModal({
         {/* Giro: pre-llena productos placeholder */}
         <div className="mb-3">
           <label className="block text-sm font-medium mb-1">Tipo de local <span className="text-muted text-xs">(opcional, precarga 8 productos)</span></label>
-          <select
+          <Select
             value={giro}
-            onChange={(e) => setGiro(e.target.value)}
-            className="w-full px-3 py-2 border border-line rounded-xl bg-white"
+            onChange={(v) => setGiro(v)}
+            className="w-full"
+            aria-label="Tipo de local"
           >
             <option value="">— Empezar con menú vacío —</option>
             {GIROS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
-          </select>
+          </Select>
           {giro && (
             <p className="text-xs text-muted mt-1">Vamos a crear categorías y 8 productos típicos. Podrás editarlos después.</p>
           )}

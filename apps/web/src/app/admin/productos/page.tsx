@@ -6,6 +6,7 @@ import type { Categoria, ExtraGroup, Ingrediente, Paginated, Producto, Receta, R
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
 import { Field, Textarea, Select, Switch } from '@/components/ui/FormField';
+import { Select as USelect } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
@@ -123,25 +124,24 @@ export default function ProductosPage() {
           onChange={(e) => { setPage(1); setQ(e.target.value); }}
           className="flex-1 min-w-[200px] px-3 py-2 border border-line rounded-xl bg-white"
         />
-        <select
+        <USelect
           data-tour="producto-filtro-categoria"
           value={filterCategoria}
-          onChange={(e) => { setPage(1); setFilterCategoria(e.target.value ? Number(e.target.value) : ''); }}
-          className="px-3 py-2 border border-line rounded-xl bg-white"
+          onChange={(v) => { setPage(1); setFilterCategoria(v ? Number(v) : ''); }}
+          aria-label="Filtrar por categoría"
         >
           <option value="">Agrupar por categoría</option>
           {categorias.map((c) => <option key={c.id} value={c.id}>Solo: {c.nombre}</option>)}
-        </select>
-        <select
+        </USelect>
+        <USelect
           value={trashed}
-          onChange={(e) => { setPage(1); setTrashed(e.target.value as '' | 'only' | 'with'); }}
-          className="px-3 py-2 border border-line rounded-xl bg-white"
-          title="Filtro de productos eliminados"
+          onChange={(v) => { setPage(1); setTrashed(v as '' | 'only' | 'with'); }}
+          aria-label="Filtro de productos eliminados"
         >
           <option value="">Activos</option>
           <option value="with">Activos + eliminados</option>
           <option value="only">Sólo eliminados</option>
-        </select>
+        </USelect>
       </div>
 
       {items === null ? (
@@ -476,15 +476,16 @@ function RecetaModal({
                       <span className="text-[10px] uppercase tracking-wider bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
                         Ingrediente
                       </span>
-                      <select
+                      <USelect
                         value={r.ingrediente_id ?? ''}
-                        onChange={(e) => update(idx, { ingrediente_id: Number(e.target.value) })}
-                        className="flex-1 min-w-[180px] px-2 py-1.5 border border-line rounded-lg bg-white"
+                        onChange={(v) => update(idx, { ingrediente_id: Number(v) })}
+                        className="flex-1 min-w-[180px]"
+                        aria-label="Ingrediente de la receta"
                       >
                         {opciones.map((i) => (
                           <option key={i.id} value={i.id}>{i.nombre} · stock {i.stock} {i.unidad}</option>
                         ))}
-                      </select>
+                      </USelect>
                       <input
                         type="number" step="0.001" min={0.001}
                         value={r.cantidad}
@@ -525,15 +526,16 @@ function RecetaModal({
                       <span className="text-[10px] uppercase tracking-wider bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded">
                         Componente
                       </span>
-                      <select
+                      <USelect
                         value={r.componente_producto_id ?? ''}
-                        onChange={(e) => update(idx, { componente_producto_id: Number(e.target.value) })}
-                        className="flex-1 min-w-[180px] px-2 py-1.5 border border-line rounded-lg bg-white"
+                        onChange={(v) => update(idx, { componente_producto_id: Number(v) })}
+                        className="flex-1 min-w-[180px]"
+                        aria-label="Componente de la receta"
                       >
                         {opciones.map((p) => (
                           <option key={p.id} value={p.id}>{p.nombre}</option>
                         ))}
-                      </select>
+                      </USelect>
                       <input
                         type="number" step="1" min={1}
                         value={r.cantidad}

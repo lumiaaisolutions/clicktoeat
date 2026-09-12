@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import type { Ingrediente, ToppingGroup } from '@/lib/types';
 import { toast } from '@/store/toast';
 import { Field, Switch } from '@/components/ui/FormField';
+import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 import { Wizard } from '@/components/ui/Wizard';
 import { InfoBox } from '@/components/ui/InfoBox';
@@ -231,22 +232,23 @@ export function ToppingModal({
                               }}
                               className="w-20 px-2 py-1.5 rounded-lg border border-line bg-white text-sm text-right tabular-nums"
                             />
-                            <select
+                            <Select
                               value={entrada}
-                              onChange={(e) => updateReceta(i, ri, { _u: e.target.value as Unidad })}
-                              className="px-2 py-1.5 rounded-lg border border-line bg-white text-sm"
-                              title="Unidad de la receta"
+                              onChange={(v) => updateReceta(i, ri, { _u: v as Unidad })}
+                              className="text-sm"
+                              aria-label="Unidad de la receta"
                             >
                               {compat.map((u) => <option key={u} value={u}>{unidadCorta(u)}</option>)}
-                            </select>
+                            </Select>
                             <span className="text-xs text-muted">de</span>
-                            <select
+                            <Select
                               value={rr.ingrediente_id}
-                              onChange={(e) => updateReceta(i, ri, { ingrediente_id: Number(e.target.value), _u: undefined })}
-                              className="flex-1 min-w-[120px] px-2 py-1.5 rounded-lg border border-line bg-white text-sm"
+                              onChange={(v) => updateReceta(i, ri, { ingrediente_id: Number(v), _u: undefined })}
+                              className="flex-1 min-w-[120px] text-sm"
+                              aria-label="Ingrediente de la receta"
                             >
                               {opciones.map((x) => <option key={x.id} value={x.id}>{x.nombre}</option>)}
-                            </select>
+                            </Select>
                             <button type="button" onClick={() => removeReceta(i, ri)} className="text-red-500 hover:bg-red-50 rounded-lg w-7 h-7 grid place-items-center shrink-0" title="Quitar ingrediente">
                               <Icon name="x" size={11} />
                             </button>

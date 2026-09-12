@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import type { Categoria, ExtraGroup, Ingrediente, Producto, Receta, ToppingGroup } from '@/lib/types';
 import { toast } from '@/store/toast';
 import { Field, Textarea, Select, Switch } from '@/components/ui/FormField';
+import { Select as USelect } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 import { Icon } from '@/components/ui/Icon';
 import { ImageUpload } from '@/components/admin/ImageUpload';
@@ -324,13 +325,14 @@ function InventarioStep({
             return (
               <li key={i}>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <select
+                  <USelect
                     value={l.ingrediente_id ?? ''}
-                    onChange={(e) => update(i, { ingrediente_id: Number(e.target.value), _u: undefined })}
-                    className="flex-1 min-w-[150px] px-3 py-2 border border-line rounded-xl bg-white text-sm"
+                    onChange={(v) => update(i, { ingrediente_id: Number(v), _u: undefined })}
+                    className="flex-1 min-w-[150px] text-sm"
+                    aria-label="Ingrediente de la receta"
                   >
                     {opciones.map((x) => <option key={x.id} value={x.id}>{x.nombre}</option>)}
-                  </select>
+                  </USelect>
                   <input
                     type="number" step="any" min={0}
                     value={display}
@@ -341,14 +343,14 @@ function InventarioStep({
                     className="w-20 px-3 py-2 border border-line rounded-xl bg-white text-right tabular-nums"
                     aria-label="Cantidad por platillo"
                   />
-                  <select
+                  <USelect
                     value={entrada}
-                    onChange={(e) => update(i, { _u: e.target.value as Unidad })}
-                    className="px-2 py-2 border border-line rounded-xl bg-white text-sm"
-                    title="Unidad de la receta"
+                    onChange={(v) => update(i, { _u: v as Unidad })}
+                    className="text-sm"
+                    aria-label="Unidad de la receta"
                   >
                     {compat.map((u) => <option key={u} value={u}>{unidadCorta(u)}</option>)}
-                  </select>
+                  </USelect>
                   <button type="button" onClick={() => remove(i)} className="text-red-500 hover:bg-red-50 rounded-lg w-8 h-8 grid place-items-center shrink-0" title="Quitar">
                     <Icon name="x" size={13} />
                   </button>
@@ -437,15 +439,15 @@ function ExtrasEditor({ value, onChange }: { value: ExtraGroup[]; onChange: (v: 
                   className="px-3 py-2 rounded-xl border border-line bg-white text-sm font-semibold"
                   maxLength={40}
                 />
-                <select
+                <USelect
                   value={g.kind}
-                  onChange={(e) => updateGroup(gi, { kind: e.target.value as 'one' | 'many' })}
-                  className="px-2 py-2 rounded-xl border border-line bg-white text-xs"
-                  title="¿Cuántas opciones puede elegir el cliente?"
+                  onChange={(v) => updateGroup(gi, { kind: v as 'one' | 'many' })}
+                  className="text-xs"
+                  aria-label="¿Cuántas opciones puede elegir el cliente?"
                 >
                   <option value="many">Puede elegir varias</option>
                   <option value="one">Solo puede elegir una</option>
-                </select>
+                </USelect>
                 <label className="text-xs text-muted inline-flex items-center gap-1.5 px-2" title="El cliente está obligado a elegir una opción de este grupo">
                   <input
                     type="checkbox"

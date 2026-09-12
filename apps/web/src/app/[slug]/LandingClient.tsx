@@ -8,6 +8,7 @@ import { buildWhatsAppUrl } from '@/lib/whatsapp';
 import { cn, formatMXN } from '@/lib/utils';
 import type { MenuResponse, MenuProducto } from '@/lib/api';
 import { Icon, type IconName } from '@/components/ui/Icon';
+import { Select } from '@/components/ui/Select';
 import { LumiaBadge } from '@/components/ui/LumiaBadge';
 import { ReviewsSection } from '@/components/landing/ReviewsSection';
 import { CuponDestacadoBanner } from '@/components/landing/CuponDestacadoBanner';
@@ -1583,18 +1584,18 @@ function CheckoutSheet({
                   <label className="block text-[12.5px] font-bold mb-1.5" style={{ color: 'var(--ce-muted)' }}>
                     Método de pago
                   </label>
-                  <select
-                    className={inputCls}
-                    style={{ borderColor: 'rgba(35,25,15,0.08)' }}
+                  <Select
                     value={pago}
-                    onChange={(e) => setPago(e.target.value as any)}
+                    onChange={(v) => setPago(v as any)}
+                    accent="var(--ce-accent)"
+                    aria-label="Método de pago"
                   >
                     {(local.metodosPago ?? ['efectivo', 'tarjeta_entrega', 'transferencia']).map((m) => (
                       <option key={m} value={m}>
                         {m === 'efectivo' ? 'Efectivo' : m === 'tarjeta_entrega' ? 'Tarjeta a la entrega' : 'Transferencia / SPEI'}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 <div>

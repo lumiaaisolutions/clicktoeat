@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
 import { Field, Select } from '@/components/ui/FormField';
+import { Select as USelect } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
@@ -212,11 +213,11 @@ export default function CajaPage() {
                     ))}
                   </ul>
                   <div className="flex gap-2 flex-wrap items-end">
-                    <select value={movTipo} onChange={(e) => setMovTipo(e.target.value as any)} className="border border-line rounded-xl px-3 py-2 text-sm">
+                    <USelect value={movTipo} onChange={(v) => setMovTipo(v as any)} className="text-sm" aria-label="Tipo de movimiento de caja">
                       <option value="fondo">Fondo</option>
                       <option value="retiro">Retiro</option>
                       <option value="vale">Vale</option>
-                    </select>
+                    </USelect>
                     <input placeholder="Monto" value={movMonto} onChange={(e) => setMovMonto(e.target.value)} className="border border-line rounded-xl px-3 py-2 text-sm w-24" />
                     <input placeholder="Motivo (opcional)" value={movMotivo} onChange={(e) => setMovMotivo(e.target.value)} className="border border-line rounded-xl px-3 py-2 text-sm flex-1 min-w-[140px]" />
                     <Button size="sm" onClick={agregarMovimiento}>Agregar</Button>
@@ -419,13 +420,14 @@ function CobrarCuentaModal({
             onChange={(e) => setPagos((prev) => prev.map((pp, idx) => (idx === i ? { ...pp, monto: e.target.value } : pp)))}
             className="border border-line rounded-xl px-3 py-2 text-sm w-28"
           />
-          <select
+          <USelect
             value={p.metodo_pago}
-            onChange={(e) => setPagos((prev) => prev.map((pp, idx) => (idx === i ? { ...pp, metodo_pago: e.target.value as any } : pp)))}
-            className="border border-line rounded-xl px-3 py-2 text-sm flex-1"
+            onChange={(v) => setPagos((prev) => prev.map((pp, idx) => (idx === i ? { ...pp, metodo_pago: v as any } : pp)))}
+            className="text-sm flex-1"
+            aria-label="Método de pago"
           >
             {METODOS.map((m) => <option key={m} value={m}>{m}</option>)}
-          </select>
+          </USelect>
           {pagos.length > 1 && (
             <Button size="sm" variant="ghost" onClick={() => setPagos((prev) => prev.filter((_, idx) => idx !== i))}><Icon name="x" size={14} /></Button>
           )}

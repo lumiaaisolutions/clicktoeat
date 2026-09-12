@@ -6,6 +6,7 @@ import type { Categoria, LocalAdmin, Paginated, Pedido, Producto, Resource } fro
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
+import { Select } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
 import { cn, formatMXN } from '@/lib/utils';
@@ -105,17 +106,17 @@ export default function PuntoVentaPage() {
           />
           {/* Dropdown de categorías — alternativa al chips para acceso rápido
               al filtrar por categoría especialmente en mobile/menús largos. */}
-          <select
+          <Select
             value={activeCat ?? ''}
-            onChange={(e) => setActiveCat(e.target.value === '' ? null : Number(e.target.value))}
-            className="px-3 py-2 border border-line rounded-xl bg-white text-sm min-h-[44px] sm:min-h-0"
+            onChange={(v) => setActiveCat(v === '' ? null : Number(v))}
+            className="text-sm"
             aria-label="Filtrar por categoría"
           >
             <option value="">Todas las categorías</option>
             {categorias.map((c) => (
               <option key={c.id} value={c.id}>{c.nombre}</option>
             ))}
-          </select>
+          </Select>
         </header>
 
         <div className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 border-b border-line bg-white overflow-x-auto whitespace-nowrap flex gap-2 no-scrollbar">
@@ -411,14 +412,15 @@ function CheckoutModal({
       {mesasLibres.length > 0 && (
         <div className="mb-4">
           <label className="block text-sm font-medium mb-1">Asignar a mesa (opcional)</label>
-          <select
+          <Select
             value={mesaId ?? ''}
-            onChange={(e) => setMesaId(e.target.value ? Number(e.target.value) : null)}
-            className="w-full px-3 py-2 border border-line rounded-xl"
+            onChange={(v) => setMesaId(v ? Number(v) : null)}
+            className="w-full"
+            aria-label="Asignar a mesa"
           >
             <option value="">Mostrador (para llevar)</option>
             {mesasLibres.map((m) => <option key={m.id} value={m.id}>{m.etiqueta}</option>)}
-          </select>
+          </Select>
         </div>
       )}
 

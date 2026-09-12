@@ -5,6 +5,7 @@ import { api, downloadFile } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
 import { Field, Select, Switch, Textarea } from '@/components/ui/FormField';
+import { Select as USelect } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 import { InfoBox } from '@/components/ui/InfoBox';
 import { Wizard } from '@/components/ui/Wizard';
@@ -251,14 +252,14 @@ function ResumenCard({
             </>
           )}
         </div>
-        <select
+        <USelect
           value={mes}
-          onChange={(e) => onMesChange(e.target.value)}
+          onChange={(v) => onMesChange(v)}
           aria-label="Mes a consultar"
-          className="px-3 py-2 min-h-[40px] border border-line rounded-xl bg-white outline-none transition text-sm focus:border-ink/60 focus:ring-2 focus:ring-ink/10 capitalize"
+          className="text-sm capitalize"
         >
           {opcionesMes.map((o) => <option key={o.value} value={o.value} className="capitalize">{o.label}</option>)}
-        </select>
+        </USelect>
       </div>
 
       {/* Barras horizontales por categoría */}

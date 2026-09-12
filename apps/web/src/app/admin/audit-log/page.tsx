@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import type { AuditLog, Paginated } from '@/lib/types';
 import { toast } from '@/store/toast';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { Select } from '@/components/ui/Select';
 import { Icon } from '@/components/ui/Icon';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 
@@ -75,23 +76,25 @@ export default function AuditLogPage() {
 
       {/* Filtros */}
       <div className="rounded-2xl border border-line bg-white p-4 mb-4 grid grid-cols-1 md:grid-cols-4 gap-3">
-        <select
+        <Select
           value={filters.resource_type}
-          onChange={(e) => resetFilter('resource_type', e.target.value)}
-          className="px-3 py-2 border border-line rounded-xl text-sm"
+          onChange={(v) => resetFilter('resource_type', v)}
+          className="text-sm"
+          aria-label="Filtrar por tipo de recurso"
         >
           <option value="">Todos los recursos</option>
           {RESOURCE_TYPES.map((r) => <option key={r} value={r}>{r}</option>)}
-        </select>
+        </Select>
 
-        <select
+        <Select
           value={filters.action}
-          onChange={(e) => resetFilter('action', e.target.value)}
-          className="px-3 py-2 border border-line rounded-xl text-sm"
+          onChange={(v) => resetFilter('action', v)}
+          className="text-sm"
+          aria-label="Filtrar por acción"
         >
           <option value="">Todas las acciones</option>
           {ACTIONS.map((a) => <option key={a} value={a}>{ACTION_LABEL[a]}</option>)}
-        </select>
+        </Select>
 
         <input
           type="date"

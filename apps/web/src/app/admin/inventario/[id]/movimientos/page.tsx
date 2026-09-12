@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { Ingrediente, MovimientoInventario, Paginated, Resource } from '@/lib/types';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 
@@ -74,14 +75,14 @@ export default function MovimientosPage() {
       </header>
 
       <div className="flex gap-2 mb-4 flex-wrap text-sm">
-        <select value={tipo} onChange={(e) => { setPage(1); setTipo(e.target.value as TipoFilter); }}
-          className="px-3 py-2 border border-line rounded-xl bg-white">
+        <Select value={tipo} onChange={(v) => { setPage(1); setTipo(v as TipoFilter); }}
+          aria-label="Filtrar por tipo de movimiento">
           <option value="">Todos los tipos</option>
           <option value="entrada">Entradas</option>
           <option value="salida">Salidas</option>
           <option value="ajuste">Ajustes</option>
           <option value="merma">Mermas</option>
-        </select>
+        </Select>
         <input type="date" value={desde} onChange={(e) => { setPage(1); setDesde(e.target.value); }}
           className="px-3 py-2 border border-line rounded-xl bg-white" />
         <input type="date" value={hasta} onChange={(e) => { setPage(1); setHasta(e.target.value); }}

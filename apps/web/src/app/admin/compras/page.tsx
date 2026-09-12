@@ -8,6 +8,7 @@ import { unidadCorta } from '@/lib/unidades';
 import { Button } from '@/components/ui/Button';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Field, Textarea } from '@/components/ui/FormField';
+import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
@@ -82,15 +83,16 @@ export default function ComprasPage() {
       />
 
       <div className="flex gap-2 mb-4 flex-wrap">
-        <select
+        <Select
           value={estado}
-          onChange={(e) => { setPage(1); setEstado(e.target.value as EstadoFilter); }}
-          className="px-3 py-2 border border-line rounded-xl bg-white text-sm"
+          onChange={(v) => { setPage(1); setEstado(v as EstadoFilter); }}
+          className="text-sm"
+          aria-label="Filtrar por estado de compra"
         >
           <option value="todos">Todas</option>
           <option value="registrada">Registradas</option>
           <option value="anulada">Anuladas</option>
-        </select>
+        </Select>
       </div>
 
       {items === null ? (
@@ -318,14 +320,15 @@ function CompraModal({
               return (
                 <li key={idx} className="p-3">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <select
+                    <Select
                       value={l.ingrediente_id ?? ''}
-                      onChange={(e) => {
-                        const id = Number(e.target.value);
+                      onChange={(v) => {
+                        const id = Number(v);
                         const found = ingMap.get(id);
                         updateLinea(idx, { ingrediente_id: id, costo_unitario: l.costo_unitario || (found?.costo_unitario ?? 0) });
                       }}
-                      className="flex-1 min-w-[180px] px-2 py-1.5 border border-line rounded-lg bg-white"
+                      className="flex-1 min-w-[180px]"
+                      aria-label="Ingrediente de la compra"
                     >
                       <option value="">Selecciona…</option>
                       {ingredientes.map((i) => (
@@ -333,7 +336,7 @@ function CompraModal({
                           {i.nombre} ({unidadCorta(i.unidad)}) · stock {i.stock}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                     <input
                       type="number" step="0.001" min={0.001}
                       value={l.cantidad}

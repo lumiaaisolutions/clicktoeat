@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
 import { Field } from '@/components/ui/FormField';
+import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
@@ -294,16 +295,17 @@ export default function MesasPage() {
             {detalle.cuenta && (
               <div className="flex gap-2 items-center flex-wrap">
                 <span className="text-xs text-muted">Transferir a:</span>
-                <select
-                  className="border border-line rounded-lg px-2 py-1 text-sm"
-                  defaultValue=""
-                  onChange={(ev) => { const v = Number(ev.target.value); if (v) transferirCuenta(detalle.cuenta!.id, v, detalle.id); }}
+                <Select
+                  className="text-sm"
+                  value=""
+                  aria-label="Transferir cuenta a mesa libre"
+                  onChange={(val) => { const v = Number(val); if (v) transferirCuenta(detalle.cuenta!.id, v, detalle.id); }}
                 >
                   <option value="" disabled>Elegir mesa libre…</option>
                   {(mesas ?? []).filter((m) => m.estado === 'libre' && m.id !== detalle.id).map((m) => (
                     <option key={m.id} value={m.id}>{m.etiqueta}</option>
                   ))}
-                </select>
+                </Select>
               </div>
             )}
 
@@ -527,14 +529,15 @@ function MesaModal({
         <Field label="Etiqueta" value={etiqueta} onChange={(e) => setEtiqueta(e.target.value)} required error={errors.etiqueta} placeholder="Mesa 5" />
         <label className="block mb-3">
           <span className="block text-sm font-medium mb-1">Piso</span>
-          <select
-            className="w-full px-3 py-2.5 md:py-2 min-h-[44px] md:min-h-0 border border-line rounded-xl bg-white text-base md:text-sm"
+          <Select
+            className="w-full"
             value={selectedPisoId ?? ''}
-            onChange={(e) => setSelectedPisoId(e.target.value ? Number(e.target.value) : null)}
+            aria-label="Piso"
+            onChange={(v) => setSelectedPisoId(v ? Number(v) : null)}
           >
             <option value="">Sin piso</option>
             {pisos.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-          </select>
+          </Select>
         </label>
         <div className="flex justify-end gap-2 pt-3 border-t border-line">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
