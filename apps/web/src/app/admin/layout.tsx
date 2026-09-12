@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useAuth } from '@/store/auth';
 import { usePlan } from '@/store/plan';
 import { useLivePedidos } from '@/store/livePedidos';
@@ -284,10 +284,11 @@ function SidebarHeader({ rol, showBell, isSuper }: { rol: string; showBell: bool
   );
 }
 
-function NavLinks({ items, pathname, dense = false }: { items: NavEntry[]; pathname: string; dense?: boolean }) {
+function NavLinks({ items, pathname, dense = false, instanceId = 'd' }: { items: NavEntry[]; pathname: string; dense?: boolean; instanceId?: string }) {
   const has    = usePlan((s) => s.has);
   const unread = useLivePedidos((s) => s.unread);
   const showUpgrade = useUpgradeModal((s) => s.show);
+  const reduce = useReducedMotion();
   return (
     <nav className="flex-1 py-3 px-2 overflow-y-auto scroll-fine space-y-0.5">
       {items.map((entry, idx) => {
@@ -326,21 +327,33 @@ function NavLinks({ items, pathname, dense = false }: { items: NavEntry[]; pathn
             href={locked ? '#' : item.href}
             onClick={handleLockedClick}
             data-tour={`sidebar-${item.href.replace('/admin', '').replace('/', '') || 'inicio'}`}
+            aria-current={active ? 'page' : undefined}
             className={cn(
-              'group flex items-center gap-3 rounded-lg transition relative',
+              'group flex items-center gap-3 rounded-xl transition-colors relative isolate',
               dense ? 'px-3 py-2.5 text-base' : 'px-3 py-2 text-sm',
               active
-                ? 'bg-ink text-white font-semibold shadow-soft'
-                : 'text-ink/70 hover:bg-line/40 hover:text-ink font-medium',
+                ? 'text-ink font-semibold'
+                : 'text-ink/65 hover:text-ink font-medium hover:bg-[color:var(--ce-accent,#F26A1F)]/8',
               locked && !active && 'opacity-60 cursor-pointer',
             )}
             title={locked ? `Mejora a plan ${item.requiredPlan === 'premium' ? 'Premium' : 'Profesional'} para desbloquear` : undefined}
           >
+            {active && (
+              <motion.span
+                layoutId={`nav-active-${instanceId}`}
+                transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 480, damping: 38, mass: 0.7 }}
+                className="absolute inset-0 -z-10 rounded-xl"
+                style={{
+                  background: 'linear-gradient(90deg, color-mix(in srgb, var(--ce-accent,#F26A1F) 16%, white), color-mix(in srgb, var(--ce-accent,#F26A1F) 7%, white))',
+                  boxShadow: 'inset 3px 0 0 var(--ce-accent,#F26A1F)',
+                }}
+              />
+            )}
             <Icon
               name={item.icon}
               className={cn(
-                'shrink-0 transition-opacity',
-                active ? 'opacity-100' : 'opacity-70 group-hover:opacity-100',
+                'shrink-0 transition-all group-hover:scale-105',
+                active ? 'opacity-100 text-[color:var(--ce-accent,#F26A1F)]' : 'opacity-70 group-hover:opacity-100',
               )}
             />
             <span className="truncate flex-1">{item.label}</span>
@@ -353,10 +366,7 @@ function NavLinks({ items, pathname, dense = false }: { items: NavEntry[]; pathn
               </span>
             )}
             {locked && (
-              <Icon
-                name="lock"
-                className={cn('shrink-0 opacity-60', active ? 'text-white' : 'text-muted')}
-              />
+              <Icon name="lock" className="shrink-0 opacity-60 text-muted" />
             )}
           </Link>
         );
@@ -431,7 +441,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-screen bg-bg md:flex">
       {/* ─── SIDEBAR DESKTOP ─────────────────────────────────────── */}
-      <aside className="hidden md:flex w-60 shrink-0 border-r border-line bg-white flex-col h-screen sticky top-0">
+      <aside className="hidden md:flex w-60 shrink-0 border-r border-line bg-gradient-to-b from-[#FFFBF7] via-white to-white flex-col h-screen sticky top-0">
         <SidebarHeader rol={user.rol} showBell={true} isSuper={user.rol === 'super_admin'} />
         <NavLinks items={nav} pathname={pathname ?? ''} />
         <UserCard user={user} onLogout={() => logout().then(() => router.push('/'))} />
@@ -446,7 +456,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {user.rol !== 'super_admin' && <TrialBanner />}
 
         {/* TOPBAR MÓVIL con hamburger */}
-        <header className="md:hidden flex items-center justify-between gap-2 px-3 py-2.5 border-b border-line bg-white sticky top-0 z-30">
+        <header className="md:hidden flex items-center justify-between gap-2 px-3 py-2.5 border-b border-line bg-white/85 backdrop-blur-md supports-[backdrop-filter]:bg-white/70 sticky top-0 z-30">
           <button
             onClick={() => setDrawerOpen(true)}
             aria-label="Abrir menú"
@@ -496,7 +506,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <UiIcon name="x" size={18} />
                   </button>
                 </div>
-                <NavLinks items={nav} pathname={pathname ?? ''} dense />
+                <NavLinks items={nav} pathname={pathname ?? ''} dense instanceId="m" />
                 <UserCard user={user} onLogout={() => logout().then(() => router.push('/'))} />
               </motion.aside>
             </div>

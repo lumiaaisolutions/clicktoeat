@@ -108,3 +108,15 @@ Patrón optimista no implementado. Cada mutación:
 - Audit log para que el owner vea cambios hechos por staff.
 - Dark mode real.
 - Test cobertura cero hoy — agregar Playwright o similar.
+
+## Elevación del shell del panel (sept 2026)
+
+Sidebar (`app/admin/layout.tsx` → `NavLinks`): el ítem activo pasó de un pill
+negro a un **indicador cálido que se desliza** entre ítems (`motion.span` con
+`layoutId="nav-active-<instanceId>"`, spring; `instanceId` 'd' desktop / 'm'
+drawer para no colisionar). Fondo tinte naranja (`color-mix` con `--ce-accent`)
++ barra izquierda de acento (`inset box-shadow`) + ícono en color de acento.
+Hover no-activo: tinte naranja suave + ícono con micro-escala. Respeta
+`useReducedMotion` (transición 0). Sidebar con calidez sutil
+(`from-[#FFFBF7]`), topbar móvil con glass (`backdrop-blur`). Accesible:
+`aria-current="page"` en el activo.
