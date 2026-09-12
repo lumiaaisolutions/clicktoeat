@@ -8,6 +8,7 @@ import { toast } from '@/store/toast';
 import { unidadCorta } from '@/lib/unidades';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Button } from '@/components/ui/Button';
+import { EditButton, DeleteButton, CreateButton } from '@/components/ui/actions';
 import { Field, Select, Switch } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
 import { InfoBox } from '@/components/ui/InfoBox';
@@ -33,8 +34,8 @@ export default function InventarioPage() {
 
   useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [filterBajo]);
 
+  // El botón "Borrar" (hold-to-delete) ES la confirmación — sin confirm() nativo.
   const handleDelete = async (i: Ingrediente) => {
-    if (!confirm(`¿Eliminar "${i.nombre}"?`)) return;
     try {
       await api.delete(`/ingredientes/${i.id}`);
       toast.success('Ingrediente eliminado');
@@ -80,7 +81,7 @@ export default function InventarioPage() {
             >
               Exportar CSV
             </Button>
-            <Button data-tour="inventario-nuevo" onClick={() => setCreating(true)}>+ Ingrediente</Button>
+            <CreateButton data-tour="inventario-nuevo" onClick={() => setCreating(true)} label="Ingrediente" />
           </div>
         }
       />
@@ -129,8 +130,8 @@ export default function InventarioPage() {
                     Historial
                   </Link>
                   <button onClick={() => setAjusting(i)} className="text-center text-xs py-2 rounded-lg hover:bg-line/40">Ajustar</button>
-                  <button onClick={() => setEditing(i)} className="text-center text-xs py-2 rounded-lg hover:bg-line/40">Editar</button>
-                  <button onClick={() => handleDelete(i)} className="text-center text-xs py-2 rounded-lg hover:bg-line/40 text-red-600">Borrar</button>
+                  <div className="grid place-items-center"><EditButton onClick={() => setEditing(i)} /></div>
+                  <div className="grid place-items-center"><DeleteButton compact onDelete={() => handleDelete(i)} /></div>
                 </div>
               </div>
             ))}
@@ -171,16 +172,18 @@ export default function InventarioPage() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <div className="inline-flex items-center gap-1.5 justify-end">
                       <Link
                         data-tour="inventario-historial"
                         href={`/admin/inventario/${i.id}/movimientos`}
-                        className="inline-flex items-center justify-center px-3 h-8 text-sm rounded-lg hover:bg-line/40"
+                        className="inline-flex items-center justify-center px-3 h-9 text-sm rounded-lg hover:bg-line/40"
                       >
                         Historial
                       </Link>
                       <Button data-tour="inventario-ajustar" variant="ghost" size="sm" onClick={() => setAjusting(i)}>Ajustar</Button>
-                      <Button data-tour="inventario-editar" variant="ghost" size="sm" onClick={() => setEditing(i)}>Editar</Button>
-                      <Button data-tour="inventario-borrar" variant="ghost" size="sm" onClick={() => handleDelete(i)}>Borrar</Button>
+                      <EditButton data-tour="inventario-editar" onClick={() => setEditing(i)} />
+                      <DeleteButton data-tour="inventario-borrar" compact onDelete={() => handleDelete(i)} />
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -10,6 +10,7 @@ import { useAuth } from '@/store/auth';
 import { usePlan } from '@/store/plan';
 import { useLivePedidos } from '@/store/livePedidos';
 import { Toaster } from '@/components/ui/Toaster';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { NotificacionesBell } from '@/components/admin/NotificacionesBell';
 import { SuperAdminBell } from '@/components/admin/SuperAdminBell';
 import { LivePedidosPoller } from '@/components/admin/LivePedidosPoller';
@@ -518,6 +519,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         <Toaster />
+        <ConfirmDialog />
       </main>
 
       {/* F85 — búsqueda global Cmd+K, montada para todo el panel */}
