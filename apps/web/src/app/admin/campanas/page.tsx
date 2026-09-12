@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { CreateButton, DeleteButton } from '@/components/ui/actions';
+import { confirmAction } from '@/store/confirm';
 import { Field, Textarea } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -31,7 +33,11 @@ export default function CampanasPage() {
   useEffect(() => { refresh(); }, []);
 
   const enviar = async (c: Campana) => {
-    if (!confirm(`¿Enviar "${c.nombre}" a todos tus clientes con email registrado?`)) return;
+    if (!(await confirmAction({
+      title: 'Enviar campaña',
+      message: `¿Enviar "${c.nombre}" a todos tus clientes con email registrado?`,
+      confirmLabel: 'Enviar',
+    }))) return;
     try {
       const { data } = await api.post(`/campanas/${c.id}/enviar`);
       toast.success(`Enviada a ${data.data.destinatarios_count} clientes`);
@@ -42,7 +48,6 @@ export default function CampanasPage() {
   };
 
   const remove = async (c: Campana) => {
-    if (!confirm(`¿Eliminar "${c.nombre}"?`)) return;
     try { await api.delete(`/campanas/${c.id}`); refresh(); } catch { toast.error('No se pudo eliminar'); }
   };
 
@@ -52,7 +57,7 @@ export default function CampanasPage() {
         kicker="Crecimiento" kickerIcon="message-circle"
         title="Campañas" titleAccent="para tu base de clientes."
         description="v1: sólo envío por email, a todos los clientes que dejaron su correo en algún pedido."
-        actions={<Button onClick={() => setCreating(true)}>+ Nueva campaña</Button>}
+        actions={<CreateButton onClick={() => setCreating(true)} label="Campaña" />}
       />
 
       {items === null ? (
@@ -76,10 +81,10 @@ export default function CampanasPage() {
                   </p>
                 </div>
                 {!c.enviada_at && (
-                  <>
+                  <div className="inline-flex items-center gap-1.5 justify-end">
                     <Button size="sm" onClick={() => enviar(c)}>Enviar</Button>
-                    <Button size="sm" variant="ghost" onClick={() => remove(c)}>Borrar</Button>
-                  </>
+                    <DeleteButton compact onDelete={() => remove(c)} />
+                  </div>
                 )}
               </li>
             ))}

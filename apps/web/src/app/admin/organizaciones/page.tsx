@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { CreateButton } from '@/components/ui/actions';
+import { confirmAction } from '@/store/confirm';
 import { Field } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -39,7 +41,11 @@ export default function OrganizacionesPage() {
   useEffect(() => { refresh(); }, []);
 
   const desasignar = async (org: Organization, local: Local) => {
-    if (!confirm(`¿Quitar "${local.nombre}" de "${org.nombre}"?`)) return;
+    if (!(await confirmAction({
+      title: `¿Quitar "${local.nombre}" de "${org.nombre}"?`,
+      confirmLabel: 'Quitar',
+      tone: 'danger',
+    }))) return;
     try {
       await api.delete(`/admin/organizations/${org.id}/locales/${local.id}`);
       refresh();
@@ -54,7 +60,7 @@ export default function OrganizacionesPage() {
         kicker="Negocios" kickerIcon="store"
         title="Organizaciones" titleAccent="sucursales consolidadas."
         description="Agrupa varios Locales de un mismo dueño para que vean un reporte de cadena consolidado (/admin/cadena)."
-        actions={<Button onClick={() => setCreating(true)}>+ Nueva organización</Button>}
+        actions={<CreateButton onClick={() => setCreating(true)} label="Nueva organización" />}
       />
 
       {items === null ? (
@@ -75,7 +81,7 @@ export default function OrganizacionesPage() {
                   <p className="ce-display font-bold">{org.nombre}</p>
                   <p className="text-xs text-muted">Dueño: user #{org.owner_user_id}</p>
                 </div>
-                <Button size="sm" onClick={() => setAsignandoA(org)}>+ Asignar local</Button>
+                <CreateButton onClick={() => setAsignandoA(org)} label="Asignar local" className="px-3 py-2 text-xs" />
               </div>
               {org.locales.length === 0 ? (
                 <p className="text-sm text-muted">Sin sucursales asignadas.</p>

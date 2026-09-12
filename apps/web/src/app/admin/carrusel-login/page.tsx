@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { CreateButton, EditButton, DeleteButton } from '@/components/ui/actions';
 import { Field, Textarea, Switch } from '@/components/ui/FormField';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
@@ -33,7 +34,6 @@ export default function CarruselLoginPage() {
   useEffect(refresh, []);
 
   const del = async (s: Slide) => {
-    if (!confirm('¿Borrar este slide del carrusel?')) return;
     await api.delete(`/admin/auth-carousel/${s.id}`);
     refresh();
     toast.success('Eliminado');
@@ -47,7 +47,7 @@ export default function CarruselLoginPage() {
         title="Personaliza el"
         titleAccent="login y registro."
         description="Estos slides aparecen a la derecha de la pantalla de inicio de sesión y de registro, en toda la plataforma. Si no hay ninguno activo, se muestran los mensajes por defecto."
-        actions={<Button onClick={() => setCreating(true)}><Icon name="plus" size={14} className="mr-1.5" />Nuevo slide</Button>}
+        actions={<CreateButton onClick={() => setCreating(true)} label="Slide" />}
       />
 
       {!items ? (
@@ -76,9 +76,9 @@ export default function CarruselLoginPage() {
                 <p className="text-sm font-medium truncate">“{s.quote}”</p>
                 <p className="text-xs text-muted">{[s.source, s.role].filter(Boolean).join(' · ')}</p>
               </div>
-              <div className="flex gap-1 shrink-0">
-                <button onClick={() => setOpen(s)} className="px-3 h-9 rounded-lg text-sm font-medium hover:bg-line/50">Editar</button>
-                <button onClick={() => del(s)} className="px-3 h-9 rounded-lg text-sm font-medium hover:bg-red-50 text-red-600">Borrar</button>
+              <div className="inline-flex items-center gap-1.5 justify-end shrink-0">
+                <EditButton onClick={() => setOpen(s)} />
+                <DeleteButton compact onDelete={() => del(s)} />
               </div>
             </li>
           ))}

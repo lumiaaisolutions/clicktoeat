@@ -6,6 +6,7 @@ import { TOURS } from '@/components/help/tours';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { soporteWhatsappUrl } from '@/lib/support';
+import { confirmAction } from '@/store/confirm';
 import { cn } from '@/lib/utils';
 
 interface HelpCard {
@@ -45,8 +46,12 @@ export default function AyudaPage() {
 
   const hayVistos = seen.size > 0;
 
-  const reiniciarTodos = () => {
-    if (!confirm('¿Quitar el marcador de "visto" de todos los tutoriales? Los tours volverán a aparecer automáticamente al entrar a cada módulo por primera vez.')) return;
+  const reiniciarTodos = async () => {
+    if (!(await confirmAction({
+      title: '¿Volver a ver todos los tutoriales?',
+      message: 'Se quitará el marcador de "visto" y los tours volverán a aparecer automáticamente al entrar a cada módulo por primera vez.',
+      confirmLabel: 'Sí, reiniciar',
+    }))) return;
     resetAll();
   };
 

@@ -6,6 +6,8 @@ import type { Compra, Ingrediente, Paginated, Resource } from '@/lib/types';
 import { toast } from '@/store/toast';
 import { unidadCorta } from '@/lib/unidades';
 import { Button } from '@/components/ui/Button';
+import { CreateButton, ViewButton } from '@/components/ui/actions';
+import { confirmAction } from '@/store/confirm';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Field, Textarea } from '@/components/ui/FormField';
 import { Select } from '@/components/ui/Select';
@@ -52,7 +54,7 @@ export default function ComprasPage() {
   };
 
   const anular = async (c: Compra) => {
-    if (!confirm(`¿Anular compra ${c.codigo}? Se revertirá el stock.`)) return;
+    if (!(await confirmAction({ title: 'Anular compra', message: `¿Anular compra ${c.codigo}? Se revertirá el stock.`, confirmLabel: 'Anular', tone: 'danger' }))) return;
     try {
       await api.delete(`/compras/${c.id}`);
       toast.success(`Compra ${c.codigo} anulada`);
@@ -79,7 +81,7 @@ export default function ComprasPage() {
         titleAccent="a tu proveedor."
         description="Registra lo que recibes. Tu inventario y tu costo unitario se actualizan solos."
         tourSlug="compras"
-        actions={<Button onClick={() => setCreating(true)}>+ Nueva compra</Button>}
+        actions={<CreateButton onClick={() => setCreating(true)} label="Nueva compra" />}
       />
 
       <div className="flex gap-2 mb-4 flex-wrap">
@@ -128,11 +130,11 @@ export default function ComprasPage() {
                   <span className="text-xs text-muted">{new Date(c.fecha).toLocaleDateString('es-MX')}</span>
                   <span className="ce-display font-bold text-xl">{formatMXN(c.total)}</span>
                 </div>
-                <div className="grid grid-cols-2 gap-1 mt-3 pt-3 border-t border-line">
-                  <button onClick={() => setDetalle(c)} className="text-center text-xs py-2 rounded-lg hover:bg-line/40">Ver</button>
-                  {c.estado === 'registrada' ? (
-                    <button onClick={() => anular(c)} className="text-center text-xs py-2 rounded-lg hover:bg-line/40 text-red-600">Anular</button>
-                  ) : <span />}
+                <div className="flex items-center gap-1.5 justify-end mt-3 pt-3 border-t border-line">
+                  <ViewButton onClick={() => setDetalle(c)} />
+                  {c.estado === 'registrada' && (
+                    <button onClick={() => anular(c)} className="inline-flex items-center justify-center px-3 h-9 text-xs rounded-lg hover:bg-line/40 text-red-600">Anular</button>
+                  )}
                 </div>
               </div>
             ))}
@@ -167,10 +169,12 @@ export default function ComprasPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <Button variant="ghost" size="sm" onClick={() => setDetalle(c)}>Ver</Button>
-                      {c.estado === 'registrada' && (
-                        <Button variant="ghost" size="sm" onClick={() => anular(c)}>Anular</Button>
-                      )}
+                      <div className="inline-flex items-center gap-1.5 justify-end">
+                        <ViewButton onClick={() => setDetalle(c)} />
+                        {c.estado === 'registrada' && (
+                          <Button variant="ghost" size="sm" onClick={() => anular(c)}>Anular</Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

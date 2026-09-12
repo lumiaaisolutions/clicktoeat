@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { CreateButton, DeleteButton } from '@/components/ui/actions';
 import { Field } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -48,7 +49,6 @@ export default function ReservacionesPage() {
   };
 
   const remove = async (r: Reservacion) => {
-    if (!confirm(`¿Eliminar la reservación de ${r.cliente_nombre}?`)) return;
     try {
       await api.delete(`/reservaciones/${r.id}`);
       toast.success('Eliminada');
@@ -63,7 +63,7 @@ export default function ReservacionesPage() {
       <AdminPageHeader
         kicker="Salón" kickerIcon="clock"
         title="Reservaciones" titleAccent="de tus clientes."
-        actions={<Button onClick={() => setCreating(true)}>+ Nueva reservación</Button>}
+        actions={<CreateButton onClick={() => setCreating(true)} label="Reservación" />}
       />
 
       {items === null ? (
@@ -93,7 +93,7 @@ export default function ReservacionesPage() {
                 {r.estado !== 'cancelada' && r.estado !== 'cumplida' && (
                   <Button size="sm" variant="ghost" onClick={() => cambiarEstado(r, 'cancelada')}>Cancelar</Button>
                 )}
-                <Button size="sm" variant="ghost" onClick={() => remove(r)}>Borrar</Button>
+                <DeleteButton compact onDelete={() => remove(r)} />
               </li>
             ))}
           </ul>

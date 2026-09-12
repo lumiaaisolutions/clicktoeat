@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { toast } from '@/store/toast';
 import { usePlan, type PlanStatus } from '@/store/plan';
 import { useAuth } from '@/store/auth';
 import { Icon } from '@/components/ui/Icon';
@@ -274,13 +275,13 @@ function UpgradeSection({ currentPlanSlug, tieneStripe }: { currentPlanSlug: str
       const { data } = await api.post<{ session_url?: string; url?: string }>('/billing/activate-existing', { plan_slug: slug });
       const url = data?.session_url ?? data?.url;
       if (!url) {
-        alert('No recibimos URL de pago. Intenta de nuevo en un momento.');
+        toast.error('No recibimos URL de pago. Intenta de nuevo en un momento.');
         setBusy(null);
         return;
       }
       window.location.href = url;
     } catch (err: any) {
-      alert(err?.response?.data?.message ?? 'No pudimos abrir el cambio de plan.');
+      toast.error(err?.response?.data?.message ?? 'No pudimos abrir el cambio de plan.');
       setBusy(null);
     }
   };

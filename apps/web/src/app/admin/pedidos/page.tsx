@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import type { Paginated, Pedido, PedidoEstado, Resource } from '@/lib/types';
 import { toast } from '@/store/toast';
+import { confirmAction } from '@/store/confirm';
 import { Button } from '@/components/ui/Button';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Modal } from '@/components/ui/Modal';
@@ -625,7 +626,7 @@ function PedidoDetalle({
           <div className="flex flex-wrap items-center gap-2 mt-3">
             {puedeCancelar && (
               <button
-                onClick={() => { if (confirm('¿Cancelar este pedido?')) onChange(pedido, 'cancelado'); }}
+                onClick={async () => { if (await confirmAction({ title: '¿Cancelar este pedido?', tone: 'danger', confirmLabel: 'Cancelar pedido' })) onChange(pedido, 'cancelado'); }}
                 className="px-3 py-1.5 rounded-full border border-red-200 text-red-600 text-xs font-semibold hover:bg-red-50 inline-flex items-center gap-1.5"
               >
                 <Icon name="x" size={12} /> Cancelar pedido
@@ -637,7 +638,7 @@ function PedidoDetalle({
                 {retrocesos.map((t) => (
                   <button
                     key={t}
-                    onClick={() => { if (confirm(`¿Regresar a "${ESTADO_LABEL[t]}"?`)) onChange(pedido, t); }}
+                    onClick={async () => { if (await confirmAction({ title: `¿Regresar a "${ESTADO_LABEL[t]}"?`, confirmLabel: 'Regresar' })) onChange(pedido, t); }}
                     className="px-2.5 py-1 rounded-full border border-line text-xs hover:bg-line/40 inline-flex items-center gap-1"
                   >
                     <Icon name="arrow-left" size={11} /> {ESTADO_LABEL[t]}

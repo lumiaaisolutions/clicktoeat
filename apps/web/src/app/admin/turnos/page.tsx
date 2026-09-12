@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { CreateButton, DeleteButton } from '@/components/ui/actions';
 import { Field, Select } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -43,7 +44,6 @@ export default function TurnosPage() {
   useEffect(() => { refresh(); }, []);
 
   const remove = async (s: Shift) => {
-    if (!confirm('¿Eliminar este turno?')) return;
     try { await api.delete(`/staff-shifts/${s.id}`); refresh(); } catch { toast.error('No se pudo eliminar'); }
   };
 
@@ -56,7 +56,7 @@ export default function TurnosPage() {
         kicker="Crecimiento" kickerIcon="users"
         title="Turnos" titleAccent="de tu equipo."
         description="El forecast es un conteo histórico de pedidos por hora/día — no es un modelo predictivo."
-        actions={<Button onClick={() => setCreating(true)}>+ Nuevo turno</Button>}
+        actions={<CreateButton onClick={() => setCreating(true)} label="Turno" />}
       />
 
       {forecast !== null && picosDeVolumen.length > 0 && (
@@ -90,7 +90,7 @@ export default function TurnosPage() {
                     {new Date(s.inicio).toLocaleString('es-MX')} – {new Date(s.fin).toLocaleTimeString('es-MX')}
                   </p>
                 </div>
-                <Button size="sm" variant="ghost" onClick={() => remove(s)}>Borrar</Button>
+                <DeleteButton compact onDelete={() => remove(s)} />
               </li>
             ))}
           </ul>

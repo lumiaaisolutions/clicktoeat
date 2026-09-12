@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { api, downloadFile } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { CreateButton, EditButton, DeleteButton } from '@/components/ui/actions';
+import { confirmAction } from '@/store/confirm';
 import { Field, Select, Switch, Textarea } from '@/components/ui/FormField';
 import { Select as USelect } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
@@ -134,7 +136,7 @@ export default function GastosPage() {
             >
               <Icon name="download" size={14} className="mr-1.5" />CSV
             </Button>
-            <Button onClick={() => setOpen('new')}><Icon name="plus" size={14} className="mr-1.5" />Registrar gasto</Button>
+            <CreateButton onClick={() => setOpen('new')} label="Registrar gasto" />
           </div>
         }
       />
@@ -200,7 +202,7 @@ export default function GastosPage() {
                   </div>
                   {g.notas && <p className="text-xs text-ink/70 mt-1 line-clamp-2">{g.notas}</p>}
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => setOpen(g)}>Editar</Button>
+                <EditButton onClick={() => setOpen(g)} />
               </li>
             ))}
           </ul>
@@ -338,7 +340,7 @@ function GastoModal({
 
   const borrarComprobante = async () => {
     if (!gasto) return;
-    if (!confirm('¿Quitar el comprobante?')) return;
+    if (!(await confirmAction({ title: 'Quitar comprobante', message: '¿Quitar el comprobante de este gasto?', confirmLabel: 'Quitar', tone: 'danger' }))) return;
     setUploading(true);
     try {
       await api.delete(`/gastos/${gasto.id}/comprobante`);
@@ -386,7 +388,6 @@ function GastoModal({
 
   const remove = async () => {
     if (!gasto) return;
-    if (!confirm('¿Borrar este gasto? Se puede recuperar desde la papelera más tarde.')) return;
     setBusy(true);
     try {
       await api.delete(`/gastos/${gasto.id}`);
@@ -425,9 +426,7 @@ function GastoModal({
             </InfoBox>
             {gasto && (
               <div className="flex justify-end -mt-2 mb-1">
-                <button type="button" onClick={remove} disabled={busy} className="text-xs text-red-600 hover:underline">
-                  Eliminar gasto
-                </button>
+                <DeleteButton label="Eliminar gasto" onDelete={remove} disabled={busy} />
               </div>
             )}
             <Select label="¿En qué fue el gasto?" value={categoria} onChange={(e) => setCategoria(e.target.value)}>

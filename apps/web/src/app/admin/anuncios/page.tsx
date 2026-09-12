@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { CreateButton, EditButton, DeleteButton } from '@/components/ui/actions';
 import { Field, Textarea, Switch } from '@/components/ui/FormField';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
-import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/lib/utils';
 
 interface Anuncio {
@@ -32,7 +32,6 @@ export default function AnunciosPage() {
   useEffect(refresh, []);
 
   const del = async (a: Anuncio) => {
-    if (!confirm(`Borrar "${a.titulo}"?`)) return;
     await api.delete(`/admin/anuncios/${a.id}`);
     refresh();
     toast.success('Eliminado');
@@ -46,7 +45,7 @@ export default function AnunciosPage() {
         title="Comunica a"
         titleAccent="todos tus locales."
         description="Crea un aviso y aparecerá como banner arriba del panel de todos los locales. Úsalo para anunciar mantenimientos, novedades o cambios."
-        actions={<Button onClick={() => setCreating(true)}><Icon name="plus" size={14} className="mr-1.5" />Nuevo anuncio</Button>}
+        actions={<CreateButton onClick={() => setCreating(true)} label="Anuncio" />}
       />
 
       {!items ? (
@@ -79,9 +78,9 @@ export default function AnunciosPage() {
                     {a.ends_at && ` · hasta ${new Date(a.ends_at).toLocaleString('es-MX')}`}
                   </p>
                 </div>
-                <div className="flex gap-1 shrink-0">
-                  <button onClick={() => setOpen(a)} className="text-xs px-3 py-1.5 rounded-lg border border-line hover:bg-line/30">Editar</button>
-                  <button onClick={() => del(a)} className="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50">Borrar</button>
+                <div className="inline-flex items-center gap-1.5 justify-end shrink-0">
+                  <EditButton onClick={() => setOpen(a)} />
+                  <DeleteButton compact onDelete={() => del(a)} />
                 </div>
               </div>
             </li>

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { confirmAction } from '@/store/confirm';
 import { Field, Textarea } from '@/components/ui/FormField';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
@@ -34,7 +35,12 @@ export default function NewsletterPage() {
 
   const send = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!confirm(`Enviar este correo a ${rol === 'todos' ? 'TODOS los usuarios' : `todos los ${rol}s`}? Esto NO se puede deshacer.`)) return;
+    if (!(await confirmAction({
+      title: 'Enviar newsletter',
+      message: `Se enviará este correo a ${rol === 'todos' ? 'TODOS los usuarios' : `todos los ${rol}s`}. Esto NO se puede deshacer.`,
+      confirmLabel: 'Enviar ahora',
+      tone: 'danger',
+    }))) return;
     setSending(true);
     try {
       await api.post('/admin/newsletter/send', { asunto, body, rol });

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { DeleteButton } from '@/components/ui/actions';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
@@ -49,7 +50,6 @@ export default function ReviewsAdminPage() {
   };
 
   const borrar = async (r: Review) => {
-    if (!confirm(`¿Borrar definitivamente la calificación de ${r.cliente_nombre}? Esta acción no se puede deshacer.`)) return;
     try {
       await api.delete(`/admin/reviews/${r.id}`);
       toast.success('Calificación eliminada');
@@ -138,16 +138,8 @@ export default function ReviewsAdminPage() {
                       {r.aprobado ? 'Ocultar' : 'Aprobar'}
                     </Button>
                   )}
-                  {/* F100 — Borrar definitivo (útil para spam u ofensa). Confirmación requerida. */}
-                  <button
-                    type="button"
-                    onClick={() => borrar(r)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-red-200 bg-white text-red-600 hover:bg-red-50 text-xs font-semibold transition"
-                    title="Borrar definitivamente"
-                  >
-                    <Icon name="x" size={12} />
-                    Borrar
-                  </button>
+                  {/* F100 — Borrar definitivo (útil para spam u ofensa). Mantener presionado confirma. */}
+                  <DeleteButton compact onDelete={() => borrar(r)} />
                 </div>
               </div>
             </li>

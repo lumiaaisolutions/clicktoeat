@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import type { Staff } from '@/lib/types';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { CreateButton, EditButton, DeleteButton } from '@/components/ui/actions';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Field } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
@@ -34,7 +35,6 @@ export default function StaffPage() {
   }, []);
 
   const handleDelete = async (s: Staff) => {
-    if (!confirm(`¿Eliminar a "${s.nombre}"? Su acceso se corta inmediatamente.`)) return;
     try {
       await api.delete(`/local/staff/${s.id}`);
       toast.success('Empleado eliminado');
@@ -53,7 +53,7 @@ export default function StaffPage() {
         titleAccent="tus permisos."
         description="Invita personas para ayudarte. Tú decides qué módulos puede ver cada uno."
         tourSlug="staff"
-        actions={<Button data-tour="staff-nuevo" onClick={() => setCreating(true)}>+ Agregar miembro</Button>}
+        actions={<CreateButton data-tour="staff-nuevo" onClick={() => setCreating(true)} label="Agregar miembro" />}
       />
 
       {items === null ? (
@@ -105,21 +105,9 @@ export default function StaffPage() {
                     </td>
                     <td className="p-3 text-right">
                       {canEdit ? (
-                        <div className="flex gap-2 justify-end">
-                          <button
-                            data-tour="staff-editar"
-                            onClick={() => setEditing(s)}
-                            className="text-sm text-muted hover:text-ink"
-                          >
-                            Editar
-                          </button>
-                          <button
-                            data-tour="staff-borrar"
-                            onClick={() => handleDelete(s)}
-                            className="text-sm text-red-600 hover:text-red-700"
-                          >
-                            Eliminar
-                          </button>
+                        <div className="inline-flex items-center gap-1.5 justify-end">
+                          <EditButton data-tour="staff-editar" onClick={() => setEditing(s)} />
+                          <DeleteButton data-tour="staff-borrar" compact onDelete={() => handleDelete(s)} />
                         </div>
                       ) : (
                         <span className="text-xs text-muted italic">

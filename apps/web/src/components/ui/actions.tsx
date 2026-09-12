@@ -169,7 +169,7 @@ export function CreateButton({
 type DeleteState = 'idle' | 'holding' | 'deleting';
 
 export function DeleteButton({
-  onDelete, label = 'Borrar', holdMs = 1100, className, disabled, compact = false, ...rest
+  onDelete, label = 'Mantener para eliminar', holdMs = 1100, className, disabled, compact = false, ...rest
 }: {
   onDelete: () => void | Promise<void>;
   label?: string;
@@ -208,37 +208,40 @@ export function DeleteButton({
 
   useEffect(() => () => clearTimer(), []);
 
+  const holding = state === 'holding';
+
   return (
     <motion.button
       type="button"
       disabled={disabled || state === 'deleting'}
-      aria-label={state === 'holding' ? 'Mantén presionado para borrar' : label}
-      title="Mantén presionado para borrar"
+      aria-label={holding ? 'Suelta para cancelar el borrado' : label}
+      title={label}
       data-tour={rest['data-tour']}
       onPointerDown={(e) => { e.preventDefault(); startHold(); }}
       onPointerUp={cancelHold}
       onPointerLeave={cancelHold}
       onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && !keyHeld.current) { e.preventDefault(); keyHeld.current = true; startHold(); } }}
       onKeyUp={(e) => { if (e.key === 'Enter' || e.key === ' ') { keyHeld.current = false; cancelHold(); } }}
-      whileTap={reduce ? undefined : { scale: 0.97 }}
+      whileTap={reduce ? undefined : { scale: 0.98 }}
       className={cn(
-        'group relative inline-flex select-none items-center justify-center gap-1.5 overflow-hidden rounded-xl border text-sm font-medium',
-        'border-red-200 bg-white text-red-600 outline-none transition-colors',
-        'hover:border-red-300 hover:bg-red-50/60',
+        'group relative inline-flex select-none items-center justify-center gap-1 overflow-hidden rounded-lg border font-medium outline-none transition-colors',
+        holding
+          ? 'border-red-600 bg-red-500 text-white'
+          : 'border-red-200 bg-white text-red-600 hover:border-red-300 hover:bg-red-50/70',
         'focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-1',
         'disabled:opacity-50 disabled:cursor-not-allowed',
-        compact ? 'h-9 w-9' : 'px-3 py-2',
+        compact ? 'text-[10px] px-2 py-1.5' : 'text-xs px-2.5 py-2',
         className,
       )}
     >
-      {/* relleno de progreso mientras se mantiene */}
+      {/* relleno rojo sólido que crece mientras se mantiene presionado */}
       {!reduce && (
         <motion.span
           aria-hidden
-          className="absolute inset-y-0 left-0 -z-0 bg-red-500/12"
+          className="absolute inset-y-0 left-0 z-0 bg-red-700"
           initial={{ width: '0%' }}
-          animate={{ width: state === 'holding' ? '100%' : '0%' }}
-          transition={{ duration: state === 'holding' ? holdMs / 1000 : 0.18, ease: 'linear' }}
+          animate={{ width: holding ? '100%' : '0%' }}
+          transition={{ duration: holding ? holdMs / 1000 : 0.18, ease: 'linear' }}
         />
       )}
 
@@ -250,11 +253,11 @@ export function DeleteButton({
             className="relative z-10 inline-flex items-center gap-1.5"
             exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.8 }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" {...S} aria-hidden>
+            <svg width="13" height="13" viewBox="0 0 24 24" {...S} aria-hidden>
               {/* tapa del basurero — tiembla mientras se mantiene */}
               <motion.g
-                animate={state === 'holding' && !reduce ? { rotate: [0, -8, 6, -6, 0] } : { rotate: 0 }}
-                transition={state === 'holding' ? { duration: 0.4, repeat: Infinity } : { duration: 0.2 }}
+                animate={holding && !reduce ? { rotate: [0, -8, 6, -6, 0] } : { rotate: 0 }}
+                transition={holding ? { duration: 0.4, repeat: Infinity } : { duration: 0.2 }}
                 style={{ transformOrigin: '12px 6px' }}
               >
                 <path d="M3 6h18" />
@@ -262,7 +265,7 @@ export function DeleteButton({
               </motion.g>
               <path d="M6 6v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6" />
             </svg>
-            {!compact && <span className="relative z-10">{label}</span>}
+            <span className="relative z-10 whitespace-nowrap">{label}</span>
           </motion.span>
         ) : (
           // animación de "bola de papel al basurero"

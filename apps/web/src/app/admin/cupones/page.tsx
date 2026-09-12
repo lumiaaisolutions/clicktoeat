@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { CreateButton, EditButton, DeleteButton } from '@/components/ui/actions';
 import { Field, Select, Switch } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -61,7 +62,6 @@ export default function CuponesPage() {
   };
 
   const remove = async (c: Cupon) => {
-    if (!confirm(`¿Eliminar cupón "${c.codigo}"?`)) return;
     try { await api.delete(`/cupones/${c.id}`); toast.success('Cupón eliminado'); refresh(); }
     catch { toast.error('No se pudo eliminar'); }
   };
@@ -74,7 +74,7 @@ export default function CuponesPage() {
         title="Descuentos"
         titleAccent="para tus clientes."
         description="Crea códigos como BIENVENIDO o VERANO20. Tus clientes los aplican en el carrito antes de enviar el pedido."
-        actions={<Button onClick={() => setCreating(true)}>+ Nuevo cupón</Button>}
+        actions={<CreateButton onClick={() => setCreating(true)} label="Cupón" />}
       />
 
       {items === null ? (
@@ -110,9 +110,11 @@ export default function CuponesPage() {
                       {c.fecha_hasta && ` · Hasta ${c.fecha_hasta}`}
                     </p>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => toggle(c)}>{c.activo ? 'Pausar' : 'Activar'}</Button>
-                  <Button variant="ghost" size="sm" onClick={() => setEditing(c)}>Editar</Button>
-                  <Button variant="ghost" size="sm" onClick={() => remove(c)}>Borrar</Button>
+                  <div className="inline-flex items-center gap-1.5 justify-end">
+                    <Button variant="ghost" size="sm" onClick={() => toggle(c)}>{c.activo ? 'Pausar' : 'Activar'}</Button>
+                    <EditButton onClick={() => setEditing(c)} />
+                    <DeleteButton compact onDelete={() => remove(c)} />
+                  </div>
                 </li>
               );
             })}

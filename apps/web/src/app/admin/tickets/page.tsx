@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { confirmAction } from '@/store/confirm';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { cn } from '@/lib/utils';
@@ -116,7 +117,7 @@ function TicketDetail({ ticket, onClose, onSaved }: { ticket: Ticket; onClose: (
     finally { setBusy(false); }
   };
   const cerrar = async () => {
-    if (!confirm('Cerrar este ticket?')) return;
+    if (!(await confirmAction({ title: 'Cerrar ticket', message: '¿Cerrar este ticket? El cliente ya no podrá responder.', confirmLabel: 'Cerrar ticket' }))) return;
     await api.post(`/admin/tickets/${ticket.id}/cerrar`);
     onSaved();
   };

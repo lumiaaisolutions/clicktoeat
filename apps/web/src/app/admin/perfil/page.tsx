@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/store/auth';
 import { toast } from '@/store/toast';
+import { confirmAction } from '@/store/confirm';
 import { Button } from '@/components/ui/Button';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Field } from '@/components/ui/FormField';
@@ -253,7 +254,7 @@ function TwoFactorSection() {
   };
 
   const disable = async () => {
-    if (!confirmDialog('¿Desactivar 2FA?')) return;
+    if (!(await confirmDialog('¿Desactivar 2FA?'))) return;
     setBusy(true);
     try {
       await api.post('/auth/2fa/disable', { password });
@@ -350,7 +351,6 @@ function TwoFactorSection() {
   );
 }
 
-function confirmDialog(msg: string): boolean {
-  if (typeof window === 'undefined') return false;
-  return window.confirm(msg);
+async function confirmDialog(msg: string): Promise<boolean> {
+  return confirmAction({ title: msg, tone: 'danger' });
 }

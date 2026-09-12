@@ -5,6 +5,7 @@ import DOMPurify from 'dompurify';
 import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { CreateButton, EditButton, DeleteButton } from '@/components/ui/actions';
 import { Field, Textarea, Switch, Select } from '@/components/ui/FormField';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
@@ -67,7 +68,7 @@ export default function EmailTemplatesPage() {
         title="Edita los correos"
         titleAccent="que envías."
         description="Personaliza el asunto y el mensaje de cada correo automático. Los que no edites se envían con el texto por defecto."
-        actions={<Button onClick={() => setOpen('new')}>Personalizar un correo</Button>}
+        actions={<CreateButton onClick={() => setOpen('new')} label="Personalizar un correo" />}
       />
 
       {/* F100f — Sin bloque de variables técnicas. Los botones para insertar
@@ -99,7 +100,7 @@ export default function EmailTemplatesPage() {
                   <p className="font-bold truncate">{info?.label ?? t.slug}</p>
                   <p className="text-sm text-ink/80 mt-1 truncate"><span className="text-muted">Asunto:</span> {t.subject}</p>
                 </div>
-                <Button variant="secondary" size="sm" onClick={() => setOpen(t)}>Editar</Button>
+                <EditButton onClick={() => setOpen(t)} />
               </li>
             );
           })}
@@ -198,7 +199,6 @@ function EditorModal({ tpl, slugsUsados, onClose, onSaved }: { tpl: Tpl | null; 
 
   const remove = async () => {
     if (!tpl) return;
-    if (!confirm(`Eliminar este correo personalizado? Volverá a enviarse con el texto por defecto.`)) return;
     await api.delete(`/admin/email-templates/${tpl.id}`);
     onSaved();
   };
@@ -281,7 +281,7 @@ function EditorModal({ tpl, slugsUsados, onClose, onSaved }: { tpl: Tpl | null; 
         <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-line">
           <Button onClick={save} loading={busy} disabled={!tpl && !slug}>Guardar</Button>
           <Button variant="secondary" onClick={doPreview}>Vista previa</Button>
-          {tpl && <Button variant="ghost" onClick={remove}>Eliminar</Button>}
+          {tpl && <DeleteButton label="Eliminar" onDelete={remove} />}
         </div>
 
         {preview && (

@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import type { Categoria, ExtraGroup, Ingrediente, Paginated, Producto, Receta, Resource } from '@/lib/types';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { CreateButton, EditButton, DeleteButton } from '@/components/ui/actions';
 import { Field, Textarea, Select, Switch } from '@/components/ui/FormField';
 import { Select as USelect } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
@@ -48,7 +49,6 @@ export default function ProductosPage() {
   }, []);
 
   const handleDelete = async (p: Producto) => {
-    if (!confirm(`¿Eliminar "${p.nombre}"?`)) return;
     try {
       await api.delete(`/productos/${p.id}`);
       toast.success('Producto eliminado');
@@ -104,9 +104,7 @@ export default function ProductosPage() {
         description="Cada producto aparece automáticamente en tu landing pública. Agrupados por categoría para encontrarlos rápido."
         tourSlug="productos"
         actions={
-          <Button data-tour="productos-nuevo" onClick={() => setCreating(true)} disabled={categorias.length === 0}>
-            + Nuevo producto
-          </Button>
+          <CreateButton data-tour="productos-nuevo" onClick={() => setCreating(true)} disabled={categorias.length === 0} label="Producto" />
         }
       />
 
@@ -250,14 +248,14 @@ function ProductRow({
       <button data-tour="producto-toggle-disponible" onClick={() => onToggle(p)} className="text-xs px-2 py-1 rounded-full border border-line whitespace-nowrap hidden sm:inline-flex">
         {p.disponible ? '● Disponible' : '○ Oculto'}
       </button>
-      <div className="flex gap-1 shrink-0">
+      <div className="inline-flex items-center gap-1.5 justify-end shrink-0">
         {trashed ? (
           <Button variant="ghost" size="sm" onClick={() => onRestore(p)}><Icon name="refresh-cw" size={14} className="mr-1" />Restaurar</Button>
         ) : (
           <>
             <Button data-tour="producto-receta" variant="ghost" size="sm" onClick={() => onReceta(p)}>Receta</Button>
-            <Button data-tour="producto-editar" variant="ghost" size="sm" onClick={() => onEdit(p)}>Editar</Button>
-            <Button data-tour="producto-borrar" variant="ghost" size="sm" onClick={() => onDelete(p)}>Borrar</Button>
+            <EditButton data-tour="producto-editar" onClick={() => onEdit(p)} />
+            <DeleteButton data-tour="producto-borrar" compact onDelete={() => onDelete(p)} />
           </>
         )}
       </div>

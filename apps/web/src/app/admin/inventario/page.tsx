@@ -122,16 +122,16 @@ export default function InventarioPage() {
                     </span>
                   )}
                 </div>
-                <div className="grid grid-cols-4 gap-1 mt-3 pt-3 border-t border-line">
+                <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-line">
                   <Link
                     href={`/admin/inventario/${i.id}/movimientos`}
-                    className="text-center text-xs py-2 rounded-lg hover:bg-line/40"
+                    className="text-xs px-3 py-2 rounded-lg hover:bg-line/40"
                   >
                     Historial
                   </Link>
-                  <button onClick={() => setAjusting(i)} className="text-center text-xs py-2 rounded-lg hover:bg-line/40">Ajustar</button>
-                  <div className="grid place-items-center"><EditButton onClick={() => setEditing(i)} /></div>
-                  <div className="grid place-items-center"><DeleteButton compact onDelete={() => handleDelete(i)} /></div>
+                  <button onClick={() => setAjusting(i)} className="text-xs px-3 py-2 rounded-lg hover:bg-line/40">Ajustar</button>
+                  <EditButton onClick={() => setEditing(i)} />
+                  <DeleteButton compact onDelete={() => handleDelete(i)} />
                 </div>
               </div>
             ))}

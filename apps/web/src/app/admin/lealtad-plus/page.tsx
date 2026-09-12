@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { CreateButton, DeleteButton } from '@/components/ui/actions';
 import { Field } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -38,12 +39,11 @@ export default function LealtadPlusPage() {
   };
   useEffect(() => { refresh(); }, []);
 
+  // El botón "Borrar" (hold-to-delete) ES la confirmación — sin confirm() nativo.
   const removeTier = async (t: Tier) => {
-    if (!confirm(`¿Eliminar el nivel "${t.nombre}"?`)) return;
     await api.delete(`/lealtad-tiers/${t.id}`).then(refresh).catch(() => toast.error('No se pudo eliminar'));
   };
   const removeChallenge = async (c: Challenge) => {
-    if (!confirm(`¿Eliminar el reto "${c.nombre}"?`)) return;
     await api.delete(`/lealtad-challenges/${c.id}`).then(refresh).catch(() => toast.error('No se pudo eliminar'));
   };
 
@@ -59,7 +59,7 @@ export default function LealtadPlusPage() {
         <section>
           <div className="flex items-center justify-between mb-2">
             <h3 className="ce-display font-bold">Niveles</h3>
-            <Button size="sm" onClick={() => setCreatingTier(true)}>+ Nivel</Button>
+            <CreateButton onClick={() => setCreatingTier(true)} label="Nivel" className="px-3 py-2 text-xs" />
           </div>
           {tiers === null ? <Skeleton className="h-24" /> : tiers.length === 0 ? (
             <p className="text-sm text-muted">Sin niveles todavía.</p>
@@ -71,7 +71,7 @@ export default function LealtadPlusPage() {
                     <p className="font-semibold text-sm">{t.nombre} · {t.sellos_requeridos} sellos</p>
                     <p className="text-xs text-muted">{t.beneficio}</p>
                   </div>
-                  <Button size="sm" variant="ghost" onClick={() => removeTier(t)}>Borrar</Button>
+                  <DeleteButton compact onDelete={() => removeTier(t)} />
                 </li>
               ))}
             </ul>
@@ -81,7 +81,7 @@ export default function LealtadPlusPage() {
         <section>
           <div className="flex items-center justify-between mb-2">
             <h3 className="ce-display font-bold">Retos</h3>
-            <Button size="sm" onClick={() => setCreatingChallenge(true)}>+ Reto</Button>
+            <CreateButton onClick={() => setCreatingChallenge(true)} label="Reto" className="px-3 py-2 text-xs" />
           </div>
           {challenges === null ? <Skeleton className="h-24" /> : challenges.length === 0 ? (
             <p className="text-sm text-muted">Sin retos todavía.</p>
@@ -93,7 +93,7 @@ export default function LealtadPlusPage() {
                     <p className="font-semibold text-sm">{c.nombre}</p>
                     <p className="text-xs text-muted">{c.premio}</p>
                   </div>
-                  <Button size="sm" variant="ghost" onClick={() => removeChallenge(c)}>Borrar</Button>
+                  <DeleteButton compact onDelete={() => removeChallenge(c)} />
                 </li>
               ))}
             </ul>

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { CreateButton, EditButton, ViewButton, DeleteButton } from '@/components/ui/actions';
 import { Field } from '@/components/ui/FormField';
 import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
@@ -152,7 +153,6 @@ export default function MesasPage() {
   }, []);
 
   const removeMesa = async (m: Mesa) => {
-    if (!confirm(`¿Eliminar "${m.etiqueta}"?`)) return;
     try {
       await api.delete(`/mesas/${m.id}`);
       toast.success('Mesa eliminada');
@@ -163,7 +163,6 @@ export default function MesasPage() {
   };
 
   const removePiso = async (p: Piso) => {
-    if (!confirm(`¿Eliminar el piso "${p.nombre}"? Las mesas quedarán sin piso asignado.`)) return;
     try {
       await api.delete(`/pisos/${p.id}`);
       toast.success('Piso eliminado');
@@ -192,7 +191,7 @@ export default function MesasPage() {
         kicker="Salón" kickerIcon="map-pin"
         title="Mesas" titleAccent="y pisos de tu local."
         description="Cada mesa genera su propio QR — el cliente lo escanea, ve el menú y pide sin esperar a que lo atiendan."
-        actions={<Button onClick={() => setCreatingPiso(true)}>+ Nuevo piso</Button>}
+        actions={<CreateButton onClick={() => setCreatingPiso(true)} label="Piso" />}
       />
 
       {gruposPiso.length === 0 && (
@@ -208,12 +207,10 @@ export default function MesasPage() {
           <div key={piso?.id ?? 'sin-piso'} className="rounded-2xl border border-line bg-white overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-line">
               <h3 className="ce-display font-bold">{piso?.nombre ?? 'Sin piso asignado'}</h3>
-              <div className="flex gap-2">
-                <Button size="sm" variant="secondary" onClick={() => setCreatingMesaPisoId(piso?.id ?? 'none')}>
-                  + Mesa
-                </Button>
+              <div className="inline-flex items-center gap-1.5 justify-end">
+                <CreateButton onClick={() => setCreatingMesaPisoId(piso?.id ?? 'none')} label="Mesa" />
                 {piso && (
-                  <Button size="sm" variant="ghost" onClick={() => removePiso(piso)}>Borrar piso</Button>
+                  <DeleteButton onDelete={() => removePiso(piso)} label="Borrar piso" />
                 )}
               </div>
             </div>
@@ -237,11 +234,11 @@ export default function MesasPage() {
                   {m.atiende && (
                     <p className="text-[11px] text-muted">Atiende: <span className="font-medium text-ink">{m.atiende}</span></p>
                   )}
-                  <div className="flex gap-1 flex-wrap">
-                    <Button size="sm" variant="secondary" onClick={() => abrirDetalle(m)}>Ver</Button>
+                  <div className="inline-flex items-center gap-1.5 flex-wrap">
+                    <ViewButton onClick={() => abrirDetalle(m)} />
                     <Button size="sm" variant="ghost" onClick={() => setQrMesa(m)}>QR</Button>
-                    <Button size="sm" variant="ghost" onClick={() => setEditingMesa(m)}>Editar</Button>
-                    <Button size="sm" variant="ghost" onClick={() => removeMesa(m)}>Borrar</Button>
+                    <EditButton onClick={() => setEditingMesa(m)} />
+                    <DeleteButton compact onDelete={() => removeMesa(m)} />
                   </div>
                 </div>
               ))}

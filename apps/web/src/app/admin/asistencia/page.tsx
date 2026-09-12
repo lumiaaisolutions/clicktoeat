@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { useAuth } from '@/store/auth';
 import { Button } from '@/components/ui/Button';
+import { DeleteButton } from '@/components/ui/actions';
 import { Select } from '@/components/ui/FormField';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
@@ -78,7 +79,6 @@ export default function AsistenciaPage() {
   };
 
   const borrar = async (r: Attendance) => {
-    if (!confirm('¿Borrar este registro de asistencia?')) return;
     try {
       await api.delete(`/asistencias/${r.id}`);
       refresh(filtroUserId);
@@ -149,7 +149,7 @@ export default function AsistenciaPage() {
                     {r.horas !== null && ` · ${r.horas}h`}
                   </p>
                 </div>
-                {isOwner && <Button size="sm" variant="ghost" onClick={() => borrar(r)}>Borrar</Button>}
+                {isOwner && <DeleteButton compact onDelete={() => borrar(r)} />}
               </li>
             ))}
           </ul>

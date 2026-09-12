@@ -4,12 +4,11 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import type { ToppingGroup } from '@/lib/types';
 import { toast } from '@/store/toast';
-import { Button } from '@/components/ui/Button';
+import { CreateButton, EditButton, DeleteButton } from '@/components/ui/actions';
 import { Field, Switch } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
 import { InfoBox } from '@/components/ui/InfoBox';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { Icon } from '@/components/ui/Icon';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { ToppingModal } from '@/components/admin/catalogo/ToppingModal';
 import { cn, formatMXN } from '@/lib/utils';
@@ -26,7 +25,6 @@ export default function ToppingsPage() {
   useEffect(refresh, []);
 
   const del = async (t: ToppingGroup) => {
-    if (!confirm(`¿Eliminar el grupo "${t.nombre}"? Los productos que ya lo tienen no se ven afectados.`)) return;
     await api.delete(`/toppings/${t.id}`);
     toast.success('Grupo eliminado');
     refresh();
@@ -40,7 +38,7 @@ export default function ToppingsPage() {
         title="Opciones para"
         titleAccent="personalizar tus platillos."
         description="Crea aquí tus grupos de opciones (Tamaño, Salsas, Extras) una sola vez. Después, al crear un producto, solo los eliges."
-        actions={<Button onClick={() => setCreating(true)}><Icon name="plus" size={14} className="mr-1.5" />Nuevo grupo</Button>}
+        actions={<CreateButton onClick={() => setCreating(true)} label="Grupo" />}
       />
 
       {!items ? (
@@ -52,8 +50,8 @@ export default function ToppingsPage() {
             (ej. “Tamaño”: Chico / Mediano / Grande, o “Extras”: Queso +$15). Créalo una vez aquí y
             reúsalo en todos los productos que quieras.
           </InfoBox>
-          <div className="text-center">
-            <Button onClick={() => setCreating(true)}>Crear mi primer grupo</Button>
+          <div className="flex justify-center">
+            <CreateButton onClick={() => setCreating(true)} label="Crear mi primer grupo" />
           </div>
         </div>
       ) : (
@@ -86,9 +84,9 @@ export default function ToppingsPage() {
                     ))}
                   </div>
                 </div>
-                <div className="flex gap-1 shrink-0">
-                  <button onClick={() => setEditing(t)} className="px-3 h-9 rounded-lg text-sm font-medium hover:bg-line/50">Editar</button>
-                  <button onClick={() => del(t)} className="px-3 h-9 rounded-lg text-sm font-medium hover:bg-red-50 text-red-600">Borrar</button>
+                <div className="inline-flex items-center gap-1.5 justify-end shrink-0">
+                  <EditButton onClick={() => setEditing(t)} />
+                  <DeleteButton compact onDelete={() => del(t)} />
                 </div>
               </div>
             </li>

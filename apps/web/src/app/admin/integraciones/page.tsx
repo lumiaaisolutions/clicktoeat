@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { DeleteButton } from '@/components/ui/actions';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
@@ -59,7 +60,6 @@ export default function IntegracionesPage() {
     refresh();
   };
   const eliminar = async (h: Webhook) => {
-    if (!confirm(`Eliminar webhook a ${h.url}?`)) return;
     await api.delete(`/webhooks/${h.id}`);
     refresh();
   };
@@ -140,13 +140,11 @@ export default function IntegracionesPage() {
                         </p>
                       )}
                     </div>
-                    <div className="flex gap-1 shrink-0">
+                    <div className="inline-flex items-center gap-1.5 shrink-0">
                       <button onClick={() => toggleActive(h)} className="text-xs px-3 py-1.5 rounded-lg border border-line hover:bg-line/30">
                         {h.active ? 'Pausar' : 'Activar'}
                       </button>
-                      <button onClick={() => eliminar(h)} className="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50">
-                        Eliminar
-                      </button>
+                      <DeleteButton compact onDelete={() => eliminar(h)} />
                     </div>
                   </div>
                 </li>

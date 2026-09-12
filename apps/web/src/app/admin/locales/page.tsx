@@ -6,6 +6,8 @@ import { api } from '@/lib/api';
 import type { LocalAdmin, Resource } from '@/lib/types';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { CreateButton, DeleteButton } from '@/components/ui/actions';
+import { confirmAction } from '@/store/confirm';
 import { Field, Textarea, Switch } from '@/components/ui/FormField';
 import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
@@ -57,7 +59,12 @@ export default function LocalesAdminPage() {
 
   const toggleSuspendido = async (l: LocalAdmin) => {
     const action = l.suspendido ? 'reactivar' : 'suspender';
-    if (!confirm(`¿${action.charAt(0).toUpperCase() + action.slice(1)} "${l.nombre}"?`)) return;
+    const cap = action.charAt(0).toUpperCase() + action.slice(1);
+    if (!(await confirmAction({
+      title: `¿${cap} "${l.nombre}"?`,
+      confirmLabel: cap,
+      tone: l.suspendido ? 'default' : 'danger',
+    }))) return;
     try {
       await api.post(`/admin/locales/${l.id}/${action}`);
       toast.success(`Local ${action === 'suspender' ? 'suspendido' : 'reactivado'}`);
@@ -67,8 +74,8 @@ export default function LocalesAdminPage() {
     }
   };
 
+  // El botón "Borrar" (hold-to-delete) ES la confirmación — sin confirm() nativo.
   const handleDelete = async (l: LocalAdmin) => {
-    if (!confirm(`¿ELIMINAR el local "${l.nombre}"?\n\nQuedará desactivado por 15 días — puedes recuperarlo en ese tiempo desde el filtro "Borrados". Después de 15 días se elimina definitivamente.`)) return;
     try {
       await api.delete(`/admin/locales/${l.id}`);
       toast.success('Local eliminado — recuperable durante 15 días');
@@ -79,7 +86,11 @@ export default function LocalesAdminPage() {
   };
 
   const handleRestore = async (l: LocalAdmin) => {
-    if (!confirm(`¿Reactivar el local "${l.nombre}"? Volverá a estar disponible.`)) return;
+    if (!(await confirmAction({
+      title: `¿Reactivar el local "${l.nombre}"?`,
+      message: 'Volverá a estar disponible.',
+      confirmLabel: 'Reactivar',
+    }))) return;
     try {
       await api.post(`/admin/locales/${l.id}/restore`);
       toast.success('Local reactivado');
@@ -111,12 +122,7 @@ export default function LocalesAdminPage() {
         title="Tus locales,"
         titleAccent="bajo control."
         description="Alta, branding, suscripciones y suspensiones — todo desde aquí."
-        actions={(
-          <Button onClick={() => setCreating(true)} className="inline-flex items-center gap-2">
-            <Icon name="plus" size={14} />
-            Nuevo local
-          </Button>
-        )}
+        actions={<CreateButton onClick={() => setCreating(true)} label="Local" />}
       />
 
       {/* Buscador */}
@@ -304,14 +310,9 @@ function LocalCard({
           <Icon name={local.suspendido ? 'check-circle' : 'lock'} size={14} className="text-muted" />
           <span className="text-[10px]">{local.suspendido ? 'Reactivar' : 'Suspender'}</span>
         </button>
-        <button
-          onClick={onDelete}
-          className="inline-flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl hover:bg-red-50 text-xs font-medium text-red-600 transition"
-          title="Borrar"
-        >
-          <Icon name="x" size={14} />
-          <span className="text-[10px]">Borrar</span>
-        </button>
+        <div className="grid place-items-center py-2">
+          <DeleteButton compact onDelete={onDelete} />
+        </div>
       </div>
     </div>
   );

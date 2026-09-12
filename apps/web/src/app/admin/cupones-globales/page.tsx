@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { CreateButton, DeleteButton } from '@/components/ui/actions';
+import { confirmAction } from '@/store/confirm';
 import { Field, Textarea, Switch } from '@/components/ui/FormField';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
-import { Icon } from '@/components/ui/Icon';
 
 interface CuponGlobal {
   id: number;
@@ -34,7 +35,11 @@ export default function CuponesGlobalesPage() {
   useEffect(refresh, []);
 
   const sync = async (cg: CuponGlobal) => {
-    if (!confirm(`Replicar "${cg.codigo}" a TODOS los locales activos?`)) return;
+    if (!(await confirmAction({
+      title: 'Replicar a todos los locales',
+      message: `Se replicará "${cg.codigo}" a TODOS los locales activos.`,
+      confirmLabel: 'Replicar',
+    }))) return;
     setSyncing(cg.id);
     try {
       const { data } = await api.post<{ data: { sincronizados: number } }>(`/admin/cupones-globales/${cg.id}/sync`);
@@ -45,7 +50,6 @@ export default function CuponesGlobalesPage() {
   };
 
   const del = async (cg: CuponGlobal) => {
-    if (!confirm(`Borrar plantilla "${cg.codigo}"? (No afecta cupones ya replicados a locales.)`)) return;
     await api.delete(`/admin/cupones-globales/${cg.id}`);
     refresh();
   };
@@ -58,7 +62,7 @@ export default function CuponesGlobalesPage() {
         title="Promociones para"
         titleAccent="toda la plataforma."
         description="Crea un cupón aquí y se aplica a todos tus locales con un click. Útil para promociones de temporada como Buen Fin o Black Friday."
-        actions={<Button onClick={() => setCreating(true)}><Icon name="plus" size={14} className="mr-1.5" />Nuevo cupón</Button>}
+        actions={<CreateButton onClick={() => setCreating(true)} label="Cupón" />}
       />
 
       {!items ? (
@@ -81,9 +85,9 @@ export default function CuponesGlobalesPage() {
                   </p>
                   {c.descripcion && <p className="text-xs text-muted mt-1">{c.descripcion}</p>}
                 </div>
-                <div className="flex gap-1 shrink-0">
+                <div className="inline-flex items-center gap-1.5 justify-end shrink-0">
                   <Button onClick={() => sync(c)} loading={syncing === c.id}>Replicar a todos</Button>
-                  <button onClick={() => del(c)} className="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50">Borrar</button>
+                  <DeleteButton compact onDelete={() => del(c)} />
                 </div>
               </div>
             </li>

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import type { Categoria, Resource } from '@/lib/types';
 import { toast } from '@/store/toast';
-import { Button } from '@/components/ui/Button';
+import { CreateButton, EditButton, DeleteButton } from '@/components/ui/actions';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Field, Switch } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
@@ -27,7 +27,6 @@ export default function CategoriasPage() {
   useEffect(() => { refresh(); }, []);
 
   const handleDelete = async (cat: Categoria) => {
-    if (!confirm(`¿Eliminar "${cat.nombre}"?`)) return;
     try {
       await api.delete(`/categorias/${cat.id}`);
       toast.success('Categoría eliminada');
@@ -47,7 +46,7 @@ export default function CategoriasPage() {
         description="Las categorías son las secciones de tu menú (Tacos, Bebidas, Postres). Agrupan tus platillos para que tus clientes encuentren todo fácil."
         tourSlug="categorias"
         actions={
-          <Button data-tour="categorias-nuevo" onClick={() => setCreating(true)}>+ Nueva categoría</Button>
+          <CreateButton data-tour="categorias-nuevo" onClick={() => setCreating(true)} label="Categoría" />
         }
       />
 
@@ -79,9 +78,9 @@ export default function CategoriasPage() {
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-1 mt-3 pt-3 border-t border-line">
-                  <Button variant="ghost" size="sm" onClick={() => setEditing(c)} className="flex-1">Editar</Button>
-                  <Button data-tour="categoria-borrar-mobile" variant="ghost" size="sm" onClick={() => handleDelete(c)} className="flex-1">Borrar</Button>
+                <div className="inline-flex items-center gap-1.5 justify-end mt-3 pt-3 border-t border-line w-full">
+                  <EditButton onClick={() => setEditing(c)} />
+                  <DeleteButton data-tour="categoria-borrar-mobile" compact onDelete={() => handleDelete(c)} />
                 </div>
               </div>
             ))}
@@ -122,8 +121,10 @@ export default function CategoriasPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <Button data-tour="categoria-editar" variant="ghost" size="sm" onClick={() => setEditing(c)}>Editar</Button>
-                      <Button data-tour="categoria-borrar" variant="ghost" size="sm" onClick={() => handleDelete(c)}>Borrar</Button>
+                      <div className="inline-flex items-center gap-1.5 justify-end">
+                        <EditButton data-tour="categoria-editar" onClick={() => setEditing(c)} />
+                        <DeleteButton data-tour="categoria-borrar" compact onDelete={() => handleDelete(c)} />
+                      </div>
                     </td>
                   </tr>
                 ))}
