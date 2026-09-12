@@ -1,8 +1,9 @@
 'use client';
 
 import {
-  useEffect, useId, useMemo, useRef, useState, type ReactNode,
+  useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/lib/utils';
@@ -73,25 +74,35 @@ export function Select({
   const listRef = useRef<HTMLUListElement>(null);
 
   const [open, setOpen] = useState(false);
-  const [flipUp, setFlipUp] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [coords, setCoords] = useState<{ left: number; top: number; width: number; up: boolean; maxH: number } | null>(null);
   const [active, setActive] = useState(-1);
   const [burbuja, setBurbuja] = useState<{ i: number; k: number } | null>(null);
   const typeahead = useRef({ q: '', t: 0 });
 
+  useEffect(() => { setMounted(true); }, []);
+
   const selectedIdx = opts.findIndex((o) => String(o.value) === String(value ?? ''));
   const selected = selectedIdx >= 0 ? opts[selectedIdx] : null;
 
-  // Abrir hacia arriba si no hay espacio abajo.
-  const recalcDir = () => {
+  // Posiciona el panel en coordenadas de viewport (portal fixed): inmune a
+  // cualquier ancestro con overflow-hidden. Decide si abre hacia arriba.
+  const place = () => {
     const el = btnRef.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
-    setFlipUp(window.innerHeight - r.bottom < 260 && r.top > window.innerHeight - r.bottom);
+    const below = window.innerHeight - r.bottom;
+    const above = r.top;
+    const up = below < 260 && above > below;
+    const maxH = Math.max(120, Math.min(256, (up ? above : below) - 12));
+    setCoords({ left: r.left, top: up ? r.top : r.bottom, width: r.width, up, maxH });
   };
+
+  const flipUp = coords?.up ?? false;
 
   const abrir = () => {
     if (disabled) return;
-    recalcDir();
+    place();
     setActive(selectedIdx >= 0 ? selectedIdx : opts.findIndex((o) => !o.disabled));
     setOpen(true);
   };
@@ -105,17 +116,27 @@ export function Select({
     onChange(String(o.value));
   };
 
-  // Cerrar al hacer click fuera.
+  // Cerrar al hacer click fuera (el panel vive en un portal → chequear ambos refs).
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (!rootRef.current?.contains(t) && !listRef.current?.contains(t)) setOpen(false);
     };
-    const onScroll = () => recalcDir();
+    // Reposicionar mientras esté abierto (scroll de cualquier ancestro + resize).
+    const reposition = () => place();
     document.addEventListener('mousedown', onDoc);
-    window.addEventListener('resize', onScroll);
-    return () => { document.removeEventListener('mousedown', onDoc); window.removeEventListener('resize', onScroll); };
+    window.addEventListener('resize', reposition);
+    window.addEventListener('scroll', reposition, true);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      window.removeEventListener('resize', reposition);
+      window.removeEventListener('scroll', reposition, true);
+    };
   }, [open]);
+
+  // Recolocar en el primer frame tras abrir (por si cambió el layout).
+  useLayoutEffect(() => { if (open) place(); }, [open]);
 
   // Mantener la opción activa visible.
   useEffect(() => {
@@ -202,8 +223,9 @@ export function Select({
       {/* input oculto para que el valor viaje en forms nativos si hace falta */}
       {name && <input type="hidden" name={name} value={value ?? ''} readOnly />}
 
-      <AnimatePresence>
-        {open && (
+      {mounted && createPortal(
+        <AnimatePresence>
+          {open && coords && (
           <motion.ul
             key="listbox"
             ref={listRef}
@@ -215,9 +237,19 @@ export function Select({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: flipUp ? 4 : -4, scale: 0.98 }}
             transition={{ duration: reduce ? 0 : 0.16, ease: [0.16, 1, 0.3, 1] }}
+            style={{
+              position: 'fixed',
+              left: coords.left,
+              width: 'max-content',
+              minWidth: coords.width,
+              maxWidth: 'min(20rem, 86vw)',
+              maxHeight: coords.maxH,
+              ...(flipUp
+                ? { top: coords.top, transform: 'translateY(-100%)', marginTop: -6 }
+                : { top: coords.top, marginTop: 6 }),
+            }}
             className={cn(
-              'absolute z-50 left-0 min-w-full w-max max-w-[min(20rem,86vw)] max-h-64 overflow-y-auto scroll-fine rounded-2xl border border-line bg-white p-1.5 shadow-[0_18px_50px_-16px_rgba(20,12,6,0.35)]',
-              flipUp ? 'bottom-full mb-1.5' : 'top-full mt-1.5',
+              'z-[60] overflow-y-auto scroll-fine rounded-2xl border border-line bg-white p-1.5 shadow-[0_18px_50px_-16px_rgba(20,12,6,0.35)]',
             )}
           >
             {opts.map((o, i) => {
@@ -271,8 +303,10 @@ export function Select({
               <li className="px-3 py-2.5 text-sm text-muted">Sin opciones</li>
             )}
           </motion.ul>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
     </div>
   );
 }
