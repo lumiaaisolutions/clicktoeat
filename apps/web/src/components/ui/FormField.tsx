@@ -2,6 +2,7 @@
 
 import { forwardRef } from 'react';
 import { cn } from '@/lib/utils';
+import { Select as SelectBase } from './Select';
 
 const baseInputClass = cn(
   // tamaños táctiles cómodos en móvil
@@ -75,29 +76,31 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   error?: string;
 }
 
-export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
-  { label, hint, error, className, children, ...rest },
-  ref,
-) {
+export function Select({ label, hint, error, className, children, ...rest }: SelectProps) {
+  // Delegamos al Select animado/accesible (custom listbox). Mantenemos la API con
+  // evento nativo para que los usos existentes (`onChange={(e)=>...e.target.value}`)
+  // no cambien.
+  const onChange = rest.onChange as React.ChangeEventHandler<HTMLSelectElement> | undefined;
   return (
     <label className="block mb-3">
       <span className="block text-sm font-medium mb-1">{label}</span>
-      <select
-        ref={ref}
-        className={cn(
-          baseInputClass,
-          error ? 'border-red-400' : 'border-line',
-          className,
-        )}
-        {...rest}
+      <SelectBase
+        value={rest.value as string | number | undefined}
+        onChange={(v) => onChange?.({ target: { value: v } } as unknown as React.ChangeEvent<HTMLSelectElement>)}
+        disabled={rest.disabled}
+        className={className}
+        id={rest.id}
+        name={rest.name}
+        data-tour={(rest as Record<string, unknown>)['data-tour'] as string | undefined}
+        aria-label={typeof label === 'string' ? label : undefined}
       >
         {children}
-      </select>
+      </SelectBase>
       {hint && !error && <span className="block text-xs text-muted mt-1">{hint}</span>}
       {error && <span className="block text-xs text-red-600 mt-1">{error}</span>}
     </label>
   );
-});
+}
 
 interface SwitchProps {
   label: string;
