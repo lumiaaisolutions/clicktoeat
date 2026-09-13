@@ -19,14 +19,21 @@
       <td align="center">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
 
-          {{-- Splash header con gradiente naranja + logo ClickToEat transparente --}}
+          {{-- Splash header suave (durazno → crema) + logo ClickToEat (mark + wordmark) --}}
           <tr>
-            <td style="border-radius:22px 22px 0 0;padding:36px 32px 30px;text-align:center;background:#F26A1F;background:linear-gradient(180deg,#FB8C3E 0%,#F26A1F 58%,#E15412 100%);">
-              <div style="font-size:27px;font-weight:800;letter-spacing:-.02em;color:#ffffff;line-height:1;">
-                Click<span style="opacity:.72;">To</span>Eat
-              </div>
+            <td style="border-radius:22px 22px 0 0;padding:32px 32px 26px;text-align:center;background:#FBE4D2;background:linear-gradient(180deg,#F9CDA8 0%,#FBE4D2 44%,#FDF7F1 100%);">
+              <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto;">
+                <tr>
+                  <td style="vertical-align:middle;padding-right:7px;line-height:0;">
+                    <img src="https://clicktoeat.lumiaaisolutions.com/email-logo.png" width="38" height="38" alt="ClickToEat" style="display:block;border:0;outline:none;">
+                  </td>
+                  <td style="vertical-align:middle;font-size:26px;font-weight:800;letter-spacing:-.02em;color:#1B140D;line-height:1;">
+                    Click<span style="color:#F26A1F;">To</span>Eat
+                  </td>
+                </tr>
+              </table>
               @hasSection('kicker')
-                <div style="margin-top:13px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.88);">@yield('kicker')</div>
+                <div style="margin-top:14px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#C06A1E;">@yield('kicker')</div>
               @endif
             </td>
           </tr>
