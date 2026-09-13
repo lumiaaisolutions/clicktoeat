@@ -11,6 +11,7 @@ import { confirmAction } from '@/store/confirm';
 import { Field, Textarea, Switch } from '@/components/ui/FormField';
 import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
+import { Wizard } from '@/components/ui/Wizard';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
@@ -584,6 +585,7 @@ function CreateLocalModal({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [step, setStep] = useState(1);
 
   useEffect(() => {
     if (!open) return;
@@ -591,6 +593,7 @@ function CreateLocalModal({
     setColorPrimario('#F26A1F');
     setWithOwner(true); setOwnerNombre(''); setOwnerEmail(''); setOwnerPassword('');
     setErrors({});
+    setStep(1);
   }, [open]);
 
   useEffect(() => {
@@ -602,8 +605,28 @@ function CreateLocalModal({
     }
   /* eslint-disable-next-line */ }, [nombre]);
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Paso 1: identidad. Paso 2: presentación y contacto. Paso 3: owner.
+  const validateStep1 = () => {
+    const e: Record<string, string> = {};
+    if (!nombre.trim()) e.nombre = 'Requerido';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const validateStep2 = () => {
+    const e: Record<string, string> = {};
+    if (!whatsapp.trim()) e.whatsapp = 'Requerido';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleNext = () => {
+    if (step === 1) { if (validateStep1()) setStep(2); }
+    else if (step === 2) { if (validateStep2()) setStep(3); }
+    else doSubmit();
+  };
+
+  const doSubmit = async () => {
     setErrors({});
     setSaving(true);
     try {
@@ -642,88 +665,105 @@ function CreateLocalModal({
 
   return (
     <Modal open={open} onClose={onClose} title="Dar de alta un local" size="lg">
-      <form onSubmit={onSubmit}>
-        <h3 className="ce-display font-bold mb-3">Local</h3>
-        <Field label="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} required error={errors.nombre} maxLength={120} />
-        <Field
-          label="Slug (URL pública)"
-          value={slug}
-          onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
-          hint={`Quedará en /${slug || 'mi-local'}`}
-          error={errors.slug}
-          maxLength={80}
-        />
-        {/* Giro: pre-llena productos placeholder */}
-        <div className="mb-3">
-          <label className="block text-sm font-medium mb-1">Tipo de local <span className="text-muted text-xs">(opcional, precarga 8 productos)</span></label>
-          <Select
-            value={giro}
-            onChange={(v) => setGiro(v)}
-            className="w-full"
-            aria-label="Tipo de local"
-          >
-            <option value="">— Empezar con menú vacío —</option>
-            {GIROS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
-          </Select>
-          {giro && (
-            <p className="text-xs text-muted mt-1">Vamos a crear categorías y 8 productos típicos. Podrás editarlos después.</p>
-          )}
-        </div>
-
-        <Textarea label="Eslogan (opcional)" value={tagline} onChange={(e) => setTagline(e.target.value)} maxLength={200} error={errors.tagline} />
-        <Field label="WhatsApp (con LADA, sólo dígitos)" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ''))} required hint="p.ej. 5215512345678" error={errors.whatsapp} maxLength={20} />
-        <Field label="Dirección (opcional)" value={direccion} onChange={(e) => setDireccion(e.target.value)} error={errors.direccion} maxLength={300} />
-
-        <div className="mb-3">
-          <label className="block text-sm font-medium mb-1">Color primario</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={colorPrimario}
-              onChange={(e) => setColorPrimario(e.target.value.toUpperCase())}
-              className="h-10 w-12 rounded-lg border border-line cursor-pointer"
+      <Wizard
+        steps={['Identidad', 'Contacto y marca', 'Owner del local']}
+        current={step}
+        onStep={setStep}
+        kicker={`Paso ${step} de 3`}
+        title={step === 1 ? '¿Cómo se llama el local?' : step === 2 ? 'Contacto y presentación' : '¿Quién administra el local?'}
+        subtitle={step === 1
+          ? 'Nombre, URL pública y tipo de cocina.'
+          : step === 2
+            ? 'WhatsApp para pedidos, eslogan y color de marca.'
+            : 'Crea al owner ahora o déjalo sin asignar.'}
+        onCancel={onClose}
+        onBack={() => setStep((s) => s - 1)}
+        onNext={handleNext}
+        saving={saving}
+        isLast={step === 3}
+        submitLabel="Crear local"
+      >
+        {step === 1 ? (
+          <div>
+            <Field label="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} required error={errors.nombre} maxLength={120} />
+            <Field
+              label="Slug (URL pública)"
+              value={slug}
+              onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
+              hint={`Quedará en /${slug || 'mi-local'}`}
+              error={errors.slug}
+              maxLength={80}
             />
-            <input
-              type="text"
-              value={colorPrimario}
-              onChange={(e) => setColorPrimario(e.target.value)}
-              className="flex-1 px-3 py-2 border border-line rounded-xl font-mono text-sm bg-white"
-              maxLength={9}
-            />
+            {/* Giro: pre-llena productos placeholder */}
+            <div className="mb-3">
+              <label className="block text-sm font-medium mb-1">Tipo de local <span className="text-muted text-xs">(opcional, precarga 8 productos)</span></label>
+              <Select
+                value={giro}
+                onChange={(v) => setGiro(v)}
+                className="w-full"
+                aria-label="Tipo de local"
+              >
+                <option value="">— Empezar con menú vacío —</option>
+                {GIROS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+              </Select>
+              {giro && (
+                <p className="text-xs text-muted mt-1">Vamos a crear categorías y 8 productos típicos. Podrás editarlos después.</p>
+              )}
+            </div>
           </div>
-          {errors.color_primario && <span className="block text-xs text-red-600 mt-1">{errors.color_primario}</span>}
-        </div>
+        ) : step === 2 ? (
+          <div>
+            <Field label="WhatsApp (con LADA, sólo dígitos)" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ''))} required hint="p.ej. 5215512345678" error={errors.whatsapp} maxLength={20} />
+            <Field label="Dirección (opcional)" value={direccion} onChange={(e) => setDireccion(e.target.value)} error={errors.direccion} maxLength={300} />
+            <Textarea label="Eslogan (opcional)" value={tagline} onChange={(e) => setTagline(e.target.value)} maxLength={200} error={errors.tagline} />
 
-        <hr className="my-5 border-line" />
-
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="ce-display font-bold">Owner del local</h3>
-          <label className="text-sm flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={withOwner}
-              onChange={(e) => setWithOwner(e.target.checked)}
-            />
-            Crear ahora
-          </label>
-        </div>
-
-        {withOwner ? (
-          <div className="rounded-xl border border-line p-4 mb-3">
-            <Field label="Nombre del owner" value={ownerNombre} onChange={(e) => setOwnerNombre(e.target.value)} required={withOwner} error={errors['owner.nombre']} maxLength={120} />
-            <Field label="Email" type="email" value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} required={withOwner} error={errors['owner.email']} />
-            <Field label="Contraseña" type="password" value={ownerPassword} onChange={(e) => setOwnerPassword(e.target.value)} required={withOwner} hint="Mínimo 8 caracteres" error={errors['owner.password']} minLength={8} />
-            <p className="text-xs text-muted mt-1">El owner recibirá acceso al panel del local. Puedes cambiarlo después.</p>
+            <div className="mb-3">
+              <label className="block text-sm font-medium mb-1">Color primario</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={colorPrimario}
+                  onChange={(e) => setColorPrimario(e.target.value.toUpperCase())}
+                  className="h-10 w-12 rounded-lg border border-line cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={colorPrimario}
+                  onChange={(e) => setColorPrimario(e.target.value)}
+                  className="flex-1 px-3 py-2 border border-line rounded-xl font-mono text-sm bg-white"
+                  maxLength={9}
+                />
+              </div>
+              {errors.color_primario && <span className="block text-xs text-red-600 mt-1">{errors.color_primario}</span>}
+            </div>
           </div>
         ) : (
-          <p className="text-sm text-muted mb-3">El local quedará sin owner — podrás asignarle uno más tarde.</p>
-        )}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="ce-display font-bold">Owner del local</h3>
+              <label className="text-sm flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={withOwner}
+                  onChange={(e) => setWithOwner(e.target.checked)}
+                />
+                Crear ahora
+              </label>
+            </div>
 
-        <div className="flex gap-2 justify-end pt-3 border-t border-line">
-          <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button type="submit" loading={saving}>Crear local</Button>
-        </div>
-      </form>
+            {withOwner ? (
+              <div className="rounded-xl border border-line p-4 mb-3">
+                <Field label="Nombre del owner" value={ownerNombre} onChange={(e) => setOwnerNombre(e.target.value)} required={withOwner} error={errors['owner.nombre']} maxLength={120} />
+                <Field label="Email" type="email" value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} required={withOwner} error={errors['owner.email']} />
+                <Field label="Contraseña" type="password" value={ownerPassword} onChange={(e) => setOwnerPassword(e.target.value)} required={withOwner} hint="Mínimo 8 caracteres" error={errors['owner.password']} minLength={8} />
+                <p className="text-xs text-muted mt-1">El owner recibirá acceso al panel del local. Puedes cambiarlo después.</p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted mb-3">El local quedará sin owner — podrás asignarle uno más tarde.</p>
+            )}
+          </div>
+        )}
+      </Wizard>
     </Modal>
   );
 }

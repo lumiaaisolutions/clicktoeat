@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
-import { Button } from '@/components/ui/Button';
 import { CreateButton, DeleteButton } from '@/components/ui/actions';
 import { Field, Select } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
+import { Wizard } from '@/components/ui/Wizard';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
@@ -111,11 +111,23 @@ function TurnoModal({
   const [rol, setRol] = useState<'cocina' | 'mesero' | 'caja'>('mesero');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [step, setStep] = useState(1);
 
-  useEffect(() => { if (open) { setUserId(''); setInicio(''); setFin(''); setRol('mesero'); setErrors({}); } }, [open]);
+  useEffect(() => { if (open) { setStep(1); setUserId(''); setInicio(''); setFin(''); setRol('mesero'); setErrors({}); } }, [open]);
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateStep1 = () => {
+    const e: Record<string, string> = {};
+    if (!userId) e.user_id = 'Requerido';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleNext = () => {
+    if (step === 1) { if (validateStep1()) setStep(2); }
+    else doSubmit();
+  };
+
+  const doSubmit = async () => {
     setSaving(true);
     setErrors({});
     try {
@@ -132,24 +144,42 @@ function TurnoModal({
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Nuevo turno" size="sm">
-      <form onSubmit={submit}>
-        <Select label="Empleado" value={userId} onChange={(e) => setUserId(e.target.value)} required error={errors.user_id}>
-          <option value="">Selecciona...</option>
-          {staff.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-        </Select>
-        <Select label="Rol del turno" value={rol} onChange={(e) => setRol(e.target.value as any)} required>
-          <option value="cocina">Cocina</option>
-          <option value="mesero">Mesero</option>
-          <option value="caja">Caja</option>
-        </Select>
-        <Field label="Inicio" type="datetime-local" value={inicio} onChange={(e) => setInicio(e.target.value)} required error={errors.inicio} />
-        <Field label="Fin" type="datetime-local" value={fin} onChange={(e) => setFin(e.target.value)} required error={errors.fin} />
-        <div className="flex justify-end gap-2 pt-3 border-t border-line">
-          <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button type="submit" loading={saving}>Guardar</Button>
-        </div>
-      </form>
+    <Modal open={open} onClose={onClose} title="Nuevo turno" size="lg">
+      <Wizard
+        steps={['Quién', 'Cuándo']}
+        current={step}
+        onStep={setStep}
+        kicker={`Paso ${step} de 2`}
+        title={step === 1 ? '¿Quién cubre el turno?' : '¿En qué horario?'}
+        subtitle={step === 1
+          ? 'Elige al empleado y el rol que tendrá durante el turno.'
+          : 'Define la hora de inicio y de fin del turno.'}
+        onCancel={onClose}
+        onBack={() => setStep(1)}
+        onNext={handleNext}
+        saving={saving}
+        isLast={step === 2}
+        submitLabel="Crear turno"
+      >
+        {step === 1 ? (
+          <div>
+            <Select label="Empleado" value={userId} onChange={(e) => setUserId(e.target.value)} required error={errors.user_id}>
+              <option value="">Selecciona...</option>
+              {staff.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+            </Select>
+            <Select label="Rol del turno" value={rol} onChange={(e) => setRol(e.target.value as any)} required>
+              <option value="cocina">Cocina</option>
+              <option value="mesero">Mesero</option>
+              <option value="caja">Caja</option>
+            </Select>
+          </div>
+        ) : (
+          <div>
+            <Field label="Inicio" type="datetime-local" value={inicio} onChange={(e) => setInicio(e.target.value)} required error={errors.inicio} />
+            <Field label="Fin" type="datetime-local" value={fin} onChange={(e) => setFin(e.target.value)} required error={errors.fin} />
+          </div>
+        )}
+      </Wizard>
     </Modal>
   );
 }

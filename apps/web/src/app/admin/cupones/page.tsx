@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { CreateButton, EditButton, DeleteButton } from '@/components/ui/actions';
 import { Field, Select, Switch } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
+import { Wizard } from '@/components/ui/Wizard';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
@@ -150,9 +151,11 @@ function CuponModal({ open, onClose, onSaved, cupon }: {
   const [productos,    setProductos]    = useState<ProductoMin[]>([]);
   const [errors,       setErrors]       = useState<Record<string, string>>({});
   const [saving,       setSaving]       = useState(false);
+  const [step,         setStep]         = useState(1);
 
   useEffect(() => {
     if (!open) return;
+    setStep(1);
     setCodigo(cupon?.codigo ?? '');
     setTipo(cupon?.tipo ?? 'percent');
     setValor(cupon ? parseFloat(cupon.valor) : 10);
@@ -174,8 +177,20 @@ function CuponModal({ open, onClose, onSaved, cupon }: {
     api.get<{ data: ProductoMin[] }>('/productos').then(({ data }) => setProductos(data.data)).catch(() => {});
   }, [destacado, productos.length]);
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateStep1 = () => {
+    const e: Record<string, string> = {};
+    if (!codigo.trim()) e.codigo = 'Requerido';
+    if (!valor || valor <= 0) e.valor = 'Debe ser mayor a 0';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleNext = () => {
+    if (step === 1) { if (validateStep1()) setStep(2); }
+    else doSubmit();
+  };
+
+  const doSubmit = async () => {
     setSaving(true);
     setErrors({});
     try {
@@ -214,8 +229,25 @@ function CuponModal({ open, onClose, onSaved, cupon }: {
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={cupon ? `Editar ${cupon.codigo}` : 'Nuevo cupón'} size="md">
-      <form onSubmit={onSubmit} className="space-y-3">
+    <Modal open={open} onClose={onClose} title={cupon ? `Editar ${cupon.codigo}` : 'Nuevo cupón'} size="lg">
+      <Wizard
+        steps={['Lo básico', 'Condiciones y visibilidad']}
+        current={step}
+        onStep={setStep}
+        kicker={`Paso ${step} de 2`}
+        title={step === 1 ? '¿Qué descuento das?' : '¿Cuándo y dónde aplica?'}
+        subtitle={step === 1
+          ? 'Código, tipo de descuento y límites de uso.'
+          : 'Horario opcional y cómo se muestra en tu landing pública.'}
+        onCancel={onClose}
+        onBack={() => setStep(1)}
+        onNext={handleNext}
+        saving={saving}
+        isLast={step === 2}
+        submitLabel={cupon ? 'Actualizar' : 'Crear cupón'}
+      >
+        {step === 1 ? (
+          <div className="space-y-3">
         <Field
           label="Código"
           value={codigo}
@@ -265,7 +297,9 @@ function CuponModal({ open, onClose, onSaved, cupon }: {
           hint="Vacío = no vence"
         />
         <Switch label="Activo" hint="Si lo pausas, el cliente no podrá aplicarlo" checked={activo} onChange={setActivo} />
-
+          </div>
+        ) : (
+          <div className="space-y-3">
         {/* ─── F100: Cupón programado por horario ─── */}
         <div className="rounded-2xl border border-line bg-amber-50/40 p-4 space-y-3">
           <div>
@@ -348,12 +382,9 @@ function CuponModal({ open, onClose, onSaved, cupon }: {
             </div>
           )}
         </div>
-
-        <div className="flex justify-end gap-2 pt-3 border-t border-line">
-          <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button type="submit" loading={saving}>Guardar</Button>
-        </div>
-      </form>
+          </div>
+        )}
+      </Wizard>
     </Modal>
   );
 }

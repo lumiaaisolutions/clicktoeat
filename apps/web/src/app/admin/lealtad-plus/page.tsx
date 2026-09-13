@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { CreateButton, DeleteButton } from '@/components/ui/actions';
 import { Field } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
+import { Wizard } from '@/components/ui/Wizard';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 
@@ -145,10 +146,11 @@ function ChallengeModal({ open, onClose, onSaved }: { open: boolean; onClose: ()
   const [dias, setDias] = useState('7');
   const [premio, setPremio] = useState('');
   const [saving, setSaving] = useState(false);
-  useEffect(() => { if (open) { setNombre(''); setCantidad('3'); setDias('7'); setPremio(''); } }, [open]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [step, setStep] = useState(1);
+  useEffect(() => { if (open) { setNombre(''); setCantidad('3'); setDias('7'); setPremio(''); setErrors({}); setStep(1); } }, [open]);
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submit = async () => {
     setSaving(true);
     try {
       await api.post('/lealtad-challenges', {
@@ -160,20 +162,50 @@ function ChallengeModal({ open, onClose, onSaved }: { open: boolean; onClose: ()
     } catch { toast.error('No se pudo crear'); } finally { setSaving(false); }
   };
 
+  // Paso 1: nombre y premio son obligatorios antes de definir el criterio.
+  const validateStep1 = () => {
+    const e: Record<string, string> = {};
+    if (!nombre.trim()) e.nombre = 'Requerido';
+    if (!premio.trim()) e.premio = 'Requerido';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleNext = () => {
+    if (step === 1) { if (validateStep1()) setStep(2); }
+    else submit();
+  };
+
   return (
-    <Modal open={open} onClose={onClose} title="Nuevo reto" size="sm">
-      <form onSubmit={submit}>
-        <Field label="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} required placeholder="3 pedidos en 7 días" />
-        <div className="grid grid-cols-2 gap-2">
-          <Field label="Cantidad de pedidos" type="number" min={1} value={cantidad} onChange={(e) => setCantidad(e.target.value)} required />
-          <Field label="En cuántos días" type="number" min={1} value={dias} onChange={(e) => setDias(e.target.value)} required />
-        </div>
-        <Field label="Premio" value={premio} onChange={(e) => setPremio(e.target.value)} required placeholder="Postre gratis" />
-        <div className="flex justify-end gap-2 pt-3 border-t border-line">
-          <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button type="submit" loading={saving}>Guardar</Button>
-        </div>
-      </form>
+    <Modal open={open} onClose={onClose} title="Nuevo reto" size="lg">
+      <Wizard
+        steps={['Reto y premio', 'Criterio']}
+        current={step}
+        onStep={setStep}
+        kicker={`Paso ${step} de 2`}
+        title={step === 1 ? '¿Qué reto y qué premio?' : '¿Cómo se gana?'}
+        subtitle={step === 1
+          ? 'Ponle un nombre atractivo y define la recompensa.'
+          : 'Cuántos pedidos y en cuántos días para completarlo.'}
+        onCancel={onClose}
+        onBack={() => setStep(1)}
+        onNext={handleNext}
+        saving={saving}
+        isLast={step === 2}
+        submitLabel="Crear reto"
+      >
+        {step === 1 ? (
+          <div className="space-y-3">
+            <Field label="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} required placeholder="3 pedidos en 7 días" error={errors.nombre} />
+            <Field label="Premio" value={premio} onChange={(e) => setPremio(e.target.value)} required placeholder="Postre gratis" error={errors.premio} />
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Cantidad de pedidos" type="number" min={1} value={cantidad} onChange={(e) => setCantidad(e.target.value)} required />
+            <Field label="En cuántos días" type="number" min={1} value={dias} onChange={(e) => setDias(e.target.value)} required />
+          </div>
+        )}
+      </Wizard>
     </Modal>
   );
 }

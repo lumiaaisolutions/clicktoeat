@@ -12,6 +12,7 @@ import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Field, Textarea } from '@/components/ui/FormField';
 import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
+import { Wizard } from '@/components/ui/Wizard';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
 import { cn, formatMXN } from '@/lib/utils';
@@ -228,11 +229,12 @@ function CompraModal({
   const [lineas, setLineas]       = useState<LineaForm[]>([]);
   const [errors, setErrors]       = useState<Record<string, string>>({});
   const [saving, setSaving]       = useState(false);
+  const [step, setStep]           = useState(1);
 
   useEffect(() => {
     if (!open) return;
     setProveedor(''); setFactura(''); setFecha(new Date().toISOString().slice(0, 10));
-    setImpuestos(0); setNotas(''); setLineas([]); setErrors({});
+    setImpuestos(0); setNotas(''); setLineas([]); setErrors({}); setStep(1);
     api.get<{ data: Ingrediente[] }>('/ingredientes').then(({ data }) => setIngredientes(data.data));
   }, [open]);
 
@@ -258,6 +260,22 @@ function CompraModal({
     [lineas],
   );
   const total = subtotal + (impuestos || 0);
+
+  // Paso 2: exige al menos un renglón válido antes de avanzar a totales.
+  const validateStep2 = () => {
+    const validos = lineas.filter((l) => l.ingrediente_id && l.cantidad > 0 && l.costo_unitario >= 0);
+    if (validos.length === 0) {
+      toast.error('Agrega al menos un ingrediente.');
+      return false;
+    }
+    return true;
+  };
+
+  const handleNext = () => {
+    if (step === 1) setStep(2);
+    else if (step === 2) { if (validateStep2()) setStep(3); }
+    else onSave();
+  };
 
   const onSave = async () => {
     setErrors({}); setSaving(true);
@@ -309,14 +327,34 @@ function CompraModal({
           </a>
         </div>
       ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-            <Field label="Proveedor" value={proveedor} onChange={(e) => setProveedor(e.target.value)} maxLength={150} error={errors.proveedor} />
-            <Field label="# Factura / referencia" value={factura} onChange={(e) => setFactura(e.target.value)} maxLength={60} error={errors.referencia_factura} />
-            <Field label="Fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} error={errors.fecha} />
-          </div>
+        <Wizard
+          steps={['Proveedor', 'Ingredientes', 'Totales']}
+          current={step}
+          onStep={setStep}
+          kicker={`Paso ${step} de 3`}
+          title={step === 1 ? '¿A quién le compraste?' : step === 2 ? '¿Qué recibiste?' : 'Revisa y confirma'}
+          subtitle={step === 1
+            ? 'Datos del proveedor y la factura. Todo es opcional.'
+            : step === 2
+              ? 'Agrega cada ingrediente recibido con su cantidad y costo.'
+              : 'Impuestos, notas y el total que se registrará.'}
+          onCancel={onClose}
+          onBack={() => setStep((s) => s - 1)}
+          onNext={handleNext}
+          saving={saving}
+          isLast={step === 3}
+          submitLabel="Registrar compra"
+        >
+          {step === 1 && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <Field label="Proveedor" value={proveedor} onChange={(e) => setProveedor(e.target.value)} maxLength={150} error={errors.proveedor} />
+              <Field label="# Factura / referencia" value={factura} onChange={(e) => setFactura(e.target.value)} maxLength={60} error={errors.referencia_factura} />
+              <Field label="Fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} error={errors.fecha} />
+            </div>
+          )}
 
-          <h3 className="ce-display font-bold mb-2">Ingredientes recibidos</h3>
+          {step === 2 && (
+          <>
           <ul className="divide-y divide-line border border-line rounded-xl mb-3 overflow-hidden">
             {lineas.map((l, idx) => {
               const ing = l.ingrediente_id ? ingMap.get(l.ingrediente_id) : null;
@@ -384,28 +422,27 @@ function CompraModal({
             disabled={lineas.length >= ingredientes.length}>
             + Agregar ingrediente
           </Button>
+          </>
+          )}
 
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+          {step === 3 && (
+          <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Textarea label="Notas (opcional)" value={notas} onChange={(e) => setNotas(e.target.value)} maxLength={1000} />
             <div>
               <Field label="Impuestos (IVA, opcional)" type="number" step="0.01" min={0} value={impuestos} onChange={(e) => setImpuestos(Number(e.target.value))} />
             </div>
           </div>
 
-          <div className="rounded-xl border border-line bg-line/20 p-4 mb-4 grid grid-cols-2 text-sm">
+          <div className="rounded-xl border border-line bg-line/20 p-4 mt-4 grid grid-cols-2 text-sm">
             <span>Subtotal</span><span className="text-right font-mono">{formatMXN(subtotal)}</span>
             <span>Impuestos</span><span className="text-right font-mono">{formatMXN(impuestos)}</span>
             <span className="font-bold pt-2 border-t border-line mt-2">Total</span>
             <span className="text-right font-mono font-bold pt-2 border-t border-line mt-2">{formatMXN(total)}</span>
           </div>
-
-          <div className="flex justify-end gap-2 pt-3 border-t border-line">
-            <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-            <Button onClick={onSave} loading={saving} disabled={lineas.length === 0}>
-              Registrar compra
-            </Button>
-          </div>
-        </>
+          </>
+          )}
+        </Wizard>
       )}
     </Modal>
   );

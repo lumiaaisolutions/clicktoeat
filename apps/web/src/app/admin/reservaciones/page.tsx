@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { CreateButton, DeleteButton } from '@/components/ui/actions';
 import { Field } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
+import { Wizard } from '@/components/ui/Wizard';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
@@ -112,14 +113,28 @@ function ReservacionModal({ open, onClose, onSaved }: { open: boolean; onClose: 
   const [personas, setPersonas] = useState('2');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [step, setStep] = useState(1);
 
   useEffect(() => {
     if (!open) return;
+    setStep(1);
     setNombre(''); setTelefono(''); setFechaHora(''); setPersonas('2'); setErrors({});
   }, [open]);
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateStep1 = () => {
+    const e: Record<string, string> = {};
+    if (!nombre.trim()) e.cliente_nombre = 'Requerido';
+    if (!telefono.trim()) e.cliente_telefono = 'Requerido';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleNext = () => {
+    if (step === 1) { if (validateStep1()) setStep(2); }
+    else doSubmit();
+  };
+
+  const doSubmit = async () => {
     setSaving(true);
     setErrors({});
     try {
@@ -139,17 +154,35 @@ function ReservacionModal({ open, onClose, onSaved }: { open: boolean; onClose: 
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Nueva reservación" size="sm">
-      <form onSubmit={submit}>
-        <Field label="Nombre del cliente" value={nombre} onChange={(e) => setNombre(e.target.value)} required error={errors.cliente_nombre} />
-        <Field label="Teléfono" value={telefono} onChange={(e) => setTelefono(e.target.value)} required error={errors.cliente_telefono} />
-        <Field label="Fecha y hora" type="datetime-local" value={fechaHora} onChange={(e) => setFechaHora(e.target.value)} required error={errors.fecha_hora} />
-        <Field label="Personas" type="number" min={1} value={personas} onChange={(e) => setPersonas(e.target.value)} required error={errors.personas} />
-        <div className="flex justify-end gap-2 pt-3 border-t border-line">
-          <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button type="submit" loading={saving}>Guardar</Button>
-        </div>
-      </form>
+    <Modal open={open} onClose={onClose} title="Nueva reservación" size="lg">
+      <Wizard
+        steps={['Cliente', 'Reserva']}
+        current={step}
+        onStep={setStep}
+        kicker={`Paso ${step} de 2`}
+        title={step === 1 ? '¿Quién reserva?' : '¿Cuándo y para cuántos?'}
+        subtitle={step === 1
+          ? 'Nombre y teléfono de contacto del cliente.'
+          : 'Fecha, hora y número de personas de la reserva.'}
+        onCancel={onClose}
+        onBack={() => setStep(1)}
+        onNext={handleNext}
+        saving={saving}
+        isLast={step === 2}
+        submitLabel="Crear reservación"
+      >
+        {step === 1 ? (
+          <div>
+            <Field label="Nombre del cliente" value={nombre} onChange={(e) => setNombre(e.target.value)} required error={errors.cliente_nombre} />
+            <Field label="Teléfono" value={telefono} onChange={(e) => setTelefono(e.target.value)} required error={errors.cliente_telefono} />
+          </div>
+        ) : (
+          <div>
+            <Field label="Fecha y hora" type="datetime-local" value={fechaHora} onChange={(e) => setFechaHora(e.target.value)} required error={errors.fecha_hora} />
+            <Field label="Personas" type="number" min={1} value={personas} onChange={(e) => setPersonas(e.target.value)} required error={errors.personas} />
+          </div>
+        )}
+      </Wizard>
     </Modal>
   );
 }
