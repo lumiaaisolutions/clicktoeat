@@ -229,18 +229,22 @@ cliente** cuando el pedido es `origen=landing`, tiene `cliente_email` y el nuevo
 estado es `confirmado`/`listo`/`en_camino`/`entregado` (ver
 [`features/correos-sistema-unificado.md`](../features/correos-sistema-unificado.md)).
 
-### GET `/clientes/historial?telefono=...`
+### GET `/clientes/historial?telefono=...&email=...`
 
-Historial agregado de un cliente por teléfono (para el detalle de reseñas /
-caja). Tenant-scoped, **excluye pedidos cancelados**. Controller
-`PedidoController::historialCliente`.
+Ficha agregada de un cliente (para el detalle de reseñas / caja). Acepta
+`telefono` **y/o** `email` y **unifica** al cliente haciendo match por
+**cualquiera** de los dos (`cliente_telefono = telefono` OR `cliente_email =
+email`) — así junta pedidos aunque el cliente los haya hecho con distinto dato.
+Tenant-scoped, **excluye pedidos cancelados**. Controller
+`PedidoController::historialCliente`. El detalle de reseña (`/admin/reviews`)
+carga primero el pedido para obtener el correo y luego llama con ambos.
 
 ```json
 { "data": { "pedidos": 7, "total_gastado": 842.50,
             "primer_pedido": "2026-05-01T18:22:00Z", "ultimo_pedido": "2026-09-10T21:05:00Z" } }
 ```
 
-Sin `telefono` → `{ "data": null }`. Cliente sin pedidos → `{ "data": { "pedidos": 0 } }`.
+Sin `telefono` ni `email` → `{ "data": null }`. Cliente sin pedidos → `{ "data": { "pedidos": 0 } }`.
 
 Ver [`features/pos.md`](../features/pos.md) y [`features/pedidos.md`](../features/pedidos.md).
 

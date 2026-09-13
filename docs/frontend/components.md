@@ -38,8 +38,9 @@ Existe un shim `useToast()` para call sites legacy.
 
 ### `ConfirmDialog.tsx` + `store/confirm.ts`
 Diálogo de confirmación **con diseño que reemplazó a `window.confirm()` /
-`alert()` nativos del panel** (0 alertas del navegador en `app/admin`; sólo
-quedan dos `alert()` en el onboarding público de elegir plan).
+`alert()` nativos** — **cero alertas del navegador en todo el sistema**. Los dos
+`alert()` que quedaban en el onboarding público (`/onboarding/elegir-plan`) se
+cambiaron por un banner de error con diseño (estado local `error`, `role="alert"`).
 
 - **API promise-based**: `const ok = await confirmAction({ title, message?, tone?, confirmLabel?, cancelLabel? })`
   resuelve `true` (confirmar) / `false` (cancelar). `tone: 'danger'` pinta el

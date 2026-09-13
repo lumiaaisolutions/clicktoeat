@@ -118,3 +118,18 @@ usan `UsesEditableTemplate` (el owner puede editar asunto/cuerpo — Fase 98).
 
 La configuración de envío en el VPS y su gotcha (alias vs. buzón primario) está
 en [`../runbook/configurar-smtp-prod.md`](../runbook/configurar-smtp-prod.md).
+
+## Envío en cola (async)
+
+Todos los Mailables (`app/Mail/*`) y `ResetPasswordNotification` implementan
+`ShouldQueue`, así que el correo **no bloquea** la petición que lo dispara
+(crear pedido, cambiar estado, etc.).
+
+- `QUEUE_CONNECTION=database` en prod (tabla `jobs`).
+- **Sin worker persistente** en el VPS compartido: el mismo cron del scheduler
+  drena la cola cada minuto —
+  `bootstrap/app.php` → `queue:work --stop-when-empty --max-time=55 --tries=3
+  --quiet` con `withoutOverlapping()->onOneServer()`. `--stop-when-empty` sale al
+  vaciarla; `--max-time` la mantiene bajo el minuto.
+- Los fallos van a `failed_jobs` (se purgan a 90 días, ver `queue:prune-failed`).
+- En tests, `QUEUE_CONNECTION=sync` → se envían inline (no cambia el flujo).
