@@ -10,8 +10,10 @@ import { Field, Select } from '@/components/ui/FormField';
 import { Select as USelect } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { Icon } from '@/components/ui/Icon';
+import { Icon, type IconName } from '@/components/ui/Icon';
+import { InfoBox } from '@/components/ui/InfoBox';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+import { motion } from 'framer-motion';
 
 interface Caja {
   id: number;
@@ -63,6 +65,34 @@ interface CobradoMostrador extends PedidoMostrador {
 const METODO_LABEL: Record<string, string> = {
   efectivo: 'Efectivo', tarjeta_tpv: 'Tarjeta', tarjeta_entrega: 'Tarjeta a entrega', transferencia: 'Transferencia',
 };
+const METODO_ICON: Record<string, IconName> = {
+  efectivo: 'landmark', tarjeta_tpv: 'card', tarjeta_entrega: 'card', transferencia: 'smartphone',
+};
+
+// Metadata de presentación para cada tipo de movimiento de caja (íconos, color y microcopy).
+const MOV_META: Record<'fondo' | 'retiro' | 'vale', { label: string; icon: IconName; tint: string; signo: '+' | '−'; hint: string }> = {
+  fondo:  { label: 'Fondo',  icon: 'arrow-down', tint: '#33B87A', signo: '+', hint: 'Metes dinero a la caja: cambio, fondo extra o un depósito para empezar.' },
+  retiro: { label: 'Retiro', icon: 'arrow-up',   tint: '#E15412', signo: '−', hint: 'Sacas dinero de la caja: depósito al banco o entrega a gerencia.' },
+  vale:   { label: 'Vale',   icon: 'file-text',  tint: '#B0810E', signo: '−', hint: 'Un gasto o adelanto justificado que sale del efectivo (con motivo).' },
+};
+
+/** Encabezado de sección con ícono en pastilla de acento + hint opcional debajo. */
+function SectionHeading({ icon, title, hint, right }: { icon: IconName; title: string; hint?: string; right?: React.ReactNode }) {
+  return (
+    <div className="mb-3">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="ce-display font-bold inline-flex items-center gap-2">
+          <span className="grid place-items-center w-7 h-7 rounded-lg bg-[color:var(--ce-accent,#F26A1F)]/10 text-[color:var(--ce-accent,#F26A1F)]">
+            <Icon name={icon} size={15} />
+          </span>
+          {title}
+        </h3>
+        {right}
+      </div>
+      {hint && <p className="text-sm text-muted mt-1.5">{hint}</p>}
+    </div>
+  );
+}
 
 export default function CajaPage() {
   const [cajas, setCajas] = useState<Caja[] | null>(null);
@@ -182,59 +212,154 @@ export default function CajaPage() {
 
       {cajas.length === 0 ? (
         <div className="rounded-3xl border border-line bg-white p-10 text-center">
+          <span className="mx-auto mb-3 grid place-items-center w-12 h-12 rounded-2xl bg-[color:var(--ce-accent,#F26A1F)]/10 text-[color:var(--ce-accent,#F26A1F)]">
+            <Icon name="landmark" size={22} />
+          </span>
           <p className="ce-display text-xl font-bold">Aún no tienes cajas registradas</p>
+          <p className="text-sm text-muted mt-1.5 max-w-sm mx-auto">
+            Una caja es un punto de cobro (mostrador, barra, terraza…). Crea la primera para
+            abrir cortes y empezar a registrar pagos.
+          </p>
+          <div className="mt-5 flex justify-center">
+            <CreateButton onClick={() => setCreatingCaja(true)} label="Crear mi primera caja" />
+          </div>
         </div>
       ) : (
         <>
-          <div className="flex gap-2 mb-4 flex-wrap">
-            {cajas.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => setSelectedCajaId(c.id)}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium border ${selectedCajaId === c.id ? 'bg-ink text-white border-ink' : 'border-line bg-white'}`}
-              >
-                {c.nombre}
-              </button>
-            ))}
+          <div className="mb-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted mb-2">Elige una caja</p>
+            <div className="inline-flex flex-wrap gap-1 rounded-2xl border border-line bg-line/25 p-1">
+              {cajas.map((c) => {
+                const activa = selectedCajaId === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setSelectedCajaId(c.id)}
+                    aria-pressed={activa}
+                    className={`relative inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[color:var(--ce-accent,#F26A1F)] ${activa ? 'text-white' : 'text-ink/60 hover:text-ink'}`}
+                  >
+                    {activa && (
+                      <motion.span
+                        layoutId="caja-pill"
+                        className="absolute inset-0 rounded-xl bg-ink shadow-sm"
+                        transition={{ type: 'spring', stiffness: 480, damping: 34 }}
+                      />
+                    )}
+                    <Icon name="landmark" size={14} className="relative z-10" />
+                    <span className="relative z-10">{c.nombre}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="rounded-2xl border border-line bg-white p-4 mb-6">
+          <div className="rounded-2xl border border-line bg-white p-4 sm:p-5 mb-6">
             {corte === undefined ? (
               <Skeleton className="h-24" />
             ) : corte === null ? (
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted">Esta caja no tiene un corte abierto.</p>
-                <Button onClick={() => setAbriendo(true)}>Abrir corte</Button>
+              <div className="space-y-4">
+                <InfoBox>
+                  El <strong>corte de caja</strong> es la sesión de trabajo de esta caja: la abres
+                  con el efectivo que tienes al empezar, registras entradas y salidas durante el
+                  turno, y al cerrar cuentas el efectivo real. El sistema compara lo esperado con
+                  lo contado y te muestra la <strong>varianza</strong> (si sobró o faltó dinero).
+                </InfoBox>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-dashed border-line bg-line/15 px-4 py-4">
+                  <div className="flex items-start gap-3">
+                    <span className="grid place-items-center w-9 h-9 rounded-xl bg-white border border-line text-muted shrink-0">
+                      <Icon name="lock" size={17} />
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold">Esta caja está cerrada</p>
+                      <p className="text-sm text-muted">Abre un corte para empezar a cobrar y registrar movimientos.</p>
+                    </div>
+                  </div>
+                  <Button onClick={() => setAbriendo(true)} className="shrink-0">
+                    <Icon name="play" size={16} /> Abrir corte
+                  </Button>
+                </div>
               </div>
             ) : (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted">Monto inicial</p>
-                    <p className="ce-display font-bold text-lg">${corte.monto_inicial}</p>
+              <div className="space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="grid place-items-center w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 shrink-0">
+                      <Icon name="landmark" size={20} />
+                    </span>
+                    <div>
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Corte abierto
+                      </span>
+                      <p className="text-xs text-muted mt-0.5">Fondo inicial en caja</p>
+                      <p className="ce-display font-bold text-lg leading-tight">${corte.monto_inicial}</p>
+                    </div>
                   </div>
-                  <Button variant="secondary" onClick={() => setCerrandoCorte(true)}>Cerrar corte</Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setCerrandoCorte(true)}
+                    className="shrink-0 border-red-200 text-red-600 hover:bg-red-50/70 hover:border-red-300"
+                  >
+                    <Icon name="lock" size={16} /> Cerrar corte
+                  </Button>
                 </div>
+
                 <div>
-                  <p className="text-sm font-medium mb-2">Movimientos</p>
-                  <ul className="text-sm divide-y divide-line mb-3">
-                    {corte.movimientos.length === 0 && <li className="text-muted py-1">Sin movimientos.</li>}
-                    {corte.movimientos.map((m) => (
-                      <li key={m.id} className="py-1.5 flex justify-between">
-                        <span className="capitalize">{m.tipo}{m.motivo ? ` — ${m.motivo}` : ''}</span>
-                        <span className="font-medium">${m.monto}</span>
+                  <SectionHeading
+                    icon="refresh-cw"
+                    title="Movimientos del turno"
+                    hint="Cada entrada o salida de efectivo queda registrada para que el cierre cuadre."
+                  />
+                  <ul className="text-sm rounded-xl border border-line divide-y divide-line mb-4 overflow-hidden">
+                    {corte.movimientos.length === 0 && (
+                      <li className="text-muted px-3.5 py-3 flex items-center gap-2">
+                        <Icon name="list" size={15} className="opacity-60" /> Aún no hay movimientos en este turno.
                       </li>
-                    ))}
+                    )}
+                    {corte.movimientos.map((m) => {
+                      const meta = MOV_META[m.tipo];
+                      return (
+                        <li key={m.id} className="px-3.5 py-2.5 flex items-center justify-between gap-3">
+                          <span className="inline-flex items-center gap-2 min-w-0">
+                            <span className="grid place-items-center w-6 h-6 rounded-lg shrink-0" style={{ background: `${meta.tint}1a`, color: meta.tint }}>
+                              <Icon name={meta.icon} size={13} />
+                            </span>
+                            <span className="truncate"><span className="font-medium">{meta.label}</span>{m.motivo ? ` — ${m.motivo}` : ''}</span>
+                          </span>
+                          <span className="font-semibold tabular-nums shrink-0" style={{ color: meta.tint }}>{meta.signo}${m.monto}</span>
+                        </li>
+                      );
+                    })}
                   </ul>
-                  <div className="flex gap-2 flex-wrap items-end">
-                    <USelect value={movTipo} onChange={(v) => setMovTipo(v as any)} className="text-sm" aria-label="Tipo de movimiento de caja">
-                      <option value="fondo">Fondo</option>
-                      <option value="retiro">Retiro</option>
-                      <option value="vale">Vale</option>
-                    </USelect>
-                    <input placeholder="Monto" value={movMonto} onChange={(e) => setMovMonto(e.target.value)} className="border border-line rounded-xl px-3 py-2 text-sm w-24" />
-                    <input placeholder="Motivo (opcional)" value={movMotivo} onChange={(e) => setMovMotivo(e.target.value)} className="border border-line rounded-xl px-3 py-2 text-sm flex-1 min-w-[140px]" />
-                    <Button size="sm" onClick={agregarMovimiento}>Agregar</Button>
+
+                  <div className="rounded-xl border border-line bg-line/10 p-3.5">
+                    <p className="text-sm font-medium mb-2 inline-flex items-center gap-1.5">
+                      <Icon name="plus" size={15} className="text-[color:var(--ce-accent,#F26A1F)]" /> Registrar un movimiento
+                    </p>
+                    <div className="flex gap-2 flex-wrap items-end">
+                      <div className="min-w-[110px]">
+                        <label className="block text-[11px] font-medium text-muted mb-1">Tipo</label>
+                        <USelect value={movTipo} onChange={(v) => setMovTipo(v as any)} className="text-sm" aria-label="Tipo de movimiento de caja">
+                          <option value="fondo">Fondo</option>
+                          <option value="retiro">Retiro</option>
+                          <option value="vale">Vale</option>
+                        </USelect>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-medium text-muted mb-1">Monto</label>
+                        <input placeholder="0.00" value={movMonto} onChange={(e) => setMovMonto(e.target.value)} className="border border-line rounded-xl px-3 py-2 text-sm w-24 outline-none focus:border-[color:var(--ce-accent,#F26A1F)]" />
+                      </div>
+                      <div className="flex-1 min-w-[140px]">
+                        <label className="block text-[11px] font-medium text-muted mb-1">Motivo (opcional)</label>
+                        <input placeholder="Ej. depósito al banco" value={movMotivo} onChange={(e) => setMovMotivo(e.target.value)} className="border border-line rounded-xl px-3 py-2 text-sm w-full outline-none focus:border-[color:var(--ce-accent,#F26A1F)]" />
+                      </div>
+                      <Button size="md" onClick={agregarMovimiento} disabled={!movMonto}>
+                        <Icon name="plus" size={16} /> Agregar
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted mt-2 flex items-start gap-1.5">
+                      <Icon name={MOV_META[movTipo].icon} size={13} className="mt-0.5 shrink-0" style={{ color: MOV_META[movTipo].tint }} />
+                      {MOV_META[movTipo].hint}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -243,7 +368,11 @@ export default function CajaPage() {
         </>
       )}
 
-      <h3 className="ce-display font-bold mb-2">Mostrador — por cobrar</h3>
+      <SectionHeading
+        icon="store"
+        title="Mostrador — por cobrar"
+        hint="Pedidos para llevar o de mostrador listos para pagar. Elige el método y quedan cobrados al instante."
+      />
       {pendientes === null ? (
         <Skeleton className="h-20" />
       ) : pendientes.length === 0 ? (
@@ -270,8 +399,9 @@ export default function CajaPage() {
                         });
                         if (ok) cobrarMostrador(p.id, m);
                       }}
-                      className="inline-flex items-center justify-center rounded-xl border border-line bg-white px-2 py-2.5 text-xs font-semibold text-ink/80 transition-colors hover:border-[color:var(--ce-accent,#F26A1F)] hover:bg-[color:var(--ce-accent,#F26A1F)]/8 hover:text-ink outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ce-accent,#F26A1F)]"
+                      className="inline-flex flex-col items-center justify-center gap-1 rounded-xl border border-line bg-white px-2 py-2.5 text-xs font-semibold text-ink/80 transition-colors hover:border-[color:var(--ce-accent,#F26A1F)] hover:bg-[color:var(--ce-accent,#F26A1F)]/8 hover:text-ink outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ce-accent,#F26A1F)]"
                     >
+                      <Icon name={METODO_ICON[m]} size={16} className="opacity-70" />
                       {METODO_LABEL[m]}
                     </button>
                   ))}
@@ -283,14 +413,16 @@ export default function CajaPage() {
       )}
 
       {/* Historial de pagos de mostrador cobrados hoy */}
-      <div className="flex items-baseline justify-between gap-3 mb-2">
-        <h3 className="ce-display font-bold">Cobrados hoy</h3>
-        {cobrados && cobrados.length > 0 && (
-          <span className="text-xs text-muted">
+      <SectionHeading
+        icon="history"
+        title="Cobrados hoy"
+        hint="Registro de los pedidos de mostrador que ya pagaron durante el día."
+        right={cobrados && cobrados.length > 0 ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-line/40 px-2.5 py-1 text-xs font-medium text-ink/70 shrink-0">
             {cobrados.length} {cobrados.length === 1 ? 'pago' : 'pagos'} · ${cobrados.reduce((s, c) => s + Number(c.total || 0), 0).toFixed(2)}
           </span>
-        )}
-      </div>
+        ) : undefined}
+      />
       {cobrados === null ? (
         <Skeleton className="h-16 mb-6" />
       ) : cobrados.length === 0 ? (
@@ -316,7 +448,11 @@ export default function CajaPage() {
         </div>
       )}
 
-      <h3 className="ce-display font-bold mb-2">Cuentas de mesa abiertas</h3>
+      <SectionHeading
+        icon="utensils"
+        title="Cuentas de mesa abiertas"
+        hint="Consumos por mesa aún sin pagar. Cobra la cuenta (efectivo, tarjeta o pago dividido) o abre su ticket."
+      />
       {cuentas === null ? (
         <Skeleton className="h-24" />
       ) : cuentas.length === 0 ? (
@@ -331,7 +467,7 @@ export default function CajaPage() {
               </div>
               <p className="ce-display font-bold text-xl">${c.total}</p>
               <div className="flex items-center gap-1.5 mt-auto pt-1">
-                <Button size="sm" onClick={() => setCobrando(c)} className="flex-1">Cobrar</Button>
+                <Button size="sm" onClick={() => setCobrando(c)} className="flex-1"><Icon name="card" size={15} /> Cobrar</Button>
                 <ActionButton icon="file-text" label="Ver ticket" href={`/admin/caja/ticket/${c.id}`} newTab />
               </div>
             </div>
@@ -373,6 +509,10 @@ function CrearCajaModal({ open, onClose, onSaved }: { open: boolean; onClose: ()
   return (
     <Modal open={open} onClose={onClose} title="Nueva caja" size="sm">
       <form onSubmit={submit}>
+        <InfoBox className="mb-4">
+          Una <strong>caja</strong> es un punto de cobro de tu local (mostrador, barra, terraza…).
+          Cada caja lleva sus propios cortes por separado.
+        </InfoBox>
         <Field label="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} required placeholder="Caja 1" />
         <div className="flex justify-end gap-2 pt-3 border-t border-line">
           <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
@@ -388,10 +528,14 @@ function AbrirCorteModal({ open, onClose, onConfirm }: { open: boolean; onClose:
   useEffect(() => { if (open) setMonto('0'); }, [open]);
   return (
     <Modal open={open} onClose={onClose} title="Abrir corte" size="sm">
+      <InfoBox className="mb-4">
+        Cuenta el efectivo con el que empieza la caja (el <strong>fondo inicial</strong>) y
+        anótalo aquí. Es el punto de partida para calcular cuánto debería haber al cerrar.
+      </InfoBox>
       <Field label="Monto inicial en caja" type="number" value={monto} onChange={(e) => setMonto(e.target.value)} />
       <div className="flex justify-end gap-2 pt-3 border-t border-line">
         <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-        <Button onClick={() => onConfirm(Number(monto))}>Abrir</Button>
+        <Button onClick={() => onConfirm(Number(monto))}><Icon name="play" size={16} /> Abrir corte</Button>
       </div>
     </Modal>
   );
@@ -402,10 +546,15 @@ function CerrarCorteModal({ open, onClose, onConfirm }: { open: boolean; onClose
   useEffect(() => { if (open) setMonto('0'); }, [open]);
   return (
     <Modal open={open} onClose={onClose} title="Cerrar corte" size="sm">
+      <InfoBox className="mb-4">
+        Cuenta <strong>todo el efectivo</strong> que hay físicamente en la caja y escríbelo aquí.
+        Al confirmar, el corte se cierra y se compara con lo esperado: la diferencia es la
+        <strong> varianza</strong> (positiva = sobró, negativa = faltó). Esta acción no se puede deshacer.
+      </InfoBox>
       <Field label="Monto contado en caja" type="number" value={monto} onChange={(e) => setMonto(e.target.value)} />
       <div className="flex justify-end gap-2 pt-3 border-t border-line">
         <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-        <Button onClick={() => onConfirm(Number(monto))}>Cerrar corte</Button>
+        <Button variant="danger" onClick={() => onConfirm(Number(monto))}><Icon name="lock" size={16} /> Cerrar corte</Button>
       </div>
     </Modal>
   );
@@ -457,6 +606,10 @@ function CobrarCuentaModal({
 
   return (
     <Modal open onClose={onClose} title={`Cobrar ${cuenta.mesa?.etiqueta ?? ''}`} size="md">
+      <InfoBox className="mb-3">
+        Cierra la cuenta de la mesa. Puedes aplicar una <strong>gift card</strong>, agregar
+        <strong> propina</strong> y dividir el total en varios pagos (efectivo, tarjeta, etc.).
+      </InfoBox>
       <p className="text-sm text-muted mb-3">Subtotal: ${cuenta.subtotal} — agrega propina si aplica.</p>
       {cuenta.gift_card_id ? (
         <p className="text-sm text-emerald-700 mb-3">Gift card aplicada: -${cuenta.descuento_gift_card}</p>
@@ -468,7 +621,7 @@ function CobrarCuentaModal({
             onChange={(e) => setGiftCardCodigo(e.target.value.toUpperCase())}
             className="border border-line rounded-xl px-3 py-2 text-sm flex-1 font-mono"
           />
-          <Button size="sm" variant="secondary" loading={aplicandoGiftCard} onClick={aplicarGiftCard}>Aplicar</Button>
+          <Button size="sm" variant="secondary" loading={aplicandoGiftCard} onClick={aplicarGiftCard}><Icon name="gift" size={15} /> Aplicar</Button>
         </div>
       )}
       <Field label="Propina" type="number" value={propina} onChange={(e) => setPropina(e.target.value)} />
@@ -494,14 +647,14 @@ function CobrarCuentaModal({
         </div>
       ))}
       <Button size="sm" variant="secondary" onClick={() => setPagos((prev) => [...prev, { monto: '0', metodo_pago: 'efectivo' }])}>
-        + Dividir pago
+        <Icon name="plus" size={15} /> Dividir pago
       </Button>
       <p className="text-xs text-muted mt-2">
         Total a cubrir: ${(Number(cuenta.subtotal) + Number(propina || 0)).toFixed(2)} — suma de pagos: ${sumaPagos.toFixed(2)}
       </p>
       <div className="flex justify-end gap-2 pt-3 mt-3 border-t border-line">
         <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-        <Button loading={saving} onClick={cobrar}>Cobrar</Button>
+        <Button loading={saving} onClick={cobrar}><Icon name="card" size={16} /> Cobrar</Button>
       </div>
     </Modal>
   );

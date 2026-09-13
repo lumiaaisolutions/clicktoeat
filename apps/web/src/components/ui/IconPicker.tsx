@@ -63,6 +63,40 @@ export const CATEGORY_ICONS: IconOption[] = [
   { value: 'star-filled',  label: 'Destacados' },
   { value: 'storefront',   label: 'Take-away' },
   { value: 'truck',        label: 'Delivery' },
+
+  // Comida específica (ampliación sept 2026)
+  { value: 'taco',             label: 'Tacos' },
+  { value: 'hotdog',           label: 'Hot dogs' },
+  { value: 'ham',              label: 'Embutidos / jamón' },
+  { value: 'kebab',            label: 'Brochetas / kebab' },
+  { value: 'rice-bowl',        label: 'Bowls / arroz' },
+  { value: 'noodles',          label: 'Fideos / ramen' },
+  { value: 'cooking-pot',      label: 'Guisos / ollas' },
+  { value: 'egg-fried',        label: 'Huevos / desayuno' },
+  { value: 'bean',             label: 'Legumbres / frijoles' },
+  { value: 'utensils-crossed', label: 'Platos fuertes' },
+  { value: 'chef-hat',         label: 'Del chef / especialidades' },
+
+  // Postres y dulces (ampliación)
+  { value: 'donut',        label: 'Donas' },
+  { value: 'cookie',       label: 'Galletas' },
+  { value: 'candy',        label: 'Dulces / caramelos' },
+  { value: 'candy-cane',   label: 'Temporada / navidad' },
+  { value: 'lollipop',     label: 'Paletas dulces' },
+  { value: 'cake-slice',   label: 'Rebanadas / tartas' },
+  { value: 'dessert',      label: 'Sundaes / postres fríos' },
+
+  // Frutas y verduras (ampliación)
+  { value: 'banana',       label: 'Plátano' },
+  { value: 'grape',        label: 'Uvas' },
+  { value: 'citrus',       label: 'Cítricos' },
+  { value: 'carrot',       label: 'Verduras' },
+  { value: 'avocado',      label: 'Aguacate / palta' },
+  { value: 'vegan',        label: 'Vegano / plant-based' },
+
+  // Bebidas (ampliación)
+  { value: 'glass-water',  label: 'Agua / naturales' },
+  { value: 'amphora',      label: 'Vinos de la casa' },
 ];
 
 interface IconPickerProps {
