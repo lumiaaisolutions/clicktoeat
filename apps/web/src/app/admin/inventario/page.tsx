@@ -8,7 +8,7 @@ import { toast } from '@/store/toast';
 import { unidadCorta } from '@/lib/unidades';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Button } from '@/components/ui/Button';
-import { EditButton, DeleteButton, CreateButton } from '@/components/ui/actions';
+import { EditButton, DeleteButton, CreateButton, ActionButton } from '@/components/ui/actions';
 import { Field, Select, Switch } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
 import { InfoBox } from '@/components/ui/InfoBox';
@@ -123,13 +123,8 @@ export default function InventarioPage() {
                   )}
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-line">
-                  <Link
-                    href={`/admin/inventario/${i.id}/movimientos`}
-                    className="text-xs px-3 py-2 rounded-lg hover:bg-line/40"
-                  >
-                    Historial
-                  </Link>
-                  <button onClick={() => setAjusting(i)} className="text-xs px-3 py-2 rounded-lg hover:bg-line/40">Ajustar</button>
+                  <ActionButton icon="history" label="Historial" href={`/admin/inventario/${i.id}/movimientos`} />
+                  <ActionButton icon="settings" label="Ajustar" onClick={() => setAjusting(i)} />
                   <EditButton onClick={() => setEditing(i)} />
                   <DeleteButton compact onDelete={() => handleDelete(i)} />
                 </div>
@@ -173,14 +168,8 @@ export default function InventarioPage() {
                     </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">
                       <div className="inline-flex items-center gap-1.5 justify-end">
-                      <Link
-                        data-tour="inventario-historial"
-                        href={`/admin/inventario/${i.id}/movimientos`}
-                        className="inline-flex items-center justify-center px-3 h-9 text-sm rounded-lg hover:bg-line/40"
-                      >
-                        Historial
-                      </Link>
-                      <Button data-tour="inventario-ajustar" variant="ghost" size="sm" onClick={() => setAjusting(i)}>Ajustar</Button>
+                      <ActionButton data-tour="inventario-historial" icon="history" label="Historial" href={`/admin/inventario/${i.id}/movimientos`} />
+                      <ActionButton data-tour="inventario-ajustar" icon="settings" label="Ajustar" onClick={() => setAjusting(i)} />
                       <EditButton data-tour="inventario-editar" onClick={() => setEditing(i)} />
                       <DeleteButton data-tour="inventario-borrar" compact onDelete={() => handleDelete(i)} />
                       </div>

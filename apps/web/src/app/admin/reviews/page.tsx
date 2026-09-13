@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
-import { DeleteButton } from '@/components/ui/actions';
+import { ActionButton, DeleteButton } from '@/components/ui/actions';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
@@ -123,12 +123,9 @@ export default function ReviewsAdminPage() {
                   {r.comentario && <p className="text-sm mt-1.5 italic">"{r.comentario}"</p>}
                   <p className="text-xs text-muted mt-1.5">{new Date(r.created_at).toLocaleString('es-MX')}</p>
                 </div>
-                <div className="flex gap-1 shrink-0 flex-wrap justify-end">
+                <div className="inline-flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
                   {r.rating === 0 ? (
-                    <Button size="sm" variant="secondary" onClick={() => copyLink(r)}>
-                      <Icon name="copy" size={12} className="mr-1" />
-                      Copiar link
-                    </Button>
+                    <ActionButton icon="copy" label="Copiar link" onClick={() => copyLink(r)} />
                   ) : (
                     <Button
                       size="sm"

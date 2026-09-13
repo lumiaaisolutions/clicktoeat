@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import type { Categoria, ExtraGroup, Ingrediente, Paginated, Producto, Receta, Resource } from '@/lib/types';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
-import { CreateButton, EditButton, DeleteButton } from '@/components/ui/actions';
+import { CreateButton, EditButton, DeleteButton, ActionButton } from '@/components/ui/actions';
 import { Field, Textarea, Select, Switch } from '@/components/ui/FormField';
 import { Select as USelect } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
@@ -250,10 +250,10 @@ function ProductRow({
       </button>
       <div className="inline-flex items-center gap-1.5 justify-end shrink-0">
         {trashed ? (
-          <Button variant="ghost" size="sm" onClick={() => onRestore(p)}><Icon name="refresh-cw" size={14} className="mr-1" />Restaurar</Button>
+          <ActionButton icon="refresh-cw" label="Restaurar" onClick={() => onRestore(p)} />
         ) : (
           <>
-            <Button data-tour="producto-receta" variant="ghost" size="sm" onClick={() => onReceta(p)}>Receta</Button>
+            <ActionButton data-tour="producto-receta" icon="list" label="Receta" onClick={() => onReceta(p)} />
             <EditButton data-tour="producto-editar" onClick={() => onEdit(p)} />
             <DeleteButton data-tour="producto-borrar" compact onDelete={() => onDelete(p)} />
           </>

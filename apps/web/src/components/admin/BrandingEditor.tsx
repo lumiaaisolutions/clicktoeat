@@ -102,6 +102,9 @@ export function BrandingEditor({ localId }: { localId?: number } = {}) {
     color: draft.color_secundario ?? local.color_secundario,
   };
 
+  // ¿Hay cambios sin guardar? draft y local se igualan al cargar y al guardar.
+  const isDirty = JSON.stringify(draft) !== JSON.stringify(local);
+
   return (
     <div>
       {/* HERO estilo landing — kicker + headline grande + tagline + CTA save */}
@@ -127,13 +130,17 @@ export function BrandingEditor({ localId }: { localId?: number } = {}) {
             </p>
           </div>
 
-          {/* CTA save con estilo del landing */}
+          {/* CTA save — resalta (naranja + punto pulsante) cuando hay cambios sin guardar */}
           <button
             onClick={onSave}
-            disabled={saving}
+            disabled={saving || !isDirty}
             className={cn(
-              'group inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-white text-sm sm:text-base font-medium transition tap-target shrink-0',
-              saving ? 'bg-ink/50 cursor-wait' : 'bg-ink hover:bg-ink/90 shadow-lg',
+              'group inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-sm sm:text-base font-semibold transition-all tap-target shrink-0',
+              saving
+                ? 'bg-ink/50 text-white cursor-wait'
+                : isDirty
+                  ? 'bg-[color:var(--ce-accent,#F26A1F)] text-white shadow-lg shadow-[color:var(--ce-accent,#F26A1F)]/35 ring-2 ring-[color:var(--ce-accent,#F26A1F)]/30 ring-offset-2 hover:brightness-105'
+                  : 'bg-ink/10 text-ink/50 cursor-default',
             )}
           >
             {saving ? (
@@ -141,11 +148,19 @@ export function BrandingEditor({ localId }: { localId?: number } = {}) {
                 <Icon name="compass" size={16} className="animate-spin" />
                 Guardando…
               </>
+            ) : isDirty ? (
+              <>
+                <span className="relative flex h-2.5 w-2.5" aria-hidden>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white/80 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white" />
+                </span>
+                Guardar cambios
+                <Icon name="arrow-right" size={16} className="group-hover:translate-x-0.5 transition" />
+              </>
             ) : (
               <>
                 <Icon name="check" size={16} />
-                Guardar cambios
-                <Icon name="arrow-right" size={16} className="group-hover:translate-x-0.5 transition" />
+                Todo guardado
               </>
             )}
           </button>
@@ -510,6 +525,26 @@ export function BrandingEditor({ localId }: { localId?: number } = {}) {
           </div>
         </aside>
       </div>
+
+      {/* Barra fija recordatorio — visible en cuanto hay cambios sin guardar,
+          sin importar dónde estés en el formulario. */}
+      {isDirty && !saving && (
+        <div className="fixed bottom-4 inset-x-0 z-40 flex justify-center px-4 pointer-events-none">
+          <div className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-line bg-white/95 backdrop-blur px-4 py-2.5 shadow-[0_18px_50px_-16px_rgba(20,12,6,0.4)]">
+            <span className="relative flex h-2 w-2" aria-hidden>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[color:var(--ce-accent,#F26A1F)]/70" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[color:var(--ce-accent,#F26A1F)]" />
+            </span>
+            <span className="text-sm font-medium text-ink hidden sm:inline">Tienes cambios sin guardar</span>
+            <button
+              onClick={onSave}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-[color:var(--ce-accent,#F26A1F)] text-white px-3.5 py-2 text-sm font-semibold hover:brightness-105 transition"
+            >
+              <Icon name="check" size={15} /> Guardar cambios
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import {
   useCallback, useEffect, useRef, useState, type ReactNode,
 } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { cn } from '@/lib/utils';
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -34,9 +35,46 @@ function iconBtnClass(extra?: string) {
   );
 }
 
-// ── Ver — ojo que parpadea ─────────────────────────────────────────────────
-export function ViewButton({ onClick, label = 'Ver', className, disabled, ...rest }: IconBtnProps) {
+// ── Acción secundaria neutral — ícono + tooltip, con micro-hover ───────────
+// Para botones tipo "Historial", "Ajustar", "Receta", etc. (los que se parecen
+// a Editar/Ver pero no son de los 4 arquetipos). Se puede usar como botón
+// (onClick) o como enlace (href) conservando la navegación.
+export function ActionButton({
+  icon, label, onClick, href, newTab, className, disabled, ...rest
+}: {
+  icon: IconName;
+  label: string;
+  onClick?: () => void;
+  href?: string;
+  newTab?: boolean;
+  className?: string;
+  disabled?: boolean;
+  'data-tour'?: string;
+}) {
   const reduce = useReducedMotion();
+  const [hover, setHover] = useState(false);
+  const glyph = (
+    <motion.span
+      className="inline-grid place-items-center"
+      animate={hover && !reduce ? { y: -1.5, scale: 1.14 } : { y: 0, scale: 1 }}
+      transition={{ type: 'spring', stiffness: 420, damping: 15 }}
+    >
+      <Icon name={icon} size={17} />
+    </motion.span>
+  );
+  const cls = iconBtnClass(className);
+
+  if (href) {
+    return (
+      <motion.a
+        href={href} aria-label={label} title={label} data-tour={rest['data-tour']} className={cls}
+        target={newTab ? '_blank' : undefined} rel={newTab ? 'noopener noreferrer' : undefined}
+        onHoverStart={() => setHover(true)} onHoverEnd={() => setHover(false)}
+      >
+        {glyph}
+      </motion.a>
+    );
+  }
   return (
     <motion.button
       type="button"
@@ -45,25 +83,42 @@ export function ViewButton({ onClick, label = 'Ver', className, disabled, ...res
       aria-label={label}
       title={label}
       data-tour={rest['data-tour']}
-      whileHover={reduce ? undefined : 'hover'}
+      onHoverStart={() => setHover(true)}
+      onHoverEnd={() => setHover(false)}
+      whileTap={{ scale: 0.92 }}
+      className={cls}
+    >
+      {glyph}
+    </motion.button>
+  );
+}
+
+// ── Ver — ojo que parpadea ─────────────────────────────────────────────────
+export function ViewButton({ onClick, label = 'Ver', className, disabled, ...rest }: IconBtnProps) {
+  const reduce = useReducedMotion();
+  const [hover, setHover] = useState(false);
+  const on = hover && !reduce;
+  return (
+    <motion.button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      data-tour={rest['data-tour']}
+      onHoverStart={() => setHover(true)}
+      onHoverEnd={() => setHover(false)}
       whileTap={{ scale: 0.92 }}
       className={iconBtnClass(className)}
     >
       <svg width="18" height="18" viewBox="0 0 24 24" {...S} aria-hidden>
-        {/* párpado / contorno del ojo */}
-        <motion.path
-          d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"
-          variants={reduce ? undefined : { hover: { d: [
-            'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z',
-            'M2 12s3.5-1 10-1 10 1 10 1-3.5 1-10 1-10-1-10-1Z',
-            'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z',
-          ] } }}
-          transition={{ duration: 0.5, times: [0, 0.5, 1] }}
-        />
+        {/* contorno del ojo */}
+        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+        {/* pupila que parpadea (scaleY) en hover */}
         <motion.circle
           cx="12" cy="12" r="3"
-          variants={reduce ? undefined : { hover: { scaleY: [1, 0.1, 1], opacity: [1, 0.2, 1] } }}
-          transition={{ duration: 0.5, times: [0, 0.5, 1] }}
+          animate={on ? { scaleY: [1, 0.1, 1], opacity: [1, 0.2, 1] } : { scaleY: 1, opacity: 1 }}
+          transition={{ duration: 0.55, times: [0, 0.5, 1], repeat: on ? Infinity : 0, repeatDelay: 0.6 }}
           style={{ transformOrigin: '12px 12px' }}
         />
       </svg>
@@ -74,6 +129,8 @@ export function ViewButton({ onClick, label = 'Ver', className, disabled, ...res
 // ── Editar — lápiz que "escribe" en hover ──────────────────────────────────
 export function EditButton({ onClick, label = 'Editar', className, disabled, ...rest }: IconBtnProps) {
   const reduce = useReducedMotion();
+  const [hover, setHover] = useState(false);
+  const on = hover && !reduce;
   return (
     <motion.button
       type="button"
@@ -82,7 +139,8 @@ export function EditButton({ onClick, label = 'Editar', className, disabled, ...
       aria-label={label}
       title={label}
       data-tour={rest['data-tour']}
-      whileHover={reduce ? undefined : 'hover'}
+      onHoverStart={() => setHover(true)}
+      onHoverEnd={() => setHover(false)}
       whileTap={{ scale: 0.92 }}
       className={iconBtnClass(className)}
     >
@@ -92,18 +150,17 @@ export function EditButton({ onClick, label = 'Editar', className, disabled, ...
           d="M4 20c3-1 6-1.4 9-1.4"
           {...S}
           initial={{ pathLength: 0, opacity: 0 }}
-          variants={reduce ? undefined : { hover: { pathLength: [0, 1, 1], opacity: [0, 0.55, 0] } }}
-          transition={{ duration: 0.7, times: [0, 0.7, 1] }}
+          animate={on ? { pathLength: [0, 1, 1], opacity: [0, 0.7, 0] } : { pathLength: 0, opacity: 0 }}
+          transition={{ duration: 0.7, times: [0, 0.7, 1], repeat: on ? Infinity : 0 }}
           style={{ stroke: 'var(--ce-accent, #F26A1F)' }}
         />
-        {/* lápiz */}
+        {/* lápiz que se mueve como escribiendo */}
         <motion.g
           {...S}
-          variants={reduce ? undefined : { hover: { x: [0, 7, 0], y: [0, -1.4, 0], rotate: [0, -3, 0] } }}
-          transition={{ duration: 0.7, times: [0, 0.7, 1], ease: 'easeInOut' }}
+          animate={on ? { x: [0, 7, 0], y: [0, -1.4, 0], rotate: [0, -4, 0] } : { x: 0, y: 0, rotate: 0 }}
+          transition={{ duration: 0.7, times: [0, 0.7, 1], ease: 'easeInOut', repeat: on ? Infinity : 0 }}
           style={{ transformOrigin: '12px 12px' }}
         >
-          <path d="M12 20h9" opacity="0" />
           <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
         </motion.g>
       </svg>
@@ -123,13 +180,16 @@ export function CreateButton({
   'data-tour'?: string;
 }) {
   const reduce = useReducedMotion();
+  const [hover, setHover] = useState(false);
+  const on = hover && !reduce;
   return (
     <motion.button
       type="button"
       onClick={onClick}
       disabled={disabled}
       data-tour={rest['data-tour']}
-      whileHover={reduce ? undefined : 'hover'}
+      onHoverStart={() => setHover(true)}
+      onHoverEnd={() => setHover(false)}
       whileTap={{ scale: 0.97 }}
       className={cn(
         'group relative inline-flex items-center gap-2 overflow-hidden rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white',
@@ -142,12 +202,11 @@ export function CreateButton({
       {!reduce && (
         <motion.span
           aria-hidden
-          className="absolute inset-0 -z-0"
-          initial={{ y: '105%', borderRadius: '50% 50% 0 0 / 60% 60% 0 0' }}
-          variants={{ hover: {
-            y: '0%',
-            borderRadius: ['50% 50% 0 0 / 60% 60% 0 0', '40% 60% 0 0 / 55% 45% 0 0', '0% 0% 0 0 / 0% 0% 0 0'],
-          } }}
+          className="absolute inset-0 z-0"
+          initial={false}
+          animate={on
+            ? { y: '0%', borderRadius: ['50% 50% 0 0 / 60% 60% 0 0', '40% 60% 0 0 / 55% 45% 0 0', '0% 0% 0 0 / 0% 0% 0 0'] }
+            : { y: '105%', borderRadius: '50% 50% 0 0 / 60% 60% 0 0' }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           style={{ background: 'linear-gradient(180deg, var(--ce-accent,#F26A1F), #E15412)' }}
         />
@@ -155,7 +214,7 @@ export function CreateButton({
       <motion.span
         aria-hidden
         className="relative z-10 grid place-items-center"
-        variants={reduce ? undefined : { hover: { rotate: 90 } }}
+        animate={on ? { rotate: 90 } : { rotate: 0 }}
         transition={{ type: 'spring', stiffness: 380, damping: 18 }}
       >
         {icon ?? <svg width="17" height="17" viewBox="0 0 24 24" {...S}><path d="M12 5v14" /><path d="M5 12h14" /></svg>}

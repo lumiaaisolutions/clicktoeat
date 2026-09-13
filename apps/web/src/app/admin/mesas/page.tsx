@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
-import { CreateButton, EditButton, ViewButton, DeleteButton } from '@/components/ui/actions';
+import { CreateButton, EditButton, ViewButton, DeleteButton, ActionButton } from '@/components/ui/actions';
 import { Field } from '@/components/ui/FormField';
 import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
@@ -236,7 +236,7 @@ export default function MesasPage() {
                   )}
                   <div className="inline-flex items-center gap-1.5 flex-wrap">
                     <ViewButton onClick={() => abrirDetalle(m)} />
-                    <Button size="sm" variant="ghost" onClick={() => setQrMesa(m)}>QR</Button>
+                    <ActionButton icon="qr-code" label="QR" onClick={() => setQrMesa(m)} />
                     <EditButton onClick={() => setEditingMesa(m)} />
                     <DeleteButton compact onDelete={() => removeMesa(m)} />
                   </div>

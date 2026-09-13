@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { toast } from '@/store/toast';
 import { Button } from '@/components/ui/Button';
+import { CreateButton, ActionButton } from '@/components/ui/actions';
+import { confirmAction } from '@/store/confirm';
 import { Field, Select } from '@/components/ui/FormField';
 import { Select as USelect } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
@@ -163,7 +165,7 @@ export default function CajaPage() {
       <AdminPageHeader
         kicker="Salón" kickerIcon="storefront"
         title="Caja" titleAccent="cortes y cuentas de mesa."
-        actions={<Button onClick={() => setCreatingCaja(true)}>+ Nueva caja</Button>}
+        actions={<CreateButton onClick={() => setCreatingCaja(true)} label="Nueva caja" />}
       />
 
       {cajas.length === 0 ? (
@@ -242,12 +244,26 @@ export default function CajaPage() {
                 <span className="ce-display font-bold">{p.cliente_nombre || p.codigo}</span>
                 <span className="ce-display font-bold text-xl">${p.total}</span>
               </div>
-              <div className="flex gap-1 flex-wrap">
-                {(['efectivo', 'tarjeta_tpv', 'transferencia'] as const).map((m) => (
-                  <Button key={m} size="sm" variant={m === 'efectivo' ? 'primary' : 'secondary'} onClick={() => cobrarMostrador(p.id, m)}>
-                    {METODO_LABEL[m]}
-                  </Button>
-                ))}
+              <div className="pt-1 mt-auto">
+                <p className="text-xs text-muted mb-1.5">Cobrar con:</p>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(['efectivo', 'tarjeta_tpv', 'transferencia'] as const).map((m) => (
+                    <button
+                      key={m}
+                      onClick={async () => {
+                        const ok = await confirmAction({
+                          title: `¿Cobrar $${p.total}?`,
+                          message: `Método: ${METODO_LABEL[m]}\nPedido ${p.codigo}. Se registrará el pago y se marcará como cobrado.`,
+                          confirmLabel: `Cobrar con ${METODO_LABEL[m]}`,
+                        });
+                        if (ok) cobrarMostrador(p.id, m);
+                      }}
+                      className="inline-flex items-center justify-center rounded-xl border border-line bg-white px-2 py-2.5 text-xs font-semibold text-ink/80 transition-colors hover:border-[color:var(--ce-accent,#F26A1F)] hover:bg-[color:var(--ce-accent,#F26A1F)]/8 hover:text-ink outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ce-accent,#F26A1F)]"
+                    >
+                      {METODO_LABEL[m]}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           ))}
@@ -268,11 +284,9 @@ export default function CajaPage() {
                 <span className={`text-xs px-1.5 py-0.5 rounded capitalize ${ESTADO_CUENTA_COLOR[c.estado]}`}>{c.estado.replace('_', ' ')}</span>
               </div>
               <p className="ce-display font-bold text-xl">${c.total}</p>
-              <div className="flex gap-2">
-                <Button size="sm" onClick={() => setCobrando(c)}>Cobrar</Button>
-                <a href={`/admin/caja/ticket/${c.id}`} target="_blank" rel="noopener noreferrer">
-                  <Button size="sm" variant="secondary">Ticket</Button>
-                </a>
+              <div className="flex items-center gap-1.5 mt-auto pt-1">
+                <Button size="sm" onClick={() => setCobrando(c)} className="flex-1">Cobrar</Button>
+                <ActionButton icon="file-text" label="Ver ticket" href={`/admin/caja/ticket/${c.id}`} newTab />
               </div>
             </div>
           ))}
