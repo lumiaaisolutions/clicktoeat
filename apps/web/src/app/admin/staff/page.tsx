@@ -9,6 +9,7 @@ import { CreateButton, EditButton, DeleteButton } from '@/components/ui/actions'
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Field } from '@/components/ui/FormField';
 import { Modal } from '@/components/ui/Modal';
+import { Wizard } from '@/components/ui/Wizard';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Icon } from '@/components/ui/Icon';
 import { useAuth } from '@/store/auth';
@@ -217,6 +218,7 @@ function StaffFormModal({ staff, onClose, onSaved }: StaffFormModalProps) {
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors]   = useState<Record<string, string>>({});
+  const [step, setStep]       = useState(1);
 
   // Si cambian de preset y NO es custom, sobrescribe los permisos
   function pickRolPreset(key: string) {
@@ -234,25 +236,30 @@ function StaffFormModal({ staff, onClose, onSaved }: StaffFormModalProps) {
     );
   }
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Paso 1: valida datos de acceso antes de avanzar.
+  const validateStep1 = () => {
+    const e: Record<string, string> = {};
+    if (!nombre.trim()) e.nombre = 'Requerido';
+    if (!email.trim()) e.email = 'Requerido';
+    if (!editing && !password) e.password = 'Requerida al crear';
+    if (password && password !== confirmation) e.password = 'Las contraseñas no coinciden';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleNext = () => {
+    if (step === 1) { if (validateStep1()) setStep(2); }
+    else doSubmit();
+  };
+
+  const doSubmit = async () => {
     setLoading(true);
     setErrors({});
 
     const payload: Record<string, unknown> = { nombre, email, permisos };
     if (password) {
-      if (password !== confirmation) {
-        setErrors({ password: 'Las contraseñas no coinciden' });
-        setLoading(false);
-        return;
-      }
       payload.password = password;
       payload.password_confirmation = confirmation;
-    }
-    if (!editing && !password) {
-      setErrors({ password: 'Requerida al crear' });
-      setLoading(false);
-      return;
     }
 
     try {
@@ -279,145 +286,153 @@ function StaffFormModal({ staff, onClose, onSaved }: StaffFormModalProps) {
   };
 
   return (
-    <Modal open onClose={onClose} title={editing ? `Editar ${staff!.nombre}` : 'Nuevo empleado'}>
-      <form onSubmit={submit} className="space-y-5 max-h-[78vh] overflow-y-auto pr-1">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Field
-            data-tour="staff-modal-nombre"
-            label="Nombre"
-            required
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            error={errors.nombre}
-          />
-          <Field
-            data-tour="staff-modal-email"
-            label="Email"
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            error={errors.email}
-          />
-        </div>
+    <Modal open onClose={onClose} title={editing ? `Editar ${staff!.nombre}` : 'Nuevo empleado'} size="lg">
+      <Wizard
+        steps={['Datos de acceso', 'Rol y permisos']}
+        current={step}
+        onStep={setStep}
+        kicker={`Paso ${step} de 2`}
+        title={step === 1 ? '¿Quién es y cómo entra?' : '¿Qué puede hacer?'}
+        subtitle={step === 1
+          ? 'Nombre, correo y contraseña con los que iniciará sesión.'
+          : 'Elige un rol predefinido o personaliza los módulos a los que accede.'}
+        onCancel={onClose}
+        onBack={() => setStep(1)}
+        onNext={handleNext}
+        saving={loading}
+        isLast={step === 2}
+        submitLabel={editing ? 'Actualizar' : 'Crear empleado'}
+      >
+        {step === 1 ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Field
+                data-tour="staff-modal-nombre"
+                label="Nombre"
+                required
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                error={errors.nombre}
+              />
+              <Field
+                data-tour="staff-modal-email"
+                label="Email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                error={errors.email}
+              />
+            </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Field
-            data-tour="staff-modal-password"
-            label={editing ? 'Nueva contraseña (opcional)' : 'Contraseña'}
-            type="password"
-            minLength={8}
-            required={!editing}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            hint={editing ? 'Vacío = no cambiarla. Min 8 chars con letras y números.' : 'Min 8 chars con letras y números.'}
-            error={errors.password}
-          />
-          {password && (
-            <Field
-              label="Confirmar contraseña"
-              type="password"
-              required
-              value={confirmation}
-              onChange={(e) => setConfirmation(e.target.value)}
-            />
-          )}
-        </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Field
+                data-tour="staff-modal-password"
+                label={editing ? 'Nueva contraseña (opcional)' : 'Contraseña'}
+                type="password"
+                minLength={8}
+                required={!editing}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                hint={editing ? 'Vacío = no cambiarla. Min 8 chars con letras y números.' : 'Min 8 chars con letras y números.'}
+                error={errors.password}
+              />
+              {password && (
+                <Field
+                  label="Confirmar contraseña"
+                  type="password"
+                  required
+                  value={confirmation}
+                  onChange={(e) => setConfirmation(e.target.value)}
+                />
+              )}
+            </div>
 
-        {/* Rol preset */}
-        <div data-tour="staff-modal-roles">
-          <p className="text-sm font-medium mb-2">Rol predefinido</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {ROLES.map((r) => {
-              const active = rolPreset === r.key;
-              return (
-                <button
-                  key={r.key}
-                  type="button"
-                  onClick={() => pickRolPreset(r.key)}
-                  className={cn(
-                    'text-left p-3 rounded-2xl border-2 transition',
-                    active
-                      ? 'border-ink bg-ink/[0.04]'
-                      : 'border-line hover:border-ink/40 bg-white',
-                  )}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-sm">{r.label}</span>
-                    {active && <Icon name="check-circle" size={16} className="text-ink" />}
-                  </div>
-                  <p className="text-xs text-muted mt-0.5">{r.descripcion}</p>
-                </button>
-              );
-            })}
+            {editing && password && (
+              <p className="text-xs text-muted inline-flex items-start gap-1.5">
+                <Icon name="alert-triangle" size={13} className="mt-0.5 shrink-0 text-amber-600" />
+                <span>Al cambiar la contraseña, todas las sesiones activas del empleado se cierran.</span>
+              </p>
+            )}
           </div>
-        </div>
+        ) : (
+          <div className="space-y-5">
+            {/* Rol preset */}
+            <div data-tour="staff-modal-roles">
+              <p className="text-sm font-medium mb-2">Rol predefinido</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {ROLES.map((r) => {
+                  const active = rolPreset === r.key;
+                  return (
+                    <button
+                      key={r.key}
+                      type="button"
+                      onClick={() => pickRolPreset(r.key)}
+                      className={cn(
+                        'text-left p-3 rounded-2xl border-2 transition',
+                        active
+                          ? 'border-ink bg-ink/[0.04]'
+                          : 'border-line hover:border-ink/40 bg-white',
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm">{r.label}</span>
+                        {active && <Icon name="check-circle" size={16} className="text-ink" />}
+                      </div>
+                      <p className="text-xs text-muted mt-0.5">{r.descripcion}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-        {/* Checkboxes de módulos */}
-        <div data-tour="staff-modal-permisos">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium">Acceso a módulos</p>
-            <span className="text-[11px] text-muted">
-              {permisos.length} de {MODULOS.length} seleccionados
-            </span>
+            {/* Checkboxes de módulos */}
+            <div data-tour="staff-modal-permisos">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium">Acceso a módulos</p>
+                <span className="text-[11px] text-muted">
+                  {permisos.length} de {MODULOS.length} seleccionados
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                {MODULOS.map((m) => {
+                  const active = permisos.includes(m.key);
+                  return (
+                    <label
+                      key={m.key}
+                      className={cn(
+                        'flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition select-none',
+                        active
+                          ? 'border-ink/30 bg-ink/[0.03]'
+                          : 'border-line hover:border-ink/20 bg-white',
+                      )}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={active}
+                        onChange={() => togglePermiso(m.key)}
+                        className="mt-0.5 w-4 h-4 rounded accent-ink"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <Icon name={m.icon} size={13} className="text-ink/70" />
+                          <span className="text-sm font-medium">{m.label}</span>
+                        </div>
+                        <p className="text-[11px] text-muted mt-0.5">{m.descripcion}</p>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+              {permisos.length === 0 && (
+                <p className="text-[11px] text-red-600 mt-2">
+                  Selecciona al menos un módulo. Si dejas vacío, se asigna acceso solo a Pedidos.
+                </p>
+              )}
+            </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-            {MODULOS.map((m) => {
-              const active = permisos.includes(m.key);
-              return (
-                <label
-                  key={m.key}
-                  className={cn(
-                    'flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer transition select-none',
-                    active
-                      ? 'border-ink/30 bg-ink/[0.03]'
-                      : 'border-line hover:border-ink/20 bg-white',
-                  )}
-                >
-                  <input
-                    type="checkbox"
-                    checked={active}
-                    onChange={() => togglePermiso(m.key)}
-                    className="mt-0.5 w-4 h-4 rounded accent-ink"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <Icon name={m.icon} size={13} className="text-ink/70" />
-                      <span className="text-sm font-medium">{m.label}</span>
-                    </div>
-                    <p className="text-[11px] text-muted mt-0.5">{m.descripcion}</p>
-                  </div>
-                </label>
-              );
-            })}
-          </div>
-          {permisos.length === 0 && (
-            <p className="text-[11px] text-red-600 mt-2">
-              Selecciona al menos un módulo. Si dejas vacío, se asigna acceso solo a Pedidos.
-            </p>
-          )}
-        </div>
-
-        <div className="flex gap-2 pt-2 border-t border-line">
-          <Button data-tour="staff-modal-guardar" type="submit" disabled={loading} className="flex-1">
-            {loading ? 'Guardando…' : editing ? 'Actualizar' : 'Crear empleado'}
-          </Button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-2xl border border-line text-muted hover:text-ink"
-          >
-            Cancelar
-          </button>
-        </div>
-
-        {editing && password && (
-          <p className="text-xs text-muted inline-flex items-start gap-1.5">
-            <Icon name="alert-triangle" size={13} className="mt-0.5 shrink-0 text-amber-600" />
-            <span>Al cambiar la contraseña, todas las sesiones activas del empleado se cierran.</span>
-          </p>
         )}
-      </form>
+      </Wizard>
     </Modal>
   );
 }
