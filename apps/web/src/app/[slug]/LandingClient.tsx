@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { useCart, type CartExtra } from '@/store/cart';
 import { buildWhatsAppUrl } from '@/lib/whatsapp';
@@ -194,6 +194,17 @@ export function LandingClient({ menu }: Props) {
             transition={{ duration: 0.65, ease: [0.2, 0.8, 0.2, 1] }}
             className="relative"
           >
+            {/* Halo de marca detrás del logo — glow con el color del local */}
+            <span
+              aria-hidden
+              className="absolute -inset-5 rounded-full blur-2xl pointer-events-none"
+              style={{
+                background:
+                  'radial-gradient(circle, color-mix(in srgb, var(--ce-accent) 55%, transparent), transparent 70%)',
+                opacity: 0.7,
+                zIndex: -1,
+              }}
+            />
             {branding.logo ? (
               <img
                 src={branding.logo}
@@ -535,6 +546,7 @@ function CategoryCarouselSection({
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [hintVisible, setHintVisible] = useState(showSwipeHint);
+  const reduce = useReducedMotion();
 
   useEffect(() => {
     if (!showSwipeHint) return;
@@ -584,11 +596,15 @@ function CategoryCarouselSection({
             WebkitOverflowScrolling: 'touch',
           }}
         >
-          {productos.map((p) => (
-            <div
+          {productos.map((p, i) => (
+            <motion.div
               key={p.id}
               className="shrink-0 w-[31%] min-w-[140px] sm:w-[200px] md:w-[220px]"
               style={{ scrollSnapAlign: 'start' }}
+              initial={reduce ? false : { opacity: 0, y: 18 }}
+              whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.25 }}
+              transition={{ duration: 0.42, delay: Math.min(i, 6) * 0.06, ease: [0.2, 0.8, 0.2, 1] }}
             >
               <ProductCard
                 producto={p}
@@ -596,7 +612,7 @@ function CategoryCarouselSection({
                 onOpen={() => onOpen(p)}
                 onAdd={() => onAdd(p)}
               />
-            </div>
+            </motion.div>
           ))}
         </div>
 
@@ -631,22 +647,39 @@ function CategoryChip({
   categoria, active, onClick,
 }: { categoria: Categoria; active: boolean; onClick: () => void }) {
   const icon = (categoria.icono as IconName | undefined) ?? iconForCategoria(categoria.nombre);
+  const reduce = useReducedMotion();
+  const pillStyle = {
+    background: 'linear-gradient(135deg, var(--ce-accent) 0%, color-mix(in srgb, var(--ce-accent) 78%, black) 100%)',
+    boxShadow: '0 8px 22px -8px color-mix(in srgb, var(--ce-accent) 55%, rgba(0,0,0,0.32))',
+  };
   return (
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={cn(
-        'inline-flex items-center gap-2 whitespace-nowrap font-semibold text-[13px] rounded-full transition-all duration-300 px-4 py-2.5 border',
+        'relative inline-flex items-center gap-2 whitespace-nowrap font-semibold text-[13px] rounded-full transition-colors duration-300 px-4 py-2.5 border tap-target',
         active
-          ? 'text-white border-transparent shadow-[0_8px_22px_-8px_rgba(0,0,0,0.32)] hover:-translate-y-0.5'
+          ? 'text-white border-transparent'
           : 'border-line bg-surface hover:border-ink/30 hover:-translate-y-0.5',
       )}
-      style={active ? {
-        background: 'linear-gradient(135deg, var(--ce-accent) 0%, color-mix(in srgb, var(--ce-accent) 78%, black) 100%)',
-      } : undefined}
     >
-      <Icon name={icon} size={13} strokeWidth={2.4} />
-      <span>{categoria.nombre}</span>
+      {/* Pill activo que se desliza entre categorías (layoutId compartido) */}
+      {active && (
+        reduce ? (
+          <span aria-hidden className="absolute inset-0 rounded-full" style={pillStyle} />
+        ) : (
+          <motion.span
+            layoutId="ce-cat-pill"
+            aria-hidden
+            className="absolute inset-0 rounded-full"
+            style={pillStyle}
+            transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+          />
+        )
+      )}
+      <Icon name={icon} size={13} strokeWidth={2.4} className="relative z-[1]" />
+      <span className="relative z-[1]">{categoria.nombre}</span>
     </button>
   );
 }

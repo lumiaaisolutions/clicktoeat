@@ -169,7 +169,7 @@ export function CreateButton({
 type DeleteState = 'idle' | 'holding' | 'deleting';
 
 export function DeleteButton({
-  onDelete, label = 'Mantener para eliminar', holdMs = 1100, className, disabled, compact = false, ...rest
+  onDelete, label = 'Mantener\npara eliminar', holdMs = 1100, className, disabled, compact = false, ...rest
 }: {
   onDelete: () => void | Promise<void>;
   label?: string;
@@ -214,8 +214,8 @@ export function DeleteButton({
     <motion.button
       type="button"
       disabled={disabled || state === 'deleting'}
-      aria-label={holding ? 'Suelta para cancelar el borrado' : label}
-      title={label}
+      aria-label={holding ? 'Suelta para cancelar el borrado' : 'Mantener presionado para eliminar'}
+      title="Mantener presionado para eliminar"
       data-tour={rest['data-tour']}
       onPointerDown={(e) => { e.preventDefault(); startHold(); }}
       onPointerUp={cancelHold}
@@ -265,7 +265,7 @@ export function DeleteButton({
               </motion.g>
               <path d="M6 6v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6" />
             </svg>
-            <span className="relative z-10 whitespace-nowrap">{label}</span>
+            <span className="relative z-10 whitespace-pre-line text-left leading-[1.05]">{label}</span>
           </motion.span>
         ) : (
           // animación de "bola de papel al basurero"
