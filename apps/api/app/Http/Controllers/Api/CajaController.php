@@ -36,6 +36,30 @@ class CajaController extends Controller
         return PedidoResource::collection($pedidos);
     }
 
+    /** Historial de pagos de mostrador cobrados hoy (los más recientes primero). */
+    public function cobradosMostrador(): JsonResponse
+    {
+        $this->authorize('viewAny', Caja::class);
+
+        $pedidos = Pedido::query()
+            ->where('estado_pago', 'pagado')
+            ->whereNotNull('pagado_at')
+            ->where('pagado_at', '>=', now()->startOfDay())
+            ->whereNull('cuenta_mesa_id')
+            ->orderByDesc('pagado_at')
+            ->limit(50)
+            ->get();
+
+        return response()->json(['data' => $pedidos->map(fn (Pedido $p) => [
+            'id' => $p->id,
+            'codigo' => $p->codigo,
+            'cliente_nombre' => $p->cliente_nombre,
+            'total' => $p->total,
+            'metodo_pago' => $p->metodo_pago,
+            'pagado_at' => $p->pagado_at ? \Illuminate\Support\Carbon::parse($p->pagado_at)->toIso8601String() : null,
+        ])->values()]);
+    }
+
     /** Cobra un pedido de mostrador (pago único). */
     public function cobrarPedido(Request $req, Pedido $pedido): JsonResponse
     {

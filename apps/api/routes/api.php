@@ -419,6 +419,7 @@ Route::middleware('throttle:60,1')->group(function () {
 
             // "Todo por caja" (Fase D): mostrador arma pedido en Venta y se cobra aquí.
             Route::get('caja/pendientes', [CajaController::class, 'pendientesMostrador']);
+            Route::get('caja/cobrados', [CajaController::class, 'cobradosMostrador']);
             Route::post('pedidos/{pedido}/cobrar', [CajaController::class, 'cobrarPedido']);
 
             Route::get('cajas', [CajaController::class, 'index']);

@@ -56,8 +56,12 @@ interface PedidoMostrador {
   cliente_nombre: string | null;
   total: string;
 }
+interface CobradoMostrador extends PedidoMostrador {
+  metodo_pago: string;
+  pagado_at: string | null;
+}
 const METODO_LABEL: Record<string, string> = {
-  efectivo: 'Efectivo', tarjeta_tpv: 'Tarjeta', transferencia: 'Transferencia',
+  efectivo: 'Efectivo', tarjeta_tpv: 'Tarjeta', tarjeta_entrega: 'Tarjeta a entrega', transferencia: 'Transferencia',
 };
 
 export default function CajaPage() {
@@ -73,10 +77,16 @@ export default function CajaPage() {
   const [cerrandoCorte, setCerrandoCorte] = useState(false);
   const [cobrando, setCobrando] = useState<CuentaMesa | null>(null);
   const [pendientes, setPendientes] = useState<PedidoMostrador[] | null>(null);
+  const [cobrados, setCobrados] = useState<CobradoMostrador[] | null>(null);
 
   const refreshPendientes = async () => {
     const { data } = await api.get<{ data: PedidoMostrador[] }>('/caja/pendientes');
     setPendientes(data.data);
+  };
+
+  const refreshCobrados = async () => {
+    const { data } = await api.get<{ data: CobradoMostrador[] }>('/caja/cobrados');
+    setCobrados(data.data);
   };
 
   const cobrarMostrador = async (pedidoId: number, metodo: string) => {
@@ -84,6 +94,7 @@ export default function CajaPage() {
       await api.post(`/pedidos/${pedidoId}/cobrar`, { metodo_pago: metodo, corte_caja_id: corte?.id ?? null });
       toast.success('Pedido cobrado');
       refreshPendientes();
+      refreshCobrados();
       if (selectedCajaId) refreshCorte(selectedCajaId);
     } catch (e: unknown) {
       toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'No se pudo cobrar');
@@ -111,7 +122,8 @@ export default function CajaPage() {
     refreshCajas();
     refreshCuentas();
     refreshPendientes();
-    const id = setInterval(() => { refreshCuentas(); refreshPendientes(); }, 15_000);
+    refreshCobrados();
+    const id = setInterval(() => { refreshCuentas(); refreshPendientes(); refreshCobrados(); }, 15_000);
     return () => clearInterval(id);
   }, []);
   useEffect(() => { if (selectedCajaId !== null) refreshCorte(selectedCajaId); }, [selectedCajaId]);
@@ -265,6 +277,40 @@ export default function CajaPage() {
                   ))}
                 </div>
               </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Historial de pagos de mostrador cobrados hoy */}
+      <div className="flex items-baseline justify-between gap-3 mb-2">
+        <h3 className="ce-display font-bold">Cobrados hoy</h3>
+        {cobrados && cobrados.length > 0 && (
+          <span className="text-xs text-muted">
+            {cobrados.length} {cobrados.length === 1 ? 'pago' : 'pagos'} · ${cobrados.reduce((s, c) => s + Number(c.total || 0), 0).toFixed(2)}
+          </span>
+        )}
+      </div>
+      {cobrados === null ? (
+        <Skeleton className="h-16 mb-6" />
+      ) : cobrados.length === 0 ? (
+        <p className="text-sm text-muted mb-6">Aún no hay pagos registrados hoy. Aparecerán aquí en cuanto cobres un pedido de mostrador.</p>
+      ) : (
+        <div className="rounded-2xl border border-line bg-white divide-y divide-line mb-6 overflow-hidden">
+          {cobrados.map((c) => (
+            <div key={c.id} className="flex items-center justify-between gap-3 px-4 py-3">
+              <div className="min-w-0">
+                <p className="font-medium text-sm truncate">{c.cliente_nombre || c.codigo}</p>
+                <p className="text-xs text-muted">
+                  {c.pagado_at ? new Date(c.pagado_at).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : ''}
+                  {' · '}
+                  <span className="inline-flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: c.metodo_pago === 'efectivo' ? '#33B87A' : '#5B8DEF' }} />
+                    {METODO_LABEL[c.metodo_pago] ?? c.metodo_pago}
+                  </span>
+                </p>
+              </div>
+              <span className="ce-display font-bold tabular-nums">${c.total}</span>
             </div>
           ))}
         </div>

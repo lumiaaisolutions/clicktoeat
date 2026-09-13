@@ -169,6 +169,39 @@ class SalonCajaMostradorTest extends TestCase
         $this->assertCount(1, $resp->json('data'));
     }
 
+    public function test_cobrados_incluye_pedido_pagado_hoy_con_su_metodo(): void
+    {
+        $pedido = $this->pedidoMostrador($this->localA, 75);
+        $this->actingAs($this->ownerA, 'sanctum')
+            ->postJson("/api/v1/pedidos/{$pedido->id}/cobrar", ['metodo_pago' => 'tarjeta_tpv'])->assertOk();
+
+        $resp = $this->actingAs($this->ownerA, 'sanctum')->getJson('/api/v1/caja/cobrados');
+
+        $resp->assertOk();
+        $this->assertCount(1, $resp->json('data'));
+        $this->assertEquals('tarjeta_tpv', $resp->json('data.0.metodo_pago'));
+    }
+
+    public function test_cobrados_aisla_por_local_y_excluye_pendientes(): void
+    {
+        // Pendiente de A — no debe aparecer.
+        $this->pedidoMostrador($this->localA, 10);
+        // Pagado de A — debe aparecer.
+        $pa = $this->pedidoMostrador($this->localA, 20);
+        $this->actingAs($this->ownerA, 'sanctum')
+            ->postJson("/api/v1/pedidos/{$pa->id}/cobrar", ['metodo_pago' => 'efectivo'])->assertOk();
+        // Pagado de B — no debe aparecer para A.
+        $pb = $this->pedidoMostrador($this->localB, 30);
+        $pb->update(['estado_pago' => 'pagado', 'metodo_pago' => 'efectivo', 'pagado_at' => now()]);
+
+        $resp = $this->actingAs($this->ownerA, 'sanctum')->getJson('/api/v1/caja/cobrados');
+
+        $resp->assertOk();
+        $data = $resp->json('data');
+        $this->assertCount(1, $data);
+        $this->assertEquals($pa->id, $data[0]['id']);
+    }
+
     public function test_venta_con_mesa_adjunta_el_pedido_a_la_cuenta(): void
     {
         $cat = \App\Models\Categoria::create(['local_id' => $this->localA->id, 'nombre' => 'C', 'slug' => 'c', 'orden' => 0, 'activo' => true]);
