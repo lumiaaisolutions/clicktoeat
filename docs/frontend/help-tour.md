@@ -22,26 +22,54 @@
 5. El Centro de Ayuda (`/admin/ayuda`) muestra una grilla con todas las
    cards de tour disponibles + un CTA a WhatsApp para soporte humano.
 
-## Tours definidos (Fase 15 — 2026-06-15)
+## Tours definidos
 
-Cada tour vive en `apps/web/src/components/help/tours.ts`:
+Cada tour vive en `apps/web/src/components/help/tours.ts` (conteo de pasos al
+2026-09-12). Solo `bienvenida` auto-arranca; el resto se abren desde el botón "?"
+del `AdminPageHeader` (`tourSlug=...`) o desde `/admin/ayuda`.
 
-| Slug | Pasos | Auto-trigger | Usa data-tour |
-|------|------:|:------------:|---------------|
-| `bienvenida` | 5 | ✅ primera vez en `/admin` | `sidebar-productos`, `sidebar-pedidos`, `sidebar-branding`, `sidebar-qr` |
-| `productos` | 3 | — | `productos-nuevo`, `productos-buscar` |
-| `categorias` | 2 | — | `categorias-nuevo` |
-| `pedidos` | 2 | — | `pedidos-filtros` |
-| `inventario` | 1 | — | — |
-| `compras` | 1 | — | — |
-| `branding` | 3 | — | `branding-logo`, `branding-colores` |
-| `qr` | 2 | — | `qr-descargar` |
-| `horarios` | 1 | — | — |
-| `staff` | 2 | — | `staff-nuevo` |
-| `metricas` | 1 | — | — |
-| `audit-log` | 1 | — | — |
-| `billing` | 1 | — | — |
-| `punto-venta` | 1 | — | — |
+| Slug | Pasos | Notas |
+|------|------:|-------|
+| `bienvenida` | 5 | ✅ auto-trigger la 1ª vez en `/admin`; resalta `sidebar-*` |
+| `productos` | 15 | |
+| `categorias` | 7 | |
+| `pedidos` | 6 | |
+| `inventario` | 13 | |
+| `inventario-auto-pause` | 2 | auto-pausa por stock |
+| `compras` | 1 | |
+| `branding` | 5 | |
+| `qr` | 6 | |
+| `horarios` | 1 | |
+| `staff` | 9 | |
+| `metricas` | 1 | |
+| `audit-log` | 1 | |
+| `billing` | 6 | |
+| `punto-venta` | 5 | |
+| `caja` | 6 | **nuevo (sept 2026)** — tutorial de caja/cobro |
+| `reviews` | 3 | |
+| `sucursales` | 2 | |
+| `multi-sucursal` | 3 | |
+| `cupones` | 3 | |
+| `cupones-horario` | 3 | cupones programados por horario |
+| `toppings` | 3 | |
+| `mesas` | 4 | |
+| `gastos` | 4 | |
+| `reservaciones` | 3 | |
+| `turnos` | 3 | |
+| `lealtad-plus` | 3 | `ChallengeModal` (niveles + retos) |
+| `centro-aprendizaje` | 2 | |
+
+### Cambios de esta tanda (sept 2026)
+
+- **Tour nuevo `caja`** (tutorial de cobro en la caja).
+- **Wire de tours huérfanos** que ya existían en `tours.ts` pero no estaban
+  enganchados a su página: `billing`, `branding`, `reviews`, `sucursales`,
+  `punto-venta` — ahora accesibles vía `tourSlug`/`HelpButton`.
+- **Tours nuevos por módulo**: `toppings`, `mesas`, `gastos`, `cupones`,
+  `reservaciones`, `turnos`, `lealtad-plus`.
+
+> Nota: `AutoTourTrigger` sigue disparando únicamente `bienvenida` en el primer
+> login; los demás son on-demand.
 
 ## Anatomía del TourOverlay
 

@@ -37,3 +37,36 @@ receta/ingredientes→insumos del catálogo) y **bórralo de esta lista**.
 ## Nota
 - El **carrusel de login editable** (super-admin) también es feature de plataforma
   (`5fc457d`, `4a644b1`, `707dfd8`) — verificar si ClickToShop lo tiene; si no, portar.
+
+---
+
+## Sesión 2026-09-12 — rediseño de panel + correos (bloque grande)
+
+> Todo esto son features de plataforma construidas en ClickToEat y **aún sin
+> portar** a ClickToShop. Adapta el dominio (restaurante→tienda) y bórralo al portar.
+
+### Kit de UI / interacción
+15. **Select en portal** (`components/ui/Select.tsx`): el panel se renderiza en portal a `body` con `position:fixed` — inmune a `overflow-hidden` de ancestros.
+16. **Toaster propio** (`components/ui/Toaster.tsx` + `store/toast.ts`) que **reemplaza la dependencia `sileo`**: notification-card por estado, portal con z sobre modales, swipe, barra de progreso. Ver ADR del Toaster.
+17. **Botones de acción** (`components/ui/actions.tsx`): `EditButton` (lápiz), `ViewButton` (ojo), `DeleteButton` (**Hold-to-Delete** "Mantener para eliminar" + bola de papel; el hold es la confirmación), `CreateButton` ("+" líquido), `ActionButton` (secundario ícono+tooltip). Swap system-wide.
+18. **ConfirmDialog** (`store/confirm.ts` + `components/ui/ConfirmDialog.tsx`): reemplaza TODOS los `confirm()`/`alert()` nativos (0 alertas del navegador).
+19. **Wizard** aplicado a más modales crear/editar: staff, cupones, compras, locales, turnos, reservaciones, lealtad.
+
+### Panel / vistas
+20. **Shell del panel**: indicador de nav activo que se desliza (`layoutId`), sidebar cálido.
+21. **Métricas interactivas**: segmented deslizante, KPIs con count-up, gráfica con tooltip que sigue el cursor + trazo animado, leyenda toggle, heatmap con tooltip.
+22. **Landing polish**: hero glow de marca, chip de categoría con `layoutId`, entrada escalonada de cards (sin tocar carrito/checkout).
+23. **+26 íconos** de comida/bebida en el selector de categorías (`Icon.tsx` + `IconPicker.tsx`).
+24. **Audit-log** agrupado por día colapsable + descripciones humanas sin tecnicismos.
+25. **Branding**: botón "Guardar cambios" resalta + barra fija cuando hay cambios sin guardar.
+26. **Reviews**: al click en una reseña, modal con detalle de cliente + venta + **historial del cliente** (`GET /clientes/historial`).
+
+### Salón / caja / mesero (parcial en ClickToShop — sin dine-in, adaptar)
+27. **Caja**: panel explicado + botones con diseño + **historial "Cobrados hoy"** (`GET /caja/cobrados`) + confirmación antes de cobrar.
+28. **Mesero**: atribución visible — mesas "Atiende", caja "Atiende" en cuentas y "Cobró" (`pedidos.cobrado_por`) en Cobrados hoy; preset "Mesero" + módulos de salón en la grilla de permisos.
+29. **Sucursales**: "Abrir solicitud de soporte" crea un ticket real (`POST /soporte/tickets`).
+
+### Sistema de correo (bloque completo)
+30. **Diseño unificado**: layout base `mail/layout.blade.php` (splash suave durazno→crema + logo ClickToEat PNG `/email-logo.png` + footer `contacto@...`); las 13 plantillas migradas (incluye reset password convertido a vista).
+31. **Seguimiento de pedido por correo** (`PedidoEstadoMail`, mode-aware) + **comprobante** en `pedido_confirmado` + **correo obligatorio** en el landing + campo `pedidos.origen` (landing|pos).
+32. **SMTP**: auth con buzón primario (los alias no autentican). Ver runbook de mail.

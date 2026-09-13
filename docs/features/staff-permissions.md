@@ -64,6 +64,14 @@ Definidos en `App\Models\User::MODULOS_VALIDOS`:
 | `branding` | `/admin/branding` — personalizar landing |
 | `qr` | `/admin/qr` — ver y descargar QR |
 | `audit_log` | `/admin/audit-log` — historial de cambios |
+| `mesas` | `/admin` mapa de salón — tomar mesas y ver el salón (dine-in) |
+| `caja` | cortes, cobros y cuentas de mesa (`/caja/*`, `permiso:caja`) |
+| `cocina` | `/admin` pantalla de preparación de pedidos (`permiso:cocina`) |
+| `mesero` | `/admin/mesero` — atender llamados de mesa (`permiso:mesero`) |
+
+Los módulos de salón (`mesas`, `caja`, `cocina`, `mesero`) solo aparecen si el
+plan del local incluye dine-in/caja física. Ver
+[`mesero-atribucion.md`](./mesero-atribucion.md).
 
 `/admin` (inicio) y `/admin/perfil` son accesibles para todos los usuarios
 autenticados sin importar permisos.
@@ -72,14 +80,15 @@ no puede gestionar otros staff).
 
 ## Roles predefinidos (presets en el frontend)
 
-El modal de "Nuevo empleado" tiene 4 botones de preset que pre-seleccionan los
+El modal de "Nuevo empleado" tiene botones de preset que pre-seleccionan los
 checkboxes. El owner puede ajustar manualmente antes de guardar.
 
 | Preset | Permisos incluidos |
 |--------|---------------------|
+| **Mesero** | `pedidos`, `pos`, `mesas`, `caja` |
 | **Cajero** | `pedidos`, `pos` |
-| **Encargado de cocina** | `pedidos`, `productos`, `recetas`, `inventario`, `compras` |
-| **Manager** | `pedidos`, `pos`, `productos`, `categorias`, `inventario`, `compras`, `recetas`, `metricas`, `horarios`, `qr` |
+| **Encargado de cocina** | `pedidos`, `cocina`, `productos`, `recetas`, `inventario`, `compras` |
+| **Manager** | `pedidos`, `pos`, `mesas`, `caja`, `cocina`, `mesero`, `productos`, `categorias`, `inventario`, `compras`, `recetas`, `metricas`, `horarios`, `qr` |
 | **Personalizado** | (vacío — el owner elige) |
 
 Definidos en `apps/web/src/app/admin/staff/page.tsx` → constante `ROLES`.

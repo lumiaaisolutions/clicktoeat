@@ -44,7 +44,9 @@ Lista de pedidos con filtros por estado. Acción rápida: pasar al siguiente est
 POS interno: selector visual de productos por categoría → carrito local → checkout → `POST /pedidos`.
 
 ### `/admin/metricas`
-Selector de rango (preset / fechas) + tarjetas de KPI + gráficas (serie diaria, top productos, distribuciones).
+Selector de rango (segmented deslizante) + tarjetas de KPI con count-up + gráfica
+interactiva + heatmap. Detalle del rediseño en
+[`../features/metricas.md`](../features/metricas.md#frontend).
 
 ### `/admin/horarios`
 Tabla por día de la semana con `open`/`close`. Toggle `cerrado_temporal`. Selector de zona horaria. → `PATCH /local/horarios`.
@@ -103,7 +105,6 @@ Patrón optimista no implementado. Cada mutación:
 ## Pendientes
 
 - React Query / SWR para cachear + revalidate.
-- Confirmación con modal en lugar de `confirm()` nativo.
 - Permisos visuales: ocultar acciones que el rol no permite (hoy se confía en el 403 del backend).
 - Audit log para que el owner vea cambios hechos por staff.
 - Dark mode real.

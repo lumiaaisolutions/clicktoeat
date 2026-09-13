@@ -1,7 +1,15 @@
 # ADR-009 — Sileo Toaster con dynamic import + lazy load
 
+> ⚠️ **SUPERSEDED (sept 2026)** por
+> [`ADR-016 — Toaster propio (fuera sileo)`](ADR-016-toaster-propio.md).
+> `sileo` fue removido del proyecto: aun con el `dynamic({ssr:false})` y el lazy
+> `import()` descritos aquí seguía dando problemas (SSR/lazy-import frágil,
+> z-index por debajo de los modales del panel). Se reemplazó por un Toaster
+> propio (framer-motion) con la misma API pública `@/store/toast`. Este ADR se
+> conserva por contexto histórico; **no describe el estado actual**.
+
 **Fecha**: 2026-06-19
-**Status**: aceptado (commit `5d2cdc5`)
+**Status**: ~~aceptado~~ **superseded** por ADR-016 (commit original `5d2cdc5`)
 **Stakeholders**: Frontend (Next.js), DX
 
 ## Contexto

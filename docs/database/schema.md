@@ -173,12 +173,25 @@ Ver [`features/recetas.md`](../features/recetas.md).
 | `metodo_pago`          | enum `efectivo` / `tarjeta_entrega` / `tarjeta_tpv` / `transferencia` |
 | `subtotal` / `delivery_fee` / `descuento` / `total` | decimal(10,2) |
 | `estado`               | enum (ver más abajo)                                       |
+| `origen`               | varchar(20) default `landing` — `landing` (cliente desde su URL pública) / `pos` (mostrador/panel) |
 | `whatsapp_url`         | text null                                                  |
+| `pagado_at`            | timestamp null                                              |
+| `cobrado_por`          | bigint FK→users (null on delete) — quién marcó pagado un pedido de mostrador o cerró la cuenta de mesa |
 | `confirmado_at`        | timestamp null                                              |
 | `entregado_at`         | timestamp null                                              |
 | timestamps + softDelete|                                                          |
 
 `estado` enum: `nuevo`, `confirmado`, `preparando`, `listo`, `en_camino`, `entregado`, `cancelado`.
+
+`origen` (migración `2026_09_12_210000_add_origen_to_pedidos_table.php`): lo usa
+`PedidoController::updateEstado` para mandar correos de seguimiento **solo** a
+pedidos `landing`. `OrderService::crear` lo default-ea a `landing`; el POS pasa
+`'origen' => 'pos'`.
+
+`cobrado_por` (migración `2026_09_12_180000_add_cobrado_por_to_pedidos_table.php`,
+FK **solo en MySQL** — sqlite no soporta agregar FK vía ALTER): nullable (pagos
+legacy/automáticos no lo tienen). Relación `Pedido::cobrador()`. Ver
+[`mesero-atribucion.md`](../features/mesero-atribucion.md).
 
 Índices: UNIQUE `codigo`, KEY `estado`, KEY `(local_id, estado, created_at)`.
 
@@ -199,6 +212,32 @@ Ver [`features/recetas.md`](../features/recetas.md).
 | `notas`                 | text null                              |
 
 Snapshot por diseño: aunque el producto se renombre o suba precio, el pedido viejo conserva los datos originales.
+
+---
+
+### `mesas`
+
+Operación de salón / dine-in (F102, gated por Premium).
+
+| Columna          | Tipo                                                    |
+|------------------|---------------------------------------------------------|
+| `id`             | bigint PK                                                |
+| `local_id`       | bigint FK→locales (cascade)                              |
+| `piso_id`        | bigint FK→pisos (null on delete)                         |
+| `etiqueta`       | varchar(40) — "Mesa 5", "Barra 2"                        |
+| `pos_x` / `pos_y`| int default 0 — posición en el mapa de piso              |
+| `estado`         | enum `libre` / `ocupada` / `por_cobrar` (varchar en sqlite) |
+| `qr_token`       | varchar(40) UNIQUE                                       |
+| `atendido_por`   | bigint FK→users (null on delete) — mesero que atiende la mesa |
+| `atendido_desde` | timestamp null — desde cuándo la atiende                 |
+| timestamps       |                                                          |
+
+`atendido_por` / `atendido_desde` (migración
+`2026_08_31_120000_add_atendido_por_to_mesas_table.php`, FK **solo en MySQL**):
+una mesa libre no tiene mesero (nullable). Relación `Mesa::mesero()`. Ver
+[`mesero-atribucion.md`](../features/mesero-atribucion.md).
+
+Índice: KEY `(local_id, piso_id)`.
 
 ---
 

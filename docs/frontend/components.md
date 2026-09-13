@@ -14,8 +14,92 @@ Modal accesible con backdrop blur, animación de entrada (framer-motion). `open`
 ### `Skeleton.tsx`
 Placeholder gris con shimmer. Para listas y cards mientras cargan datos.
 
-### `Toaster.tsx`
-Renderea los toasts del store `toast`. Stack vertical en esquina inferior. Self-dismissing en 4s.
+### `Toaster.tsx` + `store/toast.ts` (propio — reemplazó a `sileo`)
+Toaster propio (framer-motion) que **sustituyó a la dependencia `sileo`**
+(ver [`ADR-016`](../decisions/ADR-016-toaster-propio.md); supersede a
+[`ADR-009`](../decisions/ADR-009-sileo-toaster-lazy-import.md)). Diseño
+"notification card":
+
+- **Badge de ícono por estado**: `success` (verde), `error` (rojo), `warning`
+  (ámbar), `info` (azul), `neutral` (gris) — cada uno con su color de badge,
+  barra y glow.
+- Título + descripción opcional + botón cerrar.
+- **Barra de progreso** inferior que se agota en `duration` (pausa al hover del
+  ratón; `error` dura 6 s, el resto 4.2 s; `duration: 0` = no auto-cierra).
+- **Swipe para descartar** (drag horizontal; suelta > 90 px o con velocidad).
+- Portal a `document.body` con `z-index: 1000000` → **siempre por encima de
+  modales y paneles de edición** (era el bug que motivó el cambio).
+- Máx. 4 toasts visibles, el más reciente arriba. Respeta `prefers-reduced-motion`.
+
+API pública del store (sin cambios para los ~20 call sites que ya la usaban):
+`import { toast } from '@/store/toast'` → `toast.success(text, { description?, duration? })`
+(+ `error` / `info` / `warning` / `neutral`, `toast.dismiss(id)`, `toast.dismissAll()`).
+Existe un shim `useToast()` para call sites legacy.
+
+### `ConfirmDialog.tsx` + `store/confirm.ts`
+Diálogo de confirmación **con diseño que reemplazó a `window.confirm()` /
+`alert()` nativos del panel** (0 alertas del navegador en `app/admin`; sólo
+quedan dos `alert()` en el onboarding público de elegir plan).
+
+- **API promise-based**: `const ok = await confirmAction({ title, message?, tone?, confirmLabel?, cancelLabel? })`
+  resuelve `true` (confirmar) / `false` (cancelar). `tone: 'danger'` pinta el
+  botón de acción en rojo y usa ícono de alerta.
+- `role="alertdialog"`, focus automático al botón confirmar, `Enter` confirma /
+  `Esc` cancela, click en backdrop cancela.
+- Portal a `document.body` con `z-index: 999998`. Se monta **una vez** en el
+  layout del panel. Respeta `prefers-reduced-motion`.
+
+### `Select.tsx` (listbox custom en portal)
+Reemplaza al `<select>` nativo en todo el sistema. Listbox accesible con teclado
+completo (flechas, Home/End, typeahead, Escape), `aria-activedescendant`, apertura
+con spring, resalte del elegido y micro "efecto burbuja" al elegir. Acepta
+`options={[]}` o `<option>` children (compat nativa), variantes `field` (default)
+y `pill`, `accent` configurable, y expone `name` (input oculto para forms nativos).
+
+- **El panel se renderiza en un portal a `document.body` con `position: fixed`**
+  y coordenadas de viewport → **inmune a cualquier ancestro con
+  `overflow-hidden`** (dropdowns dentro de modales/tablas ya no se recortan).
+- Decide abrir hacia arriba o abajo según el espacio disponible y **reposiciona
+  en scroll (de cualquier ancestro) y resize** mientras está abierto.
+- Cierra al hacer click fuera chequeando tanto el root como el panel del portal.
+
+### `Wizard.tsx` (formularios por pasos)
+Chrome presentacional reutilizable para formularios de alta/edición por pasos
+(ver también [`ux-formularios-intuitivos.md`](ux-formularios-intuitivos.md)):
+
+- **Desktop**: rail lateral con pasos numerados (actual resaltado, ✓ completado,
+  pendiente en gris; se puede volver a pasos ya vistos).
+- **Móvil**: rail oculto → "Paso X de N" + barra de progreso de N segmentos.
+- Footer contextual: **Cancelar → ← Atrás / Siguiente → → Guardar** en el último.
+- La validación/navegación vive en cada form; acento configurable (`#F26A1F`).
+
+Se usa en los modales crear/editar de **staff, cupones, compras, locales, turnos,
+reservaciones y lealtad (ChallengeModal)**, además de los del catálogo
+(`ProductoModal`, `IngredienteModal`, `ToppingModal`, `CategoriaModal`) y en
+`gastos`. Los formularios triviales (≤ 3 campos, p.ej. categorías) siguen como
+modal simple.
+
+### `actions.tsx` — kit de botones de acción
+`components/ui/actions.tsx`. Familia de botones de acción con micro-animación de
+firma, hover **controlado por estado** (no por variantes de framer), accesibles
+(teclado + `aria-label` + `title`) y respetuosos de `prefers-reduced-motion`:
+
+- **`EditButton`** — lápiz que "escribe" en hover (trazo con `pathLength` + lápiz
+  que se desplaza).
+- **`ViewButton`** — ojo cuya pupila parpadea (`scaleY`) en hover.
+- **`DeleteButton`** — **Hold-to-Delete**: label "Mantener\npara eliminar" en 2
+  líneas + barra roja que **crece mientras se mantiene presionado** (pointer o
+  teclado); al completar el hold dispara una animación de "bola de papel al
+  basurero" y luego `onDelete`. **El hold ES la confirmación** — no usa
+  `confirm()` nativo ni `ConfirmDialog`. Prop `compact` para filas de tabla
+  (texto/padding reducidos). `holdMs` configurable (default 1100 ms).
+- **`CreateButton`** — "+" que gira 90° con relleno **líquido** (blob que sube y
+  ondula) en hover. `label` y `icon` custom opcionales.
+- **`ActionButton`** — acción secundaria neutral: ícono + tooltip con micro-hover.
+  Soporta `onClick` **o** `href` (con `newTab`) conservando la navegación. Es el
+  usado para Historial / Ajustar / Receta / Restaurar / QR / Copiar, etc.
+
+Todos aceptan `data-tour` para engancharlos al sistema de tours.
 
 ### `Logo.tsx`
 Logo SVG de ClickToEat. Variantes: `lockup` (con texto), `mark` (sólo símbolo). Size configurable.
@@ -62,5 +146,7 @@ Algunos páginas exportan sus propios sub-componentes inline (no en `components/
 - DataTable reutilizable (cada página tiene su propia tabla).
 - Pagination component (cada página lleva su lógica de meta).
 - Date picker (los rangos de fecha usan `<input type="date">` nativo).
-- Toast con tipo `warning` (sólo success/error/info).
 - Loading boundaries con `<Suspense>` — hoy se hace con flag `loading` en cada page.
+
+> Ya resueltos: toast con tipo `warning`/`neutral` (Toaster propio) y
+> confirmación con diálogo de diseño (`ConfirmDialog`, reemplazó a `confirm()`).

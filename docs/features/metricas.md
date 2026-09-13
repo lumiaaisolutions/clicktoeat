@@ -94,6 +94,19 @@ Total: ~8 queries aún en rangos grandes. No itera filas en PHP.
 
 ## Frontend
 
-Página: `apps/web/src/app/admin/metricas/page.tsx`.
+Página: `apps/web/src/app/admin/metricas/page.tsx`. El backend entrega todo
+formateado; el front lo rinde con un **rediseño interactivo** (sept 2026):
 
-Hoy se renderiza con gráficas básicas; el backend ya entrega todo formateado.
+- **Control de rango segmentado** con indicador que se desliza entre presets
+  (`motion.span` con `layoutId="range-active"`, spring). Fechas custom se
+  despliegan debajo (`height: auto`).
+- **KPIs con count-up**: el número anima de 0 al valor (`useCountUp` /
+  `<CountUp>`, ~900 ms) al montar.
+- **Gráfica de utilidad neta** con **trazo animado** (`pathLength` 0→1),
+  **tooltip que sigue el cursor** (posicionado dentro del `viewBox` para alinear
+  exacto) y **leyenda interactiva** (toggle de series ingresos/gastos/utilidad).
+- **Heatmap día × hora** con intensidad por celda y **tooltip** al pasar el ratón
+  (`"Lun 14h · 8 pedidos · $1,240"`).
+- **Pedidos por estado**: chips con count-up.
+
+Todo respeta `prefers-reduced-motion` (sin count-up ni trazo animado).

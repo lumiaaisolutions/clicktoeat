@@ -98,6 +98,7 @@ Crea un pedido sin autenticación. **Throttle adicional `20/min`**.
 {
   "cliente": {
     "nombre": "María Pérez",
+    "email": "maria@example.com",
     "telefono": "5215512345678",
     "direccion": "Av. Insurgentes 432",
     "lat": 19.43, "lng": -99.13,
@@ -120,6 +121,10 @@ Crea un pedido sin autenticación. **Throttle adicional `20/min`**.
 ```
 
 Validación: `StorePublicPedidoRequest`. Detalles en [`api/form-requests.md`](form-requests.md).
+
+`cliente.email` es **requerido** (`email:rfc`, max 191): habilita el correo de
+seguimiento del pedido (ver
+[`features/correos-sistema-unificado.md`](../features/correos-sistema-unificado.md)).
 
 ### Respuestas
 

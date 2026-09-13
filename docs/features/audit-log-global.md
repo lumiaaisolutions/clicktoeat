@@ -40,7 +40,20 @@ El filtro `q` matchea contra `action` y `subject_type` (LIKE %q%).
 
 ## Frontend
 
-`apps/web/src/app/admin/auditoria/page.tsx` con tabla paginada + buscador.
+`apps/web/src/app/admin/auditoria/page.tsx`. Rediseñado como **línea de tiempo
+agrupada por día** (sept 2026) en vez de una tabla técnica:
+
+- **Agrupación por día**: `groupByDay()` parte los registros en secciones con
+  encabezado legible (`Hoy` / `Ayer` / fecha) + contador de acciones del día.
+- **Descripciones humanas, sin tecnicismos**: cada fila muestra el actor (avatar
+  con iniciales + badge de rol), un verbo en español (`creó` / `editó` / `borró`
+  / `restauró`, mapeado desde `created/updated/deleted/restored`) y el sujeto
+  **humanizado** (`Producto`, `Categoría`, `Pedido`, `Cupón`, `Calificación`…,
+  vía `humanizeSubject()`) en vez del FQCN `App\Models\...`. Se conserva `#id` y
+  `local #id` como referencia discreta.
+- **Filtro por tipo de acción** con chips (Todas / Creado / Editado / Borrado /
+  Restaurado) + buscador (`q`) por nombre, acción o local.
+- Enganchado al sistema de tours con `tourSlug="audit-log"`.
 
 ## Privacidad
 

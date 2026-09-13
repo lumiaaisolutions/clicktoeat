@@ -224,7 +224,47 @@ PATCH `/estado` body:
 
 Comportamiento extra de POS interno: si `metodo_entrega=sucursal`, el pedido se auto-marca `confirmado` con `confirmado_at=now()` (el cliente ya pagó en caja).
 
+`PATCH /pedidos/{id}/estado` además dispara un **correo de seguimiento al
+cliente** cuando el pedido es `origen=landing`, tiene `cliente_email` y el nuevo
+estado es `confirmado`/`listo`/`en_camino`/`entregado` (ver
+[`features/correos-sistema-unificado.md`](../features/correos-sistema-unificado.md)).
+
+### GET `/clientes/historial?telefono=...`
+
+Historial agregado de un cliente por teléfono (para el detalle de reseñas /
+caja). Tenant-scoped, **excluye pedidos cancelados**. Controller
+`PedidoController::historialCliente`.
+
+```json
+{ "data": { "pedidos": 7, "total_gastado": 842.50,
+            "primer_pedido": "2026-05-01T18:22:00Z", "ultimo_pedido": "2026-09-10T21:05:00Z" } }
+```
+
+Sin `telefono` → `{ "data": null }`. Cliente sin pedidos → `{ "data": { "pedidos": 0 } }`.
+
 Ver [`features/pos.md`](../features/pos.md) y [`features/pedidos.md`](../features/pedidos.md).
+
+---
+
+## Caja / salón (F102 — gated por `feature:caja_fisica` + `permiso:caja`)
+
+### GET `/caja/cobrados`
+
+Pagos de mostrador **cobrados hoy** (excluye cuentas de mesa —
+`cuenta_mesa_id` null), los más recientes primero, tope **50**. Tenant-scoped.
+Controller `CajaController::cobradosMostrador`.
+
+```json
+{ "data": [
+  { "id": 12, "codigo": "CE-000012", "cliente_nombre": "Ana",
+    "total": 180.00, "metodo_pago": "efectivo",
+    "cobrado_por": "Luis", "pagado_at": "2026-09-12T19:40:00Z" }
+] }
+```
+
+`cobrado_por` es el **nombre** del usuario que marcó pagado (relación
+`Pedido::cobrador`, columna `pedidos.cobrado_por`). Ver
+[`features/mesero-atribucion.md`](../features/mesero-atribucion.md).
 
 ---
 

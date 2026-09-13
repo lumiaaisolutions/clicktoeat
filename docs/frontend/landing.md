@@ -323,6 +323,21 @@ Dark restaurante premium. Sin cambios sustanciales tras el rediseño:
   background a `var(--ce-accent)` y `-translate-y-3px`.
 - Bottom bar: copyright + "Desarrollado por LUMIA" con underline accent.
 
+## Elevación interactiva (sept 2026)
+
+Pulido visual de la landing **sin tocar la lógica de carrito/checkout**:
+
+- **Hero — glow de marca**: halo suave detrás del logo/avatar del hero pintado
+  con el color primario del local (`branding.colorPrimario`), reforzando la
+  identidad al abrir la página.
+- **Chip de categoría con `layoutId`**: el fondo del chip activo es un
+  `motion.span` compartido (`layoutId="ce-cat-pill"`) que **se desliza** entre
+  categorías al cambiar de sección (spring), en vez de aparecer/desaparecer.
+  Con `prefers-reduced-motion` cae a un `<span>` estático.
+- **Entrada escalonada de las product cards**: cada card aparece con un
+  `delay = min(i, 6) × 0.06 s` (stagger acotado para no penalizar catálogos
+  largos).
+
 ## Pendientes / mejoras conocidas
 
 - Persistir el theme toggle del visitante en `localStorage`.

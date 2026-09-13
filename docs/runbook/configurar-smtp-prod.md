@@ -5,6 +5,38 @@
 > correo** (reset de password, notificaciones, newsletter). Causa raíz: el
 > password del buzón SMTP ya no autentica (error **535 auth failed**).
 
+## ⚠️ Causa raíz REAL (gotcha) — los alias no autentican SMTP
+
+`clicktoeat@`, `contacto@` y `noreply@lumiaaisolutions.com` son **alias** del
+buzón primario `fernando@lumiaaisolutions.com`. En Hostinger **un alias NO
+puede autenticar SMTP** — intentar `MAIL_USERNAME=clicktoeat@...` (o cualquier
+alias) da **535 authentication failed**, aunque el password sea correcto.
+
+**Solución que funciona** (config vigente):
+
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.hostinger.com
+MAIL_PORT=587
+MAIL_ENCRYPTION=tls
+MAIL_USERNAME=fernando@lumiaaisolutions.com   # buzón PRIMARIO — el único que autentica
+MAIL_PASSWORD=<password del buzón fernando@>  # (no se commitea)
+MAIL_FROM_ADDRESS="clicktoeat@lumiaaisolutions.com"   # el alias sí vale como remitente
+MAIL_FROM_NAME="ClickToEat"                   # "ClickToShop" en el repo hermano
+```
+
+Claves:
+- **Autenticar** siempre con el buzón primario `fernando@` + su password.
+- **Enviar desde** (`MAIL_FROM_ADDRESS`) sí puede ser el alias de marca
+  (`clicktoeat@` / `contacto@` según el sitio) — Hostinger permite un alias
+  del mismo buzón como FROM.
+- Correo de contacto del sistema (footer de todos los correos, `replyTo` de
+  fallback): `contacto@lumiaaisolutions.com`.
+
+> La sección de abajo (Opción A/B "usar un solo buzón para auth y FROM") quedó
+> **obsoleta**: no era el password lo único mal, era que se intentaba autenticar
+> como un alias. Auth = buzón primario; FROM = alias.
+
 ## Por qué está en `log`
 
 Se dejó `MAIL_MAILER=log` como fallback seguro para que la app no reviente al

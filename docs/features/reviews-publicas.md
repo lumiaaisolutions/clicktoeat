@@ -49,6 +49,23 @@ PATCH /api/v1/admin/reviews/{id}/toggle     Aprobar / des-aprobar (moderación)
 final de `/{slug}` antes del footer. Si el local no tiene reviews, no
 renderiza nada (no muestra "0 reseñas" feo).
 
+## Detalle de reseña en el panel (admin)
+
+`apps/web/src/app/admin/reviews/page.tsx` lista las reseñas del local; cada fila
+es clickeable y abre un **modal de detalle** (`Detalle de la reseña`) con:
+
+- **Datos del cliente**: nombre, teléfono, email (del pedido cuando existe).
+- **Detalle de la venta**: si la reseña tiene `pedido_id`, hace
+  `GET /pedidos/{pedido_id}` y muestra los ítems del pedido + especificaciones
+  del cliente.
+- **Historial del cliente**: `GET /clientes/historial?telefono=<tel>` — cuántas
+  veces ha pedido (`Cliente recurrente: N pedidos`), total gastado y "cliente
+  desde". Si no hay teléfono o no hay historial, se omite.
+
+Desde el mismo panel se puede aprobar/desaprobar
+(`PATCH /admin/reviews/{id}/toggle`) y borrar (`DELETE /admin/reviews/{id}`).
+Enganchado a tours con `tourSlug="reviews"`.
+
 ## Anti-spam
 
 - Cada token es único y de un solo uso (rating > 0 = ya enviado, retorna 409).

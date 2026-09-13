@@ -127,3 +127,15 @@ Sin texto técnico. Sin opción de teclear hex (el browser ya lo abstrae).
 
 El valor sigue guardándose como hex en BD para compatibilidad con el resto del
 sistema — el cambio es 100% UX.
+
+## Cambios sin guardar visibles (sept 2026)
+
+`BrandingEditor.tsx` detecta si hay cambios pendientes comparando el `draft`
+contra el `local` cargado (`isDirty = JSON.stringify(draft) !== JSON.stringify(local)`;
+ambos se igualan al cargar y al guardar). Cuando `isDirty`:
+
+- El botón **"Guardar cambios"** del hero **resalta** (fondo naranja de acento +
+  sombra/ring + punto blanco pulsante). Sin cambios muestra "Todo guardado"
+  (gris, deshabilitado); guardando muestra "Guardando…" con spinner.
+- Aparece además una **barra fija recordatorio** ("Tienes cambios sin guardar" +
+  botón Guardar) para que el owner no se vaya sin persistir.
