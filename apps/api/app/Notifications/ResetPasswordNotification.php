@@ -27,11 +27,9 @@ class ResetPasswordNotification extends Notification
 
         return (new MailMessage)
             ->subject('Restablecer contraseña — '.config('app.name'))
-            ->greeting('Hola '.($notifiable->nombre ?? '').',')
-            ->line('Recibimos una solicitud para restablecer tu contraseña en '.config('app.name').'.')
-            ->action('Restablecer contraseña', $url)
-            ->line('Este enlace expira en 60 minutos.')
-            ->line('Si no solicitaste este cambio, ignora este mensaje — tu cuenta sigue segura.')
-            ->salutation('— Equipo '.config('app.name'));
+            ->view('mail.reset_password', [
+                'nombre' => $notifiable->nombre ?? '',
+                'url' => $url,
+            ]);
     }
 }

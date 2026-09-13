@@ -1341,12 +1341,17 @@ function CheckoutSheet({
 
   const handleSend = async () => {
     setError(null);
+    // El correo es obligatorio: ahí llega el seguimiento del pedido y el comprobante.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError('Escribe un correo válido — ahí te enviamos el seguimiento y el comprobante de tu pedido.');
+      return;
+    }
     setSending(true);
     try {
       const payload = {
         cliente: {
           nombre,
-          email:     email || null,
+          email:     email.trim(),
           telefono,
           direccion: metodo === 'delivery' ? direccion : null,
           lat:       metodo === 'delivery' ? clienteLat : null,
@@ -1596,18 +1601,22 @@ function CheckoutSheet({
 
                 <div>
                   <label className="block text-[12.5px] font-bold mb-1.5" style={{ color: 'var(--ce-muted)' }}>
-                    Correo (opcional)
+                    Correo <span style={{ color: 'var(--ce-accent)' }}>*</span>
                   </label>
                   <input
                     type="email"
+                    required
                     className={inputCls}
                     style={{ borderColor: 'rgba(35,25,15,0.08)' }}
-                    placeholder="Te mandamos confirmación si lo dejas"
+                    placeholder="tucorreo@ejemplo.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     autoComplete="email"
                     inputMode="email"
                   />
+                  <p className="mt-1 text-[11.5px] leading-snug" style={{ color: 'var(--ce-muted)' }}>
+                    Aquí te llega la confirmación, el <strong>seguimiento de tu pedido</strong> y tu comprobante de pago.
+                  </p>
                   {local.lealtad && local.lealtad.enabled && (
                     <LealtadBadge slug={local.slug} email={email} lealtad={local.lealtad} />
                   )}

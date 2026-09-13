@@ -249,7 +249,7 @@ class HorariosYMetricasTest extends TestCase
         ]);
 
         $resp = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111'],
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111', 'email' => 'cliente@test.local'],
             'metodo_entrega' => 'pickup',
             'metodo_pago' => 'efectivo',
             'items' => [['producto_id' => $prod->id, 'cantidad' => 1]],
@@ -292,7 +292,7 @@ class HorariosYMetricasTest extends TestCase
         ]);
 
         $resp = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111'],
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111', 'email' => 'cliente@test.local'],
             'metodo_entrega' => 'pickup',
             'metodo_pago' => 'efectivo',
             'items' => [['producto_id' => $prod->id, 'cantidad' => 1]],
@@ -317,7 +317,7 @@ class HorariosYMetricasTest extends TestCase
         ]);
 
         $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111'],
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111', 'email' => 'cliente@test.local'],
             'metodo_entrega' => 'pickup',
             'metodo_pago' => 'efectivo',
             'items' => [['producto_id' => $prod->id, 'cantidad' => 1]],

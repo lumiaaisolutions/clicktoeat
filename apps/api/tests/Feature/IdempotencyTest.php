@@ -40,7 +40,7 @@ class IdempotencyTest extends TestCase
     private function payload(): array
     {
         return [
-            'cliente' => ['nombre' => 'Xy', 'telefono' => '5215512345678'],
+            'cliente' => ['nombre' => 'Xy', 'telefono' => '5215512345678', 'email' => 'cliente@test.local'],
             'metodo_entrega' => 'pickup',
             'metodo_pago' => 'efectivo',
             'items' => [['producto_id' => $this->producto->id, 'cantidad' => 1]],

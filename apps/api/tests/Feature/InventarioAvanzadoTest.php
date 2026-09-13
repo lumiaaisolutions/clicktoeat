@@ -84,7 +84,7 @@ class InventarioAvanzadoTest extends TestCase
     {
         // Crear pedido (descuenta)
         $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111'],
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111', 'email' => 'cliente@test.local'],
             'metodo_entrega' => 'pickup', 'metodo_pago' => 'efectivo',
             'items' => [['producto_id' => $this->taco->id, 'cantidad' => 5]],
         ])->assertCreated();
@@ -112,7 +112,7 @@ class InventarioAvanzadoTest extends TestCase
     public function cancelar_dos_veces_es_idempotente_no_duplica_reintegro(): void
     {
         $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111'],
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111', 'email' => 'cliente@test.local'],
             'metodo_entrega' => 'pickup', 'metodo_pago' => 'efectivo',
             'items' => [['producto_id' => $this->taco->id, 'cantidad' => 2]],
         ])->assertCreated();
@@ -136,7 +136,7 @@ class InventarioAvanzadoTest extends TestCase
     public function cancelar_pedido_ya_entregado_no_reintegra(): void
     {
         $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111'],
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111', 'email' => 'cliente@test.local'],
             'metodo_entrega' => 'pickup', 'metodo_pago' => 'efectivo',
             'items' => [['producto_id' => $this->taco->id, 'cantidad' => 3]],
         ])->assertCreated();
@@ -192,7 +192,7 @@ class InventarioAvanzadoTest extends TestCase
         $this->tortilla->update(['stock_minimo' => 85]);
 
         $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111'],
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111', 'email' => 'cliente@test.local'],
             'metodo_entrega' => 'pickup', 'metodo_pago' => 'efectivo',
             'items' => [['producto_id' => $this->taco->id, 'cantidad' => 16]],
         ])->assertCreated();
@@ -212,14 +212,14 @@ class InventarioAvanzadoTest extends TestCase
 
         // Primer pedido → cruza umbral → 1 notificación
         $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111'],
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111', 'email' => 'cliente@test.local'],
             'metodo_entrega' => 'pickup', 'metodo_pago' => 'efectivo',
             'items' => [['producto_id' => $this->taco->id, 'cantidad' => 16]],
         ])->assertCreated();
 
         // Segundo pedido → ya está bajo el mínimo, no debe crear otra (anti-spam)
         $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111'],
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111', 'email' => 'cliente@test.local'],
             'metodo_entrega' => 'pickup', 'metodo_pago' => 'efectivo',
             'items' => [['producto_id' => $this->taco->id, 'cantidad' => 2]],
         ])->assertCreated();
@@ -265,7 +265,7 @@ class InventarioAvanzadoTest extends TestCase
 
         // 1 combo → expande a 2 tacos → 2 tortillas + 0.16 kg carne
         $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111'],
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111', 'email' => 'cliente@test.local'],
             'metodo_entrega' => 'pickup', 'metodo_pago' => 'efectivo',
             'items' => [['producto_id' => $combo->id, 'cantidad' => 1]],
         ])->assertCreated();
@@ -295,7 +295,7 @@ class InventarioAvanzadoTest extends TestCase
         ]);
 
         $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111'],
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111', 'email' => 'cliente@test.local'],
             'metodo_entrega' => 'pickup', 'metodo_pago' => 'efectivo',
             'items' => [['producto_id' => $megaCombo->id, 'cantidad' => 1]],
         ])->assertCreated();
@@ -322,7 +322,7 @@ class InventarioAvanzadoTest extends TestCase
 
         // Intentar pedir A debe fallar; RuntimeException se propaga como 500
         $resp = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111'],
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111', 'email' => 'cliente@test.local'],
             'metodo_entrega' => 'pickup', 'metodo_pago' => 'efectivo',
             'items' => [['producto_id' => $a->id, 'cantidad' => 1]],
         ]);

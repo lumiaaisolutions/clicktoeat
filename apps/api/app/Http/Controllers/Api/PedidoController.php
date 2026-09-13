@@ -9,7 +9,9 @@ use App\Http\Requests\Pedido\UpdateEstadoPedidoRequest;
 use App\Http\Resources\PedidoResource;
 use App\Models\Local;
 use App\Models\Pedido;
+use App\Mail\PedidoEstadoMail;
 use App\Models\Review;
+use Illuminate\Support\Facades\Mail;
 use App\Services\Inventory\InsufficientStockException;
 use App\Services\Inventory\InventoryService;
 use App\Services\Orders\OrderService;
@@ -60,7 +62,7 @@ class PedidoController extends Controller
         $local = Local::withoutGlobalScopes()->findOrFail($request->user()->local_id);
 
         try {
-            $pedido = $this->orders->crear($local, $request->toOrderInput());
+            $pedido = $this->orders->crear($local, ['origen' => 'pos'] + $request->toOrderInput());
         } catch (InsufficientStockException $e) {
             return response()->json([
                 'message' => $e->getMessage(),
@@ -248,6 +250,21 @@ class PedidoController extends Controller
         // BROADCAST_CONNECTION configurado, ver ADR-013).
         if ($pedido->mesa_id !== null) {
             event(new PedidoEstadoActualizado($pedido));
+        }
+
+        // Seguimiento por correo al cliente — SOLO pedidos del landing con correo,
+        // en estados relevantes, y solo si de verdad cambió. Falla en silencio.
+        if (
+            $nuevoEstado !== $estadoAnterior
+            && $pedido->origen === 'landing'
+            && ! empty($pedido->cliente_email)
+            && in_array($nuevoEstado, PedidoEstadoMail::NOTIFICABLES, true)
+        ) {
+            try {
+                Mail::to($pedido->cliente_email)->send(new PedidoEstadoMail($pedido->load('detalles')));
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
 
         return new PedidoResource($pedido->load('detalles'));

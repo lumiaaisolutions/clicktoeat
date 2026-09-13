@@ -35,7 +35,7 @@ class ToppingLimiteTest extends TestCase
     private function pedir(Producto $p, array $items): \Illuminate\Testing\TestResponse
     {
         return $this->postJson("/api/v1/public/pedidos/{$p->local->slug}", [
-            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111'],
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111', 'email' => 'cliente@test.local'],
             'metodo_entrega' => 'pickup', 'metodo_pago' => 'efectivo',
             'items' => [['producto_id' => $p->id, 'cantidad' => 1, 'extras' => $items]],
         ]);

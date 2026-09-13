@@ -81,6 +81,7 @@ class OrderService
                 'cliente_telefono' => $input['cliente']['telefono'],
                 'direccion' => $input['cliente']['direccion'] ?? null,
                 'notas' => $input['cliente']['notas'] ?? null,
+                'origen' => $input['origen'] ?? 'landing',
                 'metodo_entrega' => $input['metodo_entrega'],
                 'metodo_pago' => $input['metodo_pago'],
                 'subtotal' => $subtotal,

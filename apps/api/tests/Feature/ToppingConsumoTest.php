@@ -40,7 +40,7 @@ class ToppingConsumoTest extends TestCase
         ]);
 
         $this->postJson("/api/v1/public/pedidos/{$local->slug}", [
-            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111'],
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111', 'email' => 'cliente@test.local'],
             'metodo_entrega' => 'pickup', 'metodo_pago' => 'efectivo',
             'items' => [[
                 'producto_id' => $taco->id, 'cantidad' => 2,
@@ -106,7 +106,7 @@ class ToppingConsumoTest extends TestCase
 
         // El cliente manda el ID interno de la opción (como hace el front).
         $this->postJson("/api/v1/public/pedidos/{$local->slug}", [
-            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111'],
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215511111111', 'email' => 'cliente@test.local'],
             'metodo_entrega' => 'pickup', 'metodo_pago' => 'efectivo',
             'items' => [[
                 'producto_id' => $taco->id, 'cantidad' => 1,

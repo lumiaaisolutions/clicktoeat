@@ -16,7 +16,8 @@ class StorePublicPedidoRequest extends FormRequest
         return [
             'cliente' => ['required', 'array'],
             'cliente.nombre' => ['required', 'string', 'min:2', 'max:120'],
-            'cliente.email' => ['nullable', 'email:rfc', 'max:191'],
+            // Obligatorio: al correo llega el seguimiento del pedido y el comprobante.
+            'cliente.email' => ['required', 'email:rfc', 'max:191'],
             'cliente.telefono' => ['required', 'string', 'min:7',  'max:20'],
             'cliente.direccion' => ['nullable', 'string', 'max:300'],
             'cliente.lat' => ['nullable', 'numeric', 'between:-90,90'],

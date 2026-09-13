@@ -137,6 +137,7 @@ class PedidoFlowTest extends TestCase
             'cliente' => [
                 'nombre' => 'María Pérez',
                 'telefono' => '5215511112222',
+                'email' => 'maria@test.local',
             ],
             'metodo_entrega' => 'pickup',
             'metodo_pago' => 'efectivo',
@@ -173,7 +174,7 @@ class PedidoFlowTest extends TestCase
         $pedidosAntes = Pedido::count();
 
         $response = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215599999999'],
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215599999999', 'email' => 'cliente@test.local'],
             'metodo_entrega' => 'pickup',
             'metodo_pago' => 'efectivo',
             'items' => [
@@ -197,7 +198,7 @@ class PedidoFlowTest extends TestCase
     {
         // tacoSuadero NO tiene receta
         $response = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215500000000'],
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215500000000', 'email' => 'cliente@test.local'],
             'metodo_entrega' => 'delivery',
             'metodo_pago' => 'tarjeta_entrega',
             'items' => [
@@ -225,7 +226,7 @@ class PedidoFlowTest extends TestCase
         $this->tacoPastor->update(['disponible' => false]);
 
         $response = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215500000000'],
+            'cliente' => ['nombre' => 'Cliente', 'telefono' => '5215500000000', 'email' => 'cliente@test.local'],
             'metodo_entrega' => 'pickup',
             'metodo_pago' => 'efectivo',
             'items' => [['producto_id' => $this->tacoPastor->id, 'cantidad' => 1]],
@@ -340,7 +341,7 @@ class PedidoFlowTest extends TestCase
     public function el_whatsapp_url_incluye_los_items_y_total(): void
     {
         $resp = $this->postJson("/api/v1/public/pedidos/{$this->local->slug}", [
-            'cliente' => ['nombre' => 'Test', 'telefono' => '5215500000001'],
+            'cliente' => ['nombre' => 'Test', 'telefono' => '5215500000001', 'email' => 'cliente@test.local'],
             'metodo_entrega' => 'pickup',
             'metodo_pago' => 'efectivo',
             'items' => [['producto_id' => $this->tacoPastor->id, 'cantidad' => 2]],

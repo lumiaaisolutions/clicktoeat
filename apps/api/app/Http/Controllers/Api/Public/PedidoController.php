@@ -108,6 +108,7 @@ class PedidoController extends Controller
         }
 
         try {
+            $validated['origen'] = 'landing';
             $pedido = $this->orders->crear($local, $validated);
         } catch (InsufficientStockException $e) {
             return response()->json([

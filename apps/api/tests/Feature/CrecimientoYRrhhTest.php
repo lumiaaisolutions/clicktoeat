@@ -205,7 +205,7 @@ class CrecimientoYRrhhTest extends TestCase
         $giftCard = app(GiftCardService::class)->emitir($this->localA, 30);
 
         $resp = $this->postJson("/api/v1/public/pedidos/{$this->localA->slug}", [
-            'cliente' => ['nombre' => 'Juan', 'telefono' => '5551234567'],
+            'cliente' => ['nombre' => 'Juan', 'telefono' => '5551234567', 'email' => 'cliente@test.local'],
             'metodo_entrega' => 'pickup',
             'metodo_pago' => 'efectivo',
             'items' => [['producto_id' => $producto->id, 'cantidad' => 1]],
@@ -230,7 +230,7 @@ class CrecimientoYRrhhTest extends TestCase
         $giftCardAjena = app(GiftCardService::class)->emitir($this->localB, 30);
 
         $resp = $this->postJson("/api/v1/public/pedidos/{$this->localA->slug}", [
-            'cliente' => ['nombre' => 'Juan', 'telefono' => '5551234567'],
+            'cliente' => ['nombre' => 'Juan', 'telefono' => '5551234567', 'email' => 'cliente@test.local'],
             'metodo_entrega' => 'pickup',
             'metodo_pago' => 'efectivo',
             'items' => [['producto_id' => $producto->id, 'cantidad' => 1]],

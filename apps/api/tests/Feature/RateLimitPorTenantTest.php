@@ -48,7 +48,7 @@ class RateLimitPorTenantTest extends TestCase
     private function pedirPara(Local $local, Producto $producto): TestResponse
     {
         return $this->postJson("/api/v1/public/pedidos/{$local->slug}", [
-            'cliente' => ['nombre' => 'X', 'telefono' => '5215512345678'],
+            'cliente' => ['nombre' => 'X', 'telefono' => '5215512345678', 'email' => 'cliente@test.local'],
             'metodo_entrega' => 'pickup',
             'metodo_pago' => 'efectivo',
             'items' => [['producto_id' => $producto->id, 'cantidad' => 1]],

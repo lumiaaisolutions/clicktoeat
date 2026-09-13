@@ -21,7 +21,7 @@ class Pedido extends Model
         'cliente_nombre', 'cliente_email', 'cliente_telefono', 'lealtad_premio_listo', 'direccion', 'notas',
         'metodo_entrega', 'metodo_pago',
         'subtotal', 'delivery_fee', 'descuento', 'total',
-        'estado', 'whatsapp_url',
+        'estado', 'origen', 'whatsapp_url',
         // F102 Fase D — "todo por caja": cobro del pedido de mostrador
         'estado_pago', 'pagado_at', 'corte_caja_id', 'cobrado_por',
         'confirmado_at', 'entregado_at',
