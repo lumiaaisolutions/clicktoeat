@@ -36,7 +36,7 @@ interface CorteAbierto {
 
 interface CuentaMesa {
   id: number;
-  mesa: { etiqueta: string } | null;
+  mesa: { etiqueta: string; mesero?: { nombre: string } | null } | null;
   estado: 'abierta' | 'pre_cuenta' | 'cerrada';
   subtotal: string;
   total: string;
@@ -465,6 +465,12 @@ export default function CajaPage() {
                 <span className="ce-display font-bold">{c.mesa?.etiqueta ?? `Cuenta #${c.id}`}</span>
                 <span className={`text-xs px-1.5 py-0.5 rounded capitalize ${ESTADO_CUENTA_COLOR[c.estado]}`}>{c.estado.replace('_', ' ')}</span>
               </div>
+              {c.mesa?.mesero?.nombre && (
+                <p className="text-xs text-muted inline-flex items-center gap-1.5 -mt-1">
+                  <Icon name="users" size={12} />
+                  Atiende: <span className="font-medium text-ink">{c.mesa.mesero.nombre}</span>
+                </p>
+              )}
               <p className="ce-display font-bold text-xl">${c.total}</p>
               <div className="flex items-center gap-1.5 mt-auto pt-1">
                 <Button size="sm" onClick={() => setCobrando(c)} className="flex-1"><Icon name="card" size={15} /> Cobrar</Button>

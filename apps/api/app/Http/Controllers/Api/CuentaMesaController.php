@@ -22,7 +22,7 @@ class CuentaMesaController extends Controller
     {
         $this->authorize('viewAny', CuentaMesa::class);
 
-        $q = CuentaMesa::query()->with(['mesa', 'pedidos'])->orderByDesc('created_at');
+        $q = CuentaMesa::query()->with(['mesa.mesero:id,nombre', 'pedidos'])->orderByDesc('created_at');
         if ($req->filled('estado')) {
             $q->where('estado', $req->string('estado'));
         } else {
@@ -36,7 +36,7 @@ class CuentaMesaController extends Controller
     {
         $this->authorize('view', $cuenta);
 
-        return response()->json(['data' => $cuenta->load(['mesa', 'pedidos.detalles', 'pagos'])]);
+        return response()->json(['data' => $cuenta->load(['mesa.mesero:id,nombre', 'pedidos.detalles', 'pagos'])]);
     }
 
     /** Transfiere la cuenta a otra mesa (los clientes se cambiaron de lugar). */

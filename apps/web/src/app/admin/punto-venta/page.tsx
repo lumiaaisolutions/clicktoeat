@@ -12,6 +12,11 @@ import { Icon } from '@/components/ui/Icon';
 import { cn, formatMXN } from '@/lib/utils';
 import { OfflineBanner } from '@/components/admin/OfflineBanner';
 import { enqueue as enqueueOffline } from '@/lib/pos-offline';
+import { useAuth } from '@/store/auth';
+
+const ROL_LABEL: Record<string, string> = {
+  owner: 'Propietario', manager: 'Manager', cajero: 'Cajero', cocina: 'Cocina', mesero: 'Mesero',
+};
 
 type MetodoPago = 'efectivo' | 'tarjeta_tpv' | 'transferencia';
 
@@ -21,6 +26,7 @@ interface CartLine {
 }
 
 export default function PuntoVentaPage() {
+  const user = useAuth((s) => s.user);
   const [productos, setProductos]   = useState<Producto[] | null>(null);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [activeCat,  setActiveCat]  = useState<number | null>(null);
@@ -98,6 +104,12 @@ export default function PuntoVentaPage() {
       )}>
         <header className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b border-line bg-white flex flex-wrap gap-2 sm:gap-3 items-center">
           <h1 className="ce-display text-lg sm:text-xl md:text-2xl font-bold">Caja</h1>
+          {user && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[color:var(--ce-accent,#F26A1F)]/10 text-[color:var(--ce-accent,#F26A1F)] text-xs font-semibold">
+              <Icon name="users" size={13} />
+              Atiende: {user.nombre}{user.rol ? ` · ${ROL_LABEL[user.rol] ?? user.rol}` : ''}
+            </span>
+          )}
           <input
             placeholder="Buscar…"
             value={q}
