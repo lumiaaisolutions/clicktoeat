@@ -180,6 +180,9 @@ class SalonCajaMostradorTest extends TestCase
         $resp->assertOk();
         $this->assertCount(1, $resp->json('data'));
         $this->assertEquals('tarjeta_tpv', $resp->json('data.0.metodo_pago'));
+        // Registra QUIÉN cobró (el usuario que hizo la acción).
+        $this->assertEquals($this->ownerA->nombre, $resp->json('data.0.cobrado_por'));
+        $this->assertDatabaseHas('pedidos', ['id' => $pedido->id, 'cobrado_por' => $this->ownerA->id]);
     }
 
     public function test_cobrados_aisla_por_local_y_excluye_pendientes(): void

@@ -46,6 +46,7 @@ class CajaController extends Controller
             ->whereNotNull('pagado_at')
             ->where('pagado_at', '>=', now()->startOfDay())
             ->whereNull('cuenta_mesa_id')
+            ->with('cobrador:id,nombre')
             ->orderByDesc('pagado_at')
             ->limit(50)
             ->get();
@@ -56,6 +57,7 @@ class CajaController extends Controller
             'cliente_nombre' => $p->cliente_nombre,
             'total' => $p->total,
             'metodo_pago' => $p->metodo_pago,
+            'cobrado_por' => $p->cobrador?->nombre,
             'pagado_at' => $p->pagado_at ? \Illuminate\Support\Carbon::parse($p->pagado_at)->toIso8601String() : null,
         ])->values()]);
     }
@@ -75,7 +77,7 @@ class CajaController extends Controller
         ]);
 
         try {
-            $pedido = $this->cajas->cobrarPedido($pedido, $data['metodo_pago'], $data['corte_caja_id'] ?? null);
+            $pedido = $this->cajas->cobrarPedido($pedido, $data['metodo_pago'], $data['corte_caja_id'] ?? null, $user->id);
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 409);
         }

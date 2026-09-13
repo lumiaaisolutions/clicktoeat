@@ -61,6 +61,7 @@ interface PedidoMostrador {
 interface CobradoMostrador extends PedidoMostrador {
   metodo_pago: string;
   pagado_at: string | null;
+  cobrado_por?: string | null;
 }
 const METODO_LABEL: Record<string, string> = {
   efectivo: 'Efectivo', tarjeta_tpv: 'Tarjeta', tarjeta_entrega: 'Tarjeta a entrega', transferencia: 'Transferencia',
@@ -445,6 +446,7 @@ export default function CajaPage() {
                     <span className="w-1.5 h-1.5 rounded-full" style={{ background: c.metodo_pago === 'efectivo' ? '#33B87A' : '#5B8DEF' }} />
                     {METODO_LABEL[c.metodo_pago] ?? c.metodo_pago}
                   </span>
+                  {c.cobrado_por && <span className="inline-flex items-center gap-1">{' · '}<Icon name="users" size={11} />Cobró: <span className="font-medium text-ink/80">{c.cobrado_por}</span></span>}
                 </p>
               </div>
               <span className="ce-display font-bold tabular-nums">${c.total}</span>
