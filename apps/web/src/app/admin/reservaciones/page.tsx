@@ -63,8 +63,9 @@ export default function ReservacionesPage() {
     <div>
       <AdminPageHeader
         kicker="Salón" kickerIcon="clock"
+        tourSlug="reservaciones"
         title="Reservaciones" titleAccent="de tus clientes."
-        actions={<CreateButton onClick={() => setCreating(true)} label="Reservación" />}
+        actions={<span data-tour="reservaciones-nueva"><CreateButton onClick={() => setCreating(true)} label="Reservación" /></span>}
       />
 
       {items === null ? (
@@ -77,7 +78,7 @@ export default function ReservacionesPage() {
           <p className="ce-display text-xl font-bold mt-3">Sin reservaciones</p>
         </div>
       ) : (
-        <div className="rounded-2xl border border-line bg-white overflow-hidden">
+        <div data-tour="reservaciones-lista" className="rounded-2xl border border-line bg-white overflow-hidden">
           <ul className="divide-y divide-line">
             {items.map((r) => (
               <li key={r.id} className="flex items-center gap-3 p-3 sm:p-4 flex-wrap">

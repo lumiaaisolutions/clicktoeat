@@ -117,6 +117,7 @@ export default function GastosPage() {
       <AdminPageHeader
         kicker="Gastos"
         kickerIcon="bell"
+        tourSlug="gastos"
         title="Lleva el control"
         titleAccent="de tus gastos."
         description="Registra luz, agua, gas, renta y demás gastos operativos. Mira el total mensual y compáralo con el mes anterior."
@@ -136,16 +137,18 @@ export default function GastosPage() {
             >
               <Icon name="download" size={14} className="mr-1.5" />CSV
             </Button>
-            <CreateButton onClick={() => setOpen('new')} label="Registrar gasto" />
+            <span data-tour="gastos-nuevo"><CreateButton onClick={() => setOpen('new')} label="Registrar gasto" /></span>
           </div>
         }
       />
 
       {/* Resumen del mes */}
-      <ResumenCard resumen={resumen} mes={mes} opcionesMes={opcionesMes} onMesChange={setMes} />
+      <div data-tour="gastos-resumen">
+        <ResumenCard resumen={resumen} mes={mes} opcionesMes={opcionesMes} onMesChange={setMes} />
+      </div>
 
       {/* Filtro por categoría */}
-      <div className="mt-4 flex flex-wrap gap-2 items-center">
+      <div data-tour="gastos-filtro" className="mt-4 flex flex-wrap gap-2 items-center">
         <span className="text-xs uppercase tracking-wider font-bold text-muted">Filtrar:</span>
         <button
           onClick={() => setCatFiltro('')}

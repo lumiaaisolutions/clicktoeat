@@ -207,6 +207,7 @@ export default function CajaPage() {
       <AdminPageHeader
         kicker="Salón" kickerIcon="storefront"
         title="Caja" titleAccent="cortes y cuentas de mesa."
+        tourSlug="caja"
         actions={<CreateButton onClick={() => setCreatingCaja(true)} label="Nueva caja" />}
       />
 
@@ -228,7 +229,7 @@ export default function CajaPage() {
         <>
           <div className="mb-4">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted mb-2">Elige una caja</p>
-            <div className="inline-flex flex-wrap gap-1 rounded-2xl border border-line bg-line/25 p-1">
+            <div data-tour="caja-tabs" className="inline-flex flex-wrap gap-1 rounded-2xl border border-line bg-line/25 p-1">
               {cajas.map((c) => {
                 const activa = selectedCajaId === c.id;
                 return (
@@ -253,7 +254,7 @@ export default function CajaPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-line bg-white p-4 sm:p-5 mb-6">
+          <div data-tour="caja-corte" className="rounded-2xl border border-line bg-white p-4 sm:p-5 mb-6">
             {corte === undefined ? (
               <Skeleton className="h-24" />
             ) : corte === null ? (
@@ -331,7 +332,7 @@ export default function CajaPage() {
                     })}
                   </ul>
 
-                  <div className="rounded-xl border border-line bg-line/10 p-3.5">
+                  <div data-tour="caja-movimiento" className="rounded-xl border border-line bg-line/10 p-3.5">
                     <p className="text-sm font-medium mb-2 inline-flex items-center gap-1.5">
                       <Icon name="plus" size={15} className="text-[color:var(--ce-accent,#F26A1F)]" /> Registrar un movimiento
                     </p>
@@ -368,6 +369,7 @@ export default function CajaPage() {
         </>
       )}
 
+      <div data-tour="caja-cobrar">
       <SectionHeading
         icon="store"
         title="Mostrador — por cobrar"
@@ -412,7 +414,10 @@ export default function CajaPage() {
         </div>
       )}
 
+      </div>
+
       {/* Historial de pagos de mostrador cobrados hoy */}
+      <div data-tour="caja-cobrados">
       <SectionHeading
         icon="history"
         title="Cobrados hoy"
@@ -448,6 +453,9 @@ export default function CajaPage() {
         </div>
       )}
 
+      </div>
+
+      <div data-tour="caja-cuentas">
       <SectionHeading
         icon="utensils"
         title="Cuentas de mesa abiertas"
@@ -480,6 +488,8 @@ export default function CajaPage() {
           ))}
         </div>
       )}
+
+      </div>
 
       <CrearCajaModal open={creatingCaja} onClose={() => setCreatingCaja(false)} onSaved={() => { setCreatingCaja(false); refreshCajas(); }} />
       <AbrirCorteModal open={abriendo} onClose={() => setAbriendo(false)} onConfirm={abrirCorte} />

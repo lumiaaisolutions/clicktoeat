@@ -24,6 +24,7 @@ export default function SucursalesPage() {
       <AdminPageHeader
         kicker="Sucursales"
         kickerIcon="store"
+        tourSlug="sucursales"
         title="Tu cadena,"
         titleAccent="bajo un mismo panel."
         description="Administra múltiples ubicaciones del mismo negocio sin abrir cuentas separadas. Cada sucursal tiene su propio menú, horarios e inventario, pero compartes reportes y branding."

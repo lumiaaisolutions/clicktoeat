@@ -7,6 +7,7 @@ import { toast } from '@/store/toast';
 import { usePlan, type PlanStatus } from '@/store/plan';
 import { useAuth } from '@/store/auth';
 import { Icon } from '@/components/ui/Icon';
+import { HelpButton } from '@/components/help/HelpButton';
 import { cn, formatMXN } from '@/lib/utils';
 
 const STATUS_LABEL: Record<PlanStatus, string> = {
@@ -86,15 +87,18 @@ export default function BillingPage() {
             Plan y facturación
           </h1>
         </div>
-        <a
-          href={(process.env.NEXT_PUBLIC_APP_URL ?? 'https://clicktoeat.lumiaaisolutions.com') + '/'}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl border border-line bg-white text-sm font-semibold text-ink hover:border-ink/30 transition shrink-0"
-        >
-          <Icon name="home" size={14} />
-          Volver al landing principal
-        </a>
+        <div className="flex items-center gap-2 shrink-0">
+          <HelpButton tourSlug="billing" />
+          <a
+            href={(process.env.NEXT_PUBLIC_APP_URL ?? 'https://clicktoeat.lumiaaisolutions.com') + '/'}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl border border-line bg-white text-sm font-semibold text-ink hover:border-ink/30 transition"
+          >
+            <Icon name="home" size={14} />
+            Volver al landing principal
+          </a>
+        </div>
       </header>
 
       {!plan ? (

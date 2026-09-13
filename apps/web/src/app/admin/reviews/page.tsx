@@ -106,6 +106,7 @@ export default function ReviewsAdminPage() {
       <AdminPageHeader
         kicker="Calificaciones"
         kickerIcon="star"
+        tourSlug="reviews"
         title="Reseñas de"
         titleAccent="tus clientes."
         description="Modera las calificaciones que aparecen en tu landing pública. Las nuevas se aprueban automáticamente — solo oculta las que no te interesa mostrar."

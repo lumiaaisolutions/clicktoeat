@@ -52,12 +52,13 @@ export default function LealtadPlusPage() {
     <div>
       <AdminPageHeader
         kicker="Crecimiento" kickerIcon="sparkles"
+        tourSlug="lealtad-plus"
         title="Lealtad+" titleAccent="niveles y retos."
         description="Extiende tu programa de sellos con niveles de beneficio y retos por tiempo limitado."
       />
 
       <div className="grid md:grid-cols-2 gap-6">
-        <section>
+        <section data-tour="lealtad-niveles">
           <div className="flex items-center justify-between mb-2">
             <h3 className="ce-display font-bold">Niveles</h3>
             <CreateButton onClick={() => setCreatingTier(true)} label="Nivel" className="px-3 py-2 text-xs" />
@@ -79,7 +80,7 @@ export default function LealtadPlusPage() {
           )}
         </section>
 
-        <section>
+        <section data-tour="lealtad-retos">
           <div className="flex items-center justify-between mb-2">
             <h3 className="ce-display font-bold">Retos</h3>
             <CreateButton onClick={() => setCreatingChallenge(true)} label="Reto" className="px-3 py-2 text-xs" />

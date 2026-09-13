@@ -189,9 +189,10 @@ export default function MesasPage() {
     <div>
       <AdminPageHeader
         kicker="Salón" kickerIcon="map-pin"
+        tourSlug="mesas"
         title="Mesas" titleAccent="y pisos de tu local."
         description="Cada mesa genera su propio QR — el cliente lo escanea, ve el menú y pide sin esperar a que lo atiendan."
-        actions={<CreateButton onClick={() => setCreatingPiso(true)} label="Piso" />}
+        actions={<span data-tour="mesas-nuevo-piso"><CreateButton onClick={() => setCreatingPiso(true)} label="Piso" /></span>}
       />
 
       {gruposPiso.length === 0 && (
@@ -202,7 +203,7 @@ export default function MesasPage() {
         </div>
       )}
 
-      <div className="space-y-6">
+      <div data-tour="mesas-pisos" className="space-y-6">
         {gruposPiso.map(({ piso, mesas: mesasDelPiso }) => (
           <div key={piso?.id ?? 'sin-piso'} className="rounded-2xl border border-line bg-white overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-line">

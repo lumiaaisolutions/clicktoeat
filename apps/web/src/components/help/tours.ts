@@ -768,6 +768,237 @@ export const TOURS: Record<string, TourStep[]> = {
       icon: 'shield',
     },
   ],
+
+  /* ── Caja: cortes, movimientos y cobros ── */
+  caja: [
+    {
+      title: 'Tu caja del día',
+      body: 'Aquí abres y cierras cortes, registras entradas y salidas de efectivo, y cobras los pedidos de mostrador y las cuentas de mesa.',
+      placement: 'center',
+      icon: 'landmark',
+    },
+    {
+      target: '[data-tour="caja-tabs"]',
+      title: 'Elige la caja',
+      body: 'Si tienes más de un punto de cobro (barra, terraza…), cambia entre ellos aquí. Cada caja lleva sus propios cortes.',
+      placement: 'bottom',
+      icon: 'landmark',
+    },
+    {
+      target: '[data-tour="caja-corte"]',
+      title: 'Abrir y cerrar corte',
+      body: 'El corte es el turno de la caja: lo abres con el efectivo inicial (el fondo) y al cerrarlo cuentas lo que hay. El sistema te muestra la varianza (si sobró o faltó).',
+      placement: 'bottom',
+      icon: 'play',
+    },
+    {
+      target: '[data-tour="caja-movimiento"]',
+      title: 'Movimientos del turno',
+      body: 'Registra cada entrada o salida de efectivo: Fondo (metes dinero), Retiro (sacas al banco) o Vale (un gasto justificado). Así el cierre cuadra.',
+      placement: 'top',
+      icon: 'refresh-cw',
+    },
+    {
+      target: '[data-tour="caja-cobrar"]',
+      title: 'Cobrar en mostrador',
+      body: 'Los pedidos para llevar aparecen aquí listos para pagar. Elige el método y quedan cobrados (te pide confirmar el monto). En "Cobrados hoy" ves el historial del día.',
+      placement: 'top',
+      icon: 'card',
+    },
+    {
+      target: '[data-tour="caja-cuentas"]',
+      title: 'Cuentas de mesa',
+      body: 'Los consumos por mesa que aún no se pagan. Cóbralas con efectivo, tarjeta o pago dividido, aplica gift card y propina, o abre su ticket.',
+      placement: 'top',
+      icon: 'utensils',
+    },
+  ],
+
+  /* ── Toppings / grupos de opciones ── */
+  toppings: [
+    {
+      title: 'Opciones para tus platillos',
+      body: 'Un grupo de toppings es una elección que el cliente hace al pedir: "Tamaño" (elige uno) o "Extras" (elige varios), cada opción con su costo.',
+      placement: 'center',
+      icon: 'sparkles',
+    },
+    {
+      target: '[data-tour="toppings-lista"]',
+      title: 'Tus grupos',
+      body: 'Cada grupo muestra si es "elige una" o "elige varias", si es obligatorio, y sus opciones con el costo extra que suman.',
+      placement: 'top',
+      icon: 'list',
+    },
+    {
+      target: '[data-tour="toppings-nuevo"]',
+      title: 'Crea un grupo',
+      body: 'Créalo una sola vez aquí y reúsalo en todos los productos que quieras — al crear un producto solo lo eliges.',
+      placement: 'left',
+      icon: 'plus',
+      interactive: true,
+    },
+  ],
+
+  /* ── Mesas y pisos del salón ── */
+  mesas: [
+    {
+      title: 'Mesas y pisos de tu local',
+      body: 'Organiza tu salón en pisos y mesas. Cada mesa genera su propio QR: el cliente lo escanea, ve el menú y pide desde su lugar.',
+      placement: 'center',
+      icon: 'map-pin',
+    },
+    {
+      target: '[data-tour="mesas-nuevo-piso"]',
+      title: 'Empieza por un piso',
+      body: 'Un piso es una zona (planta baja, terraza…). Créalo primero; después le agregas mesas.',
+      placement: 'left',
+      icon: 'plus',
+    },
+    {
+      target: '[data-tour="mesas-pisos"]',
+      title: 'Tus mesas',
+      body: 'Dentro de cada piso agregas mesas y las arrastras en el mapa para reflejar su lugar real. En cada mesa: ver detalle, su QR, editar o borrar.',
+      placement: 'top',
+      icon: 'utensils',
+    },
+    {
+      title: 'Quién atiende cada mesa',
+      body: 'Al abrir una mesa, un mesero puede "tomar control" para quedar asignado. Ahí ves su estado (libre, ocupada, por cobrar) y su historial.',
+      placement: 'center',
+      icon: 'users',
+    },
+  ],
+
+  /* ── Gastos operativos ── */
+  gastos: [
+    {
+      title: 'Controla tus gastos',
+      body: 'Registra luz, agua, gas, renta y demás gastos operativos para saber cuánto se va cada mes.',
+      placement: 'center',
+      icon: 'file-text',
+    },
+    {
+      target: '[data-tour="gastos-resumen"]',
+      title: 'Tu mes de un vistazo',
+      body: 'El total del mes y cómo se compara con el anterior. Cambia el mes que estás viendo desde aquí.',
+      placement: 'bottom',
+      icon: 'chart',
+    },
+    {
+      target: '[data-tour="gastos-filtro"]',
+      title: 'Filtra por categoría',
+      body: 'Ve solo los gastos de un tipo (renta, servicios, insumos…) para entender en qué se va tu dinero.',
+      placement: 'bottom',
+      icon: 'list',
+    },
+    {
+      target: '[data-tour="gastos-nuevo"]',
+      title: 'Registra un gasto',
+      body: 'Anota concepto, monto y categoría. También puedes exportar todo a CSV con el botón de arriba.',
+      placement: 'left',
+      icon: 'plus',
+      interactive: true,
+    },
+  ],
+
+  /* ── Cupones de descuento ── */
+  cupones: [
+    {
+      title: 'Descuentos para tus clientes',
+      body: 'Crea códigos como BIENVENIDO o VERANO20. El cliente los escribe en el carrito antes de mandar su pedido.',
+      placement: 'center',
+      icon: 'sparkles',
+    },
+    {
+      target: '[data-tour="cupones-lista"]',
+      title: 'Tus cupones',
+      body: 'Cada uno muestra su valor, los usos y su vigencia. Puedes pausarlo o reactivarlo sin borrarlo.',
+      placement: 'top',
+      icon: 'list',
+    },
+    {
+      target: '[data-tour="cupones-nuevo"]',
+      title: 'Crea un cupón',
+      body: 'Elige el código, si descuenta un % o un monto fijo, y las condiciones: compra mínima, máximo de usos y hasta qué fecha vale.',
+      placement: 'left',
+      icon: 'plus',
+      interactive: true,
+    },
+  ],
+
+  /* ── Reservaciones de mesa ── */
+  reservaciones: [
+    {
+      title: 'Reservaciones de mesa',
+      body: 'Lleva el control de quién reservó, para cuándo y para cuántas personas.',
+      placement: 'center',
+      icon: 'clock',
+    },
+    {
+      target: '[data-tour="reservaciones-lista"]',
+      title: 'Tus reservaciones',
+      body: 'Cada una muestra cliente, fecha y estado. Confírmala o cancélala con un toque.',
+      placement: 'top',
+      icon: 'list',
+    },
+    {
+      target: '[data-tour="reservaciones-nueva"]',
+      title: 'Registra una',
+      body: 'Anota a mano las que te lleguen por teléfono o WhatsApp: nombre, teléfono, fecha/hora y número de personas.',
+      placement: 'left',
+      icon: 'plus',
+      interactive: true,
+    },
+  ],
+
+  /* ── Turnos del equipo ── */
+  turnos: [
+    {
+      title: 'Turnos de tu equipo',
+      body: 'Programa quién trabaja y cuándo. Te apoyas en un conteo histórico de pedidos para elegir bien las horas.',
+      placement: 'center',
+      icon: 'clock',
+    },
+    {
+      target: '[data-tour="turnos-forecast"]',
+      title: 'Tus horas pico',
+      body: 'Las horas con más pedidos de los últimos 28 días. Es un conteo histórico, no una predicción — úsalo como guía.',
+      placement: 'bottom',
+      icon: 'chart',
+    },
+    {
+      target: '[data-tour="turnos-nuevo"]',
+      title: 'Programa un turno',
+      body: 'Elige a la persona, su horario de entrada y salida, y el rol (cocina, mesero o caja).',
+      placement: 'left',
+      icon: 'plus',
+      interactive: true,
+    },
+  ],
+
+  /* ── Lealtad+: niveles y retos ── */
+  'lealtad-plus': [
+    {
+      title: 'Lleva tu lealtad más lejos',
+      body: 'Sobre tu programa de sellos, agrega niveles de beneficio y retos por tiempo limitado para que tus clientes vuelvan más.',
+      placement: 'center',
+      icon: 'trophy',
+    },
+    {
+      target: '[data-tour="lealtad-niveles"]',
+      title: 'Niveles',
+      body: 'Define escalones: al juntar cierto número de sellos, el cliente desbloquea un beneficio (ej. 20% de descuento).',
+      placement: 'right',
+      icon: 'sparkles',
+    },
+    {
+      target: '[data-tour="lealtad-retos"]',
+      title: 'Retos',
+      body: 'Metas por tiempo limitado con un premio — ideales para llenar días flojos o lanzar algo nuevo.',
+      placement: 'left',
+      icon: 'gift',
+    },
+  ],
 };
 
 export function getTour(slug: string): TourStep[] | null {

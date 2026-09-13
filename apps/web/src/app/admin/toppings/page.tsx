@@ -35,10 +35,11 @@ export default function ToppingsPage() {
       <AdminPageHeader
         kicker="Toppings"
         kickerIcon="sparkles"
+        tourSlug="toppings"
         title="Opciones para"
         titleAccent="personalizar tus platillos."
         description="Crea aquí tus grupos de opciones (Tamaño, Salsas, Extras) una sola vez. Después, al crear un producto, solo los eliges."
-        actions={<CreateButton onClick={() => setCreating(true)} label="Grupo" />}
+        actions={<span data-tour="toppings-nuevo"><CreateButton onClick={() => setCreating(true)} label="Grupo" /></span>}
       />
 
       {!items ? (
@@ -55,7 +56,7 @@ export default function ToppingsPage() {
           </div>
         </div>
       ) : (
-        <ul className="space-y-2">
+        <ul data-tour="toppings-lista" className="space-y-2">
           {items.map((t) => (
             <li key={t.id} className={cn('rounded-2xl border-2 p-4 bg-white', t.activo ? 'border-line' : 'border-line opacity-60')}>
               <div className="flex items-start gap-3">

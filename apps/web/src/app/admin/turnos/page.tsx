@@ -54,13 +54,14 @@ export default function TurnosPage() {
     <div>
       <AdminPageHeader
         kicker="Crecimiento" kickerIcon="users"
+        tourSlug="turnos"
         title="Turnos" titleAccent="de tu equipo."
         description="El forecast es un conteo histórico de pedidos por hora/día — no es un modelo predictivo."
-        actions={<CreateButton onClick={() => setCreating(true)} label="Turno" />}
+        actions={<span data-tour="turnos-nuevo"><CreateButton onClick={() => setCreating(true)} label="Turno" /></span>}
       />
 
       {forecast !== null && picosDeVolumen.length > 0 && (
-        <div className="rounded-2xl border border-line bg-white p-4 mb-6">
+        <div data-tour="turnos-forecast" className="rounded-2xl border border-line bg-white p-4 mb-6">
           <p className="text-sm font-medium mb-2">Horas de más volumen (últimos 28 días)</p>
           <ul className="text-sm space-y-1">
             {picosDeVolumen.map((f, i) => (

@@ -11,6 +11,7 @@ import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/lib/utils';
 import { ImageUpload } from '@/components/admin/ImageUpload';
 import { LocationPicker } from '@/components/admin/LocationPicker';
+import { HelpButton } from '@/components/help/HelpButton';
 
 /**
  * Editor de branding compartido entre el panel del owner y el panel del
@@ -130,6 +131,8 @@ export function BrandingEditor({ localId }: { localId?: number } = {}) {
             </p>
           </div>
 
+          <div className="flex items-center gap-2 shrink-0">
+          <HelpButton tourSlug="branding" />
           {/* CTA save — resalta (naranja + punto pulsante) cuando hay cambios sin guardar */}
           <button
             onClick={onSave}
@@ -164,6 +167,7 @@ export function BrandingEditor({ localId }: { localId?: number } = {}) {
               </>
             )}
           </button>
+          </div>
         </div>
       </header>
 

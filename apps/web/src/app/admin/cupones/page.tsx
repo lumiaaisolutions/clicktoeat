@@ -72,10 +72,11 @@ export default function CuponesPage() {
       <AdminPageHeader
         kicker="Cupones"
         kickerIcon="sparkles"
+        tourSlug="cupones"
         title="Descuentos"
         titleAccent="para tus clientes."
         description="Crea códigos como BIENVENIDO o VERANO20. Tus clientes los aplican en el carrito antes de enviar el pedido."
-        actions={<CreateButton onClick={() => setCreating(true)} label="Cupón" />}
+        actions={<span data-tour="cupones-nuevo"><CreateButton onClick={() => setCreating(true)} label="Cupón" /></span>}
       />
 
       {items === null ? (
@@ -89,7 +90,7 @@ export default function CuponesPage() {
           <p className="text-sm text-muted mt-1">Atrae clientes con un descuento en su primera compra.</p>
         </div>
       ) : (
-        <div className="rounded-2xl border border-line bg-white overflow-hidden">
+        <div data-tour="cupones-lista" className="rounded-2xl border border-line bg-white overflow-hidden">
           <ul className="divide-y divide-line">
             {items.map((c) => {
               const usosTxt = c.max_usos === null ? `${c.usos_actuales} usos` : `${c.usos_actuales}/${c.max_usos}`;
