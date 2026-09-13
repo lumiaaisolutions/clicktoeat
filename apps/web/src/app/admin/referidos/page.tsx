@@ -28,7 +28,7 @@ interface ReferidosResponse {
 
 export default function ReferidosPage() {
   const [d, setD] = useState<ReferidosResponse | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
 
   useEffect(() => {
     api.get<ReferidosResponse>('/referidos').then(({ data }) => setD(data));
@@ -54,8 +54,8 @@ export default function ReferidosPage() {
     ? `Te recomiendo ClickToEat para tu local. Es muy fácil: tu menú online + pedidos por WhatsApp, sin comisiones. Usa mi código *${d.codigo}* al registrarte y los dos ganamos. ${shareUrl}`
     : null;
 
-  const copy = async (text: string) => {
-    try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); }
+  const copy = async (text: string, key: string) => {
+    try { await navigator.clipboard.writeText(text); setCopied(key); setTimeout(() => setCopied(null), 1600); }
     catch { toast.error('No se pudo copiar'); }
   };
 
@@ -77,9 +77,13 @@ export default function ReferidosPage() {
             {d.codigo ?? '—'}
           </code>
           {d.codigo && (
-            <Button variant="secondary" onClick={() => copy(d.codigo!)}>
-              <Icon name={copied ? 'check' : 'copy'} size={14} />
-              {copied ? 'Copiado' : 'Copiar'}
+            <Button
+              variant="secondary"
+              onClick={() => copy(d.codigo!, 'codigo')}
+              className={copied === 'codigo' ? '!border-emerald-400 !text-emerald-700 !bg-emerald-50' : ''}
+            >
+              <Icon name={copied === 'codigo' ? 'check' : 'copy'} size={14} />
+              {copied === 'codigo' ? '¡Copiado!' : 'Copiar'}
             </Button>
           )}
         </div>
@@ -91,7 +95,15 @@ export default function ReferidosPage() {
               <code className="text-xs sm:text-sm flex-1 min-w-0 truncate px-3 py-2 rounded-xl bg-white border border-line">
                 {shareUrl}
               </code>
-              <Button variant="secondary" size="sm" onClick={() => copy(shareUrl)}>Copiar link</Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => copy(shareUrl, 'link')}
+                className={cn('shrink-0 inline-flex items-center gap-1.5', copied === 'link' && '!border-emerald-400 !text-emerald-700 !bg-emerald-50')}
+              >
+                <Icon name={copied === 'link' ? 'check' : 'copy'} size={14} />
+                {copied === 'link' ? '¡Copiado!' : 'Copiar link'}
+              </Button>
             </div>
           </>
         )}
