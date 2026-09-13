@@ -68,6 +68,13 @@ return Application::configure(basePath: dirname(__DIR__))
         // Cron en hPanel: * * * * * cd /home/u221820910/domains/clicktoeat-api.lumiaaisolutions.com/public_html && php artisan schedule:run >> /dev/null 2>&1
         // Laravel decide internamente qué tareas correr según la hora.
 
+        // ─── Cola de correos (QUEUE_CONNECTION=database) ──────────────
+        // Sin worker persistente (VPS compartido): drenamos la cola cada minuto
+        // con el mismo cron del scheduler. --stop-when-empty sale al vaciarla;
+        // --max-time cae por debajo del minuto; withoutOverlapping evita solapes.
+        $schedule->command('queue:work --stop-when-empty --max-time=55 --tries=3 --quiet')
+            ->everyMinute()->name('drain-queue')->withoutOverlapping()->onOneServer();
+
         // Idempotency keys expiradas (TTL del request, default 24h)
         $schedule->call(function () {
             DB::table('idempotency_keys')->where('expires_at', '<', now())->delete();

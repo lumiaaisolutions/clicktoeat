@@ -39,6 +39,7 @@ export default function ElegirPlanPage() {
   const router = useRouter();
   const [plans,    setPlans]    = useState<Plan[] | null>(null);
   const [busy,     setBusy]     = useState<string | null>(null);
+  const [error,    setError]    = useState<string | null>(null);
   // Si quien elige el plan ya es dueño de un local existente (p.ej. vino de
   // "Ver planes" en /admin/billing con un local sin plan_id), el checkout
   // debe atarse a ESE local — el checkout público crea uno huérfano nuevo.
@@ -57,13 +58,14 @@ export default function ElegirPlanPage() {
 
   const elegir = async (plan: Plan) => {
     setBusy(plan.slug);
+    setError(null);
     try {
       const { data } = hasExistingLocal
         ? await api.post<{ session_url?: string; url?: string }>('/billing/activate-existing', { plan_slug: plan.slug })
         : await api.post<{ session_url?: string; url?: string }>('/billing/checkout', { plan_slug: plan.slug });
       const url = data?.session_url ?? data?.url;
       if (!url) {
-        alert('No recibimos URL de pago. Intenta de nuevo en un momento.');
+        setError('No recibimos la liga de pago. Inténtalo de nuevo en un momento.');
         setBusy(null);
         return;
       }
@@ -74,7 +76,7 @@ export default function ElegirPlanPage() {
         ?? (status === 429 ? 'Demasiados intentos. Espera 1 minuto y vuelve a intentar.'
         :   status === 422 ? 'El plan seleccionado no está disponible. Refresca la página.'
         :   'No pudimos abrir el checkout. Intenta de nuevo.');
-      alert(msg);
+      setError(msg);
       setBusy(null);
     }
   };
@@ -96,6 +98,21 @@ export default function ElegirPlanPage() {
             Puedes cambiar de plan cuando quieras.
           </p>
         </div>
+
+        {error && (
+          <div
+            role="alert"
+            className="max-w-xl mx-auto mb-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3"
+          >
+            <span className="shrink-0 mt-0.5 grid place-items-center w-6 h-6 rounded-lg bg-red-100 text-red-600">
+              <Icon name="alert-triangle" size={14} />
+            </span>
+            <p className="text-sm text-red-700 leading-snug flex-1">{error}</p>
+            <button onClick={() => setError(null)} aria-label="Cerrar" className="shrink-0 text-red-400 hover:text-red-600">
+              <Icon name="x" size={16} />
+            </button>
+          </div>
+        )}
 
         {!plans ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

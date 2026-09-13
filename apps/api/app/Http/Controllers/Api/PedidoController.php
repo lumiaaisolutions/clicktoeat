@@ -350,21 +350,31 @@ class PedidoController extends Controller
     }
 
     /**
-     * Historial agregado de un cliente por teléfono (para el detalle de reseñas):
-     * cuántas veces ha pedido, cuánto ha gastado y desde cuándo. Tenant-scoped.
+     * Ficha agregada de un cliente por teléfono Y/O correo (para el detalle de
+     * reseñas): cuántas veces ha pedido, cuánto ha gastado y desde cuándo.
+     * Unifica al cliente aunque haya pedido con distinto dato (match por
+     * teléfono O email). Tenant-scoped, excluye cancelados.
      */
     public function historialCliente(Request $request): JsonResponse
     {
         $this->authorize('viewAny', Pedido::class);
 
         $tel = trim((string) $request->query('telefono', ''));
-        if ($tel === '') {
+        $email = trim((string) $request->query('email', ''));
+        if ($tel === '' && $email === '') {
             return response()->json(['data' => null]);
         }
 
         $base = Pedido::query()
-            ->where('cliente_telefono', $tel)
-            ->where('estado', '!=', 'cancelado');
+            ->where('estado', '!=', 'cancelado')
+            ->where(function ($q) use ($tel, $email) {
+                if ($tel !== '') {
+                    $q->orWhere('cliente_telefono', $tel);
+                }
+                if ($email !== '') {
+                    $q->orWhere('cliente_email', $email);
+                }
+            });
 
         $pedidos = (clone $base)->count();
         if ($pedidos === 0) {

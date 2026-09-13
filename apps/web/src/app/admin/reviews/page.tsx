@@ -57,21 +57,29 @@ export default function ReviewsAdminPage() {
     setSelected(r);
     setPedido(null);
     setHistorial(null);
-    // Historial agregado del cliente por teléfono (cuántas veces ha pedido).
-    if (r.cliente_telefono) {
-      api.get<{ data: typeof historial }>('/clientes/historial', { params: { telefono: r.cliente_telefono } })
+    // Cargamos el pedido primero para obtener también el correo del cliente y
+    // así unificar su ficha por teléfono + email.
+    let email = '';
+    if (r.pedido_id) {
+      setLoadingPedido(true);
+      try {
+        const { data } = await api.get<{ data: Pedido }>(`/pedidos/${r.pedido_id}`);
+        setPedido(data.data);
+        email = data.data.cliente_email ?? '';
+      } catch {
+        toast.error('No se pudo cargar el detalle del pedido');
+      } finally {
+        setLoadingPedido(false);
+      }
+    }
+    // Ficha agregada del cliente por teléfono Y correo (match por cualquiera).
+    const params: Record<string, string> = {};
+    if (r.cliente_telefono) params.telefono = r.cliente_telefono;
+    if (email) params.email = email;
+    if (params.telefono || params.email) {
+      api.get<{ data: typeof historial }>('/clientes/historial', { params })
         .then(({ data }) => setHistorial(data.data))
         .catch(() => { /* silencioso: es info complementaria */ });
-    }
-    if (!r.pedido_id) return;
-    setLoadingPedido(true);
-    try {
-      const { data } = await api.get<{ data: Pedido }>(`/pedidos/${r.pedido_id}`);
-      setPedido(data.data);
-    } catch {
-      toast.error('No se pudo cargar el detalle del pedido');
-    } finally {
-      setLoadingPedido(false);
     }
   };
 

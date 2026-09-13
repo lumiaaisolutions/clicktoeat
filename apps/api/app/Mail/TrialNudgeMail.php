@@ -5,6 +5,7 @@ namespace App\Mail;
 use App\Mail\Concerns\UsesEditableTemplate;
 use App\Models\Local;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -15,7 +16,7 @@ use Illuminate\Queue\SerializesModels;
  * al owner a configurar y publicar su menú. Tipos: trial_d3, trial_d7,
  * trial_d14, trial_ending.
  */
-class TrialNudgeMail extends Mailable
+class TrialNudgeMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels, UsesEditableTemplate;
 

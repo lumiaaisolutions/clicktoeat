@@ -5,12 +5,13 @@ namespace App\Mail;
 use App\Mail\Concerns\UsesEditableTemplate;
 use App\Models\Local;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class PaymentFailedMail extends Mailable
+class PaymentFailedMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels, UsesEditableTemplate;
 
