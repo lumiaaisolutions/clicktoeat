@@ -331,4 +331,34 @@ class PedidoController extends Controller
             },
         );
     }
+
+    /**
+     * Historial agregado de un cliente por teléfono (para el detalle de reseñas):
+     * cuántas veces ha pedido, cuánto ha gastado y desde cuándo. Tenant-scoped.
+     */
+    public function historialCliente(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Pedido::class);
+
+        $tel = trim((string) $request->query('telefono', ''));
+        if ($tel === '') {
+            return response()->json(['data' => null]);
+        }
+
+        $base = Pedido::query()
+            ->where('cliente_telefono', $tel)
+            ->where('estado', '!=', 'cancelado');
+
+        $pedidos = (clone $base)->count();
+        if ($pedidos === 0) {
+            return response()->json(['data' => ['pedidos' => 0]]);
+        }
+
+        return response()->json(['data' => [
+            'pedidos' => $pedidos,
+            'total_gastado' => round((float) (clone $base)->sum('total'), 2),
+            'primer_pedido' => (clone $base)->min('created_at'),
+            'ultimo_pedido' => (clone $base)->max('created_at'),
+        ]]);
+    }
 }

@@ -43,6 +43,7 @@ export default function ReviewsAdminPage() {
   const [selected, setSelected] = useState<Review | null>(null);
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [loadingPedido, setLoadingPedido] = useState(false);
+  const [historial, setHistorial] = useState<{ pedidos: number; total_gastado?: number; primer_pedido?: string; ultimo_pedido?: string } | null>(null);
 
   const refresh = () => {
     setItems(null);
@@ -55,6 +56,13 @@ export default function ReviewsAdminPage() {
   const abrirDetalle = async (r: Review) => {
     setSelected(r);
     setPedido(null);
+    setHistorial(null);
+    // Historial agregado del cliente por teléfono (cuántas veces ha pedido).
+    if (r.cliente_telefono) {
+      api.get<{ data: typeof historial }>('/clientes/historial', { params: { telefono: r.cliente_telefono } })
+        .then(({ data }) => setHistorial(data.data))
+        .catch(() => { /* silencioso: es info complementaria */ });
+    }
     if (!r.pedido_id) return;
     setLoadingPedido(true);
     try {
@@ -70,6 +78,7 @@ export default function ReviewsAdminPage() {
   const cerrarDetalle = () => {
     setSelected(null);
     setPedido(null);
+    setHistorial(null);
   };
 
   const toggle = async (r: Review) => {
@@ -240,6 +249,20 @@ export default function ReviewsAdminPage() {
                 <InfoCell icon="phone" label="Teléfono" value={pedido?.cliente_telefono || selected.cliente_telefono || '—'} />
                 {pedido?.cliente_email && <InfoCell icon="paperclip" label="Email" value={pedido.cliente_email} />}
               </div>
+              {historial && historial.pedidos > 0 && (
+                <div className="mt-3 rounded-xl bg-[color:var(--ce-accent,#F26A1F)]/8 border border-[color:var(--ce-accent,#F26A1F)]/20 px-3.5 py-2.5 text-sm text-ink/80 flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Icon name="sparkles" size={14} className="text-[color:var(--ce-accent,#F26A1F)]" />
+                    Cliente recurrente: <strong className="font-semibold text-ink">{historial.pedidos}</strong> {historial.pedidos === 1 ? 'pedido' : 'pedidos'}
+                  </span>
+                  {typeof historial.total_gastado === 'number' && (
+                    <span>Total gastado: <strong className="font-semibold text-ink">{formatMXN(historial.total_gastado)}</strong></span>
+                  )}
+                  {historial.primer_pedido && (
+                    <span className="text-muted">Cliente desde {new Date(historial.primer_pedido).toLocaleDateString('es-MX', { month: 'short', year: 'numeric' })}</span>
+                  )}
+                </div>
+              )}
             </section>
 
             {/* Venta / pedido */}

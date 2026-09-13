@@ -377,6 +377,7 @@ Route::middleware('throttle:60,1')->group(function () {
 
         // Pedidos (admin del local)
         Route::get('pedidos', [PedidoController::class, 'index']);
+        Route::get('clientes/historial', [PedidoController::class, 'historialCliente']);
         Route::get('pedidos/export', [PedidoController::class, 'export'])->name('pedidos.export');
         Route::post('pedidos', [PedidoController::class, 'store']);   // POS / venta en sucursal
         Route::get('pedidos/{pedido}', [PedidoController::class, 'show']);
