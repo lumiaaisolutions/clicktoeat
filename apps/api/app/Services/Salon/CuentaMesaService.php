@@ -187,7 +187,7 @@ class CuentaMesaService
      *
      * @param  array<int, array{monto:float, metodo_pago:string, pagado_por?:?string}>  $pagos
      */
-    public function cerrar(CuentaMesa $cuenta, array $pagos, float $propina = 0.0, ?int $corteCajaId = null): CuentaMesa
+    public function cerrar(CuentaMesa $cuenta, array $pagos, float $propina = 0.0, ?int $corteCajaId = null, ?int $cobradoPor = null): CuentaMesa
     {
         if ($cuenta->estado === 'cerrada') {
             throw new RuntimeException('La cuenta ya está cerrada.');
@@ -205,7 +205,7 @@ class CuentaMesaService
             );
         }
 
-        return DB::transaction(function () use ($cuenta, $pagos, $propina, $corteCajaId) {
+        return DB::transaction(function () use ($cuenta, $pagos, $propina, $corteCajaId, $cobradoPor) {
             foreach ($pagos as $pago) {
                 $cuenta->pagos()->create([
                     'local_id' => $cuenta->local_id,
@@ -230,6 +230,7 @@ class CuentaMesaService
             $cuenta->pedidos()->where('estado', '!=', 'cancelado')->update([
                 'estado_pago' => 'pagado',
                 'pagado_at' => now(),
+                'cobrado_por' => $cobradoPor,
             ]);
 
             $cuenta->mesa->update(['estado' => 'libre', 'atendido_por' => null, 'atendido_desde' => null]);

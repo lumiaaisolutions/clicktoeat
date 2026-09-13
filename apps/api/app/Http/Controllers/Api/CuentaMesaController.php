@@ -131,7 +131,7 @@ class CuentaMesaController extends Controller
         ]);
 
         try {
-            $cerrada = $this->cuentas->cerrar($cuenta, $data['pagos'], (float) ($data['propina'] ?? 0), $data['corte_caja_id'] ?? null);
+            $cerrada = $this->cuentas->cerrar($cuenta, $data['pagos'], (float) ($data['propina'] ?? 0), $data['corte_caja_id'] ?? null, $req->user()->id);
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 409);
         }

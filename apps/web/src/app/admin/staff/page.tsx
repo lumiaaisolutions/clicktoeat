@@ -161,6 +161,10 @@ interface ModuloConfig { key: string; label: string; descripcion: string; icon: 
 const MODULOS: ModuloConfig[] = [
   { key: 'pedidos',    label: 'Pedidos',     descripcion: 'Ver y atender pedidos entrantes',     icon: 'bell' },
   { key: 'pos',        label: 'Punto de venta', descripcion: 'Cobrar pedidos en sucursal',         icon: 'storefront' },
+  { key: 'mesas',      label: 'Mesas',       descripcion: 'Tomar mesas y ver el salón',          icon: 'storefront' },
+  { key: 'caja',       label: 'Caja',        descripcion: 'Cortes, cobros y cuentas de mesa',    icon: 'storefront' },
+  { key: 'cocina',     label: 'Cocina',      descripcion: 'Pantalla de preparación de pedidos',  icon: 'utensils' },
+  { key: 'mesero',     label: 'Mesero',      descripcion: 'Atender llamados de mesa',            icon: 'message-circle' },
   { key: 'productos',  label: 'Productos',   descripcion: 'Crear y editar el catálogo',          icon: 'utensils' },
   { key: 'categorias', label: 'Categorías',  descripcion: 'Organizar el menú por secciones',     icon: 'utensils' },
   { key: 'inventario', label: 'Inventario',  descripcion: 'Ingredientes y movimientos de stock', icon: 'truck' },
@@ -177,6 +181,12 @@ interface RolPreset { key: string; label: string; descripcion: string; permisos:
 
 const ROLES: RolPreset[] = [
   {
+    key: 'mesero',
+    label: 'Mesero',
+    descripcion: 'Toma mesas, levanta pedidos y cobra en el salón',
+    permisos: ['pedidos', 'pos', 'mesas', 'caja'],
+  },
+  {
     key: 'cajero',
     label: 'Cajero',
     descripcion: 'Atiende pedidos y cobra en POS',
@@ -185,14 +195,14 @@ const ROLES: RolPreset[] = [
   {
     key: 'cocina',
     label: 'Encargado de cocina',
-    descripcion: 'Pedidos + inventario + recetas + compras',
-    permisos: ['pedidos', 'productos', 'recetas', 'inventario', 'compras'],
+    descripcion: 'Cocina + pedidos + inventario + recetas + compras',
+    permisos: ['pedidos', 'cocina', 'productos', 'recetas', 'inventario', 'compras'],
   },
   {
     key: 'manager',
     label: 'Manager',
     descripcion: 'Casi todo el panel (sin audit log ni branding)',
-    permisos: ['pedidos', 'pos', 'productos', 'categorias', 'inventario', 'compras', 'recetas', 'metricas', 'horarios', 'qr'],
+    permisos: ['pedidos', 'pos', 'mesas', 'caja', 'cocina', 'mesero', 'productos', 'categorias', 'inventario', 'compras', 'recetas', 'metricas', 'horarios', 'qr'],
   },
   {
     key: 'custom',
