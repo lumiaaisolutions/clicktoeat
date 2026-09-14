@@ -68,11 +68,31 @@ class PlanFactory extends Factory
     }
 
     /**
-     * @deprecated Premium fue retirado en favor de 2 planes (essential, professional).
-     *             Se mantiene aliasando a professional para no romper tests legacy.
+     * Premium real (cadenas / operación de salón). Incluye TODAS las features
+     * de Profesional + las exclusivas de Premium (sucursales, salón, loyalty,
+     * campañas, RRHH, directorio destacado). Refleja el `PlansSeeder`.
      */
     public function premium(): static
     {
-        return $this->professional();
+        return $this->state(fn () => [
+            'slug' => 'premium',
+            'nombre' => 'Premium',
+            'precio_mxn_centavos' => 49900,
+            'features' => [
+                F::BRANDING_BASICO, F::BRANDING_AVANZADO, F::INVENTARIO,
+                F::RECETAS, F::COMPRAS, F::METRICAS_BASICAS, F::METRICAS_AVANZADAS,
+                F::POS, F::QR_PERSONALIZADO, F::NOTIFICACIONES,
+                F::STAFF_MULTI, F::AUDIT_LOG, F::RESTORE, F::CLICKY_ASSISTANT,
+                F::MULTI_SUCURSAL, F::POS_OFFLINE, F::SOPORTE_PREMIUM,
+                F::DINE_IN, F::CAJA_FISICA, F::TIP_POOLING, F::RESERVACIONES,
+                F::LOYALTY_TIERS, F::GIFT_CARDS, F::CAMPANAS, F::RRHH_TURNOS,
+                F::SUCURSALES_CONSOLIDADAS, F::DIRECTORIO_DESTACADO,
+            ],
+            'max_productos' => null,
+            'max_categorias' => null,
+            'max_staff' => null,
+            'max_sucursales' => 5,
+            'orden' => 30,
+        ]);
     }
 }

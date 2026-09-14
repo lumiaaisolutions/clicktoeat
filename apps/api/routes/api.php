@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\CategoriaController;
 use App\Http\Controllers\Api\CompraController;
 use App\Http\Controllers\Api\CuentaMesaController;
 use App\Http\Controllers\Api\CuponController;
+use App\Http\Controllers\Api\EmailVerificationController;
 use App\Http\Controllers\Api\GastoController;
 use App\Http\Controllers\Api\GiftCardController;
 use App\Http\Controllers\Api\HealthController;
@@ -41,6 +42,7 @@ use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\PedidoController;
 use App\Http\Controllers\Api\PisoController;
 use App\Http\Controllers\Api\ProductoController;
+use App\Http\Controllers\Api\Public\AuthCarouselController;
 use App\Http\Controllers\Api\Public\CarritoAbandonadoController;
 use App\Http\Controllers\Api\Public\DataDeletionController;
 use App\Http\Controllers\Api\Public\LoyaltyController;
@@ -58,6 +60,8 @@ use App\Http\Controllers\Api\SignupController;
 use App\Http\Controllers\Api\StaffAttendanceController;
 use App\Http\Controllers\Api\StaffController;
 use App\Http\Controllers\Api\StaffShiftController;
+use App\Http\Controllers\Api\SucursalController;
+use App\Http\Controllers\Api\ToppingGroupController;
 use App\Http\Controllers\Api\TwoFactorController;
 use App\Http\Controllers\Api\UploadController;
 use App\Http\Controllers\Api\UserLocalesController;
@@ -99,7 +103,7 @@ Route::middleware('throttle:60,1')->group(function () {
         Route::get('locales', [MenuController::class, 'index'])->name('public.locales.index');
 
         // Carrusel de login/registro (config global super_admin) — solo lectura pública.
-        Route::get('auth-carousel', [App\Http\Controllers\Api\Public\AuthCarouselController::class, 'index']);
+        Route::get('auth-carousel', [AuthCarouselController::class, 'index']);
         // Rate limit por tenant (100/min por local) + IP fallback (20/min) + idempotency.
         // Ver: AppServiceProvider::configureRateLimiting + docs/api/rate-limits.md
         Route::post('pedidos/{slug}', [PublicPedidoController::class, 'store'])
@@ -174,6 +178,13 @@ Route::middleware('throttle:60,1')->group(function () {
         // Reset de contraseña por email
         Route::post('forgot-password', [PasswordResetController::class, 'sendResetLink'])->middleware('throttle:5,1');
         Route::post('reset-password', [PasswordResetController::class, 'reset'])->middleware('throttle:5,1');
+
+        // Verificación de correo (doble opt-in). `verify` es pública: la firma de
+        // la URL la autentica (el usuario llega desde su bandeja sin sesión).
+        Route::get('email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+            ->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
+        Route::post('email/verification-notification', [EmailVerificationController::class, 'resend'])
+            ->middleware(['auth:sanctum', 'throttle:5,1']);
 
         Route::middleware('auth:sanctum')->group(function () {
             Route::get('me', [AuthController::class, 'me']);
@@ -336,7 +347,7 @@ Route::middleware('throttle:60,1')->group(function () {
         Route::apiResource('categorias', CategoriaController::class);
 
         // Toppings — catálogo reutilizable de grupos de opciones
-        Route::apiResource('toppings', \App\Http\Controllers\Api\ToppingGroupController::class)
+        Route::apiResource('toppings', ToppingGroupController::class)
             ->parameters(['toppings' => 'topping'])
             ->except(['show']);
 
@@ -434,6 +445,9 @@ Route::middleware('throttle:60,1')->group(function () {
         // F102 Etapa C — reporte consolidado de la organización del owner. Ver ADR-014.
         Route::middleware('feature:sucursales_consolidadas')->group(function () {
             Route::get('organizations/mine', [OrganizationController::class, 'mine']);
+            // Self-service de alta de sucursales (Premium). Ver SucursalController + ADR-014.
+            Route::get('me/sucursales', [SucursalController::class, 'index']);
+            Route::post('me/sucursales', [SucursalController::class, 'store']);
         });
 
         // F102 Etapa D — reservaciones, loyalty tiers/challenges, gift cards, campañas, turnos.

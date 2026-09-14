@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/store/auth';
+import { usePlan, Features } from '@/store/plan';
 import { toast } from '@/store/toast';
 import { Icon } from '@/components/ui/Icon';
 import { cn } from '@/lib/utils';
+import { SucursalWizard } from '@/components/admin/SucursalWizard';
 
 interface MyLocal {
   id: number;
@@ -23,20 +25,30 @@ interface MyLocal {
  */
 export function LocalSwitcher() {
   const user = useAuth((s) => s.user);
+  const canUseSucursales = usePlan((s) => s.has(Features.SUCURSALES_CONSOLIDADAS));
   const [locales, setLocales] = useState<MyLocal[]>([]);
   const [open,    setOpen]    = useState(false);
   const [switching, setSwitching] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
-  useEffect(() => {
-    if (!user || user.rol === 'super_admin') return;
+  const cargarLocales = () => {
     api.get<{ data: MyLocal[] }>('/me/locales')
       .then(({ data }) => setLocales(data.data ?? []))
       .catch(() => setLocales([]));
+  };
+
+  useEffect(() => {
+    if (!user || user.rol === 'super_admin') return;
+    cargarLocales();
   }, [user]);
 
-  if (!user || user.rol === 'super_admin' || locales.length < 2) return null;
+  // El owner Premium puede crear sucursales → mostramos el selector aunque tenga
+  // una sola (para que tenga de dónde crear la segunda). El resto: solo con 2+.
+  const puedeCrear = user?.rol === 'owner' && canUseSucursales;
+  if (!user || user.rol === 'super_admin' || (locales.length < 2 && !puedeCrear)) return null;
 
   const current = locales.find((l) => l.id === user.local_id) ?? locales[0];
+  if (!current) return null;
 
   const switchTo = async (l: MyLocal) => {
     if (l.id === user.local_id) { setOpen(false); return; }
@@ -100,7 +112,28 @@ export function LocalSwitcher() {
               {l.id === current.id && <Icon name="check" size={12} className="text-emerald-600 shrink-0" />}
             </button>
           ))}
+
+          {puedeCrear && (
+            <button
+              type="button"
+              onClick={() => { setOpen(false); setWizardOpen(true); }}
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-left border-t border-line hover:bg-line/30 transition text-ink"
+            >
+              <span className="w-6 h-6 rounded-md grid place-items-center border border-dashed border-ink/30 shrink-0">
+                <Icon name="plus" size={13} />
+              </span>
+              <span className="flex-1 text-sm font-semibold">Agregar sucursal</span>
+            </button>
+          )}
         </div>
+      )}
+
+      {puedeCrear && (
+        <SucursalWizard
+          open={wizardOpen}
+          onClose={() => setWizardOpen(false)}
+          onCreated={cargarLocales}
+        />
       )}
     </div>
   );

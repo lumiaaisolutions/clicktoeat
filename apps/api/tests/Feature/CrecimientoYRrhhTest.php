@@ -313,10 +313,11 @@ class CrecimientoYRrhhTest extends TestCase
         $resp = $this->actingAs($this->ownerA, 'sanctum')->postJson("/api/v1/campanas/{$campana->id}/enviar");
 
         $resp->assertOk()->assertJsonPath('data.destinatarios_count', 1);
-        Mail::assertSent(CampanaMail::class, function ($mail) {
+        // CampanaMail es ShouldQueue → se encola, no se envía sincrónico.
+        Mail::assertQueued(CampanaMail::class, function ($mail) {
             return $mail->hasTo('juan@test.local');
         });
-        Mail::assertNotSent(CampanaMail::class, function ($mail) {
+        Mail::assertNotQueued(CampanaMail::class, function ($mail) {
             return $mail->hasTo('ajeno@test.local');
         });
     }

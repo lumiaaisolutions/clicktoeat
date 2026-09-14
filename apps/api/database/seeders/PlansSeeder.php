@@ -38,6 +38,7 @@ class PlansSeeder extends Seeder
                 'max_productos' => 30,
                 'max_categorias' => 8,
                 'max_staff' => 0,
+                'max_sucursales' => 1,
                 'features' => [
                     F::BRANDING_BASICO,
                     F::BRANDING_AVANZADO,
@@ -58,6 +59,7 @@ class PlansSeeder extends Seeder
                 'max_productos' => null,
                 'max_categorias' => null,
                 'max_staff' => 10,
+                'max_sucursales' => 1,
                 'features' => [
                     F::BRANDING_BASICO,
                     F::BRANDING_AVANZADO,
@@ -89,6 +91,7 @@ class PlansSeeder extends Seeder
                 'max_productos' => null,
                 'max_categorias' => null,
                 'max_staff' => null,
+                'max_sucursales' => 5,
                 'features' => [
                     F::BRANDING_BASICO,
                     F::BRANDING_AVANZADO,

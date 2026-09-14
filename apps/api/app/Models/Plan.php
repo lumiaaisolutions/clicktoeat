@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $max_productos
  * @property int|null $max_categorias
  * @property int|null $max_staff
+ * @property int|null $max_sucursales
  * @property bool $activo
  * @property int $orden
  */
@@ -27,7 +28,7 @@ class Plan extends Model
         'slug', 'nombre',
         'precio_mxn_centavos', 'stripe_price_id',
         'features',
-        'max_productos', 'max_categorias', 'max_staff',
+        'max_productos', 'max_categorias', 'max_staff', 'max_sucursales',
         'activo', 'orden',
     ];
 

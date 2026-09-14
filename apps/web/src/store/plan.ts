@@ -14,6 +14,7 @@ export interface PlanInfo {
     productos:  number | null;
     categorias: number | null;
     staff:      number | null;
+    sucursales?: number | null;
   };
   status: PlanStatus;
   trial_ends_at:          string | null;

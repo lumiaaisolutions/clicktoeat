@@ -58,6 +58,11 @@ class AuthController extends Controller
             'rol' => 'owner',  // el super_admin solo se crea por seeder
         ]);
 
+        // Doble opt-in: enviamos el correo de verificación (encolado, no bloquea).
+        // No es un gate duro — el onboarding sigue; el panel muestra un aviso
+        // suave hasta que confirme.
+        $user->sendEmailVerificationNotification();
+
         $token = $user->createToken('register-'.now()->timestamp)->plainTextToken;
 
         return response()->json([
@@ -256,6 +261,7 @@ class AuthController extends Controller
                     'productos' => $plan->max_productos,
                     'categorias' => $plan->max_categorias,
                     'staff' => $plan->max_staff,
+                    'sucursales' => $plan->max_sucursales,
                 ],
                 'status' => $local->plan_status,
                 'trial_ends_at' => $local->trial_ends_at?->toIso8601String(),
