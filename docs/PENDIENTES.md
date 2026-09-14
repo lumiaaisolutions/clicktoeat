@@ -479,12 +479,26 @@ Antes de eso = optimización prematura.
 
 ## 📌 Pendientes abiertos — handoff 2026-09-10
 
-1. **SMTP en prod** — `MAIL_MAILER=log`; el password del buzón está caído (535).
-   Fix = resetear password del buzón → flip a `smtp` + `config:cache` + test.
-   Runbook: [runbook/configurar-smtp-prod.md](runbook/configurar-smtp-prod.md).
-2. **Bot n8n de WhatsApp (ClickToEat)** — a diferencia de ClickToShop (que ya
-   tiene su workflow listo), aquí el bot que registra pedidos está incompleto:
-   falta el nodo IF/Code/HTTP que haga `POST /api/v1/pedidos` cuando el LLM marca
-   `pedido_listo` (y que el JSON incluya `producto_id`), y **no existe un JSON
-   base del workflow en el repo**. Pendiente: armar ese workflow. El endpoint de
-   pedidos ya existe; el de disponibilidad/recomendación del bot también.
+1. ~~**SMTP en prod** — `MAIL_MAILER=log`; password caído (535).~~ ✅ **RESUELTO**
+   (verificado 2026-09-14): `MAILER=smtp`, buzón primario `fernando@lumiaaisolutions.com`
+   (los alias no autentican), password vigente, cola `database` drenando. Los correos
+   (incl. verificación de cuenta) salen. Queda 1 `failed_job` histórico de los intentos
+   de debug — se puede purgar con `php artisan queue:flush`.
+2. **Bot n8n de WhatsApp (ClickToEat)** — ⚠️ **corregido 2026-09-14 tras revisar n8n
+   con acceso**: la cuenta `n8n.lumiaaisolutions.com` **NO tiene** el workflow de
+   WhatsApp (ni el de ClickToShop que este doc suponía). Solo hay 2 workflows de
+   "Cita creada → Google Calendar" y credenciales de Google Calendar + SMTP; **cero
+   proveedor de WhatsApp**. El bot se arma **desde cero** y el primer bloqueante es
+   elegir/conectar proveedor. Recomendado: **WhatsApp Cloud API oficial** (gratis para
+   conversaciones iniciadas por el cliente, sin riesgo de baneo); alternativa rápida
+   pero riesgosa: Evolution API self-hosted. Ver Fase 4 de
+   [runbook/plan-fases-2026-09-14.md](runbook/plan-fases-2026-09-14.md).
+
+## ✅ Cerrado 2026-09-13/14
+
+- **Verificación de email** (doble opt-in) — en prod. Ver [features/verificacion-email.md](features/verificacion-email.md).
+- **CAPTCHA Turnstile** — activado en prod. Ver [security/captcha-turnstile.md](security/captcha-turnstile.md).
+- **Self-service de sucursales (Premium)** — en prod. Ver [features/sucursales-self-service.md](features/sucursales-self-service.md).
+- **Gate de plan en CRUD** — ya estaba hecho (`plan.active`), verificado.
+- **Realtime** — decisión cerrada en [ADR-017](decisions/ADR-017-realtime-reverb-viable-en-vps-dedicado.md).
+- **SMTP prod** — verificado operativo.

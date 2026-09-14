@@ -3,6 +3,13 @@
 CAPTCHA invisible de Cloudflare, **gated por variables de entorno**. Sin llaves
 configuradas todo es **no-op** (auth idéntica a hoy). Implementado sept 2026.
 
+> **✅ ACTIVO EN PRODUCCIÓN (2026-09-13).** Widget "ClickToEat" (modo *Managed*)
+> creado en la cuenta Cloudflare de LUMIA, hostnames `clicktoeat.lumiaaisolutions.com`
+> + `localhost`. Site key pública en `apps/web/.env.production`
+> (`0x4AAAAAAEyNM0h4DgGXGxIi`); Secret key solo en `apps/api/.env` de prod (nunca en
+> el repo). Verificado en vivo: `register` sin token → `422 CAPTCHA_REQUIRED`, y el
+> widget renderiza + pasa el challenge en `/registro`.
+
 ## Comportamiento
 - **Registro** (`AuthController@register`, `SignupController@prospect`): con secret
   configurado exige `turnstile_token` válido SIEMPRE (los bots crean cuentas al

@@ -70,3 +70,19 @@ receta/ingredientes→insumos del catálogo) y **bórralo de esta lista**.
 30. **Diseño unificado**: layout base `mail/layout.blade.php` (splash suave durazno→crema + logo ClickToEat PNG `/email-logo.png` + footer `contacto@...`); las 13 plantillas migradas (incluye reset password convertido a vista).
 31. **Seguimiento de pedido por correo** (`PedidoEstadoMail`, mode-aware) + **comprobante** en `pedido_confirmado` + **correo obligatorio** en el landing + campo `pedidos.origen` (landing|pos).
 32. **SMTP**: auth con buzón primario (los alias no autentican). Ver runbook de mail.
+
+### Sesión 2026-09-14 — self-service de sucursales
+37. **Self-service de alta de sucursales (Premium)** — bloque completo: `plans.max_sucursales`, `SucursalService`, `SucursalController` (`GET/POST /me/sucursales`), `StoreSucursalRequest`, wizard `SucursalWizard` + entry point en `LocalSwitcher`, gate `feature:sucursales_consolidadas`. Hereda branding, catálogo vacío, cubierta por el plan de la org. Ver [`docs/features/sucursales-self-service.md`](features/sucursales-self-service.md). En ClickToShop: adaptar dominio (tienda) + su propio `PlanFactory::premium()`.
+
+### Sesión 2026-09-13 — verificación, cola, CAPTCHA activo
+33. **Correos en cola** (`ShouldQueue` en las 11 Mailables + `ResetPasswordNotification`) drenados por el scheduler cada minuto (`queue:work --stop-when-empty`, en `bootstrap/app.php`). Sin worker persistente (VPS compartido). Portar tal cual.
+34. **Ficha de cliente unificada** por email **o** teléfono (`PedidoController::historialCliente` con `orWhere`; el front manda ambos).
+35. **Verificación de correo (doble opt-in)** — bloque completo: `User implements MustVerifyEmail`, `VerifyEmailNotification` (ShouldQueue, URL firmada 60 min), `EmailVerificationController` (verify público por firma + resend autenticado), rutas `auth/email/*`, página `/correo-verificado`, `EmailVerificationBanner` en el layout. Suave, no bloqueante. Ver [`docs/features/verificacion-email.md`](features/verificacion-email.md). Adaptar copys/branding.
+36. **Cero alertas nativas**: se eliminaron los 2 `alert()` restantes del onboarding → banner diseñado. Verificar que ClickToShop no tenga `alert()`/`confirm()` nativos sueltos.
+
+### Actualización al ítem 14 (Turnstile)
+- En **ClickToEat** Turnstile ya está **ACTIVO en prod** (widget "ClickToEat" en la
+  cuenta Cloudflare de LUMIA; site key pública en `.env.production`, secret en el
+  `.env` de la API). Al portar a ClickToShop hay que **crear su propio widget**
+  (hostname `clicktoshop...`) y poner su propio par de llaves — el código ya existe
+  allá si el ítem 14 fue portado; si no, portar código + llaves juntos.

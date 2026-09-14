@@ -78,6 +78,8 @@ Documentación viva del proyecto. **Regla**: cada tema vive en su propio `.md` d
 - [**Carrito abandonado** — recuperación por email](features/carrito-abandonado.md)
 - [**Emails transaccionales** — pedido / trial / carrito / resumen semanal](features/emails-transaccionales.md)
 - [**Correos — sistema unificado + seguimiento de pedido**](features/correos-sistema-unificado.md) — layout base compartido + `PedidoEstadoMail`
+- [**Verificación de correo (doble opt-in)**](features/verificacion-email.md) — confirmación suave no bloqueante + banner en panel
+- [**Self-service de sucursales (Premium)**](features/sucursales-self-service.md) — owner da de alta sucursales desde el panel, wizard + límite por plan
 - [**Mesero — atribución (salón)**](features/mesero-atribucion.md) — quién atiende la mesa / quién cobró
 - [**Multi-sucursal** — detalle de implementación](features/multi-sucursal-detalle.md)
 - [**App móvil iOS+Android** — plan, estado, decisiones](features/app-movil-clicktoeat.md) — Expo SDK 56, 66 archivos TS, paridad con panel web
