@@ -13,6 +13,8 @@ export interface AuthUser {
   /** Módulos a los que el user puede acceder. Owner = todos. */
   permisos?: string[];
   local_id: number | null;
+  /** null si el correo aún no fue confirmado (doble opt-in). */
+  email_verified_at?: string | null;
 }
 
 interface MePayload { user: AuthUser; plan?: PlanInfo | null }

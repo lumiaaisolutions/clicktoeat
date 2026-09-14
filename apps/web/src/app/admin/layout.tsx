@@ -29,6 +29,7 @@ import { ClickyWidget } from '@/components/clicky/ClickyWidget';
 import { Logo } from '@/components/ui/Logo';
 import { LumiaBadge } from '@/components/ui/LumiaBadge';
 import { Icon as UiIcon } from '@/components/ui/Icon';
+import { EmailVerificationBanner } from '@/components/EmailVerificationBanner';
 import { cn } from '@/lib/utils';
 
 type IconName =
@@ -515,6 +516,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </AnimatePresence>
 
         <div className="px-3 sm:px-4 md:px-8 py-4 md:py-10 max-w-6xl mx-auto pb-12">
+          <EmailVerificationBanner />
           {children}
         </div>
 
