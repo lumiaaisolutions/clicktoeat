@@ -249,7 +249,12 @@ export function Select({
                 : { top: coords.top, marginTop: 6 }),
             }}
             className={cn(
-              'z-[60] overflow-y-auto scroll-fine rounded-2xl border border-line bg-white p-1.5 shadow-[0_18px_50px_-16px_rgba(20,12,6,0.35)]',
+              // z-[95]: el panel se portalea a <body>, así que su z compite con los
+              // overlays globales. Debe quedar por encima del Modal (z-80) y del
+              // TourOverlay (z-90/91/92) para que el dropdown sea visible cuando el
+              // Select vive dentro de un modal o se recorre en un tour (antes z-[60]
+              // lo dejaba DETRÁS del modal → parecía que "no desplegaba opciones").
+              'z-[95] overflow-y-auto scroll-fine rounded-2xl border border-line bg-white p-1.5 shadow-[0_18px_50px_-16px_rgba(20,12,6,0.35)]',
             )}
           >
             {opts.map((o, i) => {
