@@ -494,6 +494,12 @@ Antes de eso = optimización prematura.
    pero riesgosa: Evolution API self-hosted. Ver Fase 4 de
    [runbook/plan-fases-2026-09-14.md](runbook/plan-fases-2026-09-14.md).
 
+3. **Dev local roto (descubierto 2026-09-18)** — `GET :8080/api/v1/auth/me` responde
+   **500**, la cookie de auth no persiste entre `:3000` y `:8080`, el `InitialLoader`
+   se queda atascado y el CSS de HMR se cae. No afecta prod (prod usa el build
+   standalone). Bloquea reproducir bugs de UI en local. Fix probable: `rm -rf
+   apps/web/.next` + reiniciar dev; e investigar la excepción del API dev en `/auth/me`.
+
 ## ✅ Cerrado 2026-09-13/14
 
 - **Verificación de email** (doble opt-in) — en prod. Ver [features/verificacion-email.md](features/verificacion-email.md).
