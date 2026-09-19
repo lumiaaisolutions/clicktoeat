@@ -494,11 +494,13 @@ Antes de eso = optimización prematura.
    pero riesgosa: Evolution API self-hosted. Ver Fase 4 de
    [runbook/plan-fases-2026-09-14.md](runbook/plan-fases-2026-09-14.md).
 
-3. **Dev local roto (descubierto 2026-09-18)** — `GET :8080/api/v1/auth/me` responde
-   **500**, la cookie de auth no persiste entre `:3000` y `:8080`, el `InitialLoader`
-   se queda atascado y el CSS de HMR se cae. No afecta prod (prod usa el build
-   standalone). Bloquea reproducir bugs de UI en local. Fix probable: `rm -rf
-   apps/web/.next` + reiniciar dev; e investigar la excepción del API dev en `/auth/me`.
+3. ~~**Dev local roto (2026-09-18)**~~ ✅ **RESUELTO 2026-09-18**. Causa raíz: la DB
+   local (sqlite) estaba **atrasada 3 migraciones** (incl. `max_sucursales`), y con
+   el modo estricto de dev acceder a `$plan->max_sucursales` en `/auth/me` tiraba
+   **500** → el gate del admin layout se quedaba en "Cargando…". Además el build de
+   `.next` estaba corrupto por HMR (el cliente no hidrataba). Fix: `php artisan
+   migrate` + `db:seed --class=PlansSeeder` en local, y `rm -rf apps/web/.next` +
+   reiniciar `npm run dev`. Verificado: la app carga completa en local.
 
 ## ✅ Cerrado 2026-09-13/14
 
@@ -506,5 +508,10 @@ Antes de eso = optimización prematura.
 - **CAPTCHA Turnstile** — activado en prod. Ver [security/captcha-turnstile.md](security/captcha-turnstile.md).
 - **Self-service de sucursales (Premium)** — en prod. Ver [features/sucursales-self-service.md](features/sucursales-self-service.md).
 - **Gate de plan en CRUD** — ya estaba hecho (`plan.active`), verificado.
-- **Realtime** — decisión cerrada en [ADR-017](decisions/ADR-017-realtime-reverb-viable-en-vps-dedicado.md).
+- **Realtime** — **cerrado**: polling 15s uniforme en las 5 pantallas operativas
+  (cocina/mesero/mesas/caja/pedidos; pedidos se alineó de 30s→15s el 2026-09-18).
+  Ver [ADR-017](decisions/ADR-017-realtime-reverb-viable-en-vps-dedicado.md). Reverb
+  queda como opción futura del owner, no como pendiente.
 - **SMTP prod** — verificado operativo.
+- **Dev local** — resuelto (migraciones + `.next` limpio), la app carga en local.
+- **Bug Select dentro de modales** — resuelto (z-60→z-95). Ver [issues/2026-09-18-select-dropdown-detras-de-modal.md](issues/2026-09-18-select-dropdown-detras-de-modal.md).

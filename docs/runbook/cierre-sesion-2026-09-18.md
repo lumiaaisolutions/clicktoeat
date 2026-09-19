@@ -23,14 +23,31 @@ staff, cupones…), no solo categoría.
   (dropdown "Bebidas / Postres" se ve sobre el modal al editar un producto).
 - Detalle + jerarquía de z-index: [`docs/issues/2026-09-18-select-dropdown-detras-de-modal.md`](../issues/2026-09-18-select-dropdown-detras-de-modal.md).
 
-## Nota de entorno (dev local roto — pendiente ajeno al fix)
+## Dev local roto → RESUELTO (misma sesión)
 
-No se pudo reproducir el bug en el dev local por un entorno roto **no relacionado**
-con el fix: `GET /auth/me` (:8080) responde **500**, la cookie de auth no persiste
-cross-port (:3000↔:8080), el `InitialLoader` (z-200) se queda atascado tapando la
-página y el CSS de HMR se cae. El fix se validó por análisis + el propio síntoma +
-confirmación en prod. Si se va a trabajar en dev local: `rm -rf apps/web/.next` +
-reiniciar `npm run dev`, y **investigar por qué el API dev tira 500 en `/auth/me`**.
+El dev local no cargaba (se quedaba en "Cargando…"). **Causa raíz encontrada**: la DB
+local (sqlite) estaba **atrasada 3 migraciones** (`cobrado_por`, `origen`,
+`max_sucursales`). Con el modo estricto de dev, `/auth/me` accede a
+`$plan->max_sucursales` → columna inexistente → **500** → el gate del admin layout
+(`if (!user)`) se quedaba en "Cargando…". Sumado a un `.next` corrupto por HMR (el
+cliente no hidrataba).
+
+**Fix**: `php artisan migrate` + `php artisan db:seed --class=PlansSeeder` en local, y
+`rm -rf apps/web/.next` + reiniciar `npm run dev`. **Verificado**: `/auth/me` → 200 y
+la app carga completa en local.
+
+> Lección: tras agregar una columna que se lee en un endpoint caliente (`/auth/me`),
+> correr la migración en **todos** los entornos, no solo prod. El modo estricto de dev
+> convierte "columna faltante" en un 500 que tumba el arranque.
+
+## Realtime → CERRADO (misma sesión)
+
+Se "terminó" el ítem de realtime: el polling (arquitectura definitiva por
+ADR-015/017) ahora es **uniforme a 15 s** en las 5 pantallas operativas. Estaba
+disparejo: `cocina/mesero/mesas/caja` a 15 s pero **`pedidos` a 30 s** — la pantalla
+más crítica (pedidos entrantes del landing) era la más lenta. Se alineó `pedidos` a
+15 s. Ver estado de implementación en [ADR-017](../decisions/ADR-017-realtime-reverb-viable-en-vps-dedicado.md).
+Reverb queda como opción futura del owner, no como pendiente.
 
 ## Estado de producción al cierre
 
@@ -38,13 +55,18 @@ Sin cambios respecto al 09-14, salvo el fix del Select desplegado. Todo operativ
 verificación email, CAPTCHA, SMTP, self-service sucursales, gate de plan. Git =
 prod (todo commiteado y pusheado, último `403a3a1`).
 
-## Qué falta (igual que el cierre 09-14, nada nuevo)
+## Qué falta
 
 1. **Bot de WhatsApp (n8n)** — bloqueado: elegir proveedor (recomendado Cloud API).
 2. **Paridad ClickToShop** — portar lo de las sesiones 09-13/14 (verificación,
-   correos, banner, cero-alertas, self-service sucursales) + este fix del Select.
+   correos, banner, cero-alertas, self-service sucursales) + el fix del Select +
+   el ajuste de polling de pedidos.
 3. **Ops**: backups off-site (B2), restringir Google Maps API key, revisar tokens
    viejos expuestos, build/alta de la app móvil en stores.
-4. **Dev local**: arreglar el `/auth/me` 500 + auth/CSS del entorno de desarrollo.
-5. Features en espera de demanda (pre-pago Stripe Connect, API pública, A/B testing,
+4. Features en espera de demanda (pre-pago Stripe Connect, API pública, A/B testing,
    tracking repartidor, multi-idioma) — no construir sin cliente que las pida.
+
+## Cerrado en esta sesión (09-18)
+- ✅ Bug del Select dentro de modales (z-60→z-95) — en prod, confirmado.
+- ✅ Dev local roto (migraciones + `.next` limpio) — la app carga en local.
+- ✅ Realtime — polling 15s uniforme (pedidos alineado de 30s→15s); ítem cerrado.

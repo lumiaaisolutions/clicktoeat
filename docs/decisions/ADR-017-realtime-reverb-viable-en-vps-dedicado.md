@@ -68,6 +68,23 @@ Estimado: ~medio día, reversible. **Requiere OK del owner** por ser cambio en V
 - **Negativa**: ninguna nueva respecto a ADR-015 — seguimos con hasta 15s de retraso
   hasta que (si) se active.
 
+## Estado de implementación (cerrado 2026-09-18)
+
+El polling está **implementado y es uniforme** en las 5 pantallas operativas, a
+**15 s** (el estándar de ADR-015):
+
+| Pantalla | Intervalo |
+|---|---|
+| `/admin/cocina` | 15 s |
+| `/admin/mesero` | 15 s |
+| `/admin/mesas` | 15 s |
+| `/admin/caja` | 15 s |
+| `/admin/pedidos` | 15 s (antes 30 s — alineado el 2026-09-18 para que los pedidos entrantes del landing aparezcan con la misma prontitud) |
+
+Con esto, realtime queda **cerrado** como feature: no hay trabajo pendiente en la
+opción polling. La activación de Reverb (checklist arriba) es una decisión futura
+del owner, no un pendiente abierto.
+
 ## Gatillo recomendado para activar
 
 Cuando pase **cualquiera** de estos, reconsiderar:

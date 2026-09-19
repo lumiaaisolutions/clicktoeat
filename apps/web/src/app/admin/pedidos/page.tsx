@@ -128,10 +128,12 @@ export default function PedidosPage() {
 
   useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [estado, trashed]);
 
-  // Poll cada 30s en /admin/pedidos para refrescar (sustituto sin WebSockets — pendiente Reverb)
+  // Poll cada 15s — estándar de tiempo real de v1 (ADR-015/017, polling definitivo).
+  // Alineado con las pantallas de salón (cocina/mesero/caja/mesas) para que los
+  // pedidos entrantes del landing aparezcan con la misma prontitud.
   useEffect(() => {
     if (trashed) return;        // no polling cuando ves eliminados
-    const id = setInterval(refresh, 30_000);
+    const id = setInterval(refresh, 15_000);
     return () => clearInterval(id);
   /* eslint-disable-next-line */
   }, [estado, trashed]);
